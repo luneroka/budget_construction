@@ -1,6 +1,13 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
-app = FastAPI()
+from app.db.session import init_db
 
-@app.get('/')
-def main():
-  return {'message': 'Hello World'}
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+  print('Server starting .....')
+  await init_db()
+  yield
+
+  print('Server stopping .....')
+
+app = FastAPI(lifespan=lifespan)
