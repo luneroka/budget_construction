@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+.python-version
+
+# Virtual envs
+.venv/
+venv/
+
+# Environment
+.env
+
+# Docker
+postgres_data/
+
+# Alembic
+*.db
+
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+dist/
+
+# IDE
+.vscode/
+.idea/
