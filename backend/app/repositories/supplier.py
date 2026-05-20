@@ -1,3 +1,4 @@
+from datetime import datetime, UTC
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,6 +21,27 @@ async def get_supplier_by_id(db: AsyncSession, supplier_id: int) -> Supplier | N
     return result.scalar_one_or_none()
 
 
-async def get_suppliers(db: AsyncSession) -> list[Supplier]:
-    result = await db.execute(select(Supplier).order_by(Supplier.name))
+async def get_suppliers(
+    db: AsyncSession, include_deleted: bool = False
+) -> list[Supplier]:
+    query = select(Supplier).order_by(Supplier.name)
+
+    if not include_deleted:
+        query = query.where(Supplier.deleted_at.is_(None))
+
+    result = await db.execute(query)
     return list(result.scalars().all())
+
+
+async def soft_delete_supplier(db: AsyncSession, supplier_id: int) -> Supplier | None:
+    supplier = await get_supplier_by_id(db, supplier_id)
+
+    if supplier is None:
+        return None
+
+    supplier.deleted_at = datetime.now(UTC).replace(tzinfo=None)
+
+    await db.commit()
+    await db.refresh(supplier)
+
+    return supplier
