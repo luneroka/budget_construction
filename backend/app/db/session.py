@@ -3,7 +3,7 @@ from sqlalchemy import text
 from app.core.settings import settings
 
 DB_URL = settings.database_url
-assert DB_URL is not None, "DATABASE_URL must be set"
+assert DB_URL is not None, 'DATABASE_URL must be set'
 
 engine = create_async_engine(url=DB_URL, echo=True)
 

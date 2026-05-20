@@ -6,11 +6,11 @@ from app.routers import suppliers
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Server starting .....")
+    print('Server starting .....')
     await init_db()
     yield
 
-    print("Server stopping .....")
+    print('Server stopping .....')
 
 
 app = FastAPI(lifespan=lifespan)
