@@ -3,13 +3,15 @@ from fastapi import FastAPI
 from app.db.session import init_db
 from app.routers import suppliers
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-  print('Server starting .....')
-  await init_db()
-  yield
+    print("Server starting .....")
+    await init_db()
+    yield
 
-  print('Server stopping .....')
+    print("Server stopping .....")
+
 
 app = FastAPI(lifespan=lifespan)
 
