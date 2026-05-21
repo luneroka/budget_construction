@@ -22,9 +22,9 @@ class User(Base):
         DateTime,
         nullable=True,
         onupdate=lambda: datetime.now(UTC).replace(tzinfo=None),
-        server_default=func.now(),
     )
     is_active: Mapped[bool] = mapped_column(default=True, server_default='true')
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     suppliers = relationship('Supplier', back_populates='user')
+    projects = relationship('Project', back_populates='user')
