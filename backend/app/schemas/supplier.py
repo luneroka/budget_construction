@@ -15,6 +15,14 @@ class SupplierCreate(SupplierBase):
     pass
 
 
+class SupplierUpdate(BaseModel):
+    name: str | None = None
+    email: EmailStr | None = None
+    contact_name: str | None = None
+    phone_number: str | None = None
+    comment: str | None = None
+
+
 class SupplierRead(SupplierBase):
     id: int
     user_id: int
