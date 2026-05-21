@@ -17,6 +17,7 @@ class SupplierCreate(SupplierBase):
 
 class SupplierRead(SupplierBase):
     id: int
+    user_id: int
     created_at: datetime
     deleted_at: datetime | None = None
 

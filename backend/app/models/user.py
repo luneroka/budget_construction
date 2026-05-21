@@ -1,7 +1,7 @@
 from datetime import datetime, UTC
 
 from sqlalchemy import DateTime, String, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
@@ -26,3 +26,5 @@ class User(Base):
     )
     is_active: Mapped[bool] = mapped_column(default=True, server_default='true')
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    suppliers = relationship('Supplier', back_populates='user')
