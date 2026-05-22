@@ -18,10 +18,12 @@ class User(Base):
         default=lambda: datetime.now(UTC).replace(tzinfo=None),
         server_default=func.now(),
     )
-    updated_at: Mapped[datetime | None] = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        nullable=True,
+        default=lambda: datetime.now(UTC).replace(tzinfo=None),
+        server_default=func.now(),
         onupdate=lambda: datetime.now(UTC).replace(tzinfo=None),
+        nullable=False,
     )
     is_active: Mapped[bool] = mapped_column(default=True, server_default='true')
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
