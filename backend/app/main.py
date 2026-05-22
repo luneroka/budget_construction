@@ -9,6 +9,7 @@ from app.routers import (
     categories,
     subcategories,
     products,
+    catalog,
 )
 
 
@@ -30,3 +31,4 @@ app.include_router(projects.router)
 app.include_router(categories.router)
 app.include_router(subcategories.router)
 app.include_router(products.router)
+app.include_router(catalog.router)
