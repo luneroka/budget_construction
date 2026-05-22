@@ -25,6 +25,13 @@ class Supplier(Base):
         default=lambda: datetime.now(UTC).replace(tzinfo=None),
         server_default=func.now(),
     )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(UTC).replace(tzinfo=None),
+        server_default=func.now(),
+        onupdate=lambda: datetime.now(UTC).replace(tzinfo=None),
+        nullable=False,
+    )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     __table_args__: tuple[UniqueConstraint, ...] = (
