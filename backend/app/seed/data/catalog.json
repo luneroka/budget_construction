@@ -1,0 +1,772 @@
+[
+  {
+    "name": "Terrain & Préparation",
+    "sort_order": 1,
+    "subcategories": [
+      {
+        "name": "Études & administratif",
+        "sort_order": 1,
+        "products": [
+          {
+            "name": "Étude de sol G2",
+            "sort_order": 1
+          },
+          {
+            "name": "Achat terrain",
+            "sort_order": 2
+          },
+          {
+            "name": "Permis de construire (frais dossier)",
+            "sort_order": 3
+          },
+          {
+            "name": "Taxe d'aménagement (1,5%+1,30%+0,40%)",
+            "sort_order": 4
+          },
+          {
+            "name": "Architecte",
+            "sort_order": 5
+          },
+          {
+            "name": "Assurance DO (dommage ouvrage)",
+            "sort_order": 6
+          },
+          {
+            "name": "Etude thermique RT2020",
+            "sort_order": 7
+          }
+        ]
+      },
+      {
+        "name": "Terrassement",
+        "sort_order": 2,
+        "products": [
+          {
+            "name": "Préparation plateforme",
+            "sort_order": 1
+          },
+          {
+            "name": "Fouilles fondations",
+            "sort_order": 2
+          },
+          {
+            "name": "Évacuation déblais",
+            "sort_order": 3
+          },
+          {
+            "name": "Remblai / mise à niveau",
+            "sort_order": 4
+          },
+          {
+            "name": "Location mini-pelle / engins",
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "name": "Accès chantier",
+        "sort_order": 3,
+        "products": [
+          {
+            "name": "Chemin d'accès provisoire",
+            "sort_order": 1
+          },
+          {
+            "name": "Empierrement",
+            "sort_order": 2
+          },
+          {
+            "name": "Portail provisoire",
+            "sort_order": 3
+          },
+          {
+            "name": "Clôture chantier - Signalisation",
+            "sort_order": 4
+          },
+          {
+            "name": "Signalisation",
+            "sort_order": 5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Viabilisation",
+    "sort_order": 2,
+    "subcategories": [
+      {
+        "name": "Raccordement eau",
+        "sort_order": 1,
+        "products": [
+          {
+            "name": "Compteur eau",
+            "sort_order": 1
+          },
+          {
+            "name": "Tranchée alimentation",
+            "sort_order": 2
+          },
+          {
+            "name": "Tuyaux PEHD",
+            "sort_order": 3
+          },
+          {
+            "name": "Regard compteur",
+            "sort_order": 4
+          },
+          {
+            "name": "Main d'œuvre raccordement",
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "name": "Raccordement électricité",
+        "sort_order": 2,
+        "products": [
+          {
+            "name": "Coffret de chantier E.D.F.",
+            "sort_order": 1
+          },
+          {
+            "name": "Câble alimentation",
+            "sort_order": 2
+          },
+          {
+            "name": "Gaine TPC",
+            "sort_order": 3
+          },
+          {
+            "name": "Tranchées",
+            "sort_order": 4
+          }
+        ]
+      },
+      {
+        "name": "Assainissement",
+        "sort_order": 3,
+        "products": [
+          {
+            "name": "Fosse toutes eaux / microstation",
+            "sort_order": 1
+          },
+          {
+            "name": "Épandage / filtre compact",
+            "sort_order": 2
+          },
+          {
+            "name": "Tuyaux PVC",
+            "sort_order": 3
+          },
+          {
+            "name": "Regards",
+            "sort_order": 4
+          },
+          {
+            "name": "Ventilation vide sanitaire",
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "name": "Télécom / fibre",
+        "sort_order": 4,
+        "products": [
+          {
+            "name": "Gaine télécom",
+            "sort_order": 1
+          },
+          {
+            "name": "Regard FT",
+            "sort_order": 2
+          },
+          {
+            "name": "Câblage",
+            "sort_order": 3
+          },
+          {
+            "name": "Raccordement opérateur",
+            "sort_order": 4
+          },
+          {
+            "name": "Tranchée",
+            "sort_order": 5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Gros œuvre",
+    "sort_order": 3,
+    "subcategories": [
+      {
+        "name": "Fondations",
+        "sort_order": 1,
+        "products": [
+          {
+            "name": "Béton fondations",
+            "sort_order": 1
+          },
+          {
+            "name": "Ferraillage",
+            "sort_order": 2
+          },
+          {
+            "name": "M.A.L.T. Mise à la terre",
+            "sort_order": 3
+          },
+          {
+            "name": "Film polyane",
+            "sort_order": 4
+          },
+          {
+            "name": "Main d'œuvre maçon",
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "name": "Soubassement / vide sanitaire",
+        "sort_order": 2,
+        "products": [
+          {
+            "name": "Parpaings/Brique creuse terre",
+            "sort_order": 1
+          },
+          {
+            "name": "Mortier",
+            "sort_order": 2
+          },
+          {
+            "name": "Plancher poutrelles-Entrevous",
+            "sort_order": 3
+          },
+          {
+            "name": "Treillis soudé",
+            "sort_order": 4
+          },
+          {
+            "name": "Isolation plancher",
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "name": "Dalle",
+        "sort_order": 3,
+        "products": [
+          {
+            "name": "Béton dalle",
+            "sort_order": 1
+          },
+          {
+            "name": "Treillis",
+            "sort_order": 2
+          },
+          {
+            "name": "Polyane",
+            "sort_order": 3
+          },
+          {
+            "name": "Isolation sous dalle",
+            "sort_order": 4
+          },
+          {
+            "name": "Ragréage",
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "name": "Élévation murs",
+        "sort_order": 4,
+        "products": [
+          {
+            "name": "Parpaings / briques creuses terre",
+            "sort_order": 1
+          },
+          {
+            "name": "Mortier",
+            "sort_order": 2
+          },
+          {
+            "name": "Linteaux - Appuis - Seuils",
+            "sort_order": 3
+          },
+          {
+            "name": "Chaînages",
+            "sort_order": 4
+          },
+          {
+            "name": "Main d'œuvre",
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "name": "Charpente",
+        "sort_order": 5,
+        "products": [
+          {
+            "name": "Fermettes / poutres",
+            "sort_order": 1
+          },
+          {
+            "name": "Traitement bois",
+            "sort_order": 2
+          },
+          {
+            "name": "Isolation",
+            "sort_order": 3
+          },
+          {
+            "name": "Main d'œuvre",
+            "sort_order": 4
+          },
+          {
+            "name": "Location grue",
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "name": "Couverture",
+        "sort_order": 6,
+        "products": [
+          {
+            "name": "Couverture / Écran",
+            "sort_order": 1
+          },
+          {
+            "name": "Liteaux",
+            "sort_order": 2
+          },
+          {
+            "name": "Gouttières",
+            "sort_order": 3
+          },
+          {
+            "name": "Zinguerie",
+            "sort_order": 4
+          }
+        ]
+      },
+      {
+        "name": "Façades",
+        "sort_order": 7,
+        "products": [
+          {
+            "name": "Façades",
+            "sort_order": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Menuiseries",
+    "sort_order": 4,
+    "subcategories": [
+      {
+        "name": "Fenêtres",
+        "sort_order": 1,
+        "products": [
+          {
+            "name": "Fenêtres",
+            "sort_order": 1
+          },
+          {
+            "name": "Porte garage",
+            "sort_order": 2
+          },
+          {
+            "name": "Portes intérieures",
+            "sort_order": 3
+          },
+          {
+            "name": "Pose",
+            "sort_order": 4
+          }
+        ]
+      },
+      {
+        "name": "Portes extérieures",
+        "sort_order": 2,
+        "products": [
+          {
+            "name": "Porte d'entrée",
+            "sort_order": 1
+          },
+          {
+            "name": "Poignées - Serrures",
+            "sort_order": 2
+          },
+          {
+            "name": "Huisserie",
+            "sort_order": 3
+          }
+        ]
+      },
+      {
+        "name": "Volets",
+        "sort_order": 3,
+        "products": [
+          {
+            "name": "Volets roulants",
+            "sort_order": 1
+          },
+          {
+            "name": "Coffres",
+            "sort_order": 2
+          },
+          {
+            "name": "Installation",
+            "sort_order": 3
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Second œuvre",
+    "sort_order": 5,
+    "subcategories": [
+      {
+        "name": "Isolation",
+        "sort_order": 1,
+        "products": [
+          {
+            "name": "Laine de verre / roche",
+            "sort_order": 1
+          },
+          {
+            "name": "Pare-vapeur",
+            "sort_order": 2
+          },
+          {
+            "name": "Isolation des combles",
+            "sort_order": 3
+          },
+          {
+            "name": "Isolation plancher des combles",
+            "sort_order": 4
+          },
+          {
+            "name": "Main d'œuvre",
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "name": "Cloisons",
+        "sort_order": 2,
+        "products": [
+          {
+            "name": "Plaques BA13",
+            "sort_order": 1
+          },
+          {
+            "name": "Rails métalliques",
+            "sort_order": 2
+          },
+          {
+            "name": "Visserie",
+            "sort_order": 3
+          },
+          {
+            "name": "Bande à joint",
+            "sort_order": 4
+          },
+          {
+            "name": "Enduit",
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "name": "Électricité",
+        "sort_order": 3,
+        "products": [
+          {
+            "name": "Tableau électrique",
+            "sort_order": 1
+          },
+          {
+            "name": "Réseau KNX",
+            "sort_order": 2
+          },
+          {
+            "name": "Installation Photovoltaique",
+            "sort_order": 3
+          },
+          {
+            "name": "Gaines ICTA + fillerie/Câbles",
+            "sort_order": 4
+          },
+          {
+            "name": "Appareillage",
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "name": "Plomberie",
+        "sort_order": 4,
+        "products": [
+          {
+            "name": "Tuyaux PER - Cuivre",
+            "sort_order": 1
+          },
+          {
+            "name": "Robinetterie",
+            "sort_order": 2
+          },
+          {
+            "name": "Évacuation PVC",
+            "sort_order": 3
+          }
+        ]
+      },
+      {
+        "name": "Chauffage",
+        "sort_order": 5,
+        "products": [
+          {
+            "name": "Pompe à chaleur + E.C.S.",
+            "sort_order": 1
+          },
+          {
+            "name": "Plancher chauffant",
+            "sort_order": 2
+          },
+          {
+            "name": "Climatisation",
+            "sort_order": 3
+          }
+        ]
+      },
+      {
+        "name": "Ventilation",
+        "sort_order": 6,
+        "products": [
+          {
+            "name": "VMC simple/double flux",
+            "sort_order": 1
+          },
+          {
+            "name": "Gaines",
+            "sort_order": 2
+          },
+          {
+            "name": "Bouches",
+            "sort_order": 3
+          },
+          {
+            "name": "Caisson",
+            "sort_order": 4
+          },
+          {
+            "name": "Pose",
+            "sort_order": 5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Finitions",
+    "sort_order": 6,
+    "subcategories": [
+      {
+        "name": "Sols",
+        "sort_order": 1,
+        "products": [
+          {
+            "name": "Carrelage",
+            "sort_order": 1
+          },
+          {
+            "name": "Parquet",
+            "sort_order": 2
+          },
+          {
+            "name": "Sous-couche",
+            "sort_order": 3
+          },
+          {
+            "name": "Colle",
+            "sort_order": 4
+          },
+          {
+            "name": "Plinthes",
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "name": "Murs & plafonds",
+        "sort_order": 2,
+        "products": [
+          {
+            "name": "Peinture",
+            "sort_order": 1
+          },
+          {
+            "name": "Enduit finition",
+            "sort_order": 2
+          },
+          {
+            "name": "Sous-couche",
+            "sort_order": 3
+          },
+          {
+            "name": "Carrelage mural",
+            "sort_order": 4
+          },
+          {
+            "name": "Outils",
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "name": "Cuisine",
+        "sort_order": 3,
+        "products": [
+          {
+            "name": "Meubles",
+            "sort_order": 1
+          },
+          {
+            "name": "Plan de travail",
+            "sort_order": 2
+          },
+          {
+            "name": "Évier",
+            "sort_order": 3
+          },
+          {
+            "name": "Robinet",
+            "sort_order": 4
+          },
+          {
+            "name": "Électroménager",
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "name": "Salle de bain",
+        "sort_order": 4,
+        "products": [
+          {
+            "name": "Douche / baignoire",
+            "sort_order": 1
+          },
+          {
+            "name": "Meuble vasque",
+            "sort_order": 2
+          },
+          {
+            "name": "Bâti-support WC suspendu",
+            "sort_order": 3
+          },
+          {
+            "name": "Accessoires",
+            "sort_order": 4
+          },
+          {
+            "name": "Robinetterie",
+            "sort_order": 5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Extérieurs",
+    "sort_order": 7,
+    "subcategories": [
+      {
+        "name": "Aménagement terrain",
+        "sort_order": 1,
+        "products": [
+          {
+            "name": "Terre végétale",
+            "sort_order": 1
+          },
+          {
+            "name": "Engazonnement",
+            "sort_order": 2
+          },
+          {
+            "name": "Plantation",
+            "sort_order": 3
+          },
+          {
+            "name": "Arrosage",
+            "sort_order": 4
+          },
+          {
+            "name": "Clôture",
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "name": "Terrasse",
+        "sort_order": 2,
+        "products": [
+          {
+            "name": "Dalle béton",
+            "sort_order": 1
+          },
+          {
+            "name": "Carrelage extérieur",
+            "sort_order": 2
+          },
+          {
+            "name": "Bois terrasse",
+            "sort_order": 3
+          },
+          {
+            "name": "Lambourdes",
+            "sort_order": 4
+          },
+          {
+            "name": "Fixations",
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "name": "Allées / accès",
+        "sort_order": 3,
+        "products": [
+          {
+            "name": "Gravier",
+            "sort_order": 1
+          },
+          {
+            "name": "Pavés",
+            "sort_order": 2
+          },
+          {
+            "name": "Bordures",
+            "sort_order": 3
+          },
+          {
+            "name": "Géotextile",
+            "sort_order": 4
+          },
+          {
+            "name": "Compactage",
+            "sort_order": 5
+          }
+        ]
+      }
+    ]
+  }
+]
