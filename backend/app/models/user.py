@@ -17,6 +17,7 @@ class User(Base):
         DateTime,
         default=lambda: datetime.now(UTC).replace(tzinfo=None),
         server_default=func.now(),
+        nullable=False,
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
