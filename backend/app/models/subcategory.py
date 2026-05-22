@@ -1,6 +1,6 @@
 from datetime import datetime, UTC
 
-from sqlalchemy import ForeignKey, DateTime, String, func
+from sqlalchemy import ForeignKey, DateTime, String, func, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -31,6 +31,14 @@ class Subcategory(Base):
         DateTime,
         nullable=True,
         onupdate=lambda: datetime.now(UTC).replace(tzinfo=None),
+    )
+
+    __table_args__: tuple[UniqueConstraint, ...] = (
+        UniqueConstraint(
+            'category_id',
+            'name',
+            name='uq_subcategories_category_id_name',
+        ),
     )
 
     category = relationship('Category', back_populates='subcategories')
