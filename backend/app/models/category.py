@@ -1,9 +1,13 @@
 from datetime import datetime, UTC
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.project_template_item import ProjectTemplateItem
 
 
 class Category(Base):
@@ -32,6 +36,9 @@ class Category(Base):
     )
 
     subcategories = relationship('Subcategory', back_populates='category')
+    template_items: Mapped[list['ProjectTemplateItem']] = relationship(
+        'ProjectTemplateItem', back_populates='category'
+    )
 
     def __repr__(self):
         return f'<Category id={self.id}, name={self.name}>'

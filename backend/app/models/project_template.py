@@ -1,7 +1,7 @@
 from datetime import datetime, UTC
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, DateTime, String, func, UniqueConstraint
+from sqlalchemy import DateTime, String, Text, func, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -10,19 +10,15 @@ if TYPE_CHECKING:
     from app.models.project_template_item import ProjectTemplateItem
 
 
-class Product(Base):
-    __tablename__ = 'products'
+class ProjectTemplate(Base):
+    __tablename__ = 'project_templates'
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-
-    subcategory_id: Mapped[int] = mapped_column(
-        ForeignKey('subcategories.id', ondelete='CASCADE'), nullable=False, index=True
+    name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
     )
-
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    sort_order: Mapped[int] = mapped_column(
-        default=0, server_default='0', nullable=False
-    )
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(
         default=True, server_default='true', nullable=False
     )
@@ -42,17 +38,16 @@ class Product(Base):
 
     __table_args__: tuple[UniqueConstraint, ...] = (
         UniqueConstraint(
-            'subcategory_id',
             'name',
-            name='uq_products_subcategory_id_name',
+            name='uq_project_template_name',
         ),
     )
 
-    subcategory = relationship('Subcategory', back_populates='products')
-    # project_items = relationship('ProjectItem', back_populates='source_product')
     template_items: Mapped[list['ProjectTemplateItem']] = relationship(
-        'ProjectTemplateItem', back_populates='product'
+        'ProjectTemplateItem',
+        back_populates='template',
+        cascade='all, delete-orphan',
     )
 
     def __repr__(self):
-        return f'<Product id={self.id}, name={self.name}>'
+        return f'<Project Template id={self.id}, name={self.name}>'
