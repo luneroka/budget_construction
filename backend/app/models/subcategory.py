@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, UTC
 from typing import TYPE_CHECKING
 
@@ -50,7 +52,7 @@ class Subcategory(Base):
 
     category = relationship('Category', back_populates='subcategories')
     products = relationship('Product', back_populates='subcategory')
-    template_items: Mapped[list['ProjectTemplateItem']] = relationship(
+    template_items: Mapped[list[ProjectTemplateItem]] = relationship(
         'ProjectTemplateItem', back_populates='subcategory'
     )
 

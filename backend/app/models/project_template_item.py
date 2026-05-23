@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, UTC
 from typing import TYPE_CHECKING
 
@@ -18,7 +20,7 @@ class ProjectTemplateItem(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 
-    template_id: Mapped[int] = mapped_column(
+    project_template_id: Mapped[int] = mapped_column(
         ForeignKey('project_templates.id', ondelete='CASCADE'),
         nullable=False,
         index=True,
@@ -64,24 +66,22 @@ class ProjectTemplateItem(Base):
         nullable=False,
     )
 
-    template: Mapped['ProjectTemplate'] = relationship(
+    template: Mapped[ProjectTemplate] = relationship(
         'ProjectTemplate', back_populates='template_items'
     )
-    category: Mapped['Category'] = relationship(
+    category: Mapped[Category] = relationship(
         'Category', back_populates='template_items'
     )
-    subcategory: Mapped['Subcategory'] = relationship(
+    subcategory: Mapped[Subcategory] = relationship(
         'Subcategory', back_populates='template_items'
     )
-    product: Mapped['Product'] = relationship(
-        'Product', back_populates='template_items'
-    )
-    parent_template_item: Mapped['ProjectTemplateItem | None'] = relationship(
+    product: Mapped[Product] = relationship('Product', back_populates='template_items')
+    parent_template_item: Mapped[ProjectTemplateItem | None] = relationship(
         'ProjectTemplateItem',
         remote_side=[id],
         back_populates='child_template_items',
     )
-    child_template_items: Mapped[list['ProjectTemplateItem']] = relationship(
+    child_template_items: Mapped[list[ProjectTemplateItem]] = relationship(
         'ProjectTemplateItem',
         back_populates='parent_template_item',
         cascade='all, delete-orphan',

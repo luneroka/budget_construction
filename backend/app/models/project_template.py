@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, UTC
 from typing import TYPE_CHECKING
 
@@ -43,7 +45,7 @@ class ProjectTemplate(Base):
         ),
     )
 
-    template_items: Mapped[list['ProjectTemplateItem']] = relationship(
+    template_items: Mapped[list[ProjectTemplateItem]] = relationship(
         'ProjectTemplateItem',
         back_populates='template',
         cascade='all, delete-orphan',
