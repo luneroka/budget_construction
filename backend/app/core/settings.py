@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     secret_key: Optional[str] = None
     algorithm: Optional[str] = None
     access_token_expire_minutes: Optional[int] = None
+    resend_api_key: Optional[str] = None
+    resend_from: Optional[str] = None
+    app_url: Optional[str] = None
 
     model_config = SettingsConfigDict(
         env_file='.env',

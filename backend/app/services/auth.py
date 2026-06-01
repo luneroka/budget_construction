@@ -1,6 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Any
 
-from app.core.security import hash_password, verify_password
+from app.core.security import (
+    create_password_reset_token,
+    decode_password_reset_token,
+    hash_password,
+    verify_password,
+)
 from app.repositories import user as user_repository
 from app.schemas.user import UserCreate
 from app.models.user import User
@@ -32,3 +38,45 @@ async def authenticate_user(db: AsyncSession, email: str, password: str) -> User
         return None
 
     return user
+
+
+async def generate_password_reset_token(
+    db: AsyncSession, email: str, expires_minutes: int = 15
+) -> str | None:
+    user = await user_repository.get_user_by_email(db, email)
+
+    if user is None or not user.is_active:
+        return None
+
+    # Use user id as subject to avoid exposing email in token
+    return create_password_reset_token(
+        subject=str(user.id), expires_minutes=expires_minutes
+    )
+
+
+async def reset_password(db: AsyncSession, token: str, new_password: str) -> bool:
+    try:
+        payload = decode_password_reset_token(token)
+    except Exception:
+        return False
+
+    subject: Any = payload.get('sub')
+
+    if not isinstance(subject, str):
+        return False
+
+    try:
+        user_id = int(subject)
+    except (TypeError, ValueError):
+        return False
+
+    user = await user_repository.get_user_by_id(db, user_id)
+
+    if user is None or not user.is_active:
+        return False
+
+    hashed = hash_password(new_password)
+
+    await user_repository.update_user_password(db=db, user=user, hashed_password=hashed)
+
+    return True

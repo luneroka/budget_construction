@@ -35,6 +35,19 @@ async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
     return result.scalar_one_or_none()
 
 
+async def update_user_password(
+    db: AsyncSession,
+    user: User,
+    hashed_password: str,
+) -> User:
+    user.hashed_password = hashed_password
+
+    await db.commit()
+    await db.refresh(user)
+
+    return user
+
+
 async def soft_delete_user(db: AsyncSession, user_id: int) -> User | None:
     user = await get_user_by_id(db, user_id)
 

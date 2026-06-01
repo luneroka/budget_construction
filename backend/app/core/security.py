@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, UTC
 from typing import TypeVar, cast
 
-from jose import jwt
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.core.settings import settings
@@ -9,6 +9,8 @@ from app.core.settings import settings
 T = TypeVar('T')
 JWTPayload = dict[str, str | datetime]
 DecodedToken = dict[str, object]
+ACCESS_TOKEN_PURPOSE = 'access'
+PASSWORD_RESET_TOKEN_PURPOSE = 'password_reset'
 
 
 def _require_setting(name: str, value: T | None) -> T:
@@ -38,10 +40,41 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def create_access_token(subject: str) -> str:
     expire = datetime.now(UTC) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
-    payload: JWTPayload = {'sub': subject, 'exp': expire}
+    payload: JWTPayload = {
+        'sub': subject,
+        'exp': expire,
+        'purpose': ACCESS_TOKEN_PURPOSE,
+    }
 
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
+def create_password_reset_token(subject: str, expires_minutes: int = 15) -> str:
+    expire = datetime.now(UTC) + timedelta(minutes=expires_minutes)
+
+    payload: JWTPayload = {
+        'sub': subject,
+        'exp': expire,
+        'purpose': PASSWORD_RESET_TOKEN_PURPOSE,
+    }
+
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def decode_password_reset_token(token: str) -> DecodedToken:
+    return _decode_token(token, expected_purpose=PASSWORD_RESET_TOKEN_PURPOSE)
+
+
 def decode_access_token(token: str) -> DecodedToken:
-    return cast(DecodedToken, jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]))
+    return _decode_token(token, expected_purpose=ACCESS_TOKEN_PURPOSE)
+
+
+def _decode_token(token: str, expected_purpose: str) -> DecodedToken:
+    payload = cast(
+        DecodedToken, jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    )
+
+    if payload.get('purpose') != expected_purpose:
+        raise JWTError('Invalid token purpose')
+
+    return payload
