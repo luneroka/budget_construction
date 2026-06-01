@@ -1,7 +1,7 @@
 from __future__ import annotations
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.project_template_item import ProjectTemplateItemRead
 
@@ -30,6 +30,5 @@ class ProjectTemplateRead(ProjectTemplateBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-# New class with template_items
 class ProjectTemplateWithItems(ProjectTemplateRead):
-    template_items: list[ProjectTemplateItemRead] = []
+    template_items: list[ProjectTemplateItemRead] = Field(default_factory=list)

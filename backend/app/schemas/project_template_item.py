@@ -8,7 +8,6 @@ from app.schemas.product import ProductWithHierarchy
 
 
 class ProjectTemplateItemBase(BaseModel):
-    project_template_id: int
     product_id: int
     parent_template_item_id: int | None = None
     default_name: str
@@ -30,12 +29,9 @@ class ProjectTemplateItemUpdate(BaseModel):
 
 class ProjectTemplateItemRead(ProjectTemplateItemBase):
     id: int
+    project_template_id: int
     product: ProductWithHierarchy
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-
-
-class ProjectTemplateItemWithChildren(ProjectTemplateItemRead):
-    child_template_items: list[ProjectTemplateItemWithChildren] = []
