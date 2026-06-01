@@ -1,6 +1,6 @@
 from datetime import datetime, UTC
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -35,8 +35,14 @@ class Supplier(Base):
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
-    __table_args__: tuple[UniqueConstraint, ...] = (
-        UniqueConstraint('user_id', 'name', name='uq_suppliers_user_id_name'),
+    __table_args__: tuple[Index, ...] = (
+        Index(
+            'uq_suppliers_user_id_name',
+            'user_id',
+            'name',
+            unique=True,
+            postgresql_where=text('deleted_at IS NULL'),
+        ),
     )
 
     user = relationship('User', back_populates='suppliers')

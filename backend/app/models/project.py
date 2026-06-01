@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime, UTC
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Date, DateTime, String, Text, func, UniqueConstraint
+from sqlalchemy import ForeignKey, Date, DateTime, Index, String, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -41,8 +41,14 @@ class Project(Base):
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
-    __table_args__: tuple[UniqueConstraint, ...] = (
-        UniqueConstraint('user_id', 'name', name='uq_projects_user_id_name'),
+    __table_args__: tuple[Index, ...] = (
+        Index(
+            'uq_projects_user_id_name',
+            'user_id',
+            'name',
+            unique=True,
+            postgresql_where=text('deleted_at IS NULL'),
+        ),
     )
 
     user = relationship('User', back_populates='projects')
