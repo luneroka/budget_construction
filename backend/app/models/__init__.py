@@ -6,6 +6,7 @@ from app.models.subcategory import Subcategory
 from app.models.product import Product
 from app.models.project_template import ProjectTemplate
 from app.models.project_template_item import ProjectTemplateItem
+from app.models.project_item import ProjectItem
 
 __all__ = [
     'User',
@@ -16,4 +17,5 @@ __all__ = [
     'Product',
     'ProjectTemplate',
     'ProjectTemplateItem',
+    'ProjectItem',
 ]
