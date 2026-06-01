@@ -9,10 +9,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
-    from app.models.category import Category
     from app.models.product import Product
     from app.models.project_template import ProjectTemplate
-    from app.models.subcategory import Subcategory
 
 
 class ProjectTemplateItem(Base):
@@ -26,12 +24,6 @@ class ProjectTemplateItem(Base):
         index=True,
     )
 
-    category_id: Mapped[int] = mapped_column(
-        ForeignKey('categories.id'), nullable=False, index=True
-    )
-    subcategory_id: Mapped[int] = mapped_column(
-        ForeignKey('subcategories.id'), nullable=False, index=True
-    )
     product_id: Mapped[int] = mapped_column(
         ForeignKey('products.id'), nullable=False, index=True
     )
@@ -68,12 +60,6 @@ class ProjectTemplateItem(Base):
 
     template: Mapped[ProjectTemplate] = relationship(
         'ProjectTemplate', back_populates='template_items'
-    )
-    category: Mapped[Category] = relationship(
-        'Category', back_populates='template_items'
-    )
-    subcategory: Mapped[Subcategory] = relationship(
-        'Subcategory', back_populates='template_items'
     )
     product: Mapped[Product] = relationship('Product', back_populates='template_items')
     parent_template_item: Mapped[ProjectTemplateItem | None] = relationship(

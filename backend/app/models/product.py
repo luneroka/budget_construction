@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.models.project_item import ProjectItem
     from app.models.project_template_item import ProjectTemplateItem
 
 
@@ -51,7 +52,9 @@ class Product(Base):
     )
 
     subcategory = relationship('Subcategory', back_populates='products')
-    # project_items = relationship('ProjectItem', back_populates='source_product')
+    project_items: Mapped[list[ProjectItem]] = relationship(
+        'ProjectItem', back_populates='product'
+    )
     template_items: Mapped[list[ProjectTemplateItem]] = relationship(
         'ProjectTemplateItem', back_populates='product'
     )

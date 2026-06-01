@@ -8,9 +8,7 @@ from pydantic import BaseModel, ConfigDict
 class ProjectItemBase(BaseModel):
     project_id: int
     template_item_id: int | None = None
-    source_category_id: int
-    source_subcategory_id: int
-    source_product_id: int
+    product_id: int
     parent_item_id: int | None = None
     name: str
     is_custom: bool = False
@@ -23,9 +21,7 @@ class ProjectItemCreate(ProjectItemBase):
 
 
 class ProjectItemUpdate(BaseModel):
-    source_category_id: int | None = None
-    source_subcategory_id: int | None = None
-    source_product_id: int | None = None
+    product_id: int | None = None
     parent_item_id: int | None = None
     name: str | None = None
     is_custom: bool | None = None
