@@ -11,7 +11,7 @@ class ProjectTemplateItemBase(BaseModel):
     subcategory_id: int | None = None
     product_id: int | None = None
     parent_template_item_id: int | None = None
-    name: str
+    default_name: str
     sort_order: int = 0
     is_required: bool = True
 
@@ -25,7 +25,7 @@ class ProjectTemplateItemUpdate(BaseModel):
     subcategory_id: int | None = None
     product_id: int | None = None
     parent_template_item_id: int | None = None
-    name: str | None = None
+    default_name: str | None = None
     sort_order: int | None = None
     is_required: bool | None = None
 
