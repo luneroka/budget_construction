@@ -27,7 +27,7 @@ class ProjectItem(Base):
     )
 
     template_item_id: Mapped[int | None] = mapped_column(
-        ForeignKey('project_template_items.id', ondelete='CASCADE'),
+        ForeignKey('project_template_items.id', ondelete='SET NULL'),
         nullable=True,
         index=True,
     )
