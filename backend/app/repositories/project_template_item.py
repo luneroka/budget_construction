@@ -115,7 +115,7 @@ async def get_project_template_items_by_template_id(
         )
         .where(ProjectTemplateItem.project_template_id == project_template_id)
         .order_by(
-            ProjectTemplateItem.parent_template_item_id,
+            ProjectTemplateItem.parent_template_item_id.nullsfirst(),
             ProjectTemplateItem.sort_order,
             ProjectTemplateItem.id,
         )

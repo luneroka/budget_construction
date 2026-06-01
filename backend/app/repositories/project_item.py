@@ -8,6 +8,8 @@ from app.models.category import Category
 from app.models.product import Product
 from app.models.project import Project
 from app.models.project_item import ProjectItem
+from app.models.project_template import ProjectTemplate
+from app.models.project_template_item import ProjectTemplateItem
 from app.models.subcategory import Subcategory
 from app.schemas.project_item import ProjectItemCreate, ProjectItemUpdate
 
@@ -91,10 +93,144 @@ async def get_project_items(
             ProjectItem.project_id == project_id,
             ProjectItem.deleted_at.is_(None),
         )
-        .order_by(ProjectItem.parent_item_id, ProjectItem.sort_order, ProjectItem.id)
+        .order_by(
+            ProjectItem.parent_item_id.nullsfirst(),
+            ProjectItem.sort_order,
+            ProjectItem.id,
+        )
     )
 
     return list(result.scalars().all())
+
+
+async def load_project_template(
+    db: AsyncSession,
+    project_id: int,
+    project_template_id: int,
+    user_id: int,
+) -> list[ProjectItem] | None:
+    if await _get_active_project(db, project_id, user_id) is None:
+        return None
+
+    result = await db.execute(
+        select(ProjectTemplate).where(
+            ProjectTemplate.id == project_template_id,
+            ProjectTemplate.is_active.is_(True),
+        )
+    )
+    if result.scalar_one_or_none() is None:
+        raise ProjectItemValidationError('Project template not found or inactive')
+
+    result = await db.execute(
+        select(ProjectItem.id)
+        .join(
+            ProjectTemplateItem,
+            ProjectItem.template_item_id == ProjectTemplateItem.id,
+        )
+        .where(
+            ProjectItem.project_id == project_id,
+            ProjectItem.deleted_at.is_(None),
+            ProjectTemplateItem.project_template_id == project_template_id,
+        )
+        .limit(1)
+    )
+    if result.scalar_one_or_none() is not None:
+        raise ProjectItemValidationError(
+            'This project template has already been loaded into the project'
+        )
+
+    result = await db.execute(
+        select(ProjectTemplateItem)
+        .options(
+            joinedload(ProjectTemplateItem.product)
+            .joinedload(Product.subcategory)
+            .joinedload(Subcategory.category)
+        )
+        .where(ProjectTemplateItem.project_template_id == project_template_id)
+        .order_by(
+            ProjectTemplateItem.parent_template_item_id.nullsfirst(),
+            ProjectTemplateItem.sort_order,
+            ProjectTemplateItem.id,
+        )
+    )
+    template_items = list(result.scalars().all())
+    template_items_by_id = {template_item.id: template_item for template_item in template_items}
+
+    for template_item in template_items:
+        product = template_item.product
+        if (
+            not product.is_active
+            or not product.subcategory.is_active
+            or not product.subcategory.category.is_active
+        ):
+            raise ProjectItemValidationError(
+                f'Product {template_item.product_id} not found or inactive'
+            )
+
+        if template_item.parent_template_item_id is None:
+            continue
+
+        parent_template_item = template_items_by_id.get(
+            template_item.parent_template_item_id
+        )
+        if parent_template_item is None:
+            raise ProjectItemValidationError(
+                'Template item parent does not belong to the selected template'
+            )
+        if parent_template_item.parent_template_item_id is not None:
+            raise ProjectItemValidationError(
+                'Nested template breakdown items are not supported'
+            )
+        if parent_template_item.product_id != template_item.product_id:
+            raise ProjectItemValidationError(
+                'A template breakdown item must use the same product as its parent'
+            )
+
+    project_items_by_template_item_id: dict[int, ProjectItem] = {}
+    for template_item in template_items:
+        if template_item.parent_template_item_id is not None:
+            continue
+
+        project_item = ProjectItem(
+            project_id=project_id,
+            template_item_id=template_item.id,
+            product_id=template_item.product_id,
+            name=template_item.default_name,
+            is_custom=False,
+            is_breakdown_item=False,
+            sort_order=template_item.sort_order,
+        )
+        db.add(project_item)
+        project_items_by_template_item_id[template_item.id] = project_item
+
+    await db.flush()
+
+    for template_item in template_items:
+        if template_item.parent_template_item_id is None:
+            continue
+
+        parent_item = project_items_by_template_item_id[
+            template_item.parent_template_item_id
+        ]
+        project_item = ProjectItem(
+            project_id=project_id,
+            template_item_id=template_item.id,
+            product_id=template_item.product_id,
+            parent_item_id=parent_item.id,
+            name=template_item.default_name,
+            is_custom=False,
+            is_breakdown_item=True,
+            sort_order=template_item.sort_order,
+        )
+        db.add(project_item)
+        project_items_by_template_item_id[template_item.id] = project_item
+
+    await db.commit()
+
+    project_items = await get_project_items(db, project_id, user_id)
+    assert project_items is not None
+
+    return project_items
 
 
 async def _validate_parent(

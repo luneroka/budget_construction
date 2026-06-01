@@ -56,6 +56,32 @@ async def get_project_items(
     return project_items
 
 
+@router.post(
+    '/from-template/{project_template_id}',
+    response_model=list[ProjectItemRead],
+    status_code=status.HTTP_201_CREATED,
+)
+async def load_project_template(
+    project_id: int,
+    project_template_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        project_items = await project_item_repository.load_project_template(
+            db, project_id, project_template_id, current_user.id
+        )
+    except project_item_repository.ProjectItemValidationError as error:
+        _bad_request(error)
+
+    if project_items is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
+        )
+
+    return project_items
+
+
 @router.get('/{project_item_id}', response_model=ProjectItemRead)
 async def get_project_item(
     project_id: int,
