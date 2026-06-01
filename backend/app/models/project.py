@@ -1,9 +1,15 @@
+from __future__ import annotations
+
 from datetime import date, datetime, UTC
+from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Date, DateTime, String, Text, func, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.project_item import ProjectItem
 
 
 class Project(Base):
@@ -40,6 +46,9 @@ class Project(Base):
     )
 
     user = relationship('User', back_populates='projects')
+    project_items: Mapped[list[ProjectItem]] = relationship(
+        'ProjectItem', back_populates='project'
+    )
 
     def __repr__(self):
         return f'<Project id={self.id} name={self.name}>'

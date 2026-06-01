@@ -62,7 +62,7 @@ class ProjectItem(Base):
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
-    project: Mapped[Project] = relationship('Project')
+    project: Mapped[Project] = relationship('Project', back_populates='project_items')
     template_item: Mapped[ProjectTemplateItem | None] = relationship(
         'ProjectTemplateItem'
     )
