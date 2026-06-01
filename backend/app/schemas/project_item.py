@@ -4,6 +4,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.product import ProductWithHierarchy
+
 
 class ProjectItemBase(BaseModel):
     project_id: int
@@ -31,6 +33,7 @@ class ProjectItemUpdate(BaseModel):
 
 class ProjectItemRead(ProjectItemBase):
     id: int
+    product: ProductWithHierarchy
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = None

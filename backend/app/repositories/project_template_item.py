@@ -2,8 +2,11 @@ from collections.abc import Sequence
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
+from app.models.product import Product
 from app.models.project_template_item import ProjectTemplateItem
+from app.models.subcategory import Subcategory
 from app.schemas.project_template_item import (
     ProjectTemplateItemCreate,
     ProjectTemplateItemUpdate,
@@ -20,17 +23,25 @@ async def create_project_template_item(
 
     db.add(project_template_item)
     await db.commit()
-    await db.refresh(project_template_item)
 
-    return project_template_item
+    created_item = await get_project_template_item_by_id(db, project_template_item.id)
+    assert created_item is not None
+
+    return created_item
 
 
 async def get_project_template_item_by_id(
     db: AsyncSession,
     project_template_item_id: int,
 ) -> ProjectTemplateItem | None:
-    query = select(ProjectTemplateItem).where(
-        ProjectTemplateItem.id == project_template_item_id
+    query = (
+        select(ProjectTemplateItem)
+        .options(
+            joinedload(ProjectTemplateItem.product)
+            .joinedload(Product.subcategory)
+            .joinedload(Subcategory.category)
+        )
+        .where(ProjectTemplateItem.id == project_template_item_id)
     )
     result = await db.execute(query)
 
@@ -43,6 +54,11 @@ async def get_project_template_items_by_template_id(
 ) -> Sequence[ProjectTemplateItem]:
     query = (
         select(ProjectTemplateItem)
+        .options(
+            joinedload(ProjectTemplateItem.product)
+            .joinedload(Product.subcategory)
+            .joinedload(Subcategory.category)
+        )
         .where(ProjectTemplateItem.project_template_id == project_template_id)
         .order_by(
             ProjectTemplateItem.parent_template_item_id,
@@ -62,6 +78,11 @@ async def get_child_template_items(
 ) -> Sequence[ProjectTemplateItem]:
     query = (
         select(ProjectTemplateItem)
+        .options(
+            joinedload(ProjectTemplateItem.product)
+            .joinedload(Product.subcategory)
+            .joinedload(Subcategory.category)
+        )
         .where(ProjectTemplateItem.parent_template_item_id == parent_template_item_id)
         .order_by(ProjectTemplateItem.sort_order, ProjectTemplateItem.id)
     )
@@ -82,9 +103,11 @@ async def update_project_template_item(
         setattr(project_template_item, key, value)
 
     await db.commit()
-    await db.refresh(project_template_item)
 
-    return project_template_item
+    updated_item = await get_project_template_item_by_id(db, project_template_item.id)
+    assert updated_item is not None
+
+    return updated_item
 
 
 async def delete_project_template_item(
@@ -107,7 +130,16 @@ async def create_project_template_items_bulk(
     db.add_all(project_template_items)
     await db.commit()
 
-    for item in project_template_items:
-        await db.refresh(item)
+    item_ids = [item.id for item in project_template_items]
+    result = await db.execute(
+        select(ProjectTemplateItem)
+        .options(
+            joinedload(ProjectTemplateItem.product)
+            .joinedload(Product.subcategory)
+            .joinedload(Subcategory.category)
+        )
+        .where(ProjectTemplateItem.id.in_(item_ids))
+    )
+    items_by_id = {item.id: item for item in result.scalars().all()}
 
-    return project_template_items
+    return [items_by_id[item_id] for item_id in item_ids]

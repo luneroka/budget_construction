@@ -2,8 +2,12 @@ from collections.abc import Sequence
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
+from app.models.product import Product
 from app.models.project_template import ProjectTemplate
+from app.models.project_template_item import ProjectTemplateItem
+from app.models.subcategory import Subcategory
 from app.schemas.project_template import ProjectTemplateCreate, ProjectTemplateUpdate
 
 
@@ -22,10 +26,19 @@ async def create_project_template(
 async def get_project_template_by_id(
     db: AsyncSession, project_template_id: int
 ) -> ProjectTemplate | None:
-    query = select(ProjectTemplate).where(ProjectTemplate.id == project_template_id)
+    query = (
+        select(ProjectTemplate)
+        .options(
+            joinedload(ProjectTemplate.template_items)
+            .joinedload(ProjectTemplateItem.product)
+            .joinedload(Product.subcategory)
+            .joinedload(Subcategory.category)
+        )
+        .where(ProjectTemplate.id == project_template_id)
+    )
     result = await db.execute(query)
 
-    return result.scalar_one_or_none()
+    return result.unique().scalar_one_or_none()
 
 
 async def get_project_template_by_name(

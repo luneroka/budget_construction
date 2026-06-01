@@ -59,5 +59,17 @@ class Product(Base):
         'ProjectTemplateItem', back_populates='product'
     )
 
+    @property
+    def subcategory_name(self) -> str:
+        return self.subcategory.name
+
+    @property
+    def category_id(self) -> int:
+        return self.subcategory.category_id
+
+    @property
+    def category_name(self) -> str:
+        return self.subcategory.category.name
+
     def __repr__(self):
         return f'<Product id={self.id}, name={self.name}>'
