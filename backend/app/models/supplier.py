@@ -40,6 +40,7 @@ class Supplier(Base):
     )
 
     user = relationship('User', back_populates='suppliers')
+    transactions = relationship('Transaction', back_populates='supplier')
 
     def __repr__(self):
         return f'<Supplier id={self.id} name={self.name}>'

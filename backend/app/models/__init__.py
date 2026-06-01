@@ -7,6 +7,7 @@ from app.models.product import Product
 from app.models.project_template import ProjectTemplate
 from app.models.project_template_item import ProjectTemplateItem
 from app.models.project_item import ProjectItem
+from app.models.transaction import Transaction
 
 __all__ = [
     'User',
@@ -18,4 +19,5 @@ __all__ = [
     'ProjectTemplate',
     'ProjectTemplateItem',
     'ProjectItem',
+    'Transaction',
 ]

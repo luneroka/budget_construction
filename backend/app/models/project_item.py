@@ -88,4 +88,8 @@ class ProjectItem(Base):
         back_populates='parent_item',
         cascade='all, delete-orphan',
     )
-    transactions: Mapped[list[Transaction]] = relationship('Transaction')
+    transactions: Mapped[list[Transaction]] = relationship(
+        'Transaction',
+        back_populates='project_item',
+        cascade='all, delete-orphan',
+    )
