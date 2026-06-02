@@ -20,7 +20,7 @@ from app.db.base import Base
 if TYPE_CHECKING:
     from app.models.product import Product
     from app.models.project import Project
-    from app.models.project_template_item import ProjectTemplateItem
+    from app.models.template_item import TemplateItem
     from app.models.transaction import Transaction
 
 
@@ -39,7 +39,7 @@ class ProjectItem(Base):
     )
 
     template_item_id: Mapped[int | None] = mapped_column(
-        ForeignKey('project_template_items.id', ondelete='SET NULL'),
+        ForeignKey('template_items.id', ondelete='SET NULL'),
         nullable=True,
         index=True,
     )
@@ -82,9 +82,7 @@ class ProjectItem(Base):
     )
 
     project: Mapped[Project] = relationship('Project', back_populates='project_items')
-    template_item: Mapped[ProjectTemplateItem | None] = relationship(
-        'ProjectTemplateItem'
-    )
+    template_item: Mapped[TemplateItem | None] = relationship('TemplateItem')
     product: Mapped[Product] = relationship('Product', back_populates='project_items')
     transactions: Mapped[list[Transaction]] = relationship(
         'Transaction',

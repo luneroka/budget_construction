@@ -8,8 +8,8 @@ from app.models.category import Category
 from app.models.product import Product
 from app.models.project import Project
 from app.models.project_item import ProjectItem, ProjectItemType
-from app.models.project_template import ProjectTemplate
-from app.models.project_template_item import ProjectTemplateItem
+from app.models.template import Template
+from app.models.template_item import TemplateItem
 from app.models.subcategory import Subcategory
 from app.schemas.project_item import ProjectItemCreate, ProjectItemUpdate
 
@@ -102,53 +102,53 @@ async def get_project_items(
     return list(result.scalars().all())
 
 
-async def load_project_template(
+async def load_template(
     db: AsyncSession,
     project_id: int,
-    project_template_id: int,
+    template_id: int,
     user_id: int,
 ) -> list[ProjectItem] | None:
     if await _get_active_project(db, project_id, user_id) is None:
         return None
 
     result = await db.execute(
-        select(ProjectTemplate).where(
-            ProjectTemplate.id == project_template_id,
-            ProjectTemplate.is_active.is_(True),
+        select(Template).where(
+            Template.id == template_id,
+            Template.is_active.is_(True),
         )
     )
     if result.scalar_one_or_none() is None:
-        raise ProjectItemValidationError('Project template not found or inactive')
+        raise ProjectItemValidationError('Template not found or inactive')
 
     result = await db.execute(
         select(ProjectItem.id)
         .join(
-            ProjectTemplateItem,
-            ProjectItem.template_item_id == ProjectTemplateItem.id,
+            TemplateItem,
+            ProjectItem.template_item_id == TemplateItem.id,
         )
         .where(
             ProjectItem.project_id == project_id,
             ProjectItem.deleted_at.is_(None),
-            ProjectTemplateItem.project_template_id == project_template_id,
+            TemplateItem.template_id == template_id,
         )
         .limit(1)
     )
     if result.scalar_one_or_none() is not None:
         raise ProjectItemValidationError(
-            'This project template has already been loaded into the project'
+            'This template has already been loaded into the project'
         )
 
     result = await db.execute(
-        select(ProjectTemplateItem)
+        select(TemplateItem)
         .options(
-            joinedload(ProjectTemplateItem.product)
+            joinedload(TemplateItem.product)
             .joinedload(Product.subcategory)
             .joinedload(Subcategory.category)
         )
-        .where(ProjectTemplateItem.project_template_id == project_template_id)
+        .where(TemplateItem.template_id == template_id)
         .order_by(
-            ProjectTemplateItem.sort_order,
-            ProjectTemplateItem.id,
+            TemplateItem.sort_order,
+            TemplateItem.id,
         )
     )
     template_items = list(result.scalars().all())
@@ -166,7 +166,7 @@ async def load_project_template(
             )
         if template_item.product_id in product_ids:
             raise ProjectItemValidationError(
-                'A project template cannot create more than one whole-product item '
+                'A template cannot create more than one whole-product item '
                 'for the same product'
             )
         product_ids.add(template_item.product_id)

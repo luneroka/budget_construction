@@ -9,11 +9,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
-    from app.models.project_template_item import ProjectTemplateItem
+    from app.models.template_item import TemplateItem
 
 
-class ProjectTemplate(Base):
-    __tablename__ = 'project_templates'
+class Template(Base):
+    __tablename__ = 'templates'
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(
@@ -41,15 +41,15 @@ class ProjectTemplate(Base):
     __table_args__: tuple[UniqueConstraint, ...] = (
         UniqueConstraint(
             'name',
-            name='uq_project_template_name',
+            name='uq_template_name',
         ),
     )
 
-    template_items: Mapped[list[ProjectTemplateItem]] = relationship(
-        'ProjectTemplateItem',
+    template_items: Mapped[list[TemplateItem]] = relationship(
+        'TemplateItem',
         back_populates='template',
         cascade='all, delete-orphan',
     )
 
     def __repr__(self):
-        return f'<Project Template id={self.id}, name={self.name}>'
+        return f'<Template id={self.id}, name={self.name}>'

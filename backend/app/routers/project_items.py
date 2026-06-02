@@ -7,7 +7,11 @@ from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.repositories import project_item as project_item_repository
-from app.schemas.project_item import ProjectItemCreate, ProjectItemRead, ProjectItemUpdate
+from app.schemas.project_item import (
+    ProjectItemCreate,
+    ProjectItemRead,
+    ProjectItemUpdate,
+)
 
 router = APIRouter(prefix='/projects/{project_id}/items', tags=['Project Items'])
 
@@ -57,19 +61,19 @@ async def get_project_items(
 
 
 @router.post(
-    '/from-template/{project_template_id}',
+    '/from-template/{template_id}',
     response_model=list[ProjectItemRead],
     status_code=status.HTTP_201_CREATED,
 )
-async def load_project_template(
+async def load_template(
     project_id: int,
-    project_template_id: int,
+    template_id: int,
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
     try:
-        project_items = await project_item_repository.load_project_template(
-            db, project_id, project_template_id, current_user.id
+        project_items = await project_item_repository.load_template(
+            db, project_id, template_id, current_user.id
         )
     except project_item_repository.ProjectItemValidationError as error:
         _bad_request(error)

@@ -10,16 +10,16 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.product import Product
-    from app.models.project_template import ProjectTemplate
+    from app.models.template import Template
 
 
-class ProjectTemplateItem(Base):
-    __tablename__ = 'project_template_items'
+class TemplateItem(Base):
+    __tablename__ = 'template_items'
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 
-    project_template_id: Mapped[int] = mapped_column(
-        ForeignKey('project_templates.id', ondelete='CASCADE'),
+    template_id: Mapped[int] = mapped_column(
+        ForeignKey('templates.id', ondelete='CASCADE'),
         nullable=False,
         index=True,
     )
@@ -52,10 +52,10 @@ class ProjectTemplateItem(Base):
         nullable=False,
     )
 
-    template: Mapped[ProjectTemplate] = relationship(
-        'ProjectTemplate', back_populates='template_items'
+    template: Mapped[Template] = relationship(
+        'Template', back_populates='template_items'
     )
     product: Mapped[Product] = relationship('Product', back_populates='template_items')
 
     def __repr__(self):
-        return f'<Project Template Item id={self.id}, name={self.default_name}>'
+        return f'<Template Item id={self.id}, name={self.default_name}>'

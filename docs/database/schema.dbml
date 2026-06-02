@@ -118,7 +118,7 @@ Table products {
   }
 }
 
-Table project_templates {
+Table templates {
   id integer [pk, increment]
   name varchar(255) [not null, unique]
   description text
@@ -126,9 +126,9 @@ Table project_templates {
   ~timestamps
 }
 
-Table project_template_items {
+Table template_items {
   id integer [pk, increment]
-  project_template_id integer [not null]
+  template_id integer [not null]
   product_id integer [not null]
   default_name varchar(255) [not null]
   sort_order integer [not null, default: 0]
@@ -136,8 +136,8 @@ Table project_template_items {
   ~timestamps
 
   indexes {
-    project_template_id [name: 'ix_project_template_items_project_template_id']
-    product_id [name: 'ix_project_template_items_product_id']
+    template_id [name: 'ix_template_items_template_id']
+    product_id [name: 'ix_template_items_product_id']
   }
 }
 
@@ -213,10 +213,10 @@ Ref: suppliers.user_id > users.id [delete: cascade]
 Ref: projects.user_id > users.id [delete: cascade]
 Ref: subcategories.category_id > categories.id [delete: cascade]
 Ref: products.subcategory_id > subcategories.id [delete: cascade]
-Ref: project_template_items.project_template_id > project_templates.id [delete: cascade]
-Ref: project_template_items.product_id > products.id
+Ref: template_items.template_id > templates.id [delete: cascade]
+Ref: template_items.product_id > products.id
 Ref: project_items.project_id > projects.id [delete: cascade]
-Ref: project_items.template_item_id > project_template_items.id [delete: set null]
+Ref: project_items.template_item_id > template_items.id [delete: set null]
 Ref: project_items.product_id > products.id
 Ref: transactions.project_item_id > project_items.id [delete: cascade]
 Ref: transactions.supplier_id > suppliers.id [delete: set null]

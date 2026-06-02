@@ -4,8 +4,8 @@ from app.models.project import Project
 from app.models.category import Category
 from app.models.subcategory import Subcategory
 from app.models.product import Product
-from app.models.project_template import ProjectTemplate
-from app.models.project_template_item import ProjectTemplateItem
+from app.models.template import Template
+from app.models.template_item import TemplateItem
 from app.models.project_item import ProjectItem
 from app.models.transaction import Transaction
 
@@ -16,8 +16,8 @@ __all__ = [
     'Category',
     'Subcategory',
     'Product',
-    'ProjectTemplate',
-    'ProjectTemplateItem',
+    'Template',
+    'TemplateItem',
     'ProjectItem',
     'Transaction',
 ]
