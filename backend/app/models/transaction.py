@@ -32,6 +32,24 @@ class TransactionType(str, enum.Enum):
     invoice = 'invoice'
 
 
+class QuoteStatus(str, enum.Enum):
+    to_confirm = 'to_confirm'
+    to_negotiate = 'to_negotiate'
+    validated = 'validated'
+
+
+class InvoiceStatus(str, enum.Enum):
+    unpaid = 'unpaid'
+    on_hold = 'on_hold'
+    paid = 'paid'
+
+
+class PaymentMethod(str, enum.Enum):
+    cash = 'cash'
+    card = 'card'
+    wire = 'wire'
+
+
 class Transaction(Base):
     __tablename__ = 'transactions'
 
@@ -54,6 +72,20 @@ class Transaction(Base):
     amount_ttc: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     transaction_date: Mapped[date] = mapped_column(Date, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    quote_status: Mapped[QuoteStatus | None] = mapped_column(
+        Enum(QuoteStatus, name='quote_status'),
+        nullable=True,
+    )
+
+    invoice_status: Mapped[InvoiceStatus | None] = mapped_column(
+        Enum(InvoiceStatus, name='invoice_status'),
+        nullable=True,
+    )
+
+    payment_method: Mapped[PaymentMethod | None] = mapped_column(
+        Enum(PaymentMethod, name='payment_method'),
+        nullable=True,
+    )
     is_selected_budget: Mapped[bool] = mapped_column(
         default=False, server_default='false', nullable=False
     )
@@ -90,6 +122,18 @@ class Transaction(Base):
         CheckConstraint(
             'amount_ttc >= amount_ht',
             name='ck_transactions_ttc_greater_than_ht',
+        ),
+        CheckConstraint(
+            "transaction_type = 'quote' OR quote_status IS NULL",
+            name='ck_transactions_quote_status_only_for_quotes',
+        ),
+        CheckConstraint(
+            "transaction_type = 'invoice' OR invoice_status IS NULL",
+            name='ck_transactions_invoice_status_only_for_invoices',
+        ),
+        CheckConstraint(
+            "transaction_type = 'invoice' OR payment_method IS NULL",
+            name='ck_transactions_payment_method_only_for_invoices',
         ),
         Index(
             'uq_transactions_project_item_selected_budget',
