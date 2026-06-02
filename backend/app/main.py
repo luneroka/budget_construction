@@ -13,6 +13,7 @@ from app.routers import (
     project_templates,
     project_template_items,
     project_items,
+    transactions,
 )
 
 
@@ -37,4 +38,5 @@ app.include_router(project_templates.router)
 app.include_router(project_template_items.router)
 app.include_router(projects.router)
 app.include_router(project_items.router)
+app.include_router(transactions.router)
 app.include_router(suppliers.router)

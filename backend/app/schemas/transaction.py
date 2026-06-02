@@ -1,0 +1,80 @@
+from __future__ import annotations
+
+from datetime import date, datetime
+from decimal import Decimal
+
+from pydantic import BaseModel, ConfigDict, model_validator
+
+from app.models.transaction import (
+    InvoiceStatus,
+    PaymentMethod,
+    QuoteStatus,
+    TransactionType,
+)
+
+
+def _validate_statuses(
+    transaction_type: TransactionType,
+    quote_status: QuoteStatus | None,
+    invoice_status: InvoiceStatus | None,
+    payment_method: PaymentMethod | None,
+) -> None:
+    if transaction_type != TransactionType.quote and quote_status is not None:
+        raise ValueError('quote_status is only allowed for quote transactions')
+    if transaction_type != TransactionType.invoice and invoice_status is not None:
+        raise ValueError('invoice_status is only allowed for invoice transactions')
+    if transaction_type != TransactionType.invoice and payment_method is not None:
+        raise ValueError('payment_method is only allowed for invoice transactions')
+
+
+class TransactionBase(BaseModel):
+    supplier_id: int | None = None
+    transaction_type: TransactionType
+    amount_ht: Decimal
+    vat_rate: Decimal | None = None
+    amount_vat: Decimal | None = None
+    amount_ttc: Decimal
+    transaction_date: date
+    description: str | None = None
+    quote_status: QuoteStatus | None = None
+    invoice_status: InvoiceStatus | None = None
+    payment_method: PaymentMethod | None = None
+    is_selected_budget: bool = False
+
+    @model_validator(mode='after')
+    def validate_statuses(self) -> TransactionBase:
+        _validate_statuses(
+            self.transaction_type,
+            self.quote_status,
+            self.invoice_status,
+            self.payment_method,
+        )
+        return self
+
+
+class TransactionCreate(TransactionBase):
+    pass
+
+
+class TransactionUpdate(BaseModel):
+    supplier_id: int | None = None
+    amount_ht: Decimal | None = None
+    vat_rate: Decimal | None = None
+    amount_vat: Decimal | None = None
+    amount_ttc: Decimal | None = None
+    transaction_date: date | None = None
+    description: str | None = None
+    quote_status: QuoteStatus | None = None
+    invoice_status: InvoiceStatus | None = None
+    payment_method: PaymentMethod | None = None
+    is_selected_budget: bool | None = None
+
+
+class TransactionRead(TransactionBase):
+    id: int
+    project_item_id: int
+    created_at: datetime
+    updated_at: datetime
+    deleted_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
