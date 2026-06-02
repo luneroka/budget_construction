@@ -29,5 +29,5 @@ dist/
 # IDE
 .vscode/
 .idea/
-docs/
+docs/untracked/
 .ruff_cache
