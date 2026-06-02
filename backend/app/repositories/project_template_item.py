@@ -63,9 +63,7 @@ async def create_project_template_item(
 
     await _validate_item_data(
         db,
-        project_template_id=project_template_id,
         product_id=project_template_item_create.product_id,
-        parent_template_item_id=project_template_item_create.parent_template_item_id,
     )
 
     project_template_item = ProjectTemplateItem(
@@ -115,7 +113,6 @@ async def get_project_template_items_by_template_id(
         )
         .where(ProjectTemplateItem.project_template_id == project_template_id)
         .order_by(
-            ProjectTemplateItem.parent_template_item_id.nullsfirst(),
             ProjectTemplateItem.sort_order,
             ProjectTemplateItem.id,
         )
@@ -126,122 +123,13 @@ async def get_project_template_items_by_template_id(
     return result.scalars().all()
 
 
-async def get_child_template_items(
-    db: AsyncSession,
-    project_template_id: int,
-    parent_template_item_id: int,
-) -> Sequence[ProjectTemplateItem]:
-    query = (
-        select(ProjectTemplateItem)
-        .options(_with_product_hierarchy())
-        .where(
-            ProjectTemplateItem.project_template_id == project_template_id,
-            ProjectTemplateItem.parent_template_item_id == parent_template_item_id,
-        )
-        .order_by(ProjectTemplateItem.sort_order, ProjectTemplateItem.id)
-    )
-
-    result = await db.execute(query)
-
-    return result.scalars().all()
-
-
-async def _validate_parent(
-    db: AsyncSession,
-    *,
-    project_template_id: int,
-    product_id: int,
-    parent_template_item_id: int | None,
-    project_template_item_id: int | None = None,
-) -> None:
-    if parent_template_item_id is None:
-        return
-
-    if parent_template_item_id == project_template_item_id:
-        raise ProjectTemplateItemValidationError(
-            'A project template item cannot be its own parent'
-        )
-
-    parent_item = await get_project_template_item_by_id(
-        db, project_template_id, parent_template_item_id
-    )
-    if parent_item is None:
-        raise ProjectTemplateItemValidationError('Parent project template item not found')
-
-    if parent_item.product_id != product_id:
-        raise ProjectTemplateItemValidationError(
-            'A child template item must use the same product as its parent'
-        )
-
-    if parent_item.parent_template_item_id is not None:
-        raise ProjectTemplateItemValidationError(
-            'Nested child template items are not allowed'
-        )
-
-
-async def _validate_children_product(
-    db: AsyncSession,
-    *,
-    project_template_item_id: int,
-    product_id: int,
-) -> None:
-    result = await db.execute(
-        select(ProjectTemplateItem.id)
-        .where(
-            ProjectTemplateItem.parent_template_item_id == project_template_item_id,
-            ProjectTemplateItem.product_id != product_id,
-        )
-        .limit(1)
-    )
-    if result.scalar_one_or_none() is not None:
-        raise ProjectTemplateItemValidationError(
-            'A parent template item must use the same product as its children'
-        )
-
-
-async def _has_children(db: AsyncSession, project_template_item_id: int) -> bool:
-    result = await db.execute(
-        select(ProjectTemplateItem.id)
-        .where(
-            ProjectTemplateItem.parent_template_item_id == project_template_item_id
-        )
-        .limit(1)
-    )
-
-    return result.scalar_one_or_none() is not None
-
-
 async def _validate_item_data(
     db: AsyncSession,
     *,
-    project_template_id: int,
     product_id: int,
-    parent_template_item_id: int | None,
-    project_template_item_id: int | None = None,
 ) -> None:
     if await _get_active_product(db, product_id) is None:
         raise ProjectTemplateItemValidationError('Product not found')
-
-    await _validate_parent(
-        db,
-        project_template_id=project_template_id,
-        product_id=product_id,
-        parent_template_item_id=parent_template_item_id,
-        project_template_item_id=project_template_item_id,
-    )
-
-    if project_template_item_id is not None:
-        await _validate_children_product(
-            db,
-            project_template_item_id=project_template_item_id,
-            product_id=product_id,
-        )
-        if parent_template_item_id is not None and await _has_children(
-            db, project_template_item_id
-        ):
-            raise ProjectTemplateItemValidationError(
-                'A template item with children cannot become a child template item'
-            )
 
 
 async def update_project_template_item(
@@ -251,16 +139,10 @@ async def update_project_template_item(
 ) -> ProjectTemplateItem:
     update_data = project_template_item_update.model_dump(exclude_unset=True)
     product_id = update_data.get('product_id', project_template_item.product_id)
-    parent_template_item_id = update_data.get(
-        'parent_template_item_id', project_template_item.parent_template_item_id
-    )
 
     await _validate_item_data(
         db,
-        project_template_id=project_template_item.project_template_id,
         product_id=product_id,
-        parent_template_item_id=parent_template_item_id,
-        project_template_item_id=project_template_item.id,
     )
 
     for key, value in update_data.items():
@@ -295,13 +177,13 @@ async def create_project_template_items_bulk(
     for item in project_template_items_create:
         await _validate_item_data(
             db,
-            project_template_id=project_template_id,
             product_id=item.product_id,
-            parent_template_item_id=item.parent_template_item_id,
         )
 
     project_template_items = [
-        ProjectTemplateItem(**item.model_dump(), project_template_id=project_template_id)
+        ProjectTemplateItem(
+            **item.model_dump(), project_template_id=project_template_id
+        )
         for item in project_template_items_create
     ]
 

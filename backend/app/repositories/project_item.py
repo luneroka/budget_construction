@@ -148,13 +148,11 @@ async def load_project_template(
         )
         .where(ProjectTemplateItem.project_template_id == project_template_id)
         .order_by(
-            ProjectTemplateItem.parent_template_item_id.nullsfirst(),
             ProjectTemplateItem.sort_order,
             ProjectTemplateItem.id,
         )
     )
     template_items = list(result.scalars().all())
-    template_items_by_id = {template_item.id: template_item for template_item in template_items}
 
     for template_item in template_items:
         product = template_item.product
@@ -167,30 +165,7 @@ async def load_project_template(
                 f'Product {template_item.product_id} not found or inactive'
             )
 
-        if template_item.parent_template_item_id is None:
-            continue
-
-        parent_template_item = template_items_by_id.get(
-            template_item.parent_template_item_id
-        )
-        if parent_template_item is None:
-            raise ProjectItemValidationError(
-                'Template item parent does not belong to the selected template'
-            )
-        if parent_template_item.parent_template_item_id is not None:
-            raise ProjectItemValidationError(
-                'Nested template breakdown items are not supported'
-            )
-        if parent_template_item.product_id != template_item.product_id:
-            raise ProjectItemValidationError(
-                'A template breakdown item must use the same product as its parent'
-            )
-
-    project_items_by_template_item_id: dict[int, ProjectItem] = {}
     for template_item in template_items:
-        if template_item.parent_template_item_id is not None:
-            continue
-
         project_item = ProjectItem(
             project_id=project_id,
             template_item_id=template_item.id,
@@ -201,29 +176,6 @@ async def load_project_template(
             sort_order=template_item.sort_order,
         )
         db.add(project_item)
-        project_items_by_template_item_id[template_item.id] = project_item
-
-    await db.flush()
-
-    for template_item in template_items:
-        if template_item.parent_template_item_id is None:
-            continue
-
-        parent_item = project_items_by_template_item_id[
-            template_item.parent_template_item_id
-        ]
-        project_item = ProjectItem(
-            project_id=project_id,
-            template_item_id=template_item.id,
-            product_id=template_item.product_id,
-            parent_item_id=parent_item.id,
-            name=template_item.default_name,
-            is_custom=False,
-            is_breakdown_item=True,
-            sort_order=template_item.sort_order,
-        )
-        db.add(project_item)
-        project_items_by_template_item_id[template_item.id] = project_item
 
     await db.commit()
 
@@ -248,9 +200,7 @@ async def _validate_parent(
     if parent_item_id == project_item_id:
         raise ProjectItemValidationError('A project item cannot be its own parent')
 
-    parent_item = await get_project_item_by_id(
-        db, project_id, parent_item_id, user_id
-    )
+    parent_item = await get_project_item_by_id(db, project_id, parent_item_id, user_id)
     if parent_item is None:
         raise ProjectItemValidationError('Parent project item not found')
 

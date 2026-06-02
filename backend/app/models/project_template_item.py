@@ -27,12 +27,6 @@ class ProjectTemplateItem(Base):
     product_id: Mapped[int] = mapped_column(
         ForeignKey('products.id'), nullable=False, index=True
     )
-    parent_template_item_id: Mapped[int | None] = mapped_column(
-        ForeignKey('project_template_items.id', ondelete='CASCADE'),
-        nullable=True,
-        index=True,
-    )
-
     default_name: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
@@ -62,16 +56,6 @@ class ProjectTemplateItem(Base):
         'ProjectTemplate', back_populates='template_items'
     )
     product: Mapped[Product] = relationship('Product', back_populates='template_items')
-    parent_template_item: Mapped[ProjectTemplateItem | None] = relationship(
-        'ProjectTemplateItem',
-        remote_side=[id],
-        back_populates='child_template_items',
-    )
-    child_template_items: Mapped[list[ProjectTemplateItem]] = relationship(
-        'ProjectTemplateItem',
-        back_populates='parent_template_item',
-        cascade='all, delete-orphan',
-    )
 
     def __repr__(self):
         return f'<Project Template Item id={self.id}, name={self.default_name}>'

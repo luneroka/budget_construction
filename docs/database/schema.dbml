@@ -125,7 +125,6 @@ Table project_template_items {
   id integer [pk, increment]
   project_template_id integer [not null]
   product_id integer [not null]
-  parent_template_item_id integer
   default_name varchar(255) [not null]
   sort_order integer [not null, default: 0]
   is_required boolean [not null, default: true]
@@ -134,7 +133,6 @@ Table project_template_items {
   indexes {
     project_template_id [name: 'ix_project_template_items_project_template_id']
     product_id [name: 'ix_project_template_items_product_id']
-    parent_template_item_id [name: 'ix_project_template_items_parent_template_item_id']
   }
 }
 
@@ -202,7 +200,6 @@ Ref: subcategories.category_id > categories.id [delete: cascade]
 Ref: products.subcategory_id > subcategories.id [delete: cascade]
 Ref: project_template_items.project_template_id > project_templates.id [delete: cascade]
 Ref: project_template_items.product_id > products.id
-Ref: project_template_items.parent_template_item_id > project_template_items.id [delete: cascade]
 Ref: project_items.project_id > projects.id [delete: cascade]
 Ref: project_items.template_item_id > project_template_items.id [delete: set null]
 Ref: project_items.product_id > products.id

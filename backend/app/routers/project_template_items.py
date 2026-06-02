@@ -26,9 +26,7 @@ def _bad_request(
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
 
 
-async def _require_project_template(
-    db: AsyncSession, project_template_id: int
-) -> None:
+async def _require_project_template(db: AsyncSession, project_template_id: int) -> None:
     if (
         await project_template_repository.get_project_template_by_id(
             db, project_template_id
@@ -41,7 +39,9 @@ async def _require_project_template(
         )
 
 
-@router.post('/', response_model=ProjectTemplateItemRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    '/', response_model=ProjectTemplateItemRead, status_code=status.HTTP_201_CREATED
+)
 async def create_project_template_item(
     project_template_id: int,
     project_template_item_data: ProjectTemplateItemCreate,
@@ -123,31 +123,6 @@ async def get_project_template_item(
         )
 
     return project_template_item
-
-
-@router.get(
-    '/{project_template_item_id}/children',
-    response_model=list[ProjectTemplateItemRead],
-)
-async def get_child_template_items(
-    project_template_id: int,
-    project_template_item_id: int,
-    db: AsyncSession = Depends(get_db_session),
-):
-    project_template_item = (
-        await project_template_item_repository.get_project_template_item_by_id(
-            db, project_template_id, project_template_item_id
-        )
-    )
-    if project_template_item is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Project template item not found',
-        )
-
-    return await project_template_item_repository.get_child_template_items(
-        db, project_template_id, project_template_item_id
-    )
 
 
 @router.patch('/{project_template_item_id}', response_model=ProjectTemplateItemRead)
