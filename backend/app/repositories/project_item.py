@@ -7,7 +7,7 @@ from sqlalchemy.orm import joinedload
 from app.models.category import Category
 from app.models.product import Product
 from app.models.project import Project
-from app.models.project_item import ProjectItem
+from app.models.project_item import ProjectItem, ProjectItemType
 from app.models.project_template import ProjectTemplate
 from app.models.project_template_item import ProjectTemplateItem
 from app.models.subcategory import Subcategory
@@ -153,6 +153,7 @@ async def load_project_template(
         )
     )
     template_items = list(result.scalars().all())
+    product_ids: set[int] = set()
 
     for template_item in template_items:
         product = template_item.product
@@ -164,6 +165,19 @@ async def load_project_template(
             raise ProjectItemValidationError(
                 f'Product {template_item.product_id} not found or inactive'
             )
+        if template_item.product_id in product_ids:
+            raise ProjectItemValidationError(
+                'A project template cannot create more than one whole-product item '
+                'for the same product'
+            )
+        product_ids.add(template_item.product_id)
+
+        await _validate_item_mode(
+            db,
+            project_id=project_id,
+            product_id=template_item.product_id,
+            item_type=ProjectItemType.product,
+        )
 
     for template_item in template_items:
         project_item = ProjectItem(
@@ -171,8 +185,7 @@ async def load_project_template(
             template_item_id=template_item.id,
             product_id=template_item.product_id,
             name=template_item.default_name,
-            is_custom=False,
-            is_breakdown_item=False,
+            item_type=ProjectItemType.product,
             sort_order=template_item.sort_order,
         )
         db.add(project_item)
@@ -191,9 +204,15 @@ async def _validate_parent(
     project_id: int,
     parent_item_id: int | None,
     product_id: int,
+    item_type: ProjectItemType,
     user_id: int,
     project_item_id: int | None = None,
 ) -> ProjectItem | None:
+    if item_type == ProjectItemType.product and parent_item_id is not None:
+        raise ProjectItemValidationError(
+            'A whole-product budget item cannot have a parent item'
+        )
+
     if parent_item_id is None:
         return None
 
@@ -207,6 +226,11 @@ async def _validate_parent(
     if parent_item.product_id != product_id:
         raise ProjectItemValidationError(
             'A breakdown item must use the same product as its parent'
+        )
+
+    if parent_item.item_type != ProjectItemType.breakdown:
+        raise ProjectItemValidationError(
+            'A breakdown item parent must also be a breakdown item'
         )
 
     if parent_item.parent_item_id is not None:
@@ -228,6 +252,33 @@ async def _has_active_children(db: AsyncSession, project_item_id: int) -> bool:
     return result.scalar_one_or_none() is not None
 
 
+async def _validate_item_mode(
+    db: AsyncSession,
+    *,
+    project_id: int,
+    product_id: int,
+    item_type: ProjectItemType,
+    project_item_id: int | None = None,
+) -> None:
+    query = select(ProjectItem.item_type).where(
+        ProjectItem.project_id == project_id,
+        ProjectItem.product_id == product_id,
+        ProjectItem.deleted_at.is_(None),
+    )
+    if project_item_id is not None:
+        query = query.where(ProjectItem.id != project_item_id)
+    if item_type == ProjectItemType.breakdown:
+        query = query.where(ProjectItem.item_type == ProjectItemType.product)
+    query = query.limit(1)
+
+    result = await db.execute(query)
+    if result.scalar_one_or_none() is not None:
+        raise ProjectItemValidationError(
+            'A project product must use either one whole-product budget item or '
+            'multiple breakdown items, not both'
+        )
+
+
 async def create_project_item(
     db: AsyncSession,
     project_id: int,
@@ -240,18 +291,25 @@ async def create_project_item(
     if await _get_active_product(db, project_item_create.product_id) is None:
         raise ProjectItemValidationError('Product not found')
 
+    await _validate_item_mode(
+        db,
+        project_id=project_id,
+        product_id=project_item_create.product_id,
+        item_type=project_item_create.item_type,
+    )
+
     await _validate_parent(
         db,
         project_id=project_id,
         parent_item_id=project_item_create.parent_item_id,
         product_id=project_item_create.product_id,
+        item_type=project_item_create.item_type,
         user_id=user_id,
     )
 
     project_item = ProjectItem(
         **project_item_create.model_dump(),
         project_id=project_id,
-        is_breakdown_item=project_item_create.parent_item_id is not None,
     )
     db.add(project_item)
     await db.commit()
@@ -274,12 +332,24 @@ async def update_project_item(
 
     update_data = project_item_update.model_dump(exclude_unset=True)
     parent_item_id = update_data.pop('parent_item_id', project_item.parent_item_id)
+    if update_data.get('item_type', project_item.item_type) is None:
+        raise ProjectItemValidationError('Project item type cannot be null')
+    item_type = update_data.get('item_type', project_item.item_type)
+
+    await _validate_item_mode(
+        db,
+        project_id=project_id,
+        product_id=project_item.product_id,
+        item_type=item_type,
+        project_item_id=project_item.id,
+    )
 
     await _validate_parent(
         db,
         project_id=project_id,
         parent_item_id=parent_item_id,
         product_id=project_item.product_id,
+        item_type=item_type,
         user_id=user_id,
         project_item_id=project_item.id,
     )
@@ -293,7 +363,6 @@ async def update_project_item(
         setattr(project_item, field, value)
 
     project_item.parent_item_id = parent_item_id
-    project_item.is_breakdown_item = parent_item_id is not None
 
     await db.commit()
 

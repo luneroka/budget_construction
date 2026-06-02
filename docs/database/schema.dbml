@@ -28,6 +28,11 @@ Enum payment_method {
   wire
 }
 
+Enum project_item_type {
+  product
+  breakdown
+}
+
 TablePartial timestamps {
   created_at timestamp [not null, default: `now()`]
   updated_at timestamp [not null, default: `now()`]
@@ -143,8 +148,7 @@ Table project_items {
   product_id integer [not null]
   parent_item_id integer
   name varchar(255) [not null]
-  is_custom boolean [not null, default: false]
-  is_breakdown_item boolean [not null, default: false]
+  item_type project_item_type [not null]
   sort_order integer [not null, default: 0]
   ~timestamps
   deleted_at timestamp
@@ -154,7 +158,21 @@ Table project_items {
     template_item_id [name: 'ix_project_items_template_item_id']
     product_id [name: 'ix_project_items_product_id']
     parent_item_id [name: 'ix_project_items_parent_item_id']
+    (project_id, product_id) [unique, name: 'uq_project_items_project_id_product_id_product_type', note: 'Partial index: WHERE item_type = product AND deleted_at IS NULL']
   }
+
+  checks {
+    `item_type = 'breakdown' OR parent_item_id IS NULL` [name: 'ck_project_items_product_has_no_parent']
+  }
+
+  Note: '''
+    For a given project + product, users must choose one budgeting mode:
+    - one "product" project_item representing the whole product, or
+    - multiple "breakdown" project_items representing sub-items.
+    Mixing both modes for the same project + product is forbidden.
+    Payment installments (acompte, solde, etc.) must be modeled as multiple
+    transactions on the same project_item, not as additional breakdown project_items.
+  '''
 }
 
 Table transactions {

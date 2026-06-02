@@ -3,7 +3,17 @@ from __future__ import annotations
 from datetime import datetime, UTC
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, DateTime, String, func
+import enum
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    String,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -13,6 +23,11 @@ if TYPE_CHECKING:
     from app.models.project import Project
     from app.models.project_template_item import ProjectTemplateItem
     from app.models.transaction import Transaction
+
+
+class ProjectItemType(str, enum.Enum):
+    product = 'product'
+    breakdown = 'breakdown'
 
 
 class ProjectItem(Base):
@@ -38,11 +53,9 @@ class ProjectItem(Base):
     )
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    is_custom: Mapped[bool] = mapped_column(
-        default=False, server_default='false', nullable=False
-    )
-    is_breakdown_item: Mapped[bool] = mapped_column(
-        default=False, server_default='false', nullable=False
+    item_type: Mapped[ProjectItemType] = mapped_column(
+        Enum(ProjectItemType, name='project_item_type'),
+        nullable=False,
     )
     sort_order: Mapped[int] = mapped_column(
         default=0, server_default='0', nullable=False
@@ -61,6 +74,20 @@ class ProjectItem(Base):
         nullable=False,
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            "item_type = 'breakdown' OR parent_item_id IS NULL",
+            name='ck_project_items_product_has_no_parent',
+        ),
+        Index(
+            'uq_project_items_project_id_product_id_product_type',
+            'project_id',
+            'product_id',
+            unique=True,
+            postgresql_where=text("item_type = 'product' AND deleted_at IS NULL"),
+        ),
+    )
 
     project: Mapped[Project] = relationship('Project', back_populates='project_items')
     template_item: Mapped[ProjectTemplateItem | None] = relationship(

@@ -4,6 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.models.project_item import ProjectItemType
 from app.schemas.product import ProductWithHierarchy
 
 
@@ -11,14 +12,14 @@ class ProjectItemCreate(BaseModel):
     product_id: int
     parent_item_id: int | None = None
     name: str
-    is_custom: bool = False
+    item_type: ProjectItemType
     sort_order: int = 0
 
 
 class ProjectItemUpdate(BaseModel):
     parent_item_id: int | None = None
     name: str | None = None
-    is_custom: bool | None = None
+    item_type: ProjectItemType | None = None
     sort_order: int | None = None
 
 
@@ -29,8 +30,7 @@ class ProjectItemRead(BaseModel):
     product_id: int
     parent_item_id: int | None = None
     name: str
-    is_custom: bool
-    is_breakdown_item: bool
+    item_type: ProjectItemType
     sort_order: int
     product: ProductWithHierarchy
     created_at: datetime
