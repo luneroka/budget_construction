@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 
 import enum
 from sqlalchemy import (
-    CheckConstraint,
     DateTime,
     Enum,
     ForeignKey,
@@ -48,9 +47,6 @@ class ProjectItem(Base):
     product_id: Mapped[int] = mapped_column(
         ForeignKey('products.id'), nullable=False, index=True
     )
-    parent_item_id: Mapped[int | None] = mapped_column(
-        ForeignKey('project_items.id', ondelete='CASCADE'), nullable=True, index=True
-    )
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     item_type: Mapped[ProjectItemType] = mapped_column(
@@ -76,10 +72,6 @@ class ProjectItem(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     __table_args__ = (
-        CheckConstraint(
-            "item_type = 'breakdown' OR parent_item_id IS NULL",
-            name='ck_project_items_product_has_no_parent',
-        ),
         Index(
             'uq_project_items_project_id_product_id_product_type',
             'project_id',
@@ -94,16 +86,6 @@ class ProjectItem(Base):
         'ProjectTemplateItem'
     )
     product: Mapped[Product] = relationship('Product', back_populates='project_items')
-    parent_item: Mapped[ProjectItem | None] = relationship(
-        'ProjectItem',
-        remote_side=[id],
-        back_populates='child_items',
-    )
-    child_items: Mapped[list[ProjectItem]] = relationship(
-        'ProjectItem',
-        back_populates='parent_item',
-        cascade='all, delete-orphan',
-    )
     transactions: Mapped[list[Transaction]] = relationship(
         'Transaction',
         back_populates='project_item',

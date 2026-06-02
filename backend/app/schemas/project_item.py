@@ -10,14 +10,12 @@ from app.schemas.product import ProductWithHierarchy
 
 class ProjectItemCreate(BaseModel):
     product_id: int
-    parent_item_id: int | None = None
     name: str
     item_type: ProjectItemType
     sort_order: int = 0
 
 
 class ProjectItemUpdate(BaseModel):
-    parent_item_id: int | None = None
     name: str | None = None
     item_type: ProjectItemType | None = None
     sort_order: int | None = None
@@ -28,7 +26,6 @@ class ProjectItemRead(BaseModel):
     project_id: int
     template_item_id: int | None = None
     product_id: int
-    parent_item_id: int | None = None
     name: str
     item_type: ProjectItemType
     sort_order: int

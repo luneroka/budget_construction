@@ -146,7 +146,6 @@ Table project_items {
   project_id integer [not null]
   template_item_id integer
   product_id integer [not null]
-  parent_item_id integer
   name varchar(255) [not null]
   item_type project_item_type [not null]
   sort_order integer [not null, default: 0]
@@ -157,15 +156,13 @@ Table project_items {
     project_id [name: 'ix_project_items_project_id']
     template_item_id [name: 'ix_project_items_template_item_id']
     product_id [name: 'ix_project_items_product_id']
-    parent_item_id [name: 'ix_project_items_parent_item_id']
     (project_id, product_id) [unique, name: 'uq_project_items_project_id_product_id_product_type', note: 'Partial index: WHERE item_type = product AND deleted_at IS NULL']
   }
 
-  checks {
-    `item_type = 'breakdown' OR parent_item_id IS NULL` [name: 'ck_project_items_product_has_no_parent']
-  }
-
   Note: '''
+    Products are the aggregation and reporting level.
+    Breakdown project_items are linked directly to a product via product_id.
+    project_items do not support parent/child relationships.
     For a given project + product, users must choose one budgeting mode:
     - one "product" project_item representing the whole product, or
     - multiple "breakdown" project_items representing sub-items.
@@ -221,6 +218,5 @@ Ref: project_template_items.product_id > products.id
 Ref: project_items.project_id > projects.id [delete: cascade]
 Ref: project_items.template_item_id > project_template_items.id [delete: set null]
 Ref: project_items.product_id > products.id
-Ref: project_items.parent_item_id > project_items.id [delete: cascade]
 Ref: transactions.project_item_id > project_items.id [delete: cascade]
 Ref: transactions.supplier_id > suppliers.id [delete: set null]

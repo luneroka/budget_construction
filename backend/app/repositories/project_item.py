@@ -94,7 +94,6 @@ async def get_project_items(
             ProjectItem.deleted_at.is_(None),
         )
         .order_by(
-            ProjectItem.parent_item_id.nullsfirst(),
             ProjectItem.sort_order,
             ProjectItem.id,
         )
@@ -198,60 +197,6 @@ async def load_project_template(
     return project_items
 
 
-async def _validate_parent(
-    db: AsyncSession,
-    *,
-    project_id: int,
-    parent_item_id: int | None,
-    product_id: int,
-    item_type: ProjectItemType,
-    user_id: int,
-    project_item_id: int | None = None,
-) -> ProjectItem | None:
-    if item_type == ProjectItemType.product and parent_item_id is not None:
-        raise ProjectItemValidationError(
-            'A whole-product budget item cannot have a parent item'
-        )
-
-    if parent_item_id is None:
-        return None
-
-    if parent_item_id == project_item_id:
-        raise ProjectItemValidationError('A project item cannot be its own parent')
-
-    parent_item = await get_project_item_by_id(db, project_id, parent_item_id, user_id)
-    if parent_item is None:
-        raise ProjectItemValidationError('Parent project item not found')
-
-    if parent_item.product_id != product_id:
-        raise ProjectItemValidationError(
-            'A breakdown item must use the same product as its parent'
-        )
-
-    if parent_item.item_type != ProjectItemType.breakdown:
-        raise ProjectItemValidationError(
-            'A breakdown item parent must also be a breakdown item'
-        )
-
-    if parent_item.parent_item_id is not None:
-        raise ProjectItemValidationError('Nested breakdown items are not allowed')
-
-    return parent_item
-
-
-async def _has_active_children(db: AsyncSession, project_item_id: int) -> bool:
-    result = await db.execute(
-        select(ProjectItem.id)
-        .where(
-            ProjectItem.parent_item_id == project_item_id,
-            ProjectItem.deleted_at.is_(None),
-        )
-        .limit(1)
-    )
-
-    return result.scalar_one_or_none() is not None
-
-
 async def _validate_item_mode(
     db: AsyncSession,
     *,
@@ -298,15 +243,6 @@ async def create_project_item(
         item_type=project_item_create.item_type,
     )
 
-    await _validate_parent(
-        db,
-        project_id=project_id,
-        parent_item_id=project_item_create.parent_item_id,
-        product_id=project_item_create.product_id,
-        item_type=project_item_create.item_type,
-        user_id=user_id,
-    )
-
     project_item = ProjectItem(
         **project_item_create.model_dump(),
         project_id=project_id,
@@ -331,7 +267,6 @@ async def update_project_item(
         return None
 
     update_data = project_item_update.model_dump(exclude_unset=True)
-    parent_item_id = update_data.pop('parent_item_id', project_item.parent_item_id)
     if update_data.get('item_type', project_item.item_type) is None:
         raise ProjectItemValidationError('Project item type cannot be null')
     item_type = update_data.get('item_type', project_item.item_type)
@@ -344,25 +279,8 @@ async def update_project_item(
         project_item_id=project_item.id,
     )
 
-    await _validate_parent(
-        db,
-        project_id=project_id,
-        parent_item_id=parent_item_id,
-        product_id=project_item.product_id,
-        item_type=item_type,
-        user_id=user_id,
-        project_item_id=project_item.id,
-    )
-
-    if parent_item_id is not None and await _has_active_children(db, project_item.id):
-        raise ProjectItemValidationError(
-            'A project item with breakdown items cannot become a breakdown item'
-        )
-
     for field, value in update_data.items():
         setattr(project_item, field, value)
-
-    project_item.parent_item_id = parent_item_id
 
     await db.commit()
 
@@ -383,15 +301,6 @@ async def soft_delete_project_item(
 
     deleted_at = datetime.now(UTC).replace(tzinfo=None)
     project_item.deleted_at = deleted_at
-
-    result = await db.execute(
-        select(ProjectItem).where(
-            ProjectItem.parent_item_id == project_item.id,
-            ProjectItem.deleted_at.is_(None),
-        )
-    )
-    for child_item in result.scalars().all():
-        child_item.deleted_at = deleted_at
 
     await db.commit()
 
