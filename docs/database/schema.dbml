@@ -209,6 +209,25 @@ Table transactions {
   }
 }
 
+Table documents {
+  id integer [pk, increment]
+  transaction_id integer [not null]
+  user_id integer [not null]
+  original_filename varchar(255) [not null]
+  stored_filename varchar(255) [not null]
+  file_path varchar(255) [not null]
+  mime_type varchar(255) [not null]
+  file_size integer [not null]
+  ~timestamps
+  deleted_at timestamp
+
+  indexes {
+    id [name: 'ix_documents_id']
+    transaction_id [name: 'ix_documents_transaction_id']
+    user_id [name: 'ix_documents_user_id']
+  }
+}
+
 Ref: suppliers.user_id > users.id [delete: cascade]
 Ref: projects.user_id > users.id [delete: cascade]
 Ref: subcategories.category_id > categories.id [delete: cascade]
@@ -220,3 +239,5 @@ Ref: project_items.template_item_id > template_items.id [delete: set null]
 Ref: project_items.product_id > products.id
 Ref: transactions.project_item_id > project_items.id [delete: cascade]
 Ref: transactions.supplier_id > suppliers.id [delete: set null]
+Ref: documents.transaction_id > transactions.id [delete: cascade]
+Ref: documents.user_id > users.id [delete: cascade]
