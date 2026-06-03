@@ -2,6 +2,7 @@ services:
   backend:
     volumes:
       - ./backend:/app
+      - backend_venv:/app/.venv
     build:
       context: ./backend
     ports:
@@ -30,3 +31,4 @@ services:
 
 volumes:
   db_data:
+  backend_venv:
