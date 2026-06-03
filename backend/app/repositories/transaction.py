@@ -303,3 +303,21 @@ async def select_budget_candidate(
     await db.refresh(transaction)
 
     return transaction
+
+
+async def get_transaction_by_id_for_user(
+    db: AsyncSession, transaction_id: int, user_id: int
+) -> Transaction | None:
+    result = await db.execute(
+        select(Transaction)
+        .join(ProjectItem, Transaction.project_item_id == ProjectItem.id)
+        .join(Project, ProjectItem.project_id == Project.id)
+        .where(
+            Transaction.id == transaction_id,
+            Transaction.deleted_at.is_(None),
+            ProjectItem.deleted_at.is_(None),
+            Project.user_id == user_id,
+            Project.deleted_at.is_(None),
+        )
+    )
+    return result.scalar_one_or_none()
