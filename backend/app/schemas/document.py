@@ -19,3 +19,7 @@ class DocumentRead(BaseModel):
     deleted_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class DocumentDownloadUrl(BaseModel):
+    url: str

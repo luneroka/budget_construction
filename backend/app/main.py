@@ -14,6 +14,7 @@ from app.routers import (
     template_items,
     project_items,
     transactions,
+    documents,
 )
 
 
@@ -40,3 +41,5 @@ app.include_router(projects.router)
 app.include_router(project_items.router)
 app.include_router(transactions.router)
 app.include_router(suppliers.router)
+app.include_router(documents.router)
+app.include_router(documents.document_router)
