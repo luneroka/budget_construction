@@ -146,6 +146,11 @@ class Transaction(Base):
     project_item: Mapped[ProjectItem] = relationship(
         'ProjectItem', back_populates='transactions'
     )
+    documents = relationship(
+        'Document',
+        back_populates='transaction',
+        cascade='all, delete-orphan',
+    )
     supplier: Mapped[Supplier | None] = relationship(
         'Supplier', back_populates='transactions'
     )
