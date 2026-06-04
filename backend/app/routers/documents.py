@@ -196,7 +196,7 @@ async def get_document_download_url(
     '/{document_id}',
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_document(
+async def soft_delete_document(
     document_id: int,
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
@@ -213,6 +213,40 @@ async def delete_document(
             detail='Document not found',
         )
 
+    await document_repository.soft_delete_document(
+        db=db,
+        document_id=document_id,
+        user_id=current_user.id,
+    )
+
+
+@document_router.delete(
+    '/{document_id}/permanent',
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def hard_delete_document(
+    document_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    document = await document_repository.get_document_by_id_for_user(
+        db=db,
+        document_id=document_id,
+        user_id=current_user.id,
+    )
+
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Document not found',
+        )
+
+    if document.deleted_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Document must be soft-deleted before permanent deletion',
+        )
+
     try:
         delete_file_from_r2(document.file_path)
     except Exception as exc:
@@ -222,8 +256,4 @@ async def delete_document(
             detail='Failed to delete document file',
         ) from exc
 
-    await document_repository.soft_delete_document(
-        db=db,
-        document_id=document_id,
-        user_id=current_user.id,
-    )
+    await document_repository.hard_delete_document(db=db, document=document)

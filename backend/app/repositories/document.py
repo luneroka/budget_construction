@@ -80,6 +80,18 @@ async def get_document_by_id(
     return result.scalar_one_or_none()
 
 
+async def get_document_by_id_for_user(
+    db: AsyncSession, document_id: int, user_id: int
+) -> Document | None:
+    result = await db.execute(
+        select(Document).where(
+            Document.id == document_id,
+            Document.user_id == user_id,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
 async def get_documents_by_transaction_id(
     db: AsyncSession, transaction_id: int, user_id: int, include_deleted: bool = False
 ) -> list[Document]:
@@ -121,3 +133,8 @@ async def soft_delete_document(
     await db.refresh(document)
 
     return document
+
+
+async def hard_delete_document(db: AsyncSession, document: Document) -> None:
+    await db.delete(document)
+    await db.commit()
