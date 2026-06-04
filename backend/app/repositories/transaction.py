@@ -265,18 +265,22 @@ async def soft_delete_transaction(
         return None
 
     deleted_at = datetime.now(UTC).replace(tzinfo=None)
-    await db.execute(
-        update(Document)
-        .where(
-            Document.transaction_id == transaction.id,
-            Document.deleted_at.is_(None),
+    try:
+        await db.execute(
+            update(Document)
+            .where(
+                Document.transaction_id == transaction.id,
+                Document.deleted_at.is_(None),
+            )
+            .values(deleted_at=deleted_at, updated_at=deleted_at)
         )
-        .values(deleted_at=deleted_at, updated_at=deleted_at)
-    )
-    transaction.deleted_at = deleted_at
+        transaction.deleted_at = deleted_at
 
-    await db.commit()
-    await db.refresh(transaction)
+        await db.commit()
+        await db.refresh(transaction)
+    except Exception:
+        await db.rollback()
+        raise
 
     return transaction
 

@@ -307,21 +307,25 @@ async def soft_delete_project_item(
         Transaction.project_item_id == project_item.id,
         Transaction.deleted_at.is_(None),
     )
-    await db.execute(
-        update(Document)
-        .where(
-            Document.transaction_id.in_(transaction_ids),
-            Document.deleted_at.is_(None),
+    try:
+        await db.execute(
+            update(Document)
+            .where(
+                Document.transaction_id.in_(transaction_ids),
+                Document.deleted_at.is_(None),
+            )
+            .values(deleted_at=deleted_at, updated_at=deleted_at)
         )
-        .values(deleted_at=deleted_at, updated_at=deleted_at)
-    )
-    await db.execute(
-        update(Transaction)
-        .where(Transaction.id.in_(transaction_ids))
-        .values(deleted_at=deleted_at, updated_at=deleted_at)
-    )
-    project_item.deleted_at = deleted_at
+        await db.execute(
+            update(Transaction)
+            .where(Transaction.id.in_(transaction_ids))
+            .values(deleted_at=deleted_at, updated_at=deleted_at)
+        )
+        project_item.deleted_at = deleted_at
 
-    await db.commit()
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
 
     return project_item

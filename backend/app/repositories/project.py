@@ -83,27 +83,31 @@ async def soft_delete_project(
         ProjectItem.deleted_at.is_(None),
     )
 
-    await db.execute(
-        update(Document)
-        .where(
-            Document.transaction_id.in_(transaction_ids),
-            Document.deleted_at.is_(None),
+    try:
+        await db.execute(
+            update(Document)
+            .where(
+                Document.transaction_id.in_(transaction_ids),
+                Document.deleted_at.is_(None),
+            )
+            .values(deleted_at=deleted_at, updated_at=deleted_at)
         )
-        .values(deleted_at=deleted_at, updated_at=deleted_at)
-    )
-    await db.execute(
-        update(Transaction)
-        .where(Transaction.id.in_(transaction_ids))
-        .values(deleted_at=deleted_at, updated_at=deleted_at)
-    )
-    await db.execute(
-        update(ProjectItem)
-        .where(ProjectItem.id.in_(project_item_ids))
-        .values(deleted_at=deleted_at, updated_at=deleted_at)
-    )
-    project.deleted_at = deleted_at
+        await db.execute(
+            update(Transaction)
+            .where(Transaction.id.in_(transaction_ids))
+            .values(deleted_at=deleted_at, updated_at=deleted_at)
+        )
+        await db.execute(
+            update(ProjectItem)
+            .where(ProjectItem.id.in_(project_item_ids))
+            .values(deleted_at=deleted_at, updated_at=deleted_at)
+        )
+        project.deleted_at = deleted_at
 
-    await db.commit()
-    await db.refresh(project)
+        await db.commit()
+        await db.refresh(project)
+    except Exception:
+        await db.rollback()
+        raise
 
     return project
