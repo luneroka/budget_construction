@@ -2,6 +2,8 @@ from datetime import datetime, date
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.project_item import ProjectItemRead
+
 
 class ProjectBase(BaseModel):
     name: str
@@ -13,6 +15,10 @@ class ProjectBase(BaseModel):
 
 class ProjectCreate(ProjectBase):
     pass
+
+
+class ProjectFromTemplateCreate(ProjectBase):
+    template_id: int
 
 
 class ProjectUpdate(BaseModel):
@@ -29,5 +35,12 @@ class ProjectRead(ProjectBase):
     created_at: datetime | None = None
     updated_at: datetime | None = None
     deleted_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GeneratedProjectRead(BaseModel):
+    project: ProjectRead
+    project_items: list[ProjectItemRead]
 
     model_config = ConfigDict(from_attributes=True)

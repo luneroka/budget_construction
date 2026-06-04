@@ -4,8 +4,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
 from app.models.user import User
+from app.repositories import project_item as project_item_repository
 from app.repositories import project as project_repository
-from app.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
+from app.schemas.project import (
+    GeneratedProjectRead,
+    ProjectCreate,
+    ProjectFromTemplateCreate,
+    ProjectRead,
+    ProjectUpdate,
+)
+from app.services import generate_project as generate_project_service
 
 router = APIRouter(prefix='/projects', tags=['Projects'])
 
@@ -18,6 +26,27 @@ async def create_project(
     current_user: User = Depends(get_current_user),
 ):
     return await project_repository.create_project(db, project_data, current_user.id)
+
+
+@router.post(
+    '/from-template',
+    response_model=GeneratedProjectRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def generate_project_from_template(
+    project_data: ProjectFromTemplateCreate,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        return await generate_project_service.generate_project_from_template(
+            db, project_data, current_user.id
+        )
+    except project_item_repository.ProjectItemValidationError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        ) from error
 
 
 # API ENDPOINT TO GET ALL PROJECTS
