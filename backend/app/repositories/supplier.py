@@ -22,7 +22,11 @@ async def get_supplier_by_id(
     db: AsyncSession, supplier_id: int, user_id: int
 ) -> Supplier | None:
     result = await db.execute(
-        select(Supplier).where(Supplier.id == supplier_id, Supplier.user_id == user_id)
+        select(Supplier).where(
+            Supplier.id == supplier_id,
+            Supplier.user_id == user_id,
+            Supplier.deleted_at.is_(None),
+        )
     )
     return result.scalar_one_or_none()
 
