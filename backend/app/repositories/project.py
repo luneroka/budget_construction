@@ -1,8 +1,11 @@
 from datetime import datetime, UTC
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.document import Document
 from app.models.project import Project
+from app.models.project_item import ProjectItem
+from app.models.transaction import Transaction
 from app.schemas.project import ProjectCreate, ProjectUpdate
 
 
@@ -65,7 +68,40 @@ async def soft_delete_project(
     if project is None:
         return None
 
-    project.deleted_at = datetime.now(UTC).replace(tzinfo=None)
+    deleted_at = datetime.now(UTC).replace(tzinfo=None)
+
+    transaction_ids = (
+        select(Transaction.id)
+        .join(ProjectItem, Transaction.project_item_id == ProjectItem.id)
+        .where(
+            ProjectItem.project_id == project_id,
+            Transaction.deleted_at.is_(None),
+        )
+    )
+    project_item_ids = select(ProjectItem.id).where(
+        ProjectItem.project_id == project_id,
+        ProjectItem.deleted_at.is_(None),
+    )
+
+    await db.execute(
+        update(Document)
+        .where(
+            Document.transaction_id.in_(transaction_ids),
+            Document.deleted_at.is_(None),
+        )
+        .values(deleted_at=deleted_at, updated_at=deleted_at)
+    )
+    await db.execute(
+        update(Transaction)
+        .where(Transaction.id.in_(transaction_ids))
+        .values(deleted_at=deleted_at, updated_at=deleted_at)
+    )
+    await db.execute(
+        update(ProjectItem)
+        .where(ProjectItem.id.in_(project_item_ids))
+        .values(deleted_at=deleted_at, updated_at=deleted_at)
+    )
+    project.deleted_at = deleted_at
 
     await db.commit()
     await db.refresh(project)

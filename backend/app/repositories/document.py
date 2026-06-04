@@ -4,6 +4,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.document import Document
+from app.models.project import Project
+from app.models.project_item import ProjectItem
+from app.models.transaction import Transaction
 
 
 async def create_document(
@@ -38,12 +41,20 @@ async def get_documents(
 ) -> list[Document]:
     query = (
         select(Document)
+        .join(Transaction, Document.transaction_id == Transaction.id)
+        .join(ProjectItem, Transaction.project_item_id == ProjectItem.id)
+        .join(Project, ProjectItem.project_id == Project.id)
         .where(Document.user_id == user_id)
         .order_by(Document.stored_filename)
     )
 
     if not include_deleted:
-        query = query.where(Document.deleted_at.is_(None))
+        query = query.where(
+            Document.deleted_at.is_(None),
+            Transaction.deleted_at.is_(None),
+            ProjectItem.deleted_at.is_(None),
+            Project.deleted_at.is_(None),
+        )
 
     result = await db.execute(query)
     return list(result.scalars().all())
@@ -53,10 +64,17 @@ async def get_document_by_id(
     db: AsyncSession, document_id: int, user_id: int
 ) -> Document | None:
     result = await db.execute(
-        select(Document).where(
+        select(Document)
+        .join(Transaction, Document.transaction_id == Transaction.id)
+        .join(ProjectItem, Transaction.project_item_id == ProjectItem.id)
+        .join(Project, ProjectItem.project_id == Project.id)
+        .where(
             Document.id == document_id,
             Document.user_id == user_id,
             Document.deleted_at.is_(None),
+            Transaction.deleted_at.is_(None),
+            ProjectItem.deleted_at.is_(None),
+            Project.deleted_at.is_(None),
         )
     )
     return result.scalar_one_or_none()
@@ -67,6 +85,9 @@ async def get_documents_by_transaction_id(
 ) -> list[Document]:
     query = (
         select(Document)
+        .join(Transaction, Document.transaction_id == Transaction.id)
+        .join(ProjectItem, Transaction.project_item_id == ProjectItem.id)
+        .join(Project, ProjectItem.project_id == Project.id)
         .where(
             Document.transaction_id == transaction_id,
             Document.user_id == user_id,
@@ -75,7 +96,12 @@ async def get_documents_by_transaction_id(
     )
 
     if not include_deleted:
-        query = query.where(Document.deleted_at.is_(None))
+        query = query.where(
+            Document.deleted_at.is_(None),
+            Transaction.deleted_at.is_(None),
+            ProjectItem.deleted_at.is_(None),
+            Project.deleted_at.is_(None),
+        )
 
     result = await db.execute(query)
     return list(result.scalars().all())

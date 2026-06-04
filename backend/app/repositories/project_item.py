@@ -1,15 +1,17 @@
 from datetime import datetime, UTC
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from app.models.category import Category
+from app.models.document import Document
 from app.models.product import Product
 from app.models.project import Project
 from app.models.project_item import ProjectItem, ProjectItemType
 from app.models.template import Template
 from app.models.template_item import TemplateItem
+from app.models.transaction import Transaction
 from app.models.subcategory import Subcategory
 from app.schemas.project_item import ProjectItemCreate, ProjectItemUpdate
 
@@ -300,6 +302,24 @@ async def soft_delete_project_item(
         return None
 
     deleted_at = datetime.now(UTC).replace(tzinfo=None)
+
+    transaction_ids = select(Transaction.id).where(
+        Transaction.project_item_id == project_item.id,
+        Transaction.deleted_at.is_(None),
+    )
+    await db.execute(
+        update(Document)
+        .where(
+            Document.transaction_id.in_(transaction_ids),
+            Document.deleted_at.is_(None),
+        )
+        .values(deleted_at=deleted_at, updated_at=deleted_at)
+    )
+    await db.execute(
+        update(Transaction)
+        .where(Transaction.id.in_(transaction_ids))
+        .values(deleted_at=deleted_at, updated_at=deleted_at)
+    )
     project_item.deleted_at = deleted_at
 
     await db.commit()

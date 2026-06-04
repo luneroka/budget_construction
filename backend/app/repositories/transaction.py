@@ -4,6 +4,7 @@ from typing import cast
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.document import Document
 from app.models.project import Project
 from app.models.project_item import ProjectItem
 from app.models.supplier import Supplier
@@ -263,7 +264,16 @@ async def soft_delete_transaction(
     if transaction is None:
         return None
 
-    transaction.deleted_at = datetime.now(UTC).replace(tzinfo=None)
+    deleted_at = datetime.now(UTC).replace(tzinfo=None)
+    await db.execute(
+        update(Document)
+        .where(
+            Document.transaction_id == transaction.id,
+            Document.deleted_at.is_(None),
+        )
+        .values(deleted_at=deleted_at, updated_at=deleted_at)
+    )
+    transaction.deleted_at = deleted_at
 
     await db.commit()
     await db.refresh(transaction)
