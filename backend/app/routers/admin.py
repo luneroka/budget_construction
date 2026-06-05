@@ -79,7 +79,7 @@ async def admin_update_user(
 
 # API ENDPOINT FOR ADMIN TO SOFT DELETE A USER
 @router.delete('/{user_id}', response_model=AdminUserRead)
-async def admin_delete_user(
+async def admin_soft_delete_user(
     user_id: int,
     db: AsyncSession = Depends(get_db_session),
     admin: User = Depends(get_current_admin_user),
@@ -104,3 +104,52 @@ async def admin_delete_user(
         )
 
     return user
+
+
+# API ENDPOINT FOR ADMIN TO RESTORE A USER
+@router.post('/{user_id}/restore', response_model=AdminUserRead)
+async def admin_restore_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db_session),
+):
+    try:
+        user = await user_lifecycle.restore_user(db, user_id)
+    except user_lifecycle.UserLifecycleError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(error),
+        ) from error
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='User not found'
+        )
+
+    return user
+
+
+# API ENDPOINT FOR ADMIN TO PERMANENTLY DELETE A USER
+@router.delete('/{user_id}/permanent', status_code=status.HTTP_204_NO_CONTENT)
+async def admin_hard_delete_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    admin: User = Depends(get_current_admin_user),
+):
+    if user_id == admin.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Use self-delete endpoint',
+        )
+
+    try:
+        deleted = await user_lifecycle.hard_delete_user(db, user_id)
+    except user_lifecycle.UserLifecycleError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(error),
+        ) from error
+
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='User not found'
+        )
