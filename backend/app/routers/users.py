@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.db.session import get_db_session
 from app.repositories import user as user_repository
-from app.schemas.user import UserRead
+from app.schemas.user import UserProfileUpdate, UserRead
 from app.services import user_lifecycle
 
 router = APIRouter(prefix='/users', tags=['Users'])
@@ -15,6 +16,32 @@ router = APIRouter(prefix='/users', tags=['Users'])
 @router.get('/me', response_model=UserRead)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+# API ENDPOINT TO UPDATE CURRENT USER PROFILE
+@router.patch('/me', response_model=UserRead)
+async def update_me(
+    user_data: UserProfileUpdate,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        user = await user_repository.update_user(
+            db, current_user.id, user_data.model_dump(exclude_unset=True)
+        )
+    except IntegrityError as error:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail='A user with this email already exists',
+        ) from error
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='User not found'
+        )
+
+    return user
 
 
 # API ENDPOINT TO GET USER BY ID

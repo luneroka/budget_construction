@@ -34,6 +34,23 @@ async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
     return result.scalar_one_or_none()
 
 
+async def update_user(
+    db: AsyncSession, user_id: int, update_data: dict[str, object]
+) -> User | None:
+    user = await get_user_by_id(db, user_id)
+
+    if user is None or user.deleted_at is not None:
+        return None
+
+    for field, value in update_data.items():
+        setattr(user, field, value)
+
+    await db.commit()
+    await db.refresh(user)
+
+    return user
+
+
 async def update_user_password(
     db: AsyncSession,
     user: User,

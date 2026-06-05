@@ -12,6 +12,15 @@ class UserCreate(UserBase):
     password: str = Field(min_length=8, max_length=72)
 
 
+class UserProfileUpdate(BaseModel):
+    name: str | None = None
+    email: EmailStr | None = None
+
+
+class AdminUserUpdate(UserProfileUpdate):
+    is_active: bool | None = None
+
+
 class UserRead(UserBase):
     id: int
     created_at: datetime

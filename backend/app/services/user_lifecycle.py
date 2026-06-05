@@ -10,6 +10,7 @@ from app.models.supplier import Supplier
 from app.models.transaction import Transaction
 from app.models.user import User
 from app.repositories import user as user_repository
+from app.schemas.user import AdminUserUpdate
 
 
 class UserLifecycleError(ValueError):
@@ -31,6 +32,40 @@ async def _ensure_user_can_be_deleted(db: AsyncSession, user: User) -> None:
     )
     if result.scalar_one() <= 1:
         raise UserLifecycleError('Cannot delete the last admin user')
+
+
+async def _ensure_user_can_be_updated(
+    db: AsyncSession, user: User, user_data: AdminUserUpdate
+) -> None:
+    if not user.is_admin or not user.is_active or user_data.is_active is not False:
+        return
+
+    result = await db.execute(
+        select(func.count())
+        .select_from(User)
+        .where(
+            User.is_admin.is_(True),
+            User.is_active.is_(True),
+            User.deleted_at.is_(None),
+        )
+    )
+    if result.scalar_one() <= 1:
+        raise UserLifecycleError('Cannot deactivate the last admin user')
+
+
+async def update_user(
+    db: AsyncSession, user_id: int, user_data: AdminUserUpdate
+) -> User | None:
+    user = await user_repository.get_user_by_id(db, user_id)
+
+    if user is None:
+        return None
+
+    await _ensure_user_can_be_updated(db, user, user_data)
+
+    return await user_repository.update_user(
+        db, user_id, user_data.model_dump(exclude_unset=True)
+    )
 
 
 async def soft_delete_user(db: AsyncSession, user_id: int) -> User | None:
