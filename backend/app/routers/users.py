@@ -36,3 +36,19 @@ async def get_user(
         )
 
     return user
+
+
+# API ENDPOINT TO SOFT DELETE A USER
+@router.delete('/me', response_model=UserRead)
+async def soft_delete_user(
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    user = await user_repository.soft_delete_user(db, current_user.id)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='User not found'
+        )
+
+    return user
