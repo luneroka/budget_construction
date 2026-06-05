@@ -19,3 +19,8 @@ class UserRead(UserBase):
     deleted_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AdminUserRead(UserRead):
+    is_admin: bool
+    is_active: bool

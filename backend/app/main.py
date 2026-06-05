@@ -15,6 +15,7 @@ from app.routers import (
     project_items,
     transactions,
     documents,
+    admin,
 )
 
 
@@ -43,3 +44,4 @@ app.include_router(transactions.router)
 app.include_router(suppliers.router)
 app.include_router(documents.router)
 app.include_router(documents.document_router)
+app.include_router(admin.router)

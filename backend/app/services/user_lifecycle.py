@@ -1,0 +1,126 @@
+from datetime import UTC, datetime
+
+from sqlalchemy import func, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.document import Document
+from app.models.project import Project
+from app.models.project_item import ProjectItem
+from app.models.supplier import Supplier
+from app.models.transaction import Transaction
+from app.models.user import User
+from app.repositories import user as user_repository
+
+
+class UserLifecycleError(ValueError):
+    pass
+
+
+async def _ensure_user_can_be_deleted(db: AsyncSession, user: User) -> None:
+    if not user.is_admin:
+        return
+
+    result = await db.execute(
+        select(func.count())
+        .select_from(User)
+        .where(
+            User.is_admin.is_(True),
+            User.is_active.is_(True),
+            User.deleted_at.is_(None),
+        )
+    )
+    if result.scalar_one() <= 1:
+        raise UserLifecycleError('Cannot delete the last admin user')
+
+
+async def soft_delete_user(db: AsyncSession, user_id: int) -> User | None:
+    user = await user_repository.get_user_by_id(db, user_id)
+
+    if user is None:
+        return None
+
+    await _ensure_user_can_be_deleted(db, user)
+
+    deleted_at = datetime.now(UTC).replace(tzinfo=None)
+
+    project_ids = select(Project.id).where(
+        Project.user_id == user_id,
+        Project.deleted_at.is_(None),
+    )
+    project_item_ids = (
+        select(ProjectItem.id)
+        .join(Project, ProjectItem.project_id == Project.id)
+        .where(
+            Project.user_id == user_id,
+            ProjectItem.deleted_at.is_(None),
+        )
+    )
+    transaction_ids = (
+        select(Transaction.id)
+        .join(ProjectItem, Transaction.project_item_id == ProjectItem.id)
+        .join(Project, ProjectItem.project_id == Project.id)
+        .where(
+            Project.user_id == user_id,
+            Transaction.deleted_at.is_(None),
+        )
+    )
+
+    try:
+        await db.execute(
+            update(Document)
+            .where(
+                Document.user_id == user_id,
+                Document.deleted_at.is_(None),
+            )
+            .values(deleted_at=deleted_at, updated_at=deleted_at)
+        )
+        await db.execute(
+            update(Document)
+            .where(
+                Document.transaction_id.in_(transaction_ids),
+                Document.deleted_at.is_(None),
+            )
+            .values(deleted_at=deleted_at, updated_at=deleted_at)
+        )
+        await db.execute(
+            update(Transaction)
+            .where(Transaction.id.in_(transaction_ids))
+            .values(deleted_at=deleted_at, updated_at=deleted_at)
+        )
+        await db.execute(
+            update(ProjectItem)
+            .where(ProjectItem.id.in_(project_item_ids))
+            .values(deleted_at=deleted_at, updated_at=deleted_at)
+        )
+        await db.execute(
+            update(Project)
+            .where(Project.id.in_(project_ids))
+            .values(deleted_at=deleted_at, updated_at=deleted_at)
+        )
+        await db.execute(
+            update(Supplier)
+            .where(
+                Supplier.user_id == user_id,
+                Supplier.deleted_at.is_(None),
+            )
+            .values(deleted_at=deleted_at, updated_at=deleted_at)
+        )
+
+        user.is_active = False
+        user.deleted_at = deleted_at
+
+        await db.commit()
+        await db.refresh(user)
+    except Exception:
+        await db.rollback()
+        raise
+
+    return user
+
+
+async def restore_user(db: AsyncSession, user_id: int) -> User | None:
+    raise NotImplementedError
+
+
+async def hard_delete_user(db: AsyncSession, user_id: int) -> None:
+    raise NotImplementedError

@@ -6,6 +6,7 @@ from app.models.user import User
 from app.db.session import get_db_session
 from app.repositories import user as user_repository
 from app.schemas.user import UserRead
+from app.services import user_lifecycle
 
 router = APIRouter(prefix='/users', tags=['Users'])
 
@@ -44,7 +45,13 @@ async def soft_delete_user(
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
-    user = await user_repository.soft_delete_user(db, current_user.id)
+    try:
+        user = await user_lifecycle.soft_delete_user(db, current_user.id)
+    except user_lifecycle.UserLifecycleError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(error),
+        ) from error
 
     if user is None:
         raise HTTPException(
