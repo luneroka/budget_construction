@@ -190,7 +190,9 @@ Table transactions {
   vat_rate decimal(5,2)
   amount_vat decimal(12,2)
   amount_ttc decimal(12,2) [not null]
-  transaction_date date [not null]
+  issued_date date [not null]
+  due_date date
+  payment_date date
   description text
   quote_status quote_status
   invoice_status invoice_status
@@ -215,6 +217,8 @@ Table transactions {
     `transaction_type = 'quote' OR quote_status IS NULL` [name: 'ck_transactions_quote_status_only_for_quotes']
     `transaction_type = 'invoice' OR invoice_status IS NULL` [name: 'ck_transactions_invoice_status_only_for_invoices']
     `transaction_type = 'invoice' OR payment_method IS NULL` [name: 'ck_transactions_payment_method_only_for_invoices']
+    `transaction_type IN ('quote', 'invoice') OR due_date IS NULL` [name: 'ck_transactions_due_date_only_for_quotes_or_invoices']
+    `transaction_type = 'invoice' OR payment_date IS NULL` [name: 'ck_transactions_payment_date_only_for_invoices']
   }
 }
 

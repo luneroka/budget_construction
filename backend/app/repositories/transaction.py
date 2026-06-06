@@ -104,6 +104,23 @@ def _validate_update(
         )
 
     if (
+        transaction.transaction_type
+        not in {TransactionType.quote, TransactionType.invoice}
+        and values.get('due_date') is not None
+    ):
+        raise TransactionValidationError(
+            'due_date is only allowed for quote and invoice transactions'
+        )
+
+    if (
+        transaction.transaction_type != TransactionType.invoice
+        and values.get('payment_date') is not None
+    ):
+        raise TransactionValidationError(
+            'payment_date is only allowed for invoice transactions'
+        )
+
+    if (
         transaction.transaction_type == TransactionType.invoice
         and values.get('is_selected_budget') is True
     ):
@@ -204,7 +221,7 @@ async def get_transactions_by_project_item(
             Transaction.project_item_id == project_item_id,
             Transaction.deleted_at.is_(None),
         )
-        .order_by(Transaction.transaction_date.desc(), Transaction.id.desc())
+        .order_by(Transaction.issued_date.desc(), Transaction.id.desc())
     )
 
     return list(result.scalars().all())

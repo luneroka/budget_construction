@@ -70,7 +70,9 @@ class Transaction(Base):
     vat_rate: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
     amount_vat: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     amount_ttc: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    transaction_date: Mapped[date] = mapped_column(Date, nullable=False)
+    issued_date: Mapped[date] = mapped_column(Date, nullable=False)
+    due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    payment_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     quote_status: Mapped[QuoteStatus | None] = mapped_column(
         Enum(QuoteStatus, name='quote_status'),
@@ -134,6 +136,14 @@ class Transaction(Base):
         CheckConstraint(
             "transaction_type = 'invoice' OR payment_method IS NULL",
             name='ck_transactions_payment_method_only_for_invoices',
+        ),
+        CheckConstraint(
+            "transaction_type IN ('quote', 'invoice') OR due_date IS NULL",
+            name='ck_transactions_due_date_only_for_quotes_or_invoices',
+        ),
+        CheckConstraint(
+            "transaction_type = 'invoice' OR payment_date IS NULL",
+            name='ck_transactions_payment_date_only_for_invoices',
         ),
         Index(
             'uq_transactions_project_item_selected_budget',
