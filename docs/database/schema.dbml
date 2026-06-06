@@ -33,6 +33,13 @@ Enum project_item_type {
   breakdown
 }
 
+Enum project_status {
+  draft
+  active
+  completed
+  archived
+}
+
 TablePartial timestamps {
   created_at timestamp [not null, default: `now()`]
   updated_at timestamp [not null, default: `now()`]
@@ -74,6 +81,7 @@ Table projects {
   location varchar(255)
   start_date date
   end_date date
+  project_status project_status [not null, default: 'active']
   ~timestamps
   deleted_at timestamp
 

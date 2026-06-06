@@ -3,13 +3,21 @@ from __future__ import annotations
 from datetime import date, datetime, UTC
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Date, DateTime, Index, String, Text, func, text
+import enum
+from sqlalchemy import ForeignKey, Date, DateTime, Enum, Index, String, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.project_item import ProjectItem
+
+
+class ProjectStatus(str, enum.Enum):
+    draft = 'draft'
+    active = 'active'
+    completed = 'completed'
+    archived = 'archived'
 
 
 class Project(Base):
@@ -26,6 +34,12 @@ class Project(Base):
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
     start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    project_status: Mapped[ProjectStatus] = mapped_column(
+        Enum(ProjectStatus, name='project_status'),
+        default=ProjectStatus.active,
+        server_default=ProjectStatus.active.value,
+        nullable=False,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=lambda: datetime.now(UTC).replace(tzinfo=None),

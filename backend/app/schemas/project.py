@@ -1,7 +1,8 @@
 from datetime import datetime, date
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
+from app.models.project import ProjectStatus
 from app.schemas.project_item import ProjectItemRead
 
 
@@ -11,6 +12,7 @@ class ProjectBase(BaseModel):
     location: str | None = None
     start_date: date | None = None
     end_date: date | None = None
+    project_status: ProjectStatus = ProjectStatus.active
 
 
 class ProjectCreate(ProjectBase):
@@ -27,6 +29,16 @@ class ProjectUpdate(BaseModel):
     location: str | None = None
     start_date: date | None = None
     end_date: date | None = None
+    project_status: ProjectStatus | None = None
+
+    @field_validator('project_status')
+    @classmethod
+    def validate_project_status(
+        cls, value: ProjectStatus | None
+    ) -> ProjectStatus | None:
+        if value is None:
+            raise ValueError('project_status cannot be null')
+        return value
 
 
 class ProjectRead(ProjectBase):
