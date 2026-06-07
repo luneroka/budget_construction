@@ -68,9 +68,12 @@ table project_summary
 
 	column total_selected_budget_ttc
 		dataType: double
+		isHidden
 		lineageTag: e2b00365-aaf4-4228-b7f1-221a22b05553
 		summarizeBy: sum
 		sourceColumn: total_selected_budget_ttc
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
@@ -78,9 +81,12 @@ table project_summary
 
 	column total_actual_ttc
 		dataType: double
+		isHidden
 		lineageTag: 578b95b4-52c0-438c-afbc-43ee5b5eebea
 		summarizeBy: sum
 		sourceColumn: total_actual_ttc
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
@@ -88,9 +94,12 @@ table project_summary
 
 	column total_paid_ttc
 		dataType: double
+		isHidden
 		lineageTag: 87690a7e-bdd6-4819-b50f-e89284c5b391
 		summarizeBy: sum
 		sourceColumn: total_paid_ttc
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
@@ -98,9 +107,12 @@ table project_summary
 
 	column total_unpaid_ttc
 		dataType: double
+		isHidden
 		lineageTag: fcc883d3-033b-4cab-bbd9-64ef7c08655a
 		summarizeBy: sum
 		sourceColumn: total_unpaid_ttc
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
@@ -108,9 +120,12 @@ table project_summary
 
 	column total_variance_ttc
 		dataType: double
+		isHidden
 		lineageTag: 3161edbd-1da2-4368-b07e-97591a7323b8
 		summarizeBy: sum
 		sourceColumn: total_variance_ttc
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
@@ -118,9 +133,12 @@ table project_summary
 
 	column total_variance_pct
 		dataType: double
+		isHidden
 		lineageTag: 2344b446-5d74-496d-bae6-662b2b4cf6a8
 		summarizeBy: sum
 		sourceColumn: total_variance_pct
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
@@ -128,9 +146,12 @@ table project_summary
 
 	column actual_vs_budget_pct
 		dataType: double
+		isHidden
 		lineageTag: 68680790-14a2-4ef9-94d6-95f96f00383e
 		summarizeBy: sum
 		sourceColumn: actual_vs_budget_pct
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
@@ -138,10 +159,13 @@ table project_summary
 
 	column supplier_count
 		dataType: int64
+		isHidden
 		formatString: 0
 		lineageTag: cddf3286-0210-4147-b1dd-e31eb6cafbcf
 		summarizeBy: sum
 		sourceColumn: supplier_count
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
@@ -156,10 +180,13 @@ table project_summary
 
 	column invoice_count
 		dataType: int64
+		isHidden
 		formatString: 0
 		lineageTag: d042586a-92ed-4cf8-bf20-f614759a60a3
 		summarizeBy: sum
 		sourceColumn: invoice_count
+
+		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 

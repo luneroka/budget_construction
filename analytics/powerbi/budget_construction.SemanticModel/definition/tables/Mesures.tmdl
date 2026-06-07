@@ -1,0 +1,67 @@
+table Mesures
+	lineageTag: f9804fb8-6d0c-4df0-bc32-16be2da1748c
+
+	measure 'Budget total' = SUM(project_summary[total_selected_budget_ttc])
+		lineageTag: 21dd523c-5e93-418b-853a-8f4c6b79ddce
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Montant payé' = SUM(project_summary[total_paid_ttc])
+		lineageTag: 39a78fe1-e435-448f-b2fd-3aa46d74a8a1
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Coût réel' = SUM(project_summary[total_actual_ttc])
+		lineageTag: d3427dcf-31df-4f69-acbb-0940f3a55712
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Montant impayé' = SUM(project_summary[total_unpaid_ttc])
+		lineageTag: ccfd2a49-01be-4e3a-9206-56ba63be80b5
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Écart budget' = [Budget total] - [Coût réel]
+		lineageTag: a99b2c6c-bc7b-4ba0-bf65-256fdad4ecdd
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Écart %' = DIVIDE([Écart budget], [Budget total])
+		lineageTag: bc89cd82-4a50-43b6-b00c-2b113c048642
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Nombre Factures' = SUM(project_summary[invoice_count])
+		formatString: 0
+		lineageTag: d14b43e6-149e-489a-ad47-67e31fd230a0
+
+	measure 'Nombre de fournisseurs' = SUM(project_summary[supplier_count])
+		formatString: 0
+		lineageTag: 878a2733-70f7-4825-be6f-e81497801fc9
+
+	measure 'Budget consommé %' = DIVIDE([Coût réel], [Budget total])
+		lineageTag: 1ccc6adc-259f-4a43-b7c3-20002a5eaf24
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Taux de paiement' = DIVIDE([Montant payé], [Coût réel])
+		lineageTag: 2fecddc1-48e4-45bf-a3af-11221dfb4bbb
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Value
+		isHidden
+		formatString: 0
+		lineageTag: 8da6127c-8184-42be-9751-2c50a1c4a641
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Value]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Mesures = calculated
+		mode: import
+		source = {1}
+
+	annotation PBI_Id = 324e35414a5d49f1bac5ffe92cc985b4
+

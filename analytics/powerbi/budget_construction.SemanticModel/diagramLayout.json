@@ -5,7 +5,7 @@
       "ordinal": 0,
       "scrollPosition": {
         "x": 0,
-        "y": 36
+        "y": 0
       },
       "nodes": [
         {
@@ -19,7 +19,7 @@
             "height": 200,
             "width": 234
           },
-          "zIndex": 1
+          "zIndex": 2
         },
         {
           "location": {
@@ -32,7 +32,7 @@
             "height": 296,
             "width": 234
           },
-          "zIndex": 2
+          "zIndex": 3
         },
         {
           "location": {
@@ -45,7 +45,7 @@
             "height": 300,
             "width": 234
           },
-          "zIndex": 3
+          "zIndex": 4
         },
         {
           "location": {
@@ -58,7 +58,7 @@
             "height": 300,
             "width": 234
           },
-          "zIndex": 6
+          "zIndex": 8
         },
         {
           "location": {
@@ -71,7 +71,7 @@
             "height": 300,
             "width": 234
           },
-          "zIndex": 4
+          "zIndex": 5
         },
         {
           "location": {
@@ -84,12 +84,12 @@
             "height": 300,
             "width": 234
           },
-          "zIndex": 5
+          "zIndex": 6
         },
         {
           "location": {
-            "x": 1169.7284195964826,
-            "y": 422.32485860828331
+            "x": 1164.7284195964826,
+            "y": 213.32485860828331
           },
           "nodeIndex": "Date",
           "nodeLineageTag": "49913862-931d-4a8c-8155-7d458af5b977",
@@ -98,6 +98,18 @@
             "width": 234
           },
           "zIndex": 7
+        },
+        {
+          "location": {
+            "x": 1193.0357757783836,
+            "y": 544.82485860828331
+          },
+          "nodeIndex": "Mesures",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
         }
       ],
       "name": "All tables",
