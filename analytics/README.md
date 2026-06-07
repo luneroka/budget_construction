@@ -15,6 +15,7 @@ FastAPI app → PostgreSQL public schema → PostgreSQL analytics schema → Pow
 - analytics.vw_project_items_fact
 - analytics.vw_supplier_performance
 - analytics.vw_monthly_cashflow
+- analytics.vw_monthly_invoice_activity
 
 ## Analytics & Power BI
 
