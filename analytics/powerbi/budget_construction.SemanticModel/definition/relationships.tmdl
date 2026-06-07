@@ -1,13 +1,3 @@
-relationship 7a6bdca0-04a0-4a32-a901-7dfcfe445f94
-	joinOnDateBehavior: datePartOnly
-	fromColumn: monthly_cashflow.month
-	toColumn: LocalDateTable_7fae518b-895d-453a-b980-e986b5cb8cfd.Date
-
-relationship 53d2318a-1fbb-4410-abfe-3d1a79b75358
-	joinOnDateBehavior: datePartOnly
-	fromColumn: monthly_invoice_activity.month
-	toColumn: LocalDateTable_e104fbcb-bbea-414f-8074-d6107ef888cb.Date
-
 relationship f9781e7d-e3c8-42dc-9d3b-779ce9611667
 	joinOnDateBehavior: datePartOnly
 	fromColumn: project_summary.start_date
@@ -18,20 +8,10 @@ relationship c501ffb5-143d-4f61-87f2-7387e51b7aec
 	fromColumn: project_summary.end_date
 	toColumn: LocalDateTable_baa884fb-2b73-4333-8c8c-0cec3c9e39ba.Date
 
-relationship f0499f25-d442-4953-a55f-688beeb2d5b0
-	joinOnDateBehavior: datePartOnly
-	fromColumn: transactions_fact.issued_date
-	toColumn: LocalDateTable_24c050ee-cf71-4f7b-bf08-a6247705e448.Date
-
 relationship b8689cc7-57ea-4c39-a8fd-91a2e1bca5de
 	joinOnDateBehavior: datePartOnly
 	fromColumn: transactions_fact.due_date
 	toColumn: LocalDateTable_c3c54200-3c0c-47ac-ad21-e820947f7f08.Date
-
-relationship 5fe51503-82e2-4fb7-b757-88c7c0b71d49
-	joinOnDateBehavior: datePartOnly
-	fromColumn: transactions_fact.payment_date
-	toColumn: LocalDateTable_f7fe138f-25fe-4fe1-9b57-ce5965b183f6.Date
 
 relationship AutoDetected_c1040bbb-248d-4c1e-9066-b462034eefc2
 	fromColumn: monthly_cashflow.project_id
@@ -52,4 +32,21 @@ relationship AutoDetected_d5ad495b-80a1-4d10-be77-4b69f9b35038
 relationship AutoDetected_05da1753-db46-46fb-af5b-4feab3cb6e5d
 	fromColumn: transactions_fact.project_id
 	toColumn: project_summary.project_id
+
+relationship da5c92bd-0896-cef2-c3a0-4f4d5a25549f
+	fromColumn: monthly_cashflow.month
+	toColumn: Date.Date
+
+relationship 6f5e2c76-7298-f59e-2c0d-de00e39b0682
+	fromColumn: monthly_invoice_activity.month
+	toColumn: Date.Date
+
+relationship c79478a6-7139-0917-a414-7830acf810c7
+	fromColumn: transactions_fact.issued_date
+	toColumn: Date.Date
+
+relationship 1702248d-83c2-c56e-b0db-d2dbd5f8f97d
+	isActive: false
+	fromColumn: transactions_fact.payment_date
+	toColumn: Date.Date
 

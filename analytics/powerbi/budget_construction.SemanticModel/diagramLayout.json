@@ -5,13 +5,13 @@
       "ordinal": 0,
       "scrollPosition": {
         "x": 0,
-        "y": 0
+        "y": 36
       },
       "nodes": [
         {
           "location": {
-            "x": 810.72841959648247,
-            "y": 572.74151432524786
+            "x": 897.72841959648247,
+            "y": 803.74151432524786
           },
           "nodeIndex": "monthly_cashflow",
           "nodeLineageTag": "39e55285-8d69-46e8-bb36-93c30b9a1493",
@@ -36,7 +36,7 @@
         },
         {
           "location": {
-            "x": 262.63801586333307,
+            "x": 290.63801586333307,
             "y": 0
           },
           "nodeIndex": "project_items_fact",
@@ -49,8 +49,8 @@
         },
         {
           "location": {
-            "x": 523.69959263231135,
-            "y": 302.975087195585
+            "x": 294.69959263231135,
+            "y": 386.97508719558505
           },
           "nodeIndex": "project_summary",
           "nodeLineageTag": "0b01122f-7ee3-4a3d-ba5b-56c5bc6746c0",
@@ -62,8 +62,8 @@
         },
         {
           "location": {
-            "x": 243.692643818099,
-            "y": 656.64971721656661
+            "x": 248.692643818099,
+            "y": 759.64971721656661
           },
           "nodeIndex": "supplier_performance",
           "nodeLineageTag": "677e3494-f180-4e97-b6d4-2a65e8bd08b8",
@@ -75,8 +75,8 @@
         },
         {
           "location": {
-            "x": 50,
-            "y": 302.98436454701942
+            "x": 825,
+            "y": 374.98436454701942
           },
           "nodeIndex": "transactions_fact",
           "nodeLineageTag": "95730015-8400-4211-9d85-eba6c49983a0",
@@ -85,6 +85,19 @@
             "width": 234
           },
           "zIndex": 5
+        },
+        {
+          "location": {
+            "x": 1169.7284195964826,
+            "y": 422.32485860828331
+          },
+          "nodeIndex": "Date",
+          "nodeLineageTag": "49913862-931d-4a8c-8155-7d458af5b977",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 7
         }
       ],
       "name": "All tables",

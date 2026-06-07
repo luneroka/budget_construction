@@ -25,11 +25,6 @@ table monthly_invoice_activity
 		summarizeBy: none
 		sourceColumn: month
 
-		variation Variation
-			isDefault
-			relationship: 53d2318a-1fbb-4410-abfe-3d1a79b75358
-			defaultHierarchy: LocalDateTable_e104fbcb-bbea-414f-8074-d6107ef888cb.'Date Hierarchy'
-
 		annotation SummarizationSetBy = Automatic
 
 		annotation UnderlyingDateTimeDataType = Date

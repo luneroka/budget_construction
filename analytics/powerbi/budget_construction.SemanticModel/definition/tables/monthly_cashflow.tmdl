@@ -25,11 +25,6 @@ table monthly_cashflow
 		summarizeBy: none
 		sourceColumn: month
 
-		variation Variation
-			isDefault
-			relationship: 7a6bdca0-04a0-4a32-a901-7dfcfe445f94
-			defaultHierarchy: LocalDateTable_7fae518b-895d-453a-b980-e986b5cb8cfd.'Date Hierarchy'
-
 		annotation SummarizationSetBy = Automatic
 
 		annotation UnderlyingDateTimeDataType = Date

@@ -155,11 +155,6 @@ table transactions_fact
 		summarizeBy: none
 		sourceColumn: issued_date
 
-		variation Variation
-			isDefault
-			relationship: f0499f25-d442-4953-a55f-688beeb2d5b0
-			defaultHierarchy: LocalDateTable_24c050ee-cf71-4f7b-bf08-a6247705e448.'Date Hierarchy'
-
 		annotation SummarizationSetBy = Automatic
 
 		annotation UnderlyingDateTimeDataType = Date
@@ -186,11 +181,6 @@ table transactions_fact
 		lineageTag: e42889eb-e5c1-4409-94a7-a655ef089b8e
 		summarizeBy: none
 		sourceColumn: payment_date
-
-		variation Variation
-			isDefault
-			relationship: 5fe51503-82e2-4fb7-b757-88c7c0b71d49
-			defaultHierarchy: LocalDateTable_f7fe138f-25fe-4fe1-9b57-ce5965b183f6.'Date Hierarchy'
 
 		annotation SummarizationSetBy = Automatic
 
