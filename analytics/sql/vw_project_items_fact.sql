@@ -1,22 +1,23 @@
 ------------------------------------------------------------
--- Project Summary View
+-- Project Items Fact View
 ------------------------------------------------------------
 -- Grain:
--- One row per project.
+-- One row per project item.
 --
 -- Purpose:
--- Executive-level KPIs and budget summary.
+-- Budget vs actual analysis at project item level.
 ------------------------------------------------------------
 
-create or replace view analytics.vw_project_summary as
-with project_metrics as (
+create or replace view analytics.vw_project_items_fact as
+with project_item_metrics as (
     select
-        p.id as project_id,
-        p.name as project_name,
-        p.location,
-        p.start_date,
-        p.end_date,
-        p.project_status,
+        pj.id as project_id,
+        pj.name as project_name,
+        pi.id as project_item_id,
+        pi.name as project_item_name,
+        c.name as category_name,
+        sc.name as subcategory_name,
+        pd.name as product_name,
 
         coalesce(
             sum(
@@ -27,7 +28,7 @@ with project_metrics as (
                 end
             ),
             0
-        ) as total_selected_budget_ttc,
+        ) as selected_budget_amount_ttc,
 
         coalesce(
             sum(
@@ -38,7 +39,7 @@ with project_metrics as (
                 end
             ),
             0
-        ) as total_actual_ttc,
+        ) as actual_amount_ttc,
 
         coalesce(
             sum(
@@ -50,7 +51,7 @@ with project_metrics as (
                 end
             ),
             0
-        ) as total_paid_ttc,
+        ) as paid_amount_ttc,
 
         coalesce(
             sum(
@@ -62,10 +63,8 @@ with project_metrics as (
                 end
             ),
             0
-        ) as total_unpaid_ttc,
+        ) as unpaid_amount_ttc,
 
-        count(distinct t.supplier_id) as supplier_count,
-        count(distinct pi.id) as project_item_count,
         count(
             distinct case
                 when t.transaction_type = 'invoice'
@@ -73,52 +72,55 @@ with project_metrics as (
             end
         ) as invoice_count
 
-    from projects p
+    from projects pj
     left join project_items pi
-        on p.id = pi.project_id
+        on pj.id = pi.project_id
         and pi.deleted_at is null
+    left join products pd
+        on pi.product_id = pd.id
+    left join subcategories sc
+        on pd.subcategory_id = sc.id
+    left join categories c
+        on sc.category_id = c.id
     left join transactions t
         on pi.id = t.project_item_id
         and t.deleted_at is null
 
-    where p.deleted_at is null
+    where pj.deleted_at is null
 
     group by
-        p.id,
-        p.name,
-        p.location,
-        p.start_date,
-        p.end_date,
-        p.project_status
+        pj.id,
+        pj.name,
+        pi.id,
+        pi.name,
+        c.name,
+        sc.name,
+        pd.name
 )
 
 select
     project_id,
     project_name,
-    location,
-    start_date,
-    end_date,
-    project_status,
-    total_selected_budget_ttc,
-    total_actual_ttc,
-    total_paid_ttc,
-    total_unpaid_ttc,
-    total_selected_budget_ttc - total_actual_ttc as total_variance_ttc,
+    project_item_id,
+    project_item_name,
+    category_name,
+    subcategory_name,
+    product_name,
+    selected_budget_amount_ttc,
+    actual_amount_ttc,
+    paid_amount_ttc,
+    unpaid_amount_ttc,
+    selected_budget_amount_ttc - actual_amount_ttc as variance_ttc,
     round(
         (
-            (total_selected_budget_ttc - total_actual_ttc)
-            / nullif(total_selected_budget_ttc, 0)
+            (selected_budget_amount_ttc - actual_amount_ttc)
+            / nullif(selected_budget_amount_ttc, 0)
         ) * 100,
         2
-    ) as total_variance_pct,
-    round(
-        (
-            total_actual_ttc
-            / nullif(total_selected_budget_ttc, 0)
-        ) * 100,
-        2
-    ) as actual_vs_budget_pct,
-    supplier_count,
-    project_item_count,
-    invoice_count
-from project_metrics;
+    ) as variance_pct,
+    invoice_count,
+    case
+        when invoice_count > 0 then 1
+        else 0
+    end as has_invoice
+from project_item_metrics;
