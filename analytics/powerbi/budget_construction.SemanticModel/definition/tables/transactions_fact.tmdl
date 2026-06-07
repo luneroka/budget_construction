@@ -1,0 +1,238 @@
+table transactions_fact
+	lineageTag: 95730015-8400-4211-9d85-eba6c49983a0
+
+	column transaction_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 1a95b821-50c7-4d39-a4ab-92e6c904c209
+		summarizeBy: none
+		sourceColumn: transaction_id
+
+		annotation SummarizationSetBy = User
+
+	column project_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 6668a28b-75a0-431b-a8e8-7af577ee1a74
+		summarizeBy: none
+		sourceColumn: project_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column project_name
+		dataType: string
+		lineageTag: ac17e4ce-6d58-482d-b37e-5dcafa6beca1
+		summarizeBy: none
+		sourceColumn: project_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column project_item_id
+		dataType: int64
+		formatString: 0
+		lineageTag: be921248-76cb-4815-bf63-47bafb3a2be3
+		summarizeBy: none
+		sourceColumn: project_item_id
+
+		annotation SummarizationSetBy = User
+
+	column project_item_name
+		dataType: string
+		lineageTag: 8dbcb796-fdbf-4111-8d17-01a75ec36d4e
+		summarizeBy: none
+		sourceColumn: project_item_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column supplier_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 54e32434-8450-41d4-9d8d-8d8aa28fdd09
+		summarizeBy: none
+		sourceColumn: supplier_id
+
+		annotation SummarizationSetBy = User
+
+	column supplier_name
+		dataType: string
+		lineageTag: 6667ff48-c95f-40a7-bac5-bc11a0f6b51a
+		summarizeBy: none
+		sourceColumn: supplier_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column category_name
+		dataType: string
+		lineageTag: 0dd49cd4-9714-4ea1-80f7-50479a8005f4
+		summarizeBy: none
+		sourceColumn: category_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column subcategory_name
+		dataType: string
+		lineageTag: 28aa12f9-b52e-438a-a975-d9beb350c5c8
+		summarizeBy: none
+		sourceColumn: subcategory_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_name
+		dataType: string
+		lineageTag: 667bf83d-90e1-45fc-b9a8-cf32f2cd86d4
+		summarizeBy: none
+		sourceColumn: product_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column transaction_type
+		dataType: string
+		lineageTag: 78ad91e1-2a24-4cef-ac39-88e8d953d54d
+		summarizeBy: none
+		sourceColumn: transaction_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column quote_status
+		dataType: string
+		lineageTag: 80e2f2e7-32e7-4ca0-8a8d-922833bac75c
+		summarizeBy: none
+		sourceColumn: quote_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column invoice_status
+		dataType: string
+		lineageTag: bd7834cf-b082-43fa-a7d0-9d26ddea2674
+		summarizeBy: none
+		sourceColumn: invoice_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_selected_budget
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 94199af8-091a-4948-9053-35cb513f89de
+		summarizeBy: none
+		sourceColumn: is_selected_budget
+
+		annotation SummarizationSetBy = Automatic
+
+	column amount_ht
+		dataType: double
+		lineageTag: eb536cf0-b5a8-495f-ac27-1e56a176d7fe
+		summarizeBy: sum
+		sourceColumn: amount_ht
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column amount_vat
+		dataType: double
+		lineageTag: 794b63f6-687b-42c5-b312-46e844e2af9b
+		summarizeBy: sum
+		sourceColumn: amount_vat
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column amount_ttc
+		dataType: double
+		lineageTag: 6408f8c5-41e7-480a-8384-53ba31125d24
+		summarizeBy: sum
+		sourceColumn: amount_ttc
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column issued_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: e66795db-3ad5-492d-b297-e54d711b2a2d
+		summarizeBy: none
+		sourceColumn: issued_date
+
+		variation Variation
+			isDefault
+			relationship: f0499f25-d442-4953-a55f-688beeb2d5b0
+			defaultHierarchy: LocalDateTable_24c050ee-cf71-4f7b-bf08-a6247705e448.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column due_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 060c1742-f0b1-41ac-8b13-9274fed22945
+		summarizeBy: none
+		sourceColumn: due_date
+
+		variation Variation
+			isDefault
+			relationship: b8689cc7-57ea-4c39-a8fd-91a2e1bca5de
+			defaultHierarchy: LocalDateTable_c3c54200-3c0c-47ac-ad21-e820947f7f08.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column payment_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: e42889eb-e5c1-4409-94a7-a655ef089b8e
+		summarizeBy: none
+		sourceColumn: payment_date
+
+		variation Variation
+			isDefault
+			relationship: 5fe51503-82e2-4fb7-b757-88c7c0b71d49
+			defaultHierarchy: LocalDateTable_f7fe138f-25fe-4fe1-9b57-ce5965b183f6.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column payment_delay_days_raw
+		dataType: int64
+		formatString: 0
+		lineageTag: b1bfe41c-8ccd-4828-8fac-cec1fc091d76
+		summarizeBy: sum
+		sourceColumn: payment_delay_days_raw
+
+		annotation SummarizationSetBy = Automatic
+
+	column payment_delay_days
+		dataType: int64
+		formatString: 0
+		lineageTag: e63bebd8-c50e-4c4a-90d1-6dd7dc68690b
+		summarizeBy: sum
+		sourceColumn: payment_delay_days
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_late_payment
+		dataType: int64
+		formatString: 0
+		lineageTag: 8c318c72-f43d-4e72-a7c3-072d6ab5f0ec
+		summarizeBy: sum
+		sourceColumn: is_late_payment
+
+		annotation SummarizationSetBy = Automatic
+
+	partition transactions_fact = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database("192.168.1.19:5434", "house_building"),
+				    analytics_vw_transactions_fact = Source{[Schema="analytics",Item="vw_transactions_fact"]}[Data]
+				in
+				    analytics_vw_transactions_fact
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

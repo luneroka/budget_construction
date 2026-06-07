@@ -1,0 +1,100 @@
+{
+  "version": "1.1.0",
+  "diagrams": [
+    {
+      "ordinal": 0,
+      "scrollPosition": {
+        "x": 0,
+        "y": 0
+      },
+      "nodes": [
+        {
+          "location": {
+            "x": 810.72841959648247,
+            "y": 572.74151432524786
+          },
+          "nodeIndex": "monthly_cashflow",
+          "nodeLineageTag": "39e55285-8d69-46e8-bb36-93c30b9a1493",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 1
+        },
+        {
+          "location": {
+            "x": 810.72444719130863,
+            "y": 23.790232045740936
+          },
+          "nodeIndex": "monthly_invoice_activity",
+          "nodeLineageTag": "daf23c05-daee-4d8e-b03f-e38fceb39c85",
+          "size": {
+            "height": 296,
+            "width": 234
+          },
+          "zIndex": 2
+        },
+        {
+          "location": {
+            "x": 262.63801586333307,
+            "y": 0
+          },
+          "nodeIndex": "project_items_fact",
+          "nodeLineageTag": "88be174c-6ee0-4035-942d-5e6c33adb8ee",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 3
+        },
+        {
+          "location": {
+            "x": 523.69959263231135,
+            "y": 302.975087195585
+          },
+          "nodeIndex": "project_summary",
+          "nodeLineageTag": "0b01122f-7ee3-4a3d-ba5b-56c5bc6746c0",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 6
+        },
+        {
+          "location": {
+            "x": 243.692643818099,
+            "y": 656.64971721656661
+          },
+          "nodeIndex": "supplier_performance",
+          "nodeLineageTag": "677e3494-f180-4e97-b6d4-2a65e8bd08b8",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 4
+        },
+        {
+          "location": {
+            "x": 50,
+            "y": 302.98436454701942
+          },
+          "nodeIndex": "transactions_fact",
+          "nodeLineageTag": "95730015-8400-4211-9d85-eba6c49983a0",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 5
+        }
+      ],
+      "name": "All tables",
+      "zoomValue": 100,
+      "pinKeyFieldsToTop": false,
+      "showExtraHeaderInfo": false,
+      "hideKeyFieldsWhenCollapsed": false,
+      "tablesLocked": false
+    }
+  ],
+  "selectedDiagram": "All tables",
+  "defaultDiagram": "All tables"
+}

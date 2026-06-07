@@ -1,0 +1,128 @@
+table supplier_performance
+	lineageTag: 677e3494-f180-4e97-b6d4-2a65e8bd08b8
+
+	column project_id
+		dataType: int64
+		formatString: 0
+		lineageTag: bea7161c-d23c-4a3e-b525-fa51be1a9440
+		summarizeBy: none
+		sourceColumn: project_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column project_name
+		dataType: string
+		lineageTag: bce27c22-65ff-4b11-b91f-f208b0172544
+		summarizeBy: none
+		sourceColumn: project_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column supplier_id
+		dataType: int64
+		formatString: 0
+		lineageTag: fb031252-dc27-4ba5-b0a0-a72f8e144200
+		summarizeBy: none
+		sourceColumn: supplier_id
+
+		annotation SummarizationSetBy = User
+
+	column supplier_name
+		dataType: string
+		lineageTag: 7cfafaf0-e0bf-4243-a9fa-375374fc9907
+		summarizeBy: none
+		sourceColumn: supplier_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column invoice_count
+		dataType: int64
+		formatString: 0
+		lineageTag: 8d3d8298-37a3-4617-a70e-dc78ee33bb54
+		summarizeBy: sum
+		sourceColumn: invoice_count
+
+		annotation SummarizationSetBy = Automatic
+
+	column quoted_amount_ttc
+		dataType: double
+		lineageTag: 853813eb-9c6c-475c-a46d-e40b4a9e07cc
+		summarizeBy: sum
+		sourceColumn: quoted_amount_ttc
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column actual_amount_ttc
+		dataType: double
+		lineageTag: e6ce1a99-84da-4ca5-a15f-1df1b58cfd71
+		summarizeBy: sum
+		sourceColumn: actual_amount_ttc
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column paid_amount_ttc
+		dataType: double
+		lineageTag: b93dcd4d-794a-4ac8-bdf1-cac0ed960dc7
+		summarizeBy: sum
+		sourceColumn: paid_amount_ttc
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column unpaid_amount_ttc
+		dataType: double
+		lineageTag: 82f902f5-b956-437e-a8f0-6eab9ec8a66e
+		summarizeBy: sum
+		sourceColumn: unpaid_amount_ttc
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column variance_ttc
+		dataType: double
+		lineageTag: 68814498-9911-455c-8a13-1c4b992ec482
+		summarizeBy: sum
+		sourceColumn: variance_ttc
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column variance_pct
+		dataType: double
+		lineageTag: 7350e243-59c3-4b6c-aaa7-085c76996f8e
+		summarizeBy: sum
+		sourceColumn: variance_pct
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column late_invoice_count
+		dataType: int64
+		formatString: 0
+		lineageTag: a48227eb-9cd7-43f7-9f8e-b72accef61ec
+		summarizeBy: sum
+		sourceColumn: late_invoice_count
+
+		annotation SummarizationSetBy = Automatic
+
+	partition supplier_performance = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database("192.168.1.19:5434", "house_building"),
+				    analytics_vw_supplier_performance = Source{[Schema="analytics",Item="vw_supplier_performance"]}[Data]
+				in
+				    analytics_vw_supplier_performance
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

@@ -1,0 +1,31 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 1
+
+annotation PBI_QueryOrder = ["monthly_cashflow","monthly_invoice_activity","project_items_fact","project_summary","supplier_performance","transactions_fact"]
+
+annotation PBI_ProTooling = ["DevMode"]
+
+ref table monthly_cashflow
+ref table DateTableTemplate_cddabdb5-4b76-41f5-83f2-d3d94dd9fc83
+ref table LocalDateTable_7fae518b-895d-453a-b980-e986b5cb8cfd
+ref table monthly_invoice_activity
+ref table LocalDateTable_e104fbcb-bbea-414f-8074-d6107ef888cb
+ref table project_items_fact
+ref table project_summary
+ref table LocalDateTable_2e38923c-b811-42f6-ad55-c9587a9957d0
+ref table LocalDateTable_baa884fb-2b73-4333-8c8c-0cec3c9e39ba
+ref table supplier_performance
+ref table transactions_fact
+ref table LocalDateTable_24c050ee-cf71-4f7b-bf08-a6247705e448
+ref table LocalDateTable_c3c54200-3c0c-47ac-ad21-e820947f7f08
+ref table LocalDateTable_f7fe138f-25fe-4fe1-9b57-ce5965b183f6
+
+ref cultureInfo en-US
+

@@ -1,0 +1,55 @@
+relationship 7a6bdca0-04a0-4a32-a901-7dfcfe445f94
+	joinOnDateBehavior: datePartOnly
+	fromColumn: monthly_cashflow.month
+	toColumn: LocalDateTable_7fae518b-895d-453a-b980-e986b5cb8cfd.Date
+
+relationship 53d2318a-1fbb-4410-abfe-3d1a79b75358
+	joinOnDateBehavior: datePartOnly
+	fromColumn: monthly_invoice_activity.month
+	toColumn: LocalDateTable_e104fbcb-bbea-414f-8074-d6107ef888cb.Date
+
+relationship f9781e7d-e3c8-42dc-9d3b-779ce9611667
+	joinOnDateBehavior: datePartOnly
+	fromColumn: project_summary.start_date
+	toColumn: LocalDateTable_2e38923c-b811-42f6-ad55-c9587a9957d0.Date
+
+relationship c501ffb5-143d-4f61-87f2-7387e51b7aec
+	joinOnDateBehavior: datePartOnly
+	fromColumn: project_summary.end_date
+	toColumn: LocalDateTable_baa884fb-2b73-4333-8c8c-0cec3c9e39ba.Date
+
+relationship f0499f25-d442-4953-a55f-688beeb2d5b0
+	joinOnDateBehavior: datePartOnly
+	fromColumn: transactions_fact.issued_date
+	toColumn: LocalDateTable_24c050ee-cf71-4f7b-bf08-a6247705e448.Date
+
+relationship b8689cc7-57ea-4c39-a8fd-91a2e1bca5de
+	joinOnDateBehavior: datePartOnly
+	fromColumn: transactions_fact.due_date
+	toColumn: LocalDateTable_c3c54200-3c0c-47ac-ad21-e820947f7f08.Date
+
+relationship 5fe51503-82e2-4fb7-b757-88c7c0b71d49
+	joinOnDateBehavior: datePartOnly
+	fromColumn: transactions_fact.payment_date
+	toColumn: LocalDateTable_f7fe138f-25fe-4fe1-9b57-ce5965b183f6.Date
+
+relationship AutoDetected_c1040bbb-248d-4c1e-9066-b462034eefc2
+	fromColumn: monthly_cashflow.project_id
+	toColumn: project_summary.project_id
+
+relationship AutoDetected_acb9d08a-24b8-4507-a9cf-2d55fc9c2854
+	fromColumn: monthly_invoice_activity.project_id
+	toColumn: project_summary.project_id
+
+relationship AutoDetected_82c66bc9-6a3c-45a5-b9d1-ee5cd6c069a4
+	fromColumn: project_items_fact.project_id
+	toColumn: project_summary.project_id
+
+relationship AutoDetected_d5ad495b-80a1-4d10-be77-4b69f9b35038
+	fromColumn: supplier_performance.project_id
+	toColumn: project_summary.project_id
+
+relationship AutoDetected_05da1753-db46-46fb-af5b-4feab3cb6e5d
+	fromColumn: transactions_fact.project_id
+	toColumn: project_summary.project_id
+

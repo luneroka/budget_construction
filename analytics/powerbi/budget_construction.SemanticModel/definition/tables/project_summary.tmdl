@@ -1,0 +1,178 @@
+table project_summary
+	lineageTag: 0b01122f-7ee3-4a3d-ba5b-56c5bc6746c0
+
+	column project_id
+		dataType: int64
+		formatString: 0
+		lineageTag: c0573d8d-738f-4763-929b-4edb46cfe38e
+		summarizeBy: none
+		sourceColumn: project_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column project_name
+		dataType: string
+		lineageTag: 013bf60f-c2d4-4c2e-a060-a6de06500fd9
+		summarizeBy: none
+		sourceColumn: project_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column location
+		dataType: string
+		lineageTag: 579be6e7-7e9e-49fa-8108-a50dbd510668
+		summarizeBy: none
+		sourceColumn: location
+
+		annotation SummarizationSetBy = Automatic
+
+	column start_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: f8c6741e-7ba0-4ae8-8e3e-251c5c2d426e
+		summarizeBy: none
+		sourceColumn: start_date
+
+		variation Variation
+			isDefault
+			relationship: f9781e7d-e3c8-42dc-9d3b-779ce9611667
+			defaultHierarchy: LocalDateTable_2e38923c-b811-42f6-ad55-c9587a9957d0.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column end_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 258991bf-4f73-4b8b-8866-6645065afadf
+		summarizeBy: none
+		sourceColumn: end_date
+
+		variation Variation
+			isDefault
+			relationship: c501ffb5-143d-4f61-87f2-7387e51b7aec
+			defaultHierarchy: LocalDateTable_baa884fb-2b73-4333-8c8c-0cec3c9e39ba.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column project_status
+		dataType: string
+		lineageTag: c22e028d-c2d2-4380-9255-b4ccd4d4641b
+		summarizeBy: none
+		sourceColumn: project_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column total_selected_budget_ttc
+		dataType: double
+		lineageTag: e2b00365-aaf4-4228-b7f1-221a22b05553
+		summarizeBy: sum
+		sourceColumn: total_selected_budget_ttc
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column total_actual_ttc
+		dataType: double
+		lineageTag: 578b95b4-52c0-438c-afbc-43ee5b5eebea
+		summarizeBy: sum
+		sourceColumn: total_actual_ttc
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column total_paid_ttc
+		dataType: double
+		lineageTag: 87690a7e-bdd6-4819-b50f-e89284c5b391
+		summarizeBy: sum
+		sourceColumn: total_paid_ttc
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column total_unpaid_ttc
+		dataType: double
+		lineageTag: fcc883d3-033b-4cab-bbd9-64ef7c08655a
+		summarizeBy: sum
+		sourceColumn: total_unpaid_ttc
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column total_variance_ttc
+		dataType: double
+		lineageTag: 3161edbd-1da2-4368-b07e-97591a7323b8
+		summarizeBy: sum
+		sourceColumn: total_variance_ttc
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column total_variance_pct
+		dataType: double
+		lineageTag: 2344b446-5d74-496d-bae6-662b2b4cf6a8
+		summarizeBy: sum
+		sourceColumn: total_variance_pct
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column actual_vs_budget_pct
+		dataType: double
+		lineageTag: 68680790-14a2-4ef9-94d6-95f96f00383e
+		summarizeBy: sum
+		sourceColumn: actual_vs_budget_pct
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column supplier_count
+		dataType: int64
+		formatString: 0
+		lineageTag: cddf3286-0210-4147-b1dd-e31eb6cafbcf
+		summarizeBy: sum
+		sourceColumn: supplier_count
+
+		annotation SummarizationSetBy = Automatic
+
+	column project_item_count
+		dataType: int64
+		formatString: 0
+		lineageTag: 39f088ad-2af6-49a7-b8a2-c01255db774b
+		summarizeBy: sum
+		sourceColumn: project_item_count
+
+		annotation SummarizationSetBy = Automatic
+
+	column invoice_count
+		dataType: int64
+		formatString: 0
+		lineageTag: d042586a-92ed-4cf8-bf20-f614759a60a3
+		summarizeBy: sum
+		sourceColumn: invoice_count
+
+		annotation SummarizationSetBy = Automatic
+
+	partition project_summary = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database("192.168.1.19:5434", "house_building"),
+				    analytics_vw_project_summary = Source{[Schema="analytics",Item="vw_project_summary"]}[Data]
+				in
+				    analytics_vw_project_summary
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

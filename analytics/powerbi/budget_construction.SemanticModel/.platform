@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "budget_construction"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "b037ede6-1bc1-45bb-993a-82019d52d9f0"
+  }
+}

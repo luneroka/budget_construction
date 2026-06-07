@@ -1,0 +1,69 @@
+table monthly_cashflow
+	lineageTag: 39e55285-8d69-46e8-bb36-93c30b9a1493
+
+	column project_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 7b56dfc6-4ff7-4433-9379-b1adb20acae7
+		summarizeBy: none
+		sourceColumn: project_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column project_name
+		dataType: string
+		lineageTag: c2ceb634-6ce8-432c-8d37-d50383f91760
+		summarizeBy: none
+		sourceColumn: project_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column month
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 3ba052bf-46a2-45e4-b864-8b79c55e1437
+		summarizeBy: none
+		sourceColumn: month
+
+		variation Variation
+			isDefault
+			relationship: 7a6bdca0-04a0-4a32-a901-7dfcfe445f94
+			defaultHierarchy: LocalDateTable_7fae518b-895d-453a-b980-e986b5cb8cfd.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column paid_amount_ttc
+		dataType: double
+		lineageTag: d6ad9dea-fd0f-4bce-bcb5-51f41af3202d
+		summarizeBy: sum
+		sourceColumn: paid_amount_ttc
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column cumulative_paid_amount_ttc
+		dataType: double
+		lineageTag: e66f6e3f-ff38-484e-b702-69c147c81af3
+		summarizeBy: sum
+		sourceColumn: cumulative_paid_amount_ttc
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition monthly_cashflow = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database("192.168.1.19:5434", "house_building"),
+				    analytics_vw_monthly_cashflow = Source{[Schema="analytics",Item="vw_monthly_cashflow"]}[Data]
+				in
+				    analytics_vw_monthly_cashflow
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
