@@ -1,0 +1,23 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json",
+  "name": "5cf0d703c0be65ce923b",
+  "displayName": "Analyse fournisseurs",
+  "displayOption": "FitToPage",
+  "height": 900,
+  "width": 1600,
+  "objects": {
+    "outspacePane": [
+      {
+        "properties": {
+          "width": {
+            "expr": {
+              "Literal": {
+                "Value": "209L"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

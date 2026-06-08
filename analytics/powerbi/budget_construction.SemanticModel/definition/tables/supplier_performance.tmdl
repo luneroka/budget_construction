@@ -1,8 +1,32 @@
 table supplier_performance
 	lineageTag: 677e3494-f180-4e97-b6d4-2a65e8bd08b8
 
-	measure 'Montant Moyen par Fournisseur'
+	measure 'Dépense Moyenne par Fournisseur' =
+			
+			DIVIDE(
+			    SUM(supplier_performance[Coût réel TTC]),
+			    DISTINCTCOUNT(supplier_performance[ID Fournisseur]),
+			    0
+			)
 		lineageTag: f52ad80b-1b1b-4774-a749-86037293dcf5
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure '% Paiements en retard' =
+			
+			
+			DIVIDE(
+			
+			    SUM(supplier_performance[Factures en retard]),
+			
+			    SUM(supplier_performance[Nombre de factures]),
+			
+			    0
+			
+			)
+		lineageTag: 0e6342d2-59d9-4c41-959c-c2c44e4217a2
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	column 'ID Projet'
 		dataType: int64

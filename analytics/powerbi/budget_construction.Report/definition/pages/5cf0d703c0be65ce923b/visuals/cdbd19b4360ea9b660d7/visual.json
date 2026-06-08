@@ -1,16 +1,16 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
-  "name": "11682f5d67eab1445094",
+  "name": "cdbd19b4360ea9b660d7",
   "position": {
     "x": 29.261920313520573,
     "y": 588.37361201828867,
-    "z": 7000,
+    "z": 8000,
     "height": 310.38536903984323,
     "width": 776.485956890921,
-    "tabOrder": 7000
+    "tabOrder": 8000
   },
   "visual": {
-    "visualType": "clusteredColumnChart",
+    "visualType": "barChart",
     "query": {
       "queryState": {
         "Category": {
@@ -20,14 +20,14 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "monthly_invoice_activity"
+                      "Entity": "supplier_performance"
                     }
                   },
-                  "Property": "Mois"
+                  "Property": "Fournisseur"
                 }
               },
-              "queryRef": "monthly_invoice_activity.Mois",
-              "nativeQueryRef": "Mois",
+              "queryRef": "supplier_performance.Fournisseur",
+              "nativeQueryRef": "Fournisseur",
               "active": true
             }
           ]
@@ -41,17 +41,17 @@
                     "Column": {
                       "Expression": {
                         "SourceRef": {
-                          "Entity": "monthly_invoice_activity"
+                          "Entity": "supplier_performance"
                         }
                       },
-                      "Property": "Cumul payé TTC"
+                      "Property": "Nombre de factures"
                     }
                   },
                   "Function": 0
                 }
               },
-              "queryRef": "Sum(monthly_invoice_activity.Cumul payé TTC)",
-              "nativeQueryRef": "Sum of Cumul payé TTC"
+              "queryRef": "Sum(supplier_performance.Nombre de factures)",
+              "nativeQueryRef": "Sum of Nombre de factures"
             }
           ]
         }
@@ -60,16 +60,21 @@
         "sort": [
           {
             "field": {
-              "Column": {
+              "Aggregation": {
                 "Expression": {
-                  "SourceRef": {
-                    "Entity": "monthly_invoice_activity"
+                  "Column": {
+                    "Expression": {
+                      "SourceRef": {
+                        "Entity": "supplier_performance"
+                      }
+                    },
+                    "Property": "Nombre de factures"
                   }
                 },
-                "Property": "Mois"
+                "Function": 0
               }
             },
-            "direction": "Ascending"
+            "direction": "Descending"
           }
         ],
         "isDefaultSort": true
@@ -182,23 +187,73 @@
           }
         },
         {
+          "properties": {}
+        },
+        {
           "properties": {
             "fill": {
               "solid": {
                 "color": {
                   "expr": {
-                    "ThemeDataColor": {
-                      "ColorId": 4,
-                      "Percent": 0
+                    "FillRule": {
+                      "Input": {
+                        "Aggregation": {
+                          "Expression": {
+                            "Column": {
+                              "Expression": {
+                                "SourceRef": {
+                                  "Entity": "supplier_performance"
+                                }
+                              },
+                              "Property": "Nombre de factures"
+                            }
+                          },
+                          "Function": 0
+                        }
+                      },
+                      "FillRule": {
+                        "linearGradient2": {
+                          "min": {
+                            "color": {
+                              "Literal": {
+                                "Value": "'#9ac8e1'"
+                              }
+                            }
+                          },
+                          "max": {
+                            "color": {
+                              "Literal": {
+                                "Value": "'#0375B4'"
+                              }
+                            }
+                          },
+                          "nullColoringStrategy": {
+                            "strategy": {
+                              "Literal": {
+                                "Value": "'asZero'"
+                              }
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }
               }
             }
+          },
+          "selector": {
+            "data": [
+              {
+                "dataViewWildcard": {
+                  "matchingOption": 1
+                }
+              }
+            ]
           }
         }
       ],
-      "valueAxis": [
+      "categoryAxis": [
         {
           "properties": {
             "showAxisTitle": {
@@ -207,18 +262,11 @@
                   "Value": "false"
                 }
               }
-            },
-            "gridlineShow": {
-              "expr": {
-                "Literal": {
-                  "Value": "false"
-                }
-              }
             }
           }
         }
       ],
-      "categoryAxis": [
+      "valueAxis": [
         {
           "properties": {
             "showAxisTitle": {
@@ -246,7 +294,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Dépenses cumulées'"
+                  "Value": "'Nombre de factures par fournisseur'"
                 }
               }
             }

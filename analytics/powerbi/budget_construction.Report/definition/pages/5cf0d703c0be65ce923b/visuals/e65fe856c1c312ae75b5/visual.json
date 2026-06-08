@@ -1,0 +1,332 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "e65fe856c1c312ae75b5",
+  "position": {
+    "x": 812.018288700196,
+    "y": 588.37361201828867,
+    "z": 9000,
+    "height": 310.38536903984323,
+    "width": 776.485956890921,
+    "tabOrder": 9000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "transactions_fact"
+                    }
+                  },
+                  "Property": "Fournisseur"
+                }
+              },
+              "queryRef": "transactions_fact.Fournisseur",
+              "nativeQueryRef": "Fournisseur"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "transactions_fact"
+                    }
+                  },
+                  "Property": "Poste de dépense"
+                }
+              },
+              "queryRef": "transactions_fact.Poste de dépense",
+              "nativeQueryRef": "Poste de dépense"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "transactions_fact"
+                    }
+                  },
+                  "Property": "Date de paiement"
+                }
+              },
+              "queryRef": "transactions_fact.Date de paiement",
+              "nativeQueryRef": "Date de paiement"
+            },
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "transactions_fact"
+                        }
+                      },
+                      "Property": "Retard paiement (jours)"
+                    }
+                  },
+                  "Function": 0
+                }
+              },
+              "queryRef": "Sum(transactions_fact.Retard paiement (jours))",
+              "nativeQueryRef": "Retard paiement (jours)",
+              "displayName": "Retard paiement (jours)"
+            },
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "transactions_fact"
+                        }
+                      },
+                      "Property": "Montant TTC"
+                    }
+                  },
+                  "Function": 0
+                }
+              },
+              "queryRef": "Sum(transactions_fact.Montant TTC)",
+              "nativeQueryRef": "Montant TTC",
+              "displayName": "Montant TTC",
+              "format": "#,0 \"€\";-#,0 \"€\";#,0 \"€\""
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "isDefaultSort": true
+      }
+    },
+    "objects": {
+      "columnHeaders": [
+        {
+          "properties": {
+            "columnAdjustment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'growToFit'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Dépassements Budgétaires par Catégorie'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "59dcf2383db10dc01c85",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "transactions_fact"
+              }
+            },
+            "Property": "Type de transaction"
+          }
+        },
+        "type": "Categorical",
+        "filter": {
+          "Version": 2,
+          "From": [
+            {
+              "Name": "t",
+              "Entity": "transactions_fact",
+              "Type": 0
+            }
+          ],
+          "Where": [
+            {
+              "Condition": {
+                "In": {
+                  "Expressions": [
+                    {
+                      "Column": {
+                        "Expression": {
+                          "SourceRef": {
+                            "Source": "t"
+                          }
+                        },
+                        "Property": "Type de transaction"
+                      }
+                    }
+                  ],
+                  "Values": [
+                    [
+                      {
+                        "Literal": {
+                          "Value": "'Facture'"
+                        }
+                      }
+                    ]
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "howCreated": "User"
+      },
+      {
+        "name": "ee45f01564e6b9605e3c",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "transactions_fact"
+              }
+            },
+            "Property": "Fournisseur"
+          }
+        },
+        "type": "TopN"
+      },
+      {
+        "name": "f8b8a41c505b317524a8",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "transactions_fact"
+              }
+            },
+            "Property": "Paiement en retard"
+          }
+        },
+        "type": "Categorical",
+        "filter": {
+          "Version": 2,
+          "From": [
+            {
+              "Name": "t",
+              "Entity": "transactions_fact",
+              "Type": 0
+            }
+          ],
+          "Where": [
+            {
+              "Condition": {
+                "In": {
+                  "Expressions": [
+                    {
+                      "Column": {
+                        "Expression": {
+                          "SourceRef": {
+                            "Source": "t"
+                          }
+                        },
+                        "Property": "Paiement en retard"
+                      }
+                    }
+                  ],
+                  "Values": [
+                    [
+                      {
+                        "Literal": {
+                          "Value": "'Oui'"
+                        }
+                      }
+                    ]
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "howCreated": "User"
+      },
+      {
+        "name": "0d13a4564e57d0915422",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "transactions_fact"
+              }
+            },
+            "Property": "Date de paiement"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "891a2d6c2709495348a5",
+        "field": {
+          "Aggregation": {
+            "Expression": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "transactions_fact"
+                  }
+                },
+                "Property": "Retard paiement (jours)"
+              }
+            },
+            "Function": 0
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "1ea0915e08113343546e",
+        "field": {
+          "Aggregation": {
+            "Expression": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "transactions_fact"
+                  }
+                },
+                "Property": "Montant TTC"
+              }
+            },
+            "Function": 0
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "ca810b60209a054001a0",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "transactions_fact"
+              }
+            },
+            "Property": "Poste de dépense"
+          }
+        },
+        "type": "Categorical"
+      }
+    ]
+  }
+}

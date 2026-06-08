@@ -1,16 +1,16 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
-  "name": "2aa8b8a8435490dee063",
+  "name": "d507390c97090ac5d931",
   "position": {
     "x": 812.018288700196,
-    "y": 588.37361201828867,
-    "z": 8000,
-    "height": 310.38536903984323,
+    "y": 245.59111691704769,
+    "z": 7000,
+    "height": 311.43043762246896,
     "width": 776.485956890921,
-    "tabOrder": 8000
+    "tabOrder": 7000
   },
   "visual": {
-    "visualType": "stackedAreaChart",
+    "visualType": "columnChart",
     "query": {
       "queryState": {
         "Category": {
@@ -20,14 +20,14 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "monthly_invoice_activity"
+                      "Entity": "supplier_performance"
                     }
                   },
-                  "Property": "Mois"
+                  "Property": "Fournisseur"
                 }
               },
-              "queryRef": "monthly_invoice_activity.Mois",
-              "nativeQueryRef": "Mois",
+              "queryRef": "supplier_performance.Fournisseur",
+              "nativeQueryRef": "Fournisseur",
               "active": true
             }
           ]
@@ -41,38 +41,17 @@
                     "Column": {
                       "Expression": {
                         "SourceRef": {
-                          "Entity": "monthly_invoice_activity"
+                          "Entity": "supplier_performance"
                         }
                       },
-                      "Property": "Cumul payé TTC"
+                      "Property": "Écart devis TTC"
                     }
                   },
                   "Function": 0
                 }
               },
-              "queryRef": "Sum(monthly_invoice_activity.Cumul payé TTC)",
-              "nativeQueryRef": "Cumul payé",
-              "displayName": "Cumul payé"
-            },
-            {
-              "field": {
-                "Aggregation": {
-                  "Expression": {
-                    "Column": {
-                      "Expression": {
-                        "SourceRef": {
-                          "Entity": "monthly_invoice_activity"
-                        }
-                      },
-                      "Property": "Cumul impayé TTC"
-                    }
-                  },
-                  "Function": 0
-                }
-              },
-              "queryRef": "Sum(monthly_invoice_activity.Cumul impayé TTC)",
-              "nativeQueryRef": "Cumul impayé",
-              "displayName": "Cumul impayé"
+              "queryRef": "Sum(supplier_performance.Écart devis TTC)",
+              "nativeQueryRef": "Sum of Écart devis TTC"
             }
           ]
         }
@@ -81,19 +60,23 @@
         "sort": [
           {
             "field": {
-              "Column": {
+              "Aggregation": {
                 "Expression": {
-                  "SourceRef": {
-                    "Entity": "monthly_invoice_activity"
+                  "Column": {
+                    "Expression": {
+                      "SourceRef": {
+                        "Entity": "supplier_performance"
+                      }
+                    },
+                    "Property": "Écart devis TTC"
                   }
                 },
-                "Property": "Mois"
+                "Function": 0
               }
             },
             "direction": "Ascending"
           }
-        ],
-        "isDefaultSort": true
+        ]
       }
     },
     "objects": {
@@ -116,18 +99,23 @@
                                 "Comparison": {
                                   "ComparisonKind": 2,
                                   "Left": {
-                                    "Measure": {
+                                    "Aggregation": {
                                       "Expression": {
-                                        "SourceRef": {
-                                          "Entity": "Mesures"
+                                        "Column": {
+                                          "Expression": {
+                                            "SourceRef": {
+                                              "Entity": "supplier_performance"
+                                            }
+                                          },
+                                          "Property": "Écart devis TTC"
                                         }
                                       },
-                                      "Property": "Écart budget"
+                                      "Function": 0
                                     }
                                   },
                                   "Right": {
                                     "Literal": {
-                                      "Value": "-10000000D"
+                                      "Value": "-1000000D"
                                     }
                                   }
                                 }
@@ -136,13 +124,18 @@
                                 "Comparison": {
                                   "ComparisonKind": 3,
                                   "Left": {
-                                    "Measure": {
+                                    "Aggregation": {
                                       "Expression": {
-                                        "SourceRef": {
-                                          "Entity": "Mesures"
+                                        "Column": {
+                                          "Expression": {
+                                            "SourceRef": {
+                                              "Entity": "supplier_performance"
+                                            }
+                                          },
+                                          "Property": "Écart devis TTC"
                                         }
                                       },
-                                      "Property": "Écart budget"
+                                      "Function": 0
                                     }
                                   },
                                   "Right": {
@@ -156,7 +149,7 @@
                           },
                           "Value": {
                             "Literal": {
-                              "Value": "'#7CBB00'"
+                              "Value": "'#B82601'"
                             }
                           }
                         },
@@ -167,13 +160,18 @@
                                 "Comparison": {
                                   "ComparisonKind": 2,
                                   "Left": {
-                                    "Measure": {
+                                    "Aggregation": {
                                       "Expression": {
-                                        "SourceRef": {
-                                          "Entity": "Mesures"
+                                        "Column": {
+                                          "Expression": {
+                                            "SourceRef": {
+                                              "Entity": "supplier_performance"
+                                            }
+                                          },
+                                          "Property": "Écart devis TTC"
                                         }
                                       },
-                                      "Property": "Écart budget"
+                                      "Function": 0
                                     }
                                   },
                                   "Right": {
@@ -187,18 +185,23 @@
                                 "Comparison": {
                                   "ComparisonKind": 3,
                                   "Left": {
-                                    "Measure": {
+                                    "Aggregation": {
                                       "Expression": {
-                                        "SourceRef": {
-                                          "Entity": "Mesures"
+                                        "Column": {
+                                          "Expression": {
+                                            "SourceRef": {
+                                              "Entity": "supplier_performance"
+                                            }
+                                          },
+                                          "Property": "Écart devis TTC"
                                         }
                                       },
-                                      "Property": "Écart budget"
+                                      "Function": 0
                                     }
                                   },
                                   "Right": {
                                     "Literal": {
-                                      "Value": "10000000D"
+                                      "Value": "1000000D"
                                     }
                                   }
                                 }
@@ -207,7 +210,7 @@
                           },
                           "Value": {
                             "Literal": {
-                              "Value": "'#B82601'"
+                              "Value": "'#7CBB00'"
                             }
                           }
                         }
@@ -226,26 +229,6 @@
                 }
               }
             ]
-          }
-        }
-      ],
-      "categoryAxis": [
-        {
-          "properties": {
-            "showAxisTitle": {
-              "expr": {
-                "Literal": {
-                  "Value": "false"
-                }
-              }
-            },
-            "gridlineShow": {
-              "expr": {
-                "Literal": {
-                  "Value": "false"
-                }
-              }
-            }
           }
         }
       ],
@@ -269,33 +252,20 @@
           }
         }
       ],
-      "lineStyles": [
+      "categoryAxis": [
         {
           "properties": {
-            "strokeLineJoin": {
+            "showAxisTitle": {
               "expr": {
                 "Literal": {
-                  "Value": "'round'"
-                }
-              }
-            }
-          }
-        }
-      ],
-      "legend": [
-        {
-          "properties": {
-            "legendMarkerRendering": {
-              "expr": {
-                "Literal": {
-                  "Value": "'markerCircleDefault'"
+                  "Value": "false"
                 }
               }
             },
-            "matchLineColor": {
+            "show": {
               "expr": {
                 "Literal": {
-                  "Value": "true"
+                  "Value": "false"
                 }
               }
             }
@@ -310,33 +280,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Cumul des factures payées vs impayées'"
-                }
-              }
-            }
-          }
-        }
-      ],
-      "visualHeader": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "false"
-                }
-              }
-            }
-          }
-        }
-      ],
-      "visualTooltip": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
+                  "Value": "'Écart devis vs Facture par Fournisseur'"
                 }
               }
             }
@@ -349,69 +293,15 @@
   "filterConfig": {
     "filters": [
       {
-        "name": "59dcf2383db10dc01c85",
+        "name": "26b3524b321536007d58",
         "field": {
           "Column": {
             "Expression": {
               "SourceRef": {
-                "Entity": "transactions_fact"
+                "Entity": "project_items_fact"
               }
             },
-            "Property": "Type de transaction"
-          }
-        },
-        "type": "Categorical",
-        "filter": {
-          "Version": 2,
-          "From": [
-            {
-              "Name": "t",
-              "Entity": "transactions_fact",
-              "Type": 0
-            }
-          ],
-          "Where": [
-            {
-              "Condition": {
-                "In": {
-                  "Expressions": [
-                    {
-                      "Column": {
-                        "Expression": {
-                          "SourceRef": {
-                            "Source": "t"
-                          }
-                        },
-                        "Property": "Type de transaction"
-                      }
-                    }
-                  ],
-                  "Values": [
-                    [
-                      {
-                        "Literal": {
-                          "Value": "'Facture'"
-                        }
-                      }
-                    ]
-                  ]
-                }
-              }
-            }
-          ]
-        },
-        "howCreated": "User"
-      },
-      {
-        "name": "ee45f01564e6b9605e3c",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "transactions_fact"
-              }
-            },
-            "Property": "Fournisseur"
+            "Property": "Poste de dépense"
           }
         },
         "type": "TopN",
@@ -426,8 +316,8 @@
                     "Version": 2,
                     "From": [
                       {
-                        "Name": "t",
-                        "Entity": "transactions_fact",
+                        "Name": "p",
+                        "Entity": "project_items_fact",
                         "Type": 0
                       }
                     ],
@@ -436,10 +326,10 @@
                         "Column": {
                           "Expression": {
                             "SourceRef": {
-                              "Source": "t"
+                              "Source": "p"
                             }
                           },
-                          "Property": "Fournisseur"
+                          "Property": "Poste de dépense"
                         },
                         "Name": "field"
                       }
@@ -453,10 +343,10 @@
                               "Column": {
                                 "Expression": {
                                   "SourceRef": {
-                                    "Source": "t"
+                                    "Source": "p"
                                   }
                                 },
-                                "Property": "Montant TTC"
+                                "Property": "Montant payé TTC"
                               }
                             },
                             "Function": 0
@@ -464,15 +354,15 @@
                         }
                       }
                     ],
-                    "Top": 5
+                    "Top": 10
                   }
                 }
               },
               "Type": 2
             },
             {
-              "Name": "t",
-              "Entity": "transactions_fact",
+              "Name": "p",
+              "Entity": "project_items_fact",
               "Type": 0
             }
           ],
@@ -485,10 +375,10 @@
                       "Column": {
                         "Expression": {
                           "SourceRef": {
-                            "Source": "t"
+                            "Source": "p"
                           }
                         },
-                        "Property": "Fournisseur"
+                        "Property": "Poste de dépense"
                       }
                     }
                   ],

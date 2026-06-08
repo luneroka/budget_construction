@@ -5259,6 +5259,58 @@ cultureInfo en-US
 			          }
 			        }
 			      ]
+			    },
+			    "supplier_performance.dépense_moyenne_par_fournisseur": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "supplier_performance",
+			          "ConceptualProperty": "Dépense Moyenne par Fournisseur"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "dépense moyenne par fournisseur": {
+			            "State": "Generated"
+			          }
+			        }
+			      ]
+			    },
+			    "supplier_performance.paiements_en_retard": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "supplier_performance",
+			          "ConceptualProperty": "% Paiements en retard"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "% paiements en retard": {
+			            "State": "Generated"
+			          }
+			        },
+			        {
+			          "percentage paiement en retard": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.617
+			          }
+			        },
+			        {
+			          "pct paiement en retard": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.599
+			          }
+			        }
+			      ]
 			    }
 			  },
 			  "Relationships": {
@@ -6122,6 +6174,72 @@ cultureInfo en-US
 			          "State": "Generated",
 			          "Weight": 0.99,
 			          "ID": "project_summaries_have_monthly_cashflows"
+			        }
+			      ]
+			    },
+			    "supplier_performance_has_paiements_en_retard": {
+			      "Binding": {
+			        "ConceptualEntity": "supplier_performance"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "supplier_performance": {
+			          "Target": {
+			            "Entity": "supplier_performance"
+			          }
+			        },
+			        "supplier_performance.paiements_en_retard": {
+			          "Target": {
+			            "Entity": "supplier_performance.paiements_en_retard"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "supplier_performance"
+			            },
+			            "Object": {
+			              "Role": "supplier_performance.paiements_en_retard"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "supplier_performances_have__paiements_en_retard"
+			        }
+			      ]
+			    },
+			    "supplier_performance_has_dépense_moyenne_par_fournisseur": {
+			      "Binding": {
+			        "ConceptualEntity": "supplier_performance"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "supplier_performance": {
+			          "Target": {
+			            "Entity": "supplier_performance"
+			          }
+			        },
+			        "supplier_performance.dépense_moyenne_par_fournisseur": {
+			          "Target": {
+			            "Entity": "supplier_performance.dépense_moyenne_par_fournisseur"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "supplier_performance"
+			            },
+			            "Object": {
+			              "Role": "supplier_performance.dépense_moyenne_par_fournisseur"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "supplier_performances_have_dépense_moyenne_par_fournisseur"
 			        }
 			      ]
 			    },

@@ -4,10 +4,10 @@
   "position": {
     "x": 42.154566744730687,
     "y": 44.9648711943794,
-    "z": 9001,
+    "z": 9000,
     "height": 74.004683840749422,
     "width": 333.48946135831386,
-    "tabOrder": 9001
+    "tabOrder": 9000
   },
   "visual": {
     "visualType": "slicer",
@@ -351,23 +351,5 @@
       ]
     },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "889a81bca868014886ce",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "monthly_invoice_activity"
-              }
-            },
-            "Property": "Mois"
-          }
-        },
-        "type": "Categorical"
-      }
-    ]
   }
 }

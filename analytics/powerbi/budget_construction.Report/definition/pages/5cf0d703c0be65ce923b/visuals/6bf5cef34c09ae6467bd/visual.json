@@ -1,13 +1,13 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
-  "name": "623283c9900700cd6b53",
+  "name": "6bf5cef34c09ae6467bd",
   "position": {
-    "x": 812.018288700196,
+    "x": 29.261920313520573,
     "y": 245.59111691704769,
-    "z": 7000,
+    "z": 6000,
     "height": 311.43043762246896,
     "width": 776.485956890921,
-    "tabOrder": 7000
+    "tabOrder": 6000
   },
   "visual": {
     "visualType": "funnel",
@@ -20,14 +20,14 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "project_items_fact"
+                      "Entity": "supplier_performance"
                     }
                   },
-                  "Property": "Poste de dépense"
+                  "Property": "Fournisseur"
                 }
               },
-              "queryRef": "project_items_fact.Poste de dépense",
-              "nativeQueryRef": "Poste de dépense",
+              "queryRef": "supplier_performance.Fournisseur",
+              "nativeQueryRef": "Fournisseur",
               "active": true
             }
           ]
@@ -41,17 +41,17 @@
                     "Column": {
                       "Expression": {
                         "SourceRef": {
-                          "Entity": "project_items_fact"
+                          "Entity": "supplier_performance"
                         }
                       },
-                      "Property": "Montant payé TTC"
+                      "Property": "Coût réel TTC"
                     }
                   },
                   "Function": 0
                 }
               },
-              "queryRef": "Sum(project_items_fact.Montant payé TTC)",
-              "nativeQueryRef": "Sum of Montant payé TTC"
+              "queryRef": "Sum(supplier_performance.Coût réel TTC)",
+              "nativeQueryRef": "Sum of Coût réel TTC"
             }
           ]
         }
@@ -65,10 +65,10 @@
                   "Column": {
                     "Expression": {
                       "SourceRef": {
-                        "Entity": "project_items_fact"
+                        "Entity": "supplier_performance"
                       }
                     },
-                    "Property": "Montant payé TTC"
+                    "Property": "Coût réel TTC"
                   }
                 },
                 "Function": 0
@@ -81,7 +81,31 @@
       }
     },
     "objects": {
+      "categoryAxis": [
+        {
+          "properties": {}
+        }
+      ],
       "dataPoint": [
+        {
+          "properties": {
+            "fill": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 3,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Sum(project_items_fact.Coût réel TTC)"
+          }
+        },
         {
           "properties": {}
         },
@@ -98,10 +122,10 @@
                             "Column": {
                               "Expression": {
                                 "SourceRef": {
-                                  "Entity": "project_items_fact"
+                                  "Entity": "supplier_performance"
                                 }
                               },
-                              "Property": "Montant payé TTC"
+                              "Property": "Coût réel TTC"
                             }
                           },
                           "Function": 0
@@ -161,6 +185,19 @@
             }
           }
         }
+      ],
+      "labels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
       ]
     },
     "visualContainerObjects": {
@@ -170,7 +207,20 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Top 10 - Postes de dépense'"
+                  "Value": "'Top 10 Fournisseurs par Dépenses'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "visualHeader": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
                 }
               }
             }
@@ -183,15 +233,15 @@
   "filterConfig": {
     "filters": [
       {
-        "name": "26b3524b321536007d58",
+        "name": "e5003260d8e3cbd19600",
         "field": {
           "Column": {
             "Expression": {
               "SourceRef": {
-                "Entity": "project_items_fact"
+                "Entity": "supplier_performance"
               }
             },
-            "Property": "Poste de dépense"
+            "Property": "Fournisseur"
           }
         },
         "type": "TopN",
@@ -206,8 +256,8 @@
                     "Version": 2,
                     "From": [
                       {
-                        "Name": "p",
-                        "Entity": "project_items_fact",
+                        "Name": "s",
+                        "Entity": "supplier_performance",
                         "Type": 0
                       }
                     ],
@@ -216,10 +266,10 @@
                         "Column": {
                           "Expression": {
                             "SourceRef": {
-                              "Source": "p"
+                              "Source": "s"
                             }
                           },
-                          "Property": "Poste de dépense"
+                          "Property": "Fournisseur"
                         },
                         "Name": "field"
                       }
@@ -233,10 +283,10 @@
                               "Column": {
                                 "Expression": {
                                   "SourceRef": {
-                                    "Source": "p"
+                                    "Source": "s"
                                   }
                                 },
-                                "Property": "Montant payé TTC"
+                                "Property": "Coût réel TTC"
                               }
                             },
                             "Function": 0
@@ -251,8 +301,8 @@
               "Type": 2
             },
             {
-              "Name": "p",
-              "Entity": "project_items_fact",
+              "Name": "s",
+              "Entity": "supplier_performance",
               "Type": 0
             }
           ],
@@ -265,16 +315,31 @@
                       "Column": {
                         "Expression": {
                           "SourceRef": {
-                            "Source": "p"
+                            "Source": "s"
                           }
                         },
-                        "Property": "Poste de dépense"
+                        "Property": "Fournisseur"
                       }
                     }
                   ],
                   "Table": {
                     "SourceRef": {
                       "Source": "subquery"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "objects": {
+          "general": [
+            {
+              "properties": {
+                "isInvertedSelectionMode": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "true"
                     }
                   }
                 }
