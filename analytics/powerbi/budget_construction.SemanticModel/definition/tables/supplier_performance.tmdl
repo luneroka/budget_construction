@@ -1,115 +1,115 @@
 table supplier_performance
 	lineageTag: 677e3494-f180-4e97-b6d4-2a65e8bd08b8
 
-	column project_id
+	column 'ID Projet'
 		dataType: int64
 		formatString: 0
 		lineageTag: bea7161c-d23c-4a3e-b525-fa51be1a9440
 		summarizeBy: none
-		sourceColumn: project_id
+		sourceColumn: ID Projet
 
 		annotation SummarizationSetBy = Automatic
 
-	column project_name
+	column Projet
 		dataType: string
 		lineageTag: bce27c22-65ff-4b11-b91f-f208b0172544
 		summarizeBy: none
-		sourceColumn: project_name
+		sourceColumn: Projet
 
 		annotation SummarizationSetBy = Automatic
 
-	column supplier_id
+	column 'ID Fournisseur'
 		dataType: int64
 		formatString: 0
 		lineageTag: fb031252-dc27-4ba5-b0a0-a72f8e144200
 		summarizeBy: none
-		sourceColumn: supplier_id
+		sourceColumn: ID Fournisseur
 
 		annotation SummarizationSetBy = User
 
-	column supplier_name
+	column Fournisseur
 		dataType: string
 		lineageTag: 7cfafaf0-e0bf-4243-a9fa-375374fc9907
 		summarizeBy: none
-		sourceColumn: supplier_name
+		sourceColumn: Fournisseur
 
 		annotation SummarizationSetBy = Automatic
 
-	column invoice_count
+	column 'Nombre de factures'
 		dataType: int64
 		formatString: 0
 		lineageTag: 8d3d8298-37a3-4617-a70e-dc78ee33bb54
 		summarizeBy: sum
-		sourceColumn: invoice_count
+		sourceColumn: Nombre de factures
 
 		annotation SummarizationSetBy = Automatic
 
-	column quoted_amount_ttc
+	column 'Montant devis TTC'
 		dataType: double
 		lineageTag: 853813eb-9c6c-475c-a46d-e40b4a9e07cc
 		summarizeBy: sum
-		sourceColumn: quoted_amount_ttc
+		sourceColumn: Montant devis TTC
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column actual_amount_ttc
+	column 'Coût réel TTC'
 		dataType: double
 		lineageTag: e6ce1a99-84da-4ca5-a15f-1df1b58cfd71
 		summarizeBy: sum
-		sourceColumn: actual_amount_ttc
+		sourceColumn: Coût réel TTC
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column paid_amount_ttc
+	column 'Montant payé TTC'
 		dataType: double
 		lineageTag: b93dcd4d-794a-4ac8-bdf1-cac0ed960dc7
 		summarizeBy: sum
-		sourceColumn: paid_amount_ttc
+		sourceColumn: Montant payé TTC
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column unpaid_amount_ttc
+	column 'Montant impayé TTC'
 		dataType: double
 		lineageTag: 82f902f5-b956-437e-a8f0-6eab9ec8a66e
 		summarizeBy: sum
-		sourceColumn: unpaid_amount_ttc
+		sourceColumn: Montant impayé TTC
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column variance_ttc
+	column 'Écart devis TTC'
 		dataType: double
 		lineageTag: 68814498-9911-455c-8a13-1c4b992ec482
 		summarizeBy: sum
-		sourceColumn: variance_ttc
+		sourceColumn: Écart devis TTC
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column variance_pct
+	column 'Écart devis %'
 		dataType: double
 		lineageTag: 7350e243-59c3-4b6c-aaa7-085c76996f8e
 		summarizeBy: sum
-		sourceColumn: variance_pct
+		sourceColumn: Écart devis %
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column late_invoice_count
+	column 'Factures en retard'
 		dataType: int64
 		formatString: 0
 		lineageTag: a48227eb-9cd7-43f7-9f8e-b72accef61ec
 		summarizeBy: sum
-		sourceColumn: late_invoice_count
+		sourceColumn: Factures en retard
 
 		annotation SummarizationSetBy = Automatic
 
@@ -118,9 +118,10 @@ table supplier_performance
 		source =
 				let
 				    Source = PostgreSQL.Database("192.168.1.19:5434", "house_building"),
-				    analytics_vw_supplier_performance = Source{[Schema="analytics",Item="vw_supplier_performance"]}[Data]
+				    analytics_vw_supplier_performance = Source{[Schema="analytics",Item="vw_supplier_performance"]}[Data],
+				    #"Renamed Columns" = Table.RenameColumns(analytics_vw_supplier_performance,{{"project_id", "ID Projet"}, {"supplier_id", "ID Fournisseur"}, {"project_name", "Projet"}, {"supplier_name", "Fournisseur"}, {"invoice_count", "Nombre de factures"}, {"quoted_amount_ttc", "Montant devis TTC"}, {"actual_amount_ttc", "Coût réel TTC"}, {"paid_amount_ttc", "Montant payé TTC"}, {"unpaid_amount_ttc", "Montant impayé TTC"}, {"variance_ttc", "Écart devis TTC"}, {"variance_pct", "Écart devis %"}, {"late_invoice_count", "Factures en retard"}})
 				in
-				    analytics_vw_supplier_performance
+				    #"Renamed Columns"
 
 	annotation PBI_NavigationStepName = Navigation
 

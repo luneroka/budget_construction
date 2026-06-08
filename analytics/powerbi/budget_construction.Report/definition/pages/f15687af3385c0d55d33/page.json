@@ -3,6 +3,21 @@
   "name": "f15687af3385c0d55d33",
   "displayName": "Vue d'ensemble",
   "displayOption": "FitToPage",
-  "height": 720,
-  "width": 1280
+  "height": 900,
+  "width": 1600,
+  "objects": {
+    "outspacePane": [
+      {
+        "properties": {
+          "width": {
+            "expr": {
+              "Literal": {
+                "Value": "209L"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
 }

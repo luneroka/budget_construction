@@ -4,13 +4,15 @@ table Date
 
 	column Date
 		isKey
-		formatString: General Date
+		formatString: yy/mm/dd hh:nn:ss
 		lineageTag: eb4f36f7-eeb5-461d-b0c0-3a325185b209
 		summarizeBy: none
 		isNameInferred
 		sourceColumn: [Date]
 
 		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isDateTimeCustom":true}
 
 	column Year
 		formatString: 0

@@ -1,89 +1,91 @@
 table monthly_invoice_activity
 	lineageTag: daf23c05-daee-4d8e-b03f-e38fceb39c85
 
-	column project_id
+	column 'ID Projet'
 		dataType: int64
 		formatString: 0
 		lineageTag: 3cafcc5b-c87d-4385-9939-e33b0dbe6489
 		summarizeBy: none
-		sourceColumn: project_id
+		sourceColumn: ID Projet
 
 		annotation SummarizationSetBy = Automatic
 
-	column project_name
+	column Projet
 		dataType: string
 		lineageTag: 32501330-7764-4140-929c-02217a648a81
 		summarizeBy: none
-		sourceColumn: project_name
+		sourceColumn: Projet
 
 		annotation SummarizationSetBy = Automatic
 
-	column month
+	column Mois
 		dataType: dateTime
-		formatString: Long Date
+		formatString: yyyy-mm
 		lineageTag: beafc17d-3e2d-4fec-b573-97e56029d696
 		summarizeBy: none
-		sourceColumn: month
+		sourceColumn: Mois
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation UnderlyingDateTimeDataType = Date
 
-	column invoice_amount_ttc
+		annotation PBI_FormatHint = {"isDateTimeCustom":true}
+
+	column 'Montant facturé TTC'
 		dataType: double
 		lineageTag: e03a48f9-4799-47a5-8448-ca5303ec3b6c
 		summarizeBy: sum
-		sourceColumn: invoice_amount_ttc
+		sourceColumn: Montant facturé TTC
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column paid_amount_ttc
+	column 'Montant payé TTC'
 		dataType: double
 		lineageTag: bb3438d6-e1a6-47d6-89c4-a352f1d2a530
 		summarizeBy: sum
-		sourceColumn: paid_amount_ttc
+		sourceColumn: Montant payé TTC
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column unpaid_amount_ttc
+	column 'Montant impayé TTC'
 		dataType: double
 		lineageTag: a222ae86-8f25-49c4-b22f-a2a884b001f7
 		summarizeBy: sum
-		sourceColumn: unpaid_amount_ttc
+		sourceColumn: Montant impayé TTC
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column cumulative_invoice_amount_ttc
+	column 'Cumul facturé TTC'
 		dataType: double
 		lineageTag: b562d6df-9caf-49b7-9270-1ac34c0555b7
 		summarizeBy: sum
-		sourceColumn: cumulative_invoice_amount_ttc
+		sourceColumn: Cumul facturé TTC
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column cumulative_paid_amount_ttc
+	column 'Cumul payé TTC'
 		dataType: double
 		lineageTag: b30f6933-1a53-46dc-89d4-14916739e62a
 		summarizeBy: sum
-		sourceColumn: cumulative_paid_amount_ttc
+		sourceColumn: Cumul payé TTC
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column cumulative_unpaid_amount_ttc
+	column 'Cumul impayé TTC'
 		dataType: double
 		lineageTag: 0d741b3a-89ad-47eb-a911-4538756fe4a6
 		summarizeBy: sum
-		sourceColumn: cumulative_unpaid_amount_ttc
+		sourceColumn: Cumul impayé TTC
 
 		annotation SummarizationSetBy = Automatic
 
@@ -94,9 +96,10 @@ table monthly_invoice_activity
 		source =
 				let
 				    Source = PostgreSQL.Database("192.168.1.19:5434", "house_building"),
-				    analytics_vw_monthly_invoice_activity = Source{[Schema="analytics",Item="vw_monthly_invoice_activity"]}[Data]
+				    analytics_vw_monthly_invoice_activity = Source{[Schema="analytics",Item="vw_monthly_invoice_activity"]}[Data],
+				    #"Renamed Columns" = Table.RenameColumns(analytics_vw_monthly_invoice_activity,{{"project_id", "ID Projet"}, {"project_name", "Projet"}, {"month", "Mois"}, {"invoice_amount_ttc", "Montant facturé TTC"}, {"paid_amount_ttc", "Montant payé TTC"}, {"unpaid_amount_ttc", "Montant impayé TTC"}, {"cumulative_invoice_amount_ttc", "Cumul facturé TTC"}, {"cumulative_paid_amount_ttc", "Cumul payé TTC"}, {"cumulative_unpaid_amount_ttc", "Cumul impayé TTC"}})
 				in
-				    analytics_vw_monthly_invoice_activity
+				    #"Renamed Columns"
 
 	annotation PBI_NavigationStepName = Navigation
 

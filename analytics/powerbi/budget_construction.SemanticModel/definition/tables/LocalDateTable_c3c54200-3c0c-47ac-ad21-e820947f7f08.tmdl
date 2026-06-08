@@ -110,7 +110,7 @@ table LocalDateTable_c3c54200-3c0c-47ac-ad21-e820947f7f08
 
 	partition LocalDateTable_c3c54200-3c0c-47ac-ad21-e820947f7f08 = calculated
 		mode: import
-		source = Calendar(Date(Year(MIN('transactions_fact'[due_date])), 1, 1), Date(Year(MAX('transactions_fact'[due_date])), 12, 31))
+		source = Calendar(Date(Year(MIN('transactions_fact'[Date d’échéance])), 1, 1), Date(Year(MAX('transactions_fact'[Date d’échéance])), 12, 31))
 
 	annotation __PBI_LocalDateTable = true
 

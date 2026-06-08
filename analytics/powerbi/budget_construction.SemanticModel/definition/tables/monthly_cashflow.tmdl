@@ -1,49 +1,51 @@
 table monthly_cashflow
 	lineageTag: 39e55285-8d69-46e8-bb36-93c30b9a1493
 
-	column project_id
+	column 'ID Projet'
 		dataType: int64
 		formatString: 0
 		lineageTag: 7b56dfc6-4ff7-4433-9379-b1adb20acae7
 		summarizeBy: none
-		sourceColumn: project_id
+		sourceColumn: ID Projet
 
 		annotation SummarizationSetBy = Automatic
 
-	column project_name
+	column Projet
 		dataType: string
 		lineageTag: c2ceb634-6ce8-432c-8d37-d50383f91760
 		summarizeBy: none
-		sourceColumn: project_name
+		sourceColumn: Projet
 
 		annotation SummarizationSetBy = Automatic
 
-	column month
+	column Mois
 		dataType: dateTime
-		formatString: Long Date
+		formatString: yyyy-mm
 		lineageTag: 3ba052bf-46a2-45e4-b864-8b79c55e1437
 		summarizeBy: none
-		sourceColumn: month
+		sourceColumn: Mois
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation UnderlyingDateTimeDataType = Date
 
-	column paid_amount_ttc
+		annotation PBI_FormatHint = {"isDateTimeCustom":true}
+
+	column 'Montant payé TTC'
 		dataType: double
 		lineageTag: d6ad9dea-fd0f-4bce-bcb5-51f41af3202d
 		summarizeBy: sum
-		sourceColumn: paid_amount_ttc
+		sourceColumn: Montant payé TTC
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column cumulative_paid_amount_ttc
+	column 'Cumul payé TTC'
 		dataType: double
 		lineageTag: e66f6e3f-ff38-484e-b702-69c147c81af3
 		summarizeBy: sum
-		sourceColumn: cumulative_paid_amount_ttc
+		sourceColumn: Cumul payé TTC
 
 		annotation SummarizationSetBy = Automatic
 
@@ -54,9 +56,10 @@ table monthly_cashflow
 		source =
 				let
 				    Source = PostgreSQL.Database("192.168.1.19:5434", "house_building"),
-				    analytics_vw_monthly_cashflow = Source{[Schema="analytics",Item="vw_monthly_cashflow"]}[Data]
+				    analytics_vw_monthly_cashflow = Source{[Schema="analytics",Item="vw_monthly_cashflow"]}[Data],
+				    #"Renamed Columns" = Table.RenameColumns(analytics_vw_monthly_cashflow,{{"paid_amount_ttc", "Montant payé TTC"}, {"cumulative_paid_amount_ttc", "Cumul payé TTC"}, {"project_id", "ID Projet"}, {"project_name", "Projet"}, {"month", "Mois"}})
 				in
-				    analytics_vw_monthly_cashflow
+				    #"Renamed Columns"
 
 	annotation PBI_NavigationStepName = Navigation
 

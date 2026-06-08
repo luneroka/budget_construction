@@ -1,37 +1,37 @@
 table project_summary
 	lineageTag: 0b01122f-7ee3-4a3d-ba5b-56c5bc6746c0
 
-	column project_id
+	column 'ID Projet'
 		dataType: int64
 		formatString: 0
 		lineageTag: c0573d8d-738f-4763-929b-4edb46cfe38e
 		summarizeBy: none
-		sourceColumn: project_id
+		sourceColumn: ID Projet
 
 		annotation SummarizationSetBy = Automatic
 
-	column project_name
+	column Projet
 		dataType: string
 		lineageTag: 013bf60f-c2d4-4c2e-a060-a6de06500fd9
 		summarizeBy: none
-		sourceColumn: project_name
+		sourceColumn: Projet
 
 		annotation SummarizationSetBy = Automatic
 
-	column location
+	column Lieu
 		dataType: string
 		lineageTag: 579be6e7-7e9e-49fa-8108-a50dbd510668
 		summarizeBy: none
-		sourceColumn: location
+		sourceColumn: Lieu
 
 		annotation SummarizationSetBy = Automatic
 
-	column start_date
+	column 'Date de début'
 		dataType: dateTime
-		formatString: Long Date
+		formatString: dd/mm/yyyy
 		lineageTag: f8c6741e-7ba0-4ae8-8e3e-251c5c2d426e
 		summarizeBy: none
-		sourceColumn: start_date
+		sourceColumn: Date de début
 
 		variation Variation
 			isDefault
@@ -42,12 +42,14 @@ table project_summary
 
 		annotation UnderlyingDateTimeDataType = Date
 
-	column end_date
+		annotation PBI_FormatHint = {"isDateTimeCustom":true}
+
+	column 'Date de fin'
 		dataType: dateTime
-		formatString: Long Date
+		formatString: dd/mm/yyyy
 		lineageTag: 258991bf-4f73-4b8b-8866-6645065afadf
 		summarizeBy: none
-		sourceColumn: end_date
+		sourceColumn: Date de fin
 
 		variation Variation
 			isDefault
@@ -58,20 +60,22 @@ table project_summary
 
 		annotation UnderlyingDateTimeDataType = Date
 
-	column project_status
+		annotation PBI_FormatHint = {"isDateTimeCustom":true}
+
+	column 'Statut du projet'
 		dataType: string
 		lineageTag: c22e028d-c2d2-4380-9255-b4ccd4d4641b
 		summarizeBy: none
-		sourceColumn: project_status
+		sourceColumn: Statut du projet
 
 		annotation SummarizationSetBy = Automatic
 
-	column total_selected_budget_ttc
+	column 'Budget TTC'
 		dataType: double
 		isHidden
 		lineageTag: e2b00365-aaf4-4228-b7f1-221a22b05553
 		summarizeBy: sum
-		sourceColumn: total_selected_budget_ttc
+		sourceColumn: Budget TTC
 
 		changedProperty = IsHidden
 
@@ -79,12 +83,12 @@ table project_summary
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column total_actual_ttc
+	column 'Coût réel TTC'
 		dataType: double
 		isHidden
 		lineageTag: 578b95b4-52c0-438c-afbc-43ee5b5eebea
 		summarizeBy: sum
-		sourceColumn: total_actual_ttc
+		sourceColumn: Coût réel TTC
 
 		changedProperty = IsHidden
 
@@ -92,12 +96,12 @@ table project_summary
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column total_paid_ttc
+	column 'Montant payé TTC'
 		dataType: double
 		isHidden
 		lineageTag: 87690a7e-bdd6-4819-b50f-e89284c5b391
 		summarizeBy: sum
-		sourceColumn: total_paid_ttc
+		sourceColumn: Montant payé TTC
 
 		changedProperty = IsHidden
 
@@ -105,12 +109,12 @@ table project_summary
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column total_unpaid_ttc
+	column 'Montant impayé TTC'
 		dataType: double
 		isHidden
 		lineageTag: fcc883d3-033b-4cab-bbd9-64ef7c08655a
 		summarizeBy: sum
-		sourceColumn: total_unpaid_ttc
+		sourceColumn: Montant impayé TTC
 
 		changedProperty = IsHidden
 
@@ -118,12 +122,12 @@ table project_summary
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column total_variance_ttc
+	column 'Écart budget TTC'
 		dataType: double
 		isHidden
 		lineageTag: 3161edbd-1da2-4368-b07e-97591a7323b8
 		summarizeBy: sum
-		sourceColumn: total_variance_ttc
+		sourceColumn: Écart budget TTC
 
 		changedProperty = IsHidden
 
@@ -131,12 +135,12 @@ table project_summary
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column total_variance_pct
+	column 'Écart budget %'
 		dataType: double
 		isHidden
 		lineageTag: 2344b446-5d74-496d-bae6-662b2b4cf6a8
 		summarizeBy: sum
-		sourceColumn: total_variance_pct
+		sourceColumn: Écart budget %
 
 		changedProperty = IsHidden
 
@@ -144,12 +148,12 @@ table project_summary
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column actual_vs_budget_pct
+	column 'Budget consommé %'
 		dataType: double
 		isHidden
 		lineageTag: 68680790-14a2-4ef9-94d6-95f96f00383e
 		summarizeBy: sum
-		sourceColumn: actual_vs_budget_pct
+		sourceColumn: Budget consommé %
 
 		changedProperty = IsHidden
 
@@ -157,34 +161,34 @@ table project_summary
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column supplier_count
+	column 'Nombre de fournisseurs'
 		dataType: int64
 		isHidden
 		formatString: 0
 		lineageTag: cddf3286-0210-4147-b1dd-e31eb6cafbcf
 		summarizeBy: sum
-		sourceColumn: supplier_count
+		sourceColumn: Nombre de fournisseurs
 
 		changedProperty = IsHidden
 
 		annotation SummarizationSetBy = Automatic
 
-	column project_item_count
+	column 'Nombre de postes'
 		dataType: int64
 		formatString: 0
 		lineageTag: 39f088ad-2af6-49a7-b8a2-c01255db774b
 		summarizeBy: sum
-		sourceColumn: project_item_count
+		sourceColumn: Nombre de postes
 
 		annotation SummarizationSetBy = Automatic
 
-	column invoice_count
+	column 'Nombre de factures'
 		dataType: int64
 		isHidden
 		formatString: 0
 		lineageTag: d042586a-92ed-4cf8-bf20-f614759a60a3
 		summarizeBy: sum
-		sourceColumn: invoice_count
+		sourceColumn: Nombre de factures
 
 		changedProperty = IsHidden
 
@@ -195,9 +199,10 @@ table project_summary
 		source =
 				let
 				    Source = PostgreSQL.Database("192.168.1.19:5434", "house_building"),
-				    analytics_vw_project_summary = Source{[Schema="analytics",Item="vw_project_summary"]}[Data]
+				    analytics_vw_project_summary = Source{[Schema="analytics",Item="vw_project_summary"]}[Data],
+				    #"Renamed Columns" = Table.RenameColumns(analytics_vw_project_summary,{{"location", "Lieu"}, {"project_id", "ID Projet"}, {"project_name", "Projet"}, {"project_status", "Statut du projet"}, {"start_date", "Date de début"}, {"end_date", "Date de fin"}, {"total_selected_budget_ttc", "Budget TTC"}, {"total_actual_ttc", "Coût réel TTC"}, {"total_paid_ttc", "Montant payé TTC"}, {"total_unpaid_ttc", "Montant impayé TTC"}, {"total_variance_ttc", "Écart budget TTC"}, {"actual_vs_budget_pct", "Budget consommé %"}, {"supplier_count", "Nombre de fournisseurs"}, {"project_item_count", "Nombre de postes"}, {"invoice_count", "Nombre de factures"}, {"total_variance_pct", "Écart budget %"}})
 				in
-				    analytics_vw_project_summary
+				    #"Renamed Columns"
 
 	annotation PBI_NavigationStepName = Navigation
 

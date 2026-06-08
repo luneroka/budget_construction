@@ -1,22 +1,22 @@
 table Mesures
 	lineageTag: f9804fb8-6d0c-4df0-bc32-16be2da1748c
 
-	measure 'Budget total' = SUM(project_items_fact[selected_budget_amount_ttc])
+	measure 'Budget total' = SUM(project_items_fact[Budget TTC])
 		lineageTag: 21dd523c-5e93-418b-853a-8f4c6b79ddce
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	measure 'Montant payé' = SUM(project_items_fact[paid_amount_ttc])
+	measure 'Montant payé' = SUM(project_items_fact[Montant payé TTC])
 		lineageTag: 39a78fe1-e435-448f-b2fd-3aa46d74a8a1
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	measure 'Coût réel' = SUM(project_items_fact[actual_amount_ttc])
+	measure 'Coût réel' = SUM(project_items_fact[Coût réel TTC])
 		lineageTag: d3427dcf-31df-4f69-acbb-0940f3a55712
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	measure 'Montant impayé' = SUM(project_items_fact[unpaid_amount_ttc])
+	measure 'Montant impayé' = SUM(project_items_fact[Montant impayé TTC])
 		lineageTag: ccfd2a49-01be-4e3a-9206-56ba63be80b5
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
@@ -31,11 +31,11 @@ table Mesures
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	measure 'Nombre Factures' = SUM(project_items_fact[invoice_count])
+	measure 'Nombre Factures' = SUM(project_items_fact[Nombre de factures])
 		formatString: 0
 		lineageTag: d14b43e6-149e-489a-ad47-67e31fd230a0
 
-	measure 'Nombre de fournisseurs' = DISTINCTCOUNT(transactions_fact[supplier_id])
+	measure 'Nombre de fournisseurs' = DISTINCTCOUNT(transactions_fact[ID Fournisseur])
 		formatString: 0
 		lineageTag: 878a2733-70f7-4825-be6f-e81497801fc9
 

@@ -1,139 +1,138 @@
 table project_items_fact
 	lineageTag: 88be174c-6ee0-4035-942d-5e6c33adb8ee
 
-	column project_id
+	column 'ID Projet'
 		dataType: int64
 		formatString: 0
 		lineageTag: cb7f8150-6e84-47ee-976c-043bb1fe7715
 		summarizeBy: none
-		sourceColumn: project_id
+		sourceColumn: ID Projet
 
 		annotation SummarizationSetBy = Automatic
 
-	column project_name
+	column Projet
 		dataType: string
 		lineageTag: 67954dfe-a5fb-4ef1-b71e-40c6f37c8781
 		summarizeBy: none
-		sourceColumn: project_name
+		sourceColumn: Projet
 
 		annotation SummarizationSetBy = Automatic
 
-	column project_item_id
+	column 'ID Poste'
 		dataType: int64
 		formatString: 0
 		lineageTag: 4a766325-24a6-4fb6-bd2e-016ef259d0f6
 		summarizeBy: none
-		sourceColumn: project_item_id
+		sourceColumn: ID Poste
 
 		annotation SummarizationSetBy = User
 
-	column project_item_name
+	column 'Poste de dépense'
 		dataType: string
 		lineageTag: ee8bdd45-9450-4a0b-a0e8-e92a1d01f6c2
 		summarizeBy: none
-		sourceColumn: project_item_name
+		sourceColumn: Poste de dépense
 
 		annotation SummarizationSetBy = Automatic
 
-	column category_name
+	column Catégorie
 		dataType: string
 		lineageTag: 800ec071-ce3f-41fe-a3c5-ff0f09b00834
 		summarizeBy: none
-		sourceColumn: category_name
+		sourceColumn: Catégorie
 
 		annotation SummarizationSetBy = Automatic
 
-	column subcategory_name
+	column Sous-catégorie
 		dataType: string
 		lineageTag: 07bb3347-b11f-44f4-a9bc-bc76694b5bc9
 		summarizeBy: none
-		sourceColumn: subcategory_name
+		sourceColumn: Sous-catégorie
 
 		annotation SummarizationSetBy = Automatic
 
-	column product_name
+	column Produit
 		dataType: string
 		lineageTag: b2a7446f-a279-47f1-9cd8-fe0cefea6293
 		summarizeBy: none
-		sourceColumn: product_name
+		sourceColumn: Produit
 
 		annotation SummarizationSetBy = Automatic
 
-	column selected_budget_amount_ttc
+	column 'Budget TTC'
 		dataType: double
 		lineageTag: 5e8897bc-ef31-4708-9241-0812436b2e22
 		summarizeBy: sum
-		sourceColumn: selected_budget_amount_ttc
+		sourceColumn: Budget TTC
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column actual_amount_ttc
+	column 'Coût réel TTC'
 		dataType: double
 		lineageTag: 9170429c-325e-4141-a8c5-66b57a1aaa21
 		summarizeBy: sum
-		sourceColumn: actual_amount_ttc
+		sourceColumn: Coût réel TTC
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column paid_amount_ttc
+	column 'Montant payé TTC'
 		dataType: double
 		lineageTag: 482d592c-c532-45d3-991f-4750ea81af00
 		summarizeBy: sum
-		sourceColumn: paid_amount_ttc
+		sourceColumn: Montant payé TTC
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column unpaid_amount_ttc
+	column 'Montant impayé TTC'
 		dataType: double
 		lineageTag: 5730aeff-b6e8-48a0-bcf0-b8d8826c8372
 		summarizeBy: sum
-		sourceColumn: unpaid_amount_ttc
+		sourceColumn: Montant impayé TTC
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column variance_ttc
+	column 'Écart budget TTC'
 		dataType: double
 		lineageTag: 7536228e-22aa-469b-b942-bf1d505f3a52
 		summarizeBy: sum
-		sourceColumn: variance_ttc
+		sourceColumn: Écart budget TTC
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column variance_pct
+	column 'Écart budget %'
 		dataType: double
 		lineageTag: 822830b2-b675-4f40-8983-093308f3ad77
 		summarizeBy: sum
-		sourceColumn: variance_pct
+		sourceColumn: Écart budget %
 
 		annotation SummarizationSetBy = Automatic
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	column invoice_count
+	column 'Nombre de factures'
 		dataType: int64
 		formatString: 0
 		lineageTag: 35e65a39-a004-42fc-b0ee-7fcf328e6b8b
 		summarizeBy: sum
-		sourceColumn: invoice_count
+		sourceColumn: Nombre de factures
 
 		annotation SummarizationSetBy = Automatic
 
-	column has_invoice
-		dataType: int64
-		formatString: 0
+	column Facturé
+		dataType: string
 		lineageTag: 2d198f28-f3d4-4b0a-b2a0-0b15983ca6d6
-		summarizeBy: sum
-		sourceColumn: has_invoice
+		summarizeBy: none
+		sourceColumn: Facturé
 
 		annotation SummarizationSetBy = Automatic
 
@@ -142,9 +141,13 @@ table project_items_fact
 		source =
 				let
 				    Source = PostgreSQL.Database("192.168.1.19:5434", "house_building"),
-				    analytics_vw_project_items_fact = Source{[Schema="analytics",Item="vw_project_items_fact"]}[Data]
+				    analytics_vw_project_items_fact = Source{[Schema="analytics",Item="vw_project_items_fact"]}[Data],
+				    #"Renamed Columns" = Table.RenameColumns(analytics_vw_project_items_fact,{{"project_id", "ID Projet"}, {"project_name", "Projet"}, {"project_item_id", "ID Poste"}, {"project_item_name", "Poste de dépense"}, {"category_name", "Catégorie"}, {"subcategory_name", "Sous-catégorie"}, {"product_name", "Produit"}, {"selected_budget_amount_ttc", "Budget TTC"}, {"actual_amount_ttc", "Coût réel TTC"}, {"paid_amount_ttc", "Montant payé TTC"}, {"unpaid_amount_ttc", "Montant impayé TTC"}, {"variance_ttc", "Écart budget TTC"}, {"variance_pct", "Écart budget %"}, {"invoice_count", "Nombre de factures"}, {"has_invoice", "Facturé"}}),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Renamed Columns",{{"Facturé", type text}}),
+				    #"Replaced Value" = Table.ReplaceValue(#"Changed Type","0","Non",Replacer.ReplaceText,{"Facturé"}),
+				    #"Replaced Value1" = Table.ReplaceValue(#"Replaced Value","1","Oui",Replacer.ReplaceText,{"Facturé"})
 				in
-				    analytics_vw_project_items_fact
+				    #"Replaced Value1"
 
 	annotation PBI_NavigationStepName = Navigation
 
