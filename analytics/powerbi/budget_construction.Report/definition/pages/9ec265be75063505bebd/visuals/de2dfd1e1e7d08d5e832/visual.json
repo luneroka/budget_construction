@@ -1,13 +1,13 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
-  "name": "024de063093b7a035771",
+  "name": "de2dfd1e1e7d08d5e832",
   "position": {
-    "x": 812.17798594847784,
+    "x": 417.79859484777523,
     "y": 126.46370023419205,
-    "z": 5000,
+    "z": 3000,
     "height": 118.96955503512882,
     "width": 370.0234192037471,
-    "tabOrder": 5000
+    "tabOrder": 3000
   },
   "visual": {
     "visualType": "cardVisual",
@@ -17,18 +17,24 @@
           "projections": [
             {
               "field": {
-                "Measure": {
+                "Aggregation": {
                   "Expression": {
-                    "SourceRef": {
-                      "Entity": "Mesures"
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "monthly_invoice_activity"
+                        }
+                      },
+                      "Property": "Montant payé TTC"
                     }
                   },
-                  "Property": "Écart budget"
+                  "Function": 0
                 }
               },
-              "queryRef": "Mesures.Écart budget",
-              "nativeQueryRef": "Écart budget",
-              "format": "#,0.00 \"€\";-#,0.00 \"€\";#,0.00 \"€\""
+              "queryRef": "Sum(monthly_invoice_activity.Montant payé TTC)",
+              "nativeQueryRef": "Montant payé",
+              "displayName": "Montant payé",
+              "format": "#,0 \"€\";-#,0 \"€\";#,0 \"€\""
             }
           ]
         }
@@ -37,13 +43,18 @@
         "sort": [
           {
             "field": {
-              "Measure": {
+              "Aggregation": {
                 "Expression": {
-                  "SourceRef": {
-                    "Entity": "Mesures"
+                  "Column": {
+                    "Expression": {
+                      "SourceRef": {
+                        "Entity": "monthly_invoice_activity"
+                      }
+                    },
+                    "Property": "Montant payé TTC"
                   }
                 },
-                "Property": "Écart budget"
+                "Function": 0
               }
             },
             "direction": "Descending"

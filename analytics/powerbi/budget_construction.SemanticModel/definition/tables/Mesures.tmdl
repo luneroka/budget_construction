@@ -48,6 +48,11 @@ table Mesures
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
+	measure '% Impayé' = [Montant impayé] / [Montant payé]
+		lineageTag: dec1cd19-83df-424c-b0cb-62e1d4451cde
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
 	column Value
 		isHidden
 		formatString: 0

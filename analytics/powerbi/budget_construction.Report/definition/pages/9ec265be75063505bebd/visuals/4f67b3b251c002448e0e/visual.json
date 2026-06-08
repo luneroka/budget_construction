@@ -1,13 +1,13 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
-  "name": "024de063093b7a035771",
+  "name": "4f67b3b251c002448e0e",
   "position": {
-    "x": 812.17798594847784,
+    "x": 24.355971896955506,
     "y": 126.46370023419205,
-    "z": 5000,
+    "z": 0,
     "height": 118.96955503512882,
     "width": 370.0234192037471,
-    "tabOrder": 5000
+    "tabOrder": 2000
   },
   "visual": {
     "visualType": "cardVisual",
@@ -17,18 +17,24 @@
           "projections": [
             {
               "field": {
-                "Measure": {
+                "Aggregation": {
                   "Expression": {
-                    "SourceRef": {
-                      "Entity": "Mesures"
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "monthly_invoice_activity"
+                        }
+                      },
+                      "Property": "Montant facturé TTC"
                     }
                   },
-                  "Property": "Écart budget"
+                  "Function": 0
                 }
               },
-              "queryRef": "Mesures.Écart budget",
-              "nativeQueryRef": "Écart budget",
-              "format": "#,0.00 \"€\";-#,0.00 \"€\";#,0.00 \"€\""
+              "queryRef": "Sum(monthly_invoice_activity.Montant facturé TTC)",
+              "nativeQueryRef": "Montant facturé",
+              "displayName": "Montant facturé",
+              "format": "#,0 \"€\";-#,0 \"€\";#,0 \"€\""
             }
           ]
         }
@@ -37,13 +43,18 @@
         "sort": [
           {
             "field": {
-              "Measure": {
+              "Aggregation": {
                 "Expression": {
-                  "SourceRef": {
-                    "Entity": "Mesures"
+                  "Column": {
+                    "Expression": {
+                      "SourceRef": {
+                        "Entity": "monthly_invoice_activity"
+                      }
+                    },
+                    "Property": "Montant facturé TTC"
                   }
                 },
-                "Property": "Écart budget"
+                "Function": 0
               }
             },
             "direction": "Descending"
@@ -53,23 +64,13 @@
       }
     },
     "objects": {
-      "divider": [
+      "layout": [
         {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "false"
-                }
-              }
-            }
-          },
+          "properties": {},
           "selector": {
             "id": "default"
           }
-        }
-      ],
-      "layout": [
+        },
         {
           "properties": {
             "calloutSize": {
@@ -85,13 +86,6 @@
       "outline": [
         {
           "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
             "lineColor": {
               "solid": {
                 "color": {
@@ -103,6 +97,13 @@
                   }
                 }
               }
+            },
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
             }
           },
           "selector": {
@@ -110,13 +111,13 @@
           }
         }
       ],
-      "padding": [
+      "smallMultiplesHeader": [
         {
           "properties": {
-            "paddingUniform": {
+            "displayUnits": {
               "expr": {
                 "Literal": {
-                  "Value": "12L"
+                  "Value": "1D"
                 }
               }
             }
@@ -158,13 +159,29 @@
           }
         }
       ],
-      "smallMultiplesHeader": [
+      "padding": [
         {
           "properties": {
-            "displayUnits": {
+            "paddingUniform": {
               "expr": {
                 "Literal": {
-                  "Value": "1D"
+                  "Value": "12L"
+                }
+              }
+            }
+          },
+          "selector": {
+            "id": "default"
+          }
+        }
+      ],
+      "divider": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
                 }
               }
             }
@@ -226,46 +243,23 @@
                 }
               }
             },
-            "titleWrap": {
+            "text": {
               "expr": {
                 "Literal": {
-                  "Value": "true"
+                  "Value": "'Budget Total'"
                 }
               }
             }
           }
         }
       ],
-      "spacing": [
-        {
-          "properties": {
-            "verticalSpacing": {
-              "expr": {
-                "Literal": {
-                  "Value": "2D"
-                }
-              }
-            }
-          },
-          "selector": {
-            "id": "default"
-          }
-        }
-      ],
-      "background": [
+      "visualHeader": [
         {
           "properties": {
             "show": {
               "expr": {
                 "Literal": {
                   "Value": "false"
-                }
-              }
-            },
-            "transparency": {
-              "expr": {
-                "Literal": {
-                  "Value": "0D"
                 }
               }
             }
@@ -279,6 +273,32 @@
               "expr": {
                 "Literal": {
                   "Value": "5D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "dropShadow": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
                 }
               }
             }
@@ -304,39 +324,6 @@
                       "Percent": 0
                     }
                   }
-                }
-              }
-            },
-            "width": {
-              "expr": {
-                "Literal": {
-                  "Value": "1D"
-                }
-              }
-            }
-          }
-        }
-      ],
-      "dropShadow": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "false"
-                }
-              }
-            }
-          }
-        }
-      ],
-      "visualHeader": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "false"
                 }
               }
             }

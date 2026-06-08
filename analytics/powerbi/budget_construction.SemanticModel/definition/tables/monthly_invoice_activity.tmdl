@@ -1,6 +1,22 @@
 table monthly_invoice_activity
 	lineageTag: daf23c05-daee-4d8e-b03f-e38fceb39c85
 
+	measure '% Impayé Mensuel' =
+			
+			
+			DIVIDE(
+			
+			    SUM(monthly_invoice_activity[Montant impayé TTC]),
+			
+			    SUM(monthly_invoice_activity[Montant payé TTC]),
+			
+			    0
+			
+			)
+		lineageTag: a9ade35c-535e-4af1-8e82-00779f8a4b11
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
 	column 'ID Projet'
 		dataType: int64
 		formatString: 0

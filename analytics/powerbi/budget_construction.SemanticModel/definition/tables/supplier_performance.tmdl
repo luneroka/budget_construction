@@ -1,6 +1,9 @@
 table supplier_performance
 	lineageTag: 677e3494-f180-4e97-b6d4-2a65e8bd08b8
 
+	measure 'Montant Moyen par Fournisseur'
+		lineageTag: f52ad80b-1b1b-4774-a749-86037293dcf5
+
 	column 'ID Projet'
 		dataType: int64
 		formatString: 0

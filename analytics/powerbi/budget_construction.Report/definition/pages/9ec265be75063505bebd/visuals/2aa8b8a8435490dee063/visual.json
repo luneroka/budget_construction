@@ -1,6 +1,6 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
-  "name": "2d258cb475122edec045",
+  "name": "2aa8b8a8435490dee063",
   "position": {
     "x": 812.018288700196,
     "y": 588.37361201828867,
@@ -10,7 +10,7 @@
     "tabOrder": 9000
   },
   "visual": {
-    "visualType": "columnChart",
+    "visualType": "stackedAreaChart",
     "query": {
       "queryState": {
         "Category": {
@@ -20,14 +20,14 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "project_items_fact"
+                      "Entity": "monthly_invoice_activity"
                     }
                   },
-                  "Property": "Catégorie"
+                  "Property": "Mois"
                 }
               },
-              "queryRef": "project_items_fact.Catégorie",
-              "nativeQueryRef": "Catégorie",
+              "queryRef": "monthly_invoice_activity.Mois",
+              "nativeQueryRef": "Mois",
               "active": true
             }
           ]
@@ -36,17 +36,43 @@
           "projections": [
             {
               "field": {
-                "Measure": {
+                "Aggregation": {
                   "Expression": {
-                    "SourceRef": {
-                      "Entity": "Mesures"
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "monthly_invoice_activity"
+                        }
+                      },
+                      "Property": "Cumul payé TTC"
                     }
                   },
-                  "Property": "Écart budget"
+                  "Function": 0
                 }
               },
-              "queryRef": "Mesures.Écart budget",
-              "nativeQueryRef": "Écart budget"
+              "queryRef": "Sum(monthly_invoice_activity.Cumul payé TTC)",
+              "nativeQueryRef": "Cumul payé",
+              "displayName": "Cumul payé"
+            },
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "monthly_invoice_activity"
+                        }
+                      },
+                      "Property": "Cumul impayé TTC"
+                    }
+                  },
+                  "Function": 0
+                }
+              },
+              "queryRef": "Sum(monthly_invoice_activity.Cumul impayé TTC)",
+              "nativeQueryRef": "Cumul impayé",
+              "displayName": "Cumul impayé"
             }
           ]
         }
@@ -55,16 +81,16 @@
         "sort": [
           {
             "field": {
-              "Measure": {
+              "Column": {
                 "Expression": {
                   "SourceRef": {
-                    "Entity": "Mesures"
+                    "Entity": "monthly_invoice_activity"
                   }
                 },
-                "Property": "Écart budget"
+                "Property": "Mois"
               }
             },
-            "direction": "Descending"
+            "direction": "Ascending"
           }
         ],
         "isDefaultSort": true
@@ -130,7 +156,7 @@
                           },
                           "Value": {
                             "Literal": {
-                              "Value": "'#0375B4'"
+                              "Value": "'#7CBB00'"
                             }
                           }
                         },
@@ -181,7 +207,7 @@
                           },
                           "Value": {
                             "Literal": {
-                              "Value": "'#7CBB00'"
+                              "Value": "'#B82601'"
                             }
                           }
                         }
@@ -212,6 +238,13 @@
                   "Value": "false"
                 }
               }
+            },
+            "gridlineShow": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
             }
           }
         }
@@ -235,6 +268,39 @@
             }
           }
         }
+      ],
+      "lineStyles": [
+        {
+          "properties": {
+            "strokeLineJoin": {
+              "expr": {
+                "Literal": {
+                  "Value": "'round'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "legend": [
+        {
+          "properties": {
+            "legendMarkerRendering": {
+              "expr": {
+                "Literal": {
+                  "Value": "'markerCircleDefault'"
+                }
+              }
+            },
+            "matchLineColor": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
       ]
     },
     "visualContainerObjects": {
@@ -244,7 +310,33 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Dépassements Budgétaires par Catégorie'"
+                  "Value": "'Cumul des factures payées vs impayées'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "visualHeader": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "visualTooltip": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
                 }
               }
             }

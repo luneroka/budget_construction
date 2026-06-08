@@ -1,6 +1,6 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
-  "name": "66244063a6a3e6972a09",
+  "name": "11682f5d67eab1445094",
   "position": {
     "x": 29.261920313520573,
     "y": 588.37361201828867,
@@ -10,29 +10,29 @@
     "tabOrder": 8000
   },
   "visual": {
-    "visualType": "treemap",
+    "visualType": "clusteredColumnChart",
     "query": {
       "queryState": {
-        "Group": {
+        "Category": {
           "projections": [
             {
               "field": {
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "project_items_fact"
+                      "Entity": "monthly_invoice_activity"
                     }
                   },
-                  "Property": "Catégorie"
+                  "Property": "Mois"
                 }
               },
-              "queryRef": "project_items_fact.Catégorie",
-              "nativeQueryRef": "Catégorie",
+              "queryRef": "monthly_invoice_activity.Mois",
+              "nativeQueryRef": "Mois",
               "active": true
             }
           ]
         },
-        "Values": {
+        "Y": {
           "projections": [
             {
               "field": {
@@ -41,17 +41,17 @@
                     "Column": {
                       "Expression": {
                         "SourceRef": {
-                          "Entity": "project_items_fact"
+                          "Entity": "monthly_invoice_activity"
                         }
                       },
-                      "Property": "Coût réel TTC"
+                      "Property": "Cumul payé TTC"
                     }
                   },
                   "Function": 0
                 }
               },
-              "queryRef": "Sum(project_items_fact.Coût réel TTC)",
-              "nativeQueryRef": "Sum of Coût réel TTC"
+              "queryRef": "Sum(monthly_invoice_activity.Cumul payé TTC)",
+              "nativeQueryRef": "Sum of Cumul payé TTC"
             }
           ]
         }
@@ -60,21 +60,16 @@
         "sort": [
           {
             "field": {
-              "Aggregation": {
+              "Column": {
                 "Expression": {
-                  "Column": {
-                    "Expression": {
-                      "SourceRef": {
-                        "Entity": "project_items_fact"
-                      }
-                    },
-                    "Property": "Coût réel TTC"
+                  "SourceRef": {
+                    "Entity": "monthly_invoice_activity"
                   }
                 },
-                "Function": 0
+                "Property": "Mois"
               }
             },
-            "direction": "Descending"
+            "direction": "Ascending"
           }
         ],
         "isDefaultSort": true
@@ -185,6 +180,62 @@
               }
             ]
           }
+        },
+        {
+          "properties": {
+            "fill": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 4,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "gridlineShow": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "gridlineShow": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -195,7 +246,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Répartition des dépenses par Catégories'"
+                  "Value": "'Dépenses cumulées'"
                 }
               }
             }

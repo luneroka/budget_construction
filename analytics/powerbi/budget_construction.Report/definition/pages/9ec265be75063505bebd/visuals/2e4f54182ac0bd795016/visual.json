@@ -1,16 +1,16 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
-  "name": "106da6b6568767985c76",
+  "name": "2e4f54182ac0bd795016",
   "position": {
-    "x": 29.261920313520573,
-    "y": 245.59111691704769,
+    "x": 29.039812646370027,
+    "y": 245.43325526932088,
     "z": 6000,
-    "height": 311.43043762246896,
-    "width": 776.485956890921,
+    "height": 311.94379391100705,
+    "width": 1546.6042154566746,
     "tabOrder": 6000
   },
   "visual": {
-    "visualType": "clusteredBarChart",
+    "visualType": "lineChart",
     "query": {
       "queryState": {
         "Category": {
@@ -20,14 +20,14 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "project_items_fact"
+                      "Entity": "monthly_invoice_activity"
                     }
                   },
-                  "Property": "Catégorie"
+                  "Property": "Mois"
                 }
               },
-              "queryRef": "project_items_fact.Catégorie",
-              "nativeQueryRef": "Catégorie",
+              "queryRef": "monthly_invoice_activity.Mois",
+              "nativeQueryRef": "Mois",
               "active": true
             }
           ]
@@ -41,38 +41,17 @@
                     "Column": {
                       "Expression": {
                         "SourceRef": {
-                          "Entity": "project_items_fact"
+                          "Entity": "monthly_invoice_activity"
                         }
                       },
-                      "Property": "Budget TTC"
+                      "Property": "Montant payé TTC"
                     }
                   },
                   "Function": 0
                 }
               },
-              "queryRef": "Sum(project_items_fact.Budget TTC)",
-              "nativeQueryRef": "Budget",
-              "displayName": "Budget"
-            },
-            {
-              "field": {
-                "Aggregation": {
-                  "Expression": {
-                    "Column": {
-                      "Expression": {
-                        "SourceRef": {
-                          "Entity": "project_items_fact"
-                        }
-                      },
-                      "Property": "Coût réel TTC"
-                    }
-                  },
-                  "Function": 0
-                }
-              },
-              "queryRef": "Sum(project_items_fact.Coût réel TTC)",
-              "nativeQueryRef": "Coût réel",
-              "displayName": "Coût réel"
+              "queryRef": "Sum(monthly_invoice_activity.Montant payé TTC)",
+              "nativeQueryRef": "Sum of Montant payé TTC"
             }
           ]
         }
@@ -81,21 +60,16 @@
         "sort": [
           {
             "field": {
-              "Aggregation": {
+              "Column": {
                 "Expression": {
-                  "Column": {
-                    "Expression": {
-                      "SourceRef": {
-                        "Entity": "project_items_fact"
-                      }
-                    },
-                    "Property": "Budget TTC"
+                  "SourceRef": {
+                    "Entity": "monthly_invoice_activity"
                   }
                 },
-                "Function": 0
+                "Property": "Mois"
               }
             },
-            "direction": "Descending"
+            "direction": "Ascending"
           }
         ],
         "isDefaultSort": true
@@ -106,6 +80,13 @@
         {
           "properties": {
             "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "gridlineShow": {
               "expr": {
                 "Literal": {
                   "Value": "false"
@@ -172,26 +153,7 @@
             }
           },
           "selector": {
-            "metadata": "Sum(project_items_fact.Budget TTC)"
-          }
-        },
-        {
-          "properties": {
-            "fill": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "ThemeDataColor": {
-                      "ColorId": 3,
-                      "Percent": 0
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "selector": {
-            "metadata": "Sum(project_items_fact.Coût réel TTC)"
+            "metadata": "Sum(monthly_invoice_activity.Montant payé TTC)"
           }
         }
       ]
@@ -203,7 +165,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Budget vs Coût réel par Catégorie'"
+                  "Value": "'Évolution mensuelle des Dépenses'"
                 }
               }
             }

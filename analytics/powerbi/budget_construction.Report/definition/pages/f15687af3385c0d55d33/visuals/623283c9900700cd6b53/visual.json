@@ -4,10 +4,10 @@
   "position": {
     "x": 812.018288700196,
     "y": 245.59111691704769,
-    "z": 8000,
+    "z": 7000,
     "height": 311.43043762246896,
     "width": 776.485956890921,
-    "tabOrder": 8000
+    "tabOrder": 7000
   },
   "visual": {
     "visualType": "funnel",
@@ -232,25 +232,6 @@
             }
           ]
         }
-      },
-      {
-        "name": "f6b9f90b366b15869021",
-        "field": {
-          "Aggregation": {
-            "Expression": {
-              "Column": {
-                "Expression": {
-                  "SourceRef": {
-                    "Entity": "project_items_fact"
-                  }
-                },
-                "Property": "Montant payé TTC"
-              }
-            },
-            "Function": 0
-          }
-        },
-        "type": "Advanced"
       }
     ]
   }

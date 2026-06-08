@@ -1,6 +1,6 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
-  "name": "024de063093b7a035771",
+  "name": "64baa4655a1556bd0cbc",
   "position": {
     "x": 812.17798594847784,
     "y": 126.46370023419205,
@@ -17,17 +17,23 @@
           "projections": [
             {
               "field": {
-                "Measure": {
+                "Aggregation": {
                   "Expression": {
-                    "SourceRef": {
-                      "Entity": "Mesures"
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "monthly_invoice_activity"
+                        }
+                      },
+                      "Property": "Montant impayé TTC"
                     }
                   },
-                  "Property": "Écart budget"
+                  "Function": 0
                 }
               },
-              "queryRef": "Mesures.Écart budget",
-              "nativeQueryRef": "Écart budget",
+              "queryRef": "Sum(monthly_invoice_activity.Montant impayé TTC)",
+              "nativeQueryRef": "Montant impayé",
+              "displayName": "Montant impayé",
               "format": "#,0.00 \"€\";-#,0.00 \"€\";#,0.00 \"€\""
             }
           ]
@@ -37,13 +43,18 @@
         "sort": [
           {
             "field": {
-              "Measure": {
+              "Aggregation": {
                 "Expression": {
-                  "SourceRef": {
-                    "Entity": "Mesures"
+                  "Column": {
+                    "Expression": {
+                      "SourceRef": {
+                        "Entity": "monthly_invoice_activity"
+                      }
+                    },
+                    "Property": "Montant impayé TTC"
                   }
                 },
-                "Property": "Écart budget"
+                "Function": 0
               }
             },
             "direction": "Descending"

@@ -1,6 +1,6 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
-  "name": "65bfa401824372e86eb3",
+  "name": "ac7477b0887c3245437d",
   "position": {
     "x": 0,
     "y": 0,
@@ -19,22 +19,7 @@
               {
                 "textRuns": [
                   {
-                    "value": "Maison Plain-Pied (Demo Power BI) - Vue",
-                    "textStyle": {
-                      "fontWeight": "bold",
-                      "fontSize": "16pt",
-                      "color": "#ffffff"
-                    }
-                  },
-                  {
-                    "value": " ",
-                    "textStyle": {
-                      "fontSize": "16pt",
-                      "color": "#ffffff"
-                    }
-                  },
-                  {
-                    "value": "d'ensemble",
+                    "value": "Maison Plain-Pied (Demo Power BI) - Suivi financier",
                     "textStyle": {
                       "fontWeight": "bold",
                       "fontSize": "16pt",
