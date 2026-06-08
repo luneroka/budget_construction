@@ -194,20 +194,6 @@
         "howCreated": "User"
       },
       {
-        "name": "ee45f01564e6b9605e3c",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "transactions_fact"
-              }
-            },
-            "Property": "Fournisseur"
-          }
-        },
-        "type": "TopN"
-      },
-      {
         "name": "f8b8a41c505b317524a8",
         "field": {
           "Column": {
@@ -260,72 +246,6 @@
           ]
         },
         "howCreated": "User"
-      },
-      {
-        "name": "0d13a4564e57d0915422",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "transactions_fact"
-              }
-            },
-            "Property": "Date de paiement"
-          }
-        },
-        "type": "Categorical"
-      },
-      {
-        "name": "891a2d6c2709495348a5",
-        "field": {
-          "Aggregation": {
-            "Expression": {
-              "Column": {
-                "Expression": {
-                  "SourceRef": {
-                    "Entity": "transactions_fact"
-                  }
-                },
-                "Property": "Retard paiement (jours)"
-              }
-            },
-            "Function": 0
-          }
-        },
-        "type": "Advanced"
-      },
-      {
-        "name": "1ea0915e08113343546e",
-        "field": {
-          "Aggregation": {
-            "Expression": {
-              "Column": {
-                "Expression": {
-                  "SourceRef": {
-                    "Entity": "transactions_fact"
-                  }
-                },
-                "Property": "Montant TTC"
-              }
-            },
-            "Function": 0
-          }
-        },
-        "type": "Advanced"
-      },
-      {
-        "name": "ca810b60209a054001a0",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "transactions_fact"
-              }
-            },
-            "Property": "Poste de dépense"
-          }
-        },
-        "type": "Categorical"
       }
     ]
   }

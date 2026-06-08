@@ -59,13 +59,12 @@ table monthly_invoice_activity
 
 	column 'Montant payé TTC'
 		dataType: double
+		formatString: #,0\ "€";-#,0\ "€";#,0\ "€"
 		lineageTag: bb3438d6-e1a6-47d6-89c4-a352f1d2a530
 		summarizeBy: sum
 		sourceColumn: Montant payé TTC
 
 		annotation SummarizationSetBy = Automatic
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	column 'Montant impayé TTC'
 		dataType: double
@@ -89,23 +88,21 @@ table monthly_invoice_activity
 
 	column 'Cumul payé TTC'
 		dataType: double
+		formatString: #,0\ "€";-#,0\ "€";#,0\ "€"
 		lineageTag: b30f6933-1a53-46dc-89d4-14916739e62a
-		summarizeBy: sum
+		summarizeBy: none
 		sourceColumn: Cumul payé TTC
 
-		annotation SummarizationSetBy = Automatic
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
+		annotation SummarizationSetBy = User
 
 	column 'Cumul impayé TTC'
 		dataType: double
+		formatString: #,0\ "€";-#,0\ "€";#,0\ "€"
 		lineageTag: 0d741b3a-89ad-47eb-a911-4538756fe4a6
 		summarizeBy: sum
 		sourceColumn: Cumul impayé TTC
 
 		annotation SummarizationSetBy = Automatic
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	partition monthly_invoice_activity = m
 		mode: import

@@ -503,6 +503,58 @@
           ]
         },
         "howCreated": "User"
+      },
+      {
+        "name": "4e5bb3b72c45259011b0",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "monthly_invoice_activity"
+              }
+            },
+            "Property": "Mois"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "39995718070e079b6c63",
+        "field": {
+          "Aggregation": {
+            "Expression": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "monthly_invoice_activity"
+                  }
+                },
+                "Property": "Cumul payé TTC"
+              }
+            },
+            "Function": 0
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "8eed413d1901e7965809",
+        "field": {
+          "Aggregation": {
+            "Expression": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "monthly_invoice_activity"
+                  }
+                },
+                "Property": "Cumul impayé TTC"
+              }
+            },
+            "Function": 0
+          }
+        },
+        "type": "Advanced"
       }
     ]
   }

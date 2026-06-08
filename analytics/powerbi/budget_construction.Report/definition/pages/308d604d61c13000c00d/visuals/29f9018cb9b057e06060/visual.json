@@ -4,10 +4,10 @@
   "position": {
     "x": 24.598930481283421,
     "y": 245.98930481283421,
-    "z": 10001,
+    "z": 8000,
     "height": 311.22994652406413,
     "width": 775.40106951871655,
-    "tabOrder": 10001
+    "tabOrder": 8000
   },
   "visual": {
     "visualType": "donutChart",
@@ -51,7 +51,8 @@
                 }
               },
               "queryRef": "Sum(project_items_fact.Coût réel TTC)",
-              "nativeQueryRef": "Sum of Coût réel TTC"
+              "nativeQueryRef": "Coût réel",
+              "displayName": "Coût réel"
             }
           ]
         }
@@ -201,7 +202,7 @@
   "filterConfig": {
     "filters": [
       {
-        "name": "3087ef737d73d44e802b",
+        "name": "9b8613670db3e208b700",
         "field": {
           "Column": {
             "Expression": {
@@ -215,7 +216,7 @@
         "type": "Categorical"
       },
       {
-        "name": "7b96b3e660bd77d8d074",
+        "name": "488da22ed0092254d8a8",
         "field": {
           "Aggregation": {
             "Expression": {

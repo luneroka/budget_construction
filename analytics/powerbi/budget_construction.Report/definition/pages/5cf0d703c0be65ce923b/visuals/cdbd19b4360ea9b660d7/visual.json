@@ -51,7 +51,8 @@
                 }
               },
               "queryRef": "Sum(supplier_performance.Nombre de factures)",
-              "nativeQueryRef": "Sum of Nombre de factures"
+              "nativeQueryRef": "Nombre de factures",
+              "displayName": "Nombre de factures"
             }
           ]
         }
@@ -316,5 +317,42 @@
       ]
     },
     "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "43338569cb345642a340",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "supplier_performance"
+              }
+            },
+            "Property": "Fournisseur"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "2cda2a607017d01689ea",
+        "field": {
+          "Aggregation": {
+            "Expression": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "supplier_performance"
+                  }
+                },
+                "Property": "Nombre de factures"
+              }
+            },
+            "Function": 0
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
   }
 }

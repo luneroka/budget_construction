@@ -2714,7 +2714,7 @@ cultureInfo en-US
 			        }
 			      ]
 			    },
-			    "project_summary.nombre_de_poste": {
+			    "project_summary.nombre_de_postes": {
 			      "Definition": {
 			        "Binding": {
 			          "ConceptualEntity": "project_summary",
@@ -2724,8 +2724,15 @@ cultureInfo en-US
 			      "State": "Generated",
 			      "Terms": [
 			        {
-			          "nombre de poste": {
+			          "nombre de postes": {
 			            "State": "Generated"
+			          }
+			        },
+			        {
+			          "nombre de poste": {
+			            "Type": "Noun",
+			            "State": "Generated",
+			            "Weight": 0.78
 			          }
 			        }
 			      ]
@@ -5311,273 +5318,119 @@ cultureInfo en-US
 			          }
 			        }
 			      ]
+			    },
+			    "project_items_fact.nombre_de_produits": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualProperty": "Nombre de produits"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "nombre de produits": {
+			            "State": "Generated"
+			          }
+			        }
+			      ]
+			    },
+			    "project_items_fact.postes_facturés": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualProperty": "Postes facturés"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "postes facturés": {
+			            "State": "Generated"
+			          }
+			        }
+			      ]
+			    },
+			    "project_items_fact.nombre_de_postes": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualProperty": "Nombre de postes"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "nombre de postes": {
+			            "State": "Generated"
+			          }
+			        }
+			      ]
+			    },
+			    "project_items_fact.budget_moyen_par_poste": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualProperty": "Budget moyen par poste"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "budget moyen par poste": {
+			            "State": "Generated"
+			          }
+			        },
+			        {
+			          "account moyen par poste": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.599
+			          }
+			        },
+			        {
+			          "cost moyen par poste": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.599
+			          }
+			        },
+			        {
+			          "finance moyen par poste": {
+			            "Type": "Noun",
+			            "State": "Suggested",
+			            "Source": {
+			              "Agent": "Thesaurus"
+			            },
+			            "Weight": 0.599
+			          }
+			        }
+			      ]
+			    },
+			    "project_items_fact.coût_moyen_par_poste": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualProperty": "Coût moyen par poste"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "coût moyen par poste": {
+			            "State": "Generated"
+			          }
+			        }
+			      ]
 			    }
 			  },
 			  "Relationships": {
-			    "transactions_fact_date_déchéance_date_hierarchy_has_transactions_fact_date_déchéance_day": {
-			      "Binding": {
-			        "ConceptualEntity": "transactions_fact"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "transactions_fact.date_déchéance.date_hierarchy": {
-			          "Target": {
-			            "Entity": "transactions_fact.date_déchéance.date_hierarchy"
-			          }
-			        },
-			        "transactions_fact.date_déchéance.day": {
-			          "Target": {
-			            "Entity": "transactions_fact.date_déchéance.day"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "transactions_fact.date_déchéance.date_hierarchy"
-			            },
-			            "Object": {
-			              "Role": "transactions_fact.date_déchéance.day"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "date_hierarchy_déchéances_have_day_déchéances"
-			        }
-			      ]
-			    },
-			    "transactions_fact_date_déchéance_date_hierarchy_has_transactions_fact_date_déchéance_month": {
-			      "Binding": {
-			        "ConceptualEntity": "transactions_fact"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "transactions_fact.date_déchéance.date_hierarchy": {
-			          "Target": {
-			            "Entity": "transactions_fact.date_déchéance.date_hierarchy"
-			          }
-			        },
-			        "transactions_fact.date_déchéance.month": {
-			          "Target": {
-			            "Entity": "transactions_fact.date_déchéance.month"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "transactions_fact.date_déchéance.date_hierarchy"
-			            },
-			            "Object": {
-			              "Role": "transactions_fact.date_déchéance.month"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "date_hierarchy_déchéances_have_month_déchéances"
-			        }
-			      ]
-			    },
-			    "transactions_fact_date_déchéance_date_hierarchy_has_transactions_fact_date_déchéance_quarter": {
-			      "Binding": {
-			        "ConceptualEntity": "transactions_fact"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "transactions_fact.date_déchéance.date_hierarchy": {
-			          "Target": {
-			            "Entity": "transactions_fact.date_déchéance.date_hierarchy"
-			          }
-			        },
-			        "transactions_fact.date_déchéance.quarter": {
-			          "Target": {
-			            "Entity": "transactions_fact.date_déchéance.quarter"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "transactions_fact.date_déchéance.date_hierarchy"
-			            },
-			            "Object": {
-			              "Role": "transactions_fact.date_déchéance.quarter"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "date_hierarchy_déchéances_have_quarter_déchéances"
-			        }
-			      ]
-			    },
-			    "transactions_fact_date_déchéance_date_hierarchy_has_transactions_fact_date_déchéance_year": {
-			      "Binding": {
-			        "ConceptualEntity": "transactions_fact"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "transactions_fact.date_déchéance.date_hierarchy": {
-			          "Target": {
-			            "Entity": "transactions_fact.date_déchéance.date_hierarchy"
-			          }
-			        },
-			        "transactions_fact.date_déchéance.year": {
-			          "Target": {
-			            "Entity": "transactions_fact.date_déchéance.year"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "transactions_fact.date_déchéance.date_hierarchy"
-			            },
-			            "Object": {
-			              "Role": "transactions_fact.date_déchéance.year"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "date_hierarchy_déchéances_have_year_déchéances"
-			        }
-			      ]
-			    },
-			    "transactions_fact_date_déchéance_has_date_hierarchy": {
-			      "Binding": {
-			        "ConceptualEntity": "transactions_fact"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "transactions_fact.date_déchéance": {
-			          "Target": {
-			            "Entity": "transactions_fact.date_déchéance"
-			          }
-			        },
-			        "transactions_fact.date_déchéance.date_hierarchy": {
-			          "Target": {
-			            "Entity": "transactions_fact.date_déchéance.date_hierarchy"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "transactions_fact.date_déchéance"
-			            },
-			            "Object": {
-			              "Role": "transactions_fact.date_déchéance.date_hierarchy"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "date_déchéances_have_date_hierarchy_déchéances"
-			        }
-			      ]
-			    },
-			    "project_summary_date_de_fin_date_hierarchy_has_project_summary_date_de_fin_day": {
-			      "Binding": {
-			        "ConceptualEntity": "project_summary"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "project_summary.date_de_fin.date_hierarchy": {
-			          "Target": {
-			            "Entity": "project_summary.date_de_fin.date_hierarchy"
-			          }
-			        },
-			        "project_summary.date_de_fin.day": {
-			          "Target": {
-			            "Entity": "project_summary.date_de_fin.day"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "project_summary.date_de_fin.date_hierarchy"
-			            },
-			            "Object": {
-			              "Role": "project_summary.date_de_fin.day"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "date_hierarchy_de_fins_have_day_de_fins"
-			        }
-			      ]
-			    },
-			    "project_summary_date_de_fin_date_hierarchy_has_project_summary_date_de_fin_month": {
-			      "Binding": {
-			        "ConceptualEntity": "project_summary"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "project_summary.date_de_fin.date_hierarchy": {
-			          "Target": {
-			            "Entity": "project_summary.date_de_fin.date_hierarchy"
-			          }
-			        },
-			        "project_summary.date_de_fin.month": {
-			          "Target": {
-			            "Entity": "project_summary.date_de_fin.month"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "project_summary.date_de_fin.date_hierarchy"
-			            },
-			            "Object": {
-			              "Role": "project_summary.date_de_fin.month"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "date_hierarchy_de_fins_have_month_de_fins"
-			        }
-			      ]
-			    },
-			    "project_summary_date_de_fin_date_hierarchy_has_project_summary_date_de_fin_quarter": {
-			      "Binding": {
-			        "ConceptualEntity": "project_summary"
-			      },
-			      "State": "Generated",
-			      "Roles": {
-			        "project_summary.date_de_fin.date_hierarchy": {
-			          "Target": {
-			            "Entity": "project_summary.date_de_fin.date_hierarchy"
-			          }
-			        },
-			        "project_summary.date_de_fin.quarter": {
-			          "Target": {
-			            "Entity": "project_summary.date_de_fin.quarter"
-			          }
-			        }
-			      },
-			      "Phrasings": [
-			        {
-			          "Attribute": {
-			            "Subject": {
-			              "Role": "project_summary.date_de_fin.date_hierarchy"
-			            },
-			            "Object": {
-			              "Role": "project_summary.date_de_fin.quarter"
-			            }
-			          },
-			          "State": "Generated",
-			          "Weight": 0.99,
-			          "ID": "date_hierarchy_de_fins_have_quarter_de_fins"
-			        }
-			      ]
-			    },
 			    "project_summary_date_de_fin_date_hierarchy_has_project_summary_date_de_fin_year": {
 			      "Binding": {
 			        "ConceptualEntity": "project_summary"
@@ -6174,6 +6027,171 @@ cultureInfo en-US
 			          "State": "Generated",
 			          "Weight": 0.99,
 			          "ID": "project_summaries_have_monthly_cashflows"
+			        }
+			      ]
+			    },
+			    "project_items_fact_has_coût_moyen_par_poste": {
+			      "Binding": {
+			        "ConceptualEntity": "project_items_fact"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "project_items_fact": {
+			          "Target": {
+			            "Entity": "project_items_fact"
+			          }
+			        },
+			        "project_items_fact.coût_moyen_par_poste": {
+			          "Target": {
+			            "Entity": "project_items_fact.coût_moyen_par_poste"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "project_items_fact"
+			            },
+			            "Object": {
+			              "Role": "project_items_fact.coût_moyen_par_poste"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "project_items_facts_have_coût_moyen_par_poste"
+			        }
+			      ]
+			    },
+			    "project_items_fact_has_budget_moyen_par_poste": {
+			      "Binding": {
+			        "ConceptualEntity": "project_items_fact"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "project_items_fact": {
+			          "Target": {
+			            "Entity": "project_items_fact"
+			          }
+			        },
+			        "project_items_fact.budget_moyen_par_poste": {
+			          "Target": {
+			            "Entity": "project_items_fact.budget_moyen_par_poste"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "project_items_fact"
+			            },
+			            "Object": {
+			              "Role": "project_items_fact.budget_moyen_par_poste"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "project_items_facts_have_budget_moyen_par_poste"
+			        }
+			      ]
+			    },
+			    "project_items_fact_has_nombre_de_postes": {
+			      "Binding": {
+			        "ConceptualEntity": "project_items_fact"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "project_items_fact": {
+			          "Target": {
+			            "Entity": "project_items_fact"
+			          }
+			        },
+			        "project_items_fact.nombre_de_postes": {
+			          "Target": {
+			            "Entity": "project_items_fact.nombre_de_postes"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "project_items_fact"
+			            },
+			            "Object": {
+			              "Role": "project_items_fact.nombre_de_postes"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "project_items_facts_have_nombre_de_postes"
+			        }
+			      ]
+			    },
+			    "project_items_fact_has_postes_facturés": {
+			      "Binding": {
+			        "ConceptualEntity": "project_items_fact"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "project_items_fact": {
+			          "Target": {
+			            "Entity": "project_items_fact"
+			          }
+			        },
+			        "project_items_fact.postes_facturés": {
+			          "Target": {
+			            "Entity": "project_items_fact.postes_facturés"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "project_items_fact"
+			            },
+			            "Object": {
+			              "Role": "project_items_fact.postes_facturés"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "project_items_facts_have_postes_facturés"
+			        }
+			      ]
+			    },
+			    "project_items_fact_has_nombre_de_produits": {
+			      "Binding": {
+			        "ConceptualEntity": "project_items_fact"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "project_items_fact": {
+			          "Target": {
+			            "Entity": "project_items_fact"
+			          }
+			        },
+			        "project_items_fact.nombre_de_produits": {
+			          "Target": {
+			            "Entity": "project_items_fact.nombre_de_produits"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "project_items_fact"
+			            },
+			            "Object": {
+			              "Role": "project_items_fact.nombre_de_produits"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "project_items_facts_have_nombre_de_produits"
 			        }
 			      ]
 			    },
@@ -7626,6 +7644,33 @@ cultureInfo en-US
 			          "State": "Generated",
 			          "Weight": 0.99,
 			          "ID": "supplier_performances_have_écart_devis_TTCs"
+			        },
+			        {
+			          "Adjective": {
+			            "Subject": {
+			              "Role": "supplier_performance"
+			            },
+			            "Adjectives": [
+			              {
+			                "expensive": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Antonyms": [
+			              {
+			                "cheap": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Measurement": {
+			              "Role": "supplier_performance.écart_devis_TTC"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "écart_devis_TTC_indicates_how_expensive_supplier_performances_are"
 			        }
 			      ]
 			    },
@@ -7725,6 +7770,33 @@ cultureInfo en-US
 			          "State": "Generated",
 			          "Weight": 0.99,
 			          "ID": "supplier_performances_have_coût_réel_TTCs"
+			        },
+			        {
+			          "Adjective": {
+			            "Subject": {
+			              "Role": "supplier_performance"
+			            },
+			            "Adjectives": [
+			              {
+			                "expensive": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Antonyms": [
+			              {
+			                "cheap": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Measurement": {
+			              "Role": "supplier_performance.coût_réel_TTC"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "coût_réel_TTC_indicates_how_expensive_supplier_performances_are"
 			        }
 			      ]
 			    },
@@ -7893,7 +7965,7 @@ cultureInfo en-US
 			        }
 			      ]
 			    },
-			    "project_summary_has_nombre_de_poste": {
+			    "project_summary_has_nombre_de_postes": {
 			      "Binding": {
 			        "ConceptualEntity": "project_summary"
 			      },
@@ -7904,9 +7976,9 @@ cultureInfo en-US
 			            "Entity": "project_summary"
 			          }
 			        },
-			        "project_summary.nombre_de_poste": {
+			        "project_summary.nombre_de_postes": {
 			          "Target": {
-			            "Entity": "project_summary.nombre_de_poste"
+			            "Entity": "project_summary.nombre_de_postes"
 			          }
 			        }
 			      },
@@ -7917,12 +7989,12 @@ cultureInfo en-US
 			              "Role": "project_summary"
 			            },
 			            "Object": {
-			              "Role": "project_summary.nombre_de_poste"
+			              "Role": "project_summary.nombre_de_postes"
 			            }
 			          },
 			          "State": "Generated",
 			          "Weight": 0.99,
-			          "ID": "project_summaries_have_nombre_de_poste"
+			          "ID": "project_summaries_have_nombre_de_postes"
 			        }
 			      ]
 			    },
@@ -8319,6 +8391,33 @@ cultureInfo en-US
 			          "State": "Generated",
 			          "Weight": 0.99,
 			          "ID": "project_items_facts_have_montant_payé_TTCs"
+			        },
+			        {
+			          "Adjective": {
+			            "Subject": {
+			              "Role": "project_items_fact"
+			            },
+			            "Adjectives": [
+			              {
+			                "expensive": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Antonyms": [
+			              {
+			                "cheap": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Measurement": {
+			              "Role": "project_items_fact.montant_payé_TTC"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "montant_payé_TTC_indicates_how_expensive_project_items_facts_are"
 			        }
 			      ]
 			    },
@@ -8352,6 +8451,33 @@ cultureInfo en-US
 			          "State": "Generated",
 			          "Weight": 0.99,
 			          "ID": "project_items_facts_have_coût_réel_TTCs"
+			        },
+			        {
+			          "Adjective": {
+			            "Subject": {
+			              "Role": "project_items_fact"
+			            },
+			            "Adjectives": [
+			              {
+			                "expensive": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Antonyms": [
+			              {
+			                "cheap": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Measurement": {
+			              "Role": "project_items_fact.coût_réel_TTC"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "coût_réel_TTC_indicates_how_expensive_project_items_facts_are"
 			        }
 			      ]
 			    },
@@ -8385,6 +8511,33 @@ cultureInfo en-US
 			          "State": "Generated",
 			          "Weight": 0.99,
 			          "ID": "project_items_facts_have_budget_TTCs"
+			        },
+			        {
+			          "Adjective": {
+			            "Subject": {
+			              "Role": "project_items_fact"
+			            },
+			            "Adjectives": [
+			              {
+			                "expensive": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Antonyms": [
+			              {
+			                "cheap": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Measurement": {
+			              "Role": "project_items_fact.budget_TTC"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "budget_TTC_indicates_how_expensive_project_items_facts_are"
 			        }
 			      ]
 			    },
@@ -8649,6 +8802,33 @@ cultureInfo en-US
 			          "State": "Generated",
 			          "Weight": 0.99,
 			          "ID": "monthly_invoice_activities_have_cumul_impayé_TTCs"
+			        },
+			        {
+			          "Adjective": {
+			            "Subject": {
+			              "Role": "monthly_invoice_activity"
+			            },
+			            "Adjectives": [
+			              {
+			                "expensive": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Antonyms": [
+			              {
+			                "cheap": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Measurement": {
+			              "Role": "monthly_invoice_activity.cumul_impayé_TTC"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "cumul_impayé_TTC_indicates_how_expensive_monthly_invoice_activities_are"
 			        }
 			      ]
 			    },
@@ -8682,6 +8862,33 @@ cultureInfo en-US
 			          "State": "Generated",
 			          "Weight": 0.99,
 			          "ID": "monthly_invoice_activities_have_cumul_payé_TTCs"
+			        },
+			        {
+			          "Adjective": {
+			            "Subject": {
+			              "Role": "monthly_invoice_activity"
+			            },
+			            "Adjectives": [
+			              {
+			                "expensive": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Antonyms": [
+			              {
+			                "cheap": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Measurement": {
+			              "Role": "monthly_invoice_activity.cumul_payé_TTC"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "cumul_payé_TTC_indicates_how_expensive_monthly_invoice_activities_are"
 			        }
 			      ]
 			    },
@@ -8781,6 +8988,33 @@ cultureInfo en-US
 			          "State": "Generated",
 			          "Weight": 0.99,
 			          "ID": "monthly_invoice_activities_have_montant_payé_TTCs"
+			        },
+			        {
+			          "Adjective": {
+			            "Subject": {
+			              "Role": "monthly_invoice_activity"
+			            },
+			            "Adjectives": [
+			              {
+			                "expensive": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Antonyms": [
+			              {
+			                "cheap": {
+			                  "State": "Generated"
+			                }
+			              }
+			            ],
+			            "Measurement": {
+			              "Role": "monthly_invoice_activity.montant_payé_TTC"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "montant_payé_TTC_indicates_how_expensive_monthly_invoice_activities_are"
 			        }
 			      ]
 			    },
@@ -9012,6 +9246,270 @@ cultureInfo en-US
 			          "State": "Generated",
 			          "Weight": 0.99,
 			          "ID": "monthly_cashflows_have_projets"
+			        }
+			      ]
+			    },
+			    "project_summary_date_de_fin_date_hierarchy_has_project_summary_date_de_fin_quarter": {
+			      "Binding": {
+			        "ConceptualEntity": "project_summary"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "project_summary.date_de_fin.date_hierarchy": {
+			          "Target": {
+			            "Entity": "project_summary.date_de_fin.date_hierarchy"
+			          }
+			        },
+			        "project_summary.date_de_fin.quarter": {
+			          "Target": {
+			            "Entity": "project_summary.date_de_fin.quarter"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "project_summary.date_de_fin.date_hierarchy"
+			            },
+			            "Object": {
+			              "Role": "project_summary.date_de_fin.quarter"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "date_hierarchy_de_fins_have_quarter_de_fins"
+			        }
+			      ]
+			    },
+			    "project_summary_date_de_fin_date_hierarchy_has_project_summary_date_de_fin_month": {
+			      "Binding": {
+			        "ConceptualEntity": "project_summary"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "project_summary.date_de_fin.date_hierarchy": {
+			          "Target": {
+			            "Entity": "project_summary.date_de_fin.date_hierarchy"
+			          }
+			        },
+			        "project_summary.date_de_fin.month": {
+			          "Target": {
+			            "Entity": "project_summary.date_de_fin.month"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "project_summary.date_de_fin.date_hierarchy"
+			            },
+			            "Object": {
+			              "Role": "project_summary.date_de_fin.month"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "date_hierarchy_de_fins_have_month_de_fins"
+			        }
+			      ]
+			    },
+			    "project_summary_date_de_fin_date_hierarchy_has_project_summary_date_de_fin_day": {
+			      "Binding": {
+			        "ConceptualEntity": "project_summary"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "project_summary.date_de_fin.date_hierarchy": {
+			          "Target": {
+			            "Entity": "project_summary.date_de_fin.date_hierarchy"
+			          }
+			        },
+			        "project_summary.date_de_fin.day": {
+			          "Target": {
+			            "Entity": "project_summary.date_de_fin.day"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "project_summary.date_de_fin.date_hierarchy"
+			            },
+			            "Object": {
+			              "Role": "project_summary.date_de_fin.day"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "date_hierarchy_de_fins_have_day_de_fins"
+			        }
+			      ]
+			    },
+			    "transactions_fact_date_déchéance_has_date_hierarchy": {
+			      "Binding": {
+			        "ConceptualEntity": "transactions_fact"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "transactions_fact.date_déchéance": {
+			          "Target": {
+			            "Entity": "transactions_fact.date_déchéance"
+			          }
+			        },
+			        "transactions_fact.date_déchéance.date_hierarchy": {
+			          "Target": {
+			            "Entity": "transactions_fact.date_déchéance.date_hierarchy"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "transactions_fact.date_déchéance"
+			            },
+			            "Object": {
+			              "Role": "transactions_fact.date_déchéance.date_hierarchy"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "date_déchéances_have_date_hierarchy_déchéances"
+			        }
+			      ]
+			    },
+			    "transactions_fact_date_déchéance_date_hierarchy_has_transactions_fact_date_déchéance_year": {
+			      "Binding": {
+			        "ConceptualEntity": "transactions_fact"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "transactions_fact.date_déchéance.date_hierarchy": {
+			          "Target": {
+			            "Entity": "transactions_fact.date_déchéance.date_hierarchy"
+			          }
+			        },
+			        "transactions_fact.date_déchéance.year": {
+			          "Target": {
+			            "Entity": "transactions_fact.date_déchéance.year"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "transactions_fact.date_déchéance.date_hierarchy"
+			            },
+			            "Object": {
+			              "Role": "transactions_fact.date_déchéance.year"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "date_hierarchy_déchéances_have_year_déchéances"
+			        }
+			      ]
+			    },
+			    "transactions_fact_date_déchéance_date_hierarchy_has_transactions_fact_date_déchéance_quarter": {
+			      "Binding": {
+			        "ConceptualEntity": "transactions_fact"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "transactions_fact.date_déchéance.date_hierarchy": {
+			          "Target": {
+			            "Entity": "transactions_fact.date_déchéance.date_hierarchy"
+			          }
+			        },
+			        "transactions_fact.date_déchéance.quarter": {
+			          "Target": {
+			            "Entity": "transactions_fact.date_déchéance.quarter"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "transactions_fact.date_déchéance.date_hierarchy"
+			            },
+			            "Object": {
+			              "Role": "transactions_fact.date_déchéance.quarter"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "date_hierarchy_déchéances_have_quarter_déchéances"
+			        }
+			      ]
+			    },
+			    "transactions_fact_date_déchéance_date_hierarchy_has_transactions_fact_date_déchéance_month": {
+			      "Binding": {
+			        "ConceptualEntity": "transactions_fact"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "transactions_fact.date_déchéance.date_hierarchy": {
+			          "Target": {
+			            "Entity": "transactions_fact.date_déchéance.date_hierarchy"
+			          }
+			        },
+			        "transactions_fact.date_déchéance.month": {
+			          "Target": {
+			            "Entity": "transactions_fact.date_déchéance.month"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "transactions_fact.date_déchéance.date_hierarchy"
+			            },
+			            "Object": {
+			              "Role": "transactions_fact.date_déchéance.month"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "date_hierarchy_déchéances_have_month_déchéances"
+			        }
+			      ]
+			    },
+			    "transactions_fact_date_déchéance_date_hierarchy_has_transactions_fact_date_déchéance_day": {
+			      "Binding": {
+			        "ConceptualEntity": "transactions_fact"
+			      },
+			      "State": "Generated",
+			      "Roles": {
+			        "transactions_fact.date_déchéance.date_hierarchy": {
+			          "Target": {
+			            "Entity": "transactions_fact.date_déchéance.date_hierarchy"
+			          }
+			        },
+			        "transactions_fact.date_déchéance.day": {
+			          "Target": {
+			            "Entity": "transactions_fact.date_déchéance.day"
+			          }
+			        }
+			      },
+			      "Phrasings": [
+			        {
+			          "Attribute": {
+			            "Subject": {
+			              "Role": "transactions_fact.date_déchéance.date_hierarchy"
+			            },
+			            "Object": {
+			              "Role": "transactions_fact.date_déchéance.day"
+			            }
+			          },
+			          "State": "Generated",
+			          "Weight": 0.99,
+			          "ID": "date_hierarchy_déchéances_have_day_déchéances"
 			        }
 			      ]
 			    }

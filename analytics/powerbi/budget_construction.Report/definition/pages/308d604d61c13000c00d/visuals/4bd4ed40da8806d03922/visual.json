@@ -345,23 +345,5 @@
       ]
     },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "c601b1b0b8de09b0cd3b",
-        "field": {
-          "Measure": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "project_items_fact"
-              }
-            },
-            "Property": "Coût moyen par poste"
-          }
-        },
-        "type": "Advanced"
-      }
-    ]
   }
 }

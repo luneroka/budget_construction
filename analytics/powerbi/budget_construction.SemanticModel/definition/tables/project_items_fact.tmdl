@@ -92,34 +92,30 @@ table project_items_fact
 
 	column 'Budget TTC'
 		dataType: double
-		formatString: 0
+		formatString: #,0\ "€";-#,0\ "€";#,0\ "€"
 		lineageTag: 5e8897bc-ef31-4708-9241-0812436b2e22
 		summarizeBy: sum
 		sourceColumn: Budget TTC
 
 		annotation SummarizationSetBy = Automatic
 
-		annotation PBI_FormatHint = {"isDecimal":true}
-
 	column 'Coût réel TTC'
 		dataType: double
+		formatString: #,0\ "€";-#,0\ "€";#,0\ "€"
 		lineageTag: 9170429c-325e-4141-a8c5-66b57a1aaa21
 		summarizeBy: sum
 		sourceColumn: Coût réel TTC
 
 		annotation SummarizationSetBy = Automatic
 
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
-
 	column 'Montant payé TTC'
 		dataType: double
+		formatString: #,0\ "€";-#,0\ "€";#,0\ "€"
 		lineageTag: 482d592c-c532-45d3-991f-4750ea81af00
 		summarizeBy: sum
 		sourceColumn: Montant payé TTC
 
 		annotation SummarizationSetBy = Automatic
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	column 'Montant impayé TTC'
 		dataType: double
@@ -133,13 +129,12 @@ table project_items_fact
 
 	column 'Écart budget TTC'
 		dataType: double
+		formatString: #,0\ "€";-#,0\ "€";#,0\ "€"
 		lineageTag: 7536228e-22aa-469b-b942-bf1d505f3a52
 		summarizeBy: sum
 		sourceColumn: Écart budget TTC
 
 		annotation SummarizationSetBy = Automatic
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	column 'Écart budget %'
 		dataType: double

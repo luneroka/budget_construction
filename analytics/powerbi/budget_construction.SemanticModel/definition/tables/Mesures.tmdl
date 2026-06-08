@@ -11,9 +11,8 @@ table Mesures
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	measure 'Coût réel' = SUM(project_items_fact[Coût réel TTC])
+		formatString: #,0\ "€";-#,0\ "€";#,0\ "€"
 		lineageTag: d3427dcf-31df-4f69-acbb-0940f3a55712
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	measure 'Montant impayé' = SUM(project_items_fact[Montant impayé TTC])
 		lineageTag: ccfd2a49-01be-4e3a-9206-56ba63be80b5
@@ -21,9 +20,8 @@ table Mesures
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	measure 'Écart budget' = [Coût réel] - [Budget total]
+		formatString: #,0\ "€";-#,0\ "€";#,0\ "€"
 		lineageTag: a99b2c6c-bc7b-4ba0-bf65-256fdad4ecdd
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	measure 'Écart %' = DIVIDE([Écart budget], [Budget total])
 		lineageTag: bc89cd82-4a50-43b6-b00c-2b113c048642

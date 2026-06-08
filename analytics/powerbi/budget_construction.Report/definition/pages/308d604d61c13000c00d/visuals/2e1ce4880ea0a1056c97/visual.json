@@ -320,23 +320,5 @@
       ]
     },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "de003008ab300c8e1217",
-        "field": {
-          "Measure": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "project_items_fact"
-              }
-            },
-            "Property": "Nombre de postes"
-          }
-        },
-        "type": "Advanced"
-      }
-    ]
   }
 }

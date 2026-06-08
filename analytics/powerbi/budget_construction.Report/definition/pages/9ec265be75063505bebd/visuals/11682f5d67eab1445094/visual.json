@@ -51,7 +51,8 @@
                 }
               },
               "queryRef": "Sum(monthly_invoice_activity.Cumul payé TTC)",
-              "nativeQueryRef": "Sum of Cumul payé TTC"
+              "nativeQueryRef": "Cumul payé",
+              "displayName": "Cumul payé"
             }
           ]
         }
@@ -214,6 +215,20 @@
                   "Value": "false"
                 }
               }
+            },
+            "labelDisplayUnits": {
+              "expr": {
+                "Literal": {
+                  "Value": "1D"
+                }
+              }
+            },
+            "labelPrecision": {
+              "expr": {
+                "Literal": {
+                  "Value": "0L"
+                }
+              }
             }
           }
         }
@@ -229,6 +244,19 @@
               }
             },
             "gridlineShow": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "labels": [
+        {
+          "properties": {
+            "show": {
               "expr": {
                 "Literal": {
                   "Value": "false"
@@ -268,5 +296,42 @@
       ]
     },
     "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "e670d5b2ddc6a4620270",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "monthly_invoice_activity"
+              }
+            },
+            "Property": "Mois"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "522cdc47401322055c8c",
+        "field": {
+          "Aggregation": {
+            "Expression": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "monthly_invoice_activity"
+                  }
+                },
+                "Property": "Cumul payé TTC"
+              }
+            },
+            "Function": 0
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
   }
 }

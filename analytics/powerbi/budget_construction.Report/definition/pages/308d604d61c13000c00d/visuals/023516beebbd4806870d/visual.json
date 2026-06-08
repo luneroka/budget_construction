@@ -344,23 +344,5 @@
       ]
     },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "078df966c0402ac08559",
-        "field": {
-          "Measure": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "project_items_fact"
-              }
-            },
-            "Property": "Postes facturés"
-          }
-        },
-        "type": "Advanced"
-      }
-    ]
   }
 }

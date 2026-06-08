@@ -345,23 +345,5 @@
       ]
     },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "cb43371031bedee8011c",
-        "field": {
-          "Measure": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "project_items_fact"
-              }
-            },
-            "Property": "Budget moyen par poste"
-          }
-        },
-        "type": "Advanced"
-      }
-    ]
   }
 }

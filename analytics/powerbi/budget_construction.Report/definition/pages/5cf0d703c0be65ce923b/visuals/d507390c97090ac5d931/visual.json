@@ -51,7 +51,8 @@
                 }
               },
               "queryRef": "Sum(supplier_performance.Écart devis TTC)",
-              "nativeQueryRef": "Sum of Écart devis TTC"
+              "nativeQueryRef": "Écart devis",
+              "displayName": "Écart devis"
             }
           ]
         }
@@ -393,6 +394,39 @@
           ]
         },
         "howCreated": "User"
+      },
+      {
+        "name": "e5f8f119dd1e9e20b098",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "supplier_performance"
+              }
+            },
+            "Property": "Fournisseur"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "48309c3923b59d2b2341",
+        "field": {
+          "Aggregation": {
+            "Expression": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "supplier_performance"
+                  }
+                },
+                "Property": "Écart devis TTC"
+              }
+            },
+            "Function": 0
+          }
+        },
+        "type": "Advanced"
       }
     ]
   }

@@ -51,7 +51,9 @@
                 }
               },
               "queryRef": "Sum(project_items_fact.Coût réel TTC)",
-              "nativeQueryRef": "Sum of Coût réel TTC"
+              "nativeQueryRef": "Coût réel",
+              "displayName": "Coût réel",
+              "format": "#,0 \"€\";-#,0 \"€\";#,0 \"€\""
             }
           ]
         }

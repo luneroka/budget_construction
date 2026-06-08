@@ -344,5 +344,23 @@
       ]
     },
     "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "b9bc646092be31b406ae",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "supplier_performance"
+              }
+            },
+            "Property": "Dépense Moyenne par Fournisseur"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
   }
 }

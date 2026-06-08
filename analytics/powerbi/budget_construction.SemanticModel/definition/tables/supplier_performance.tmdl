@@ -83,13 +83,12 @@ table supplier_performance
 
 	column 'Coût réel TTC'
 		dataType: double
+		formatString: #,0\ "€";-#,0\ "€";#,0\ "€"
 		lineageTag: e6ce1a99-84da-4ca5-a15f-1df1b58cfd71
 		summarizeBy: sum
 		sourceColumn: Coût réel TTC
 
 		annotation SummarizationSetBy = Automatic
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	column 'Montant payé TTC'
 		dataType: double
@@ -113,13 +112,12 @@ table supplier_performance
 
 	column 'Écart devis TTC'
 		dataType: double
+		formatString: #,0\ "€";-#,0\ "€";#,0\ "€"
 		lineageTag: 68814498-9911-455c-8a13-1c4b992ec482
 		summarizeBy: sum
 		sourceColumn: Écart devis TTC
 
 		annotation SummarizationSetBy = Automatic
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	column 'Écart devis %'
 		dataType: double

@@ -51,7 +51,8 @@
                 }
               },
               "queryRef": "Sum(supplier_performance.Coût réel TTC)",
-              "nativeQueryRef": "Sum of Coût réel TTC"
+              "nativeQueryRef": "Coût réel",
+              "displayName": "Coût réel"
             }
           ]
         }
@@ -193,6 +194,13 @@
               "expr": {
                 "Literal": {
                   "Value": "true"
+                }
+              }
+            },
+            "labelDisplayUnits": {
+              "expr": {
+                "Literal": {
+                  "Value": "1000D"
                 }
               }
             }
@@ -347,6 +355,25 @@
             }
           ]
         }
+      },
+      {
+        "name": "c8d4e3568ea785d91718",
+        "field": {
+          "Aggregation": {
+            "Expression": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "supplier_performance"
+                  }
+                },
+                "Property": "Coût réel TTC"
+              }
+            },
+            "Function": 0
+          }
+        },
+        "type": "Advanced"
       }
     ]
   }

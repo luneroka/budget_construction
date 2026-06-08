@@ -4,10 +4,10 @@
   "position": {
     "x": 436.36363636363632,
     "y": 44.919786096256679,
-    "z": 10004,
+    "z": 11000,
     "height": 71.657754010695186,
     "width": 333.68983957219251,
-    "tabOrder": 10004
+    "tabOrder": 11000
   },
   "visual": {
     "visualType": "slicer",
@@ -182,23 +182,5 @@
       ]
     },
     "drillFilterOtherVisuals": true
-  },
-  "filterConfig": {
-    "filters": [
-      {
-        "name": "1ed8977059d100757a3c",
-        "field": {
-          "Column": {
-            "Expression": {
-              "SourceRef": {
-                "Entity": "project_items_fact"
-              }
-            },
-            "Property": "Sous-catégorie"
-          }
-        },
-        "type": "Categorical"
-      }
-    ]
   }
 }

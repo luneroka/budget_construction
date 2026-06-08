@@ -4,10 +4,10 @@
   "position": {
     "x": 812.018288700196,
     "y": 588.37361201828867,
-    "z": 9000,
+    "z": 6000,
     "height": 310.38536903984323,
     "width": 776.485956890921,
-    "tabOrder": 9000
+    "tabOrder": 6000
   },
   "visual": {
     "visualType": "columnChart",
@@ -51,7 +51,8 @@
                 }
               },
               "queryRef": "Sum(project_items_fact.Écart budget TTC)",
-              "nativeQueryRef": "Sum of Écart budget TTC"
+              "nativeQueryRef": "Écart budget",
+              "displayName": "Écart budget"
             }
           ]
         }
@@ -399,7 +400,7 @@
         "howCreated": "User"
       },
       {
-        "name": "a9456849c040502dd28b",
+        "name": "8e1463a00356dcac0d84",
         "field": {
           "Column": {
             "Expression": {
@@ -413,7 +414,7 @@
         "type": "Categorical"
       },
       {
-        "name": "59a4ad5fcc12581ed142",
+        "name": "190660f7079a72892a33",
         "field": {
           "Aggregation": {
             "Expression": {

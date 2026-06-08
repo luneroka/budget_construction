@@ -51,7 +51,8 @@
                 }
               },
               "queryRef": "Sum(monthly_invoice_activity.Montant payé TTC)",
-              "nativeQueryRef": "Sum of Montant payé TTC"
+              "nativeQueryRef": "Montant payé",
+              "displayName": "Montant payé"
             }
           ]
         }
