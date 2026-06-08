@@ -1,6 +1,37 @@
 table project_items_fact
 	lineageTag: 88be174c-6ee0-4035-942d-5e6c33adb8ee
 
+	measure 'Nombre de produits' = DISTINCTCOUNT(project_items_fact[Produit])
+		formatString: 0
+		lineageTag: 3db55751-ebe0-431a-af10-22c303dd4314
+
+	measure 'Postes facturés' =
+			
+			CALCULATE(
+			    COUNTROWS(project_items_fact),
+			    project_items_fact[Facturé] = "Oui"
+			)
+		formatString: 0
+		lineageTag: 973fb67a-0b61-4818-8662-642a3e69511a
+
+	measure 'Nombre de postes' = COUNT(project_items_fact[Poste de dépense])
+		formatString: 0
+		lineageTag: 84589d61-1fd2-432d-b490-bf2af9740377
+
+	measure 'Budget moyen par poste' =
+			
+			AVERAGE(project_items_fact[Budget TTC])
+		lineageTag: a9dfde35-5084-401c-b855-5b613e806e0f
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Coût moyen par poste' =
+			
+			AVERAGE(project_items_fact[Coût réel TTC])
+		lineageTag: 29637116-2aa7-42a7-b85e-8fbf4edf23fa
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
 	column 'ID Projet'
 		dataType: int64
 		formatString: 0
@@ -33,7 +64,7 @@ table project_items_fact
 		summarizeBy: none
 		sourceColumn: Poste de dépense
 
-		annotation SummarizationSetBy = Automatic
+		annotation SummarizationSetBy = User
 
 	column Catégorie
 		dataType: string
@@ -135,7 +166,7 @@ table project_items_fact
 		summarizeBy: none
 		sourceColumn: Facturé
 
-		annotation SummarizationSetBy = Automatic
+		annotation SummarizationSetBy = User
 
 	partition project_items_fact = m
 		mode: import

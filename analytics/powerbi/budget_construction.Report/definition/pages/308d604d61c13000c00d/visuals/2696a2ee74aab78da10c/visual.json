@@ -1,0 +1,114 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "2696a2ee74aab78da10c",
+  "position": {
+    "x": 811.76470588235293,
+    "y": 245.98930481283421,
+    "z": 10002,
+    "height": 311.22994652406413,
+    "width": 776.470588235294,
+    "tabOrder": 10002
+  },
+  "visual": {
+    "visualType": "treemap",
+    "query": {
+      "queryState": {
+        "Group": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "project_items_fact"
+                    }
+                  },
+                  "Property": "Sous-catégorie"
+                }
+              },
+              "queryRef": "project_items_fact.Sous-catégorie",
+              "nativeQueryRef": "Sous-catégorie",
+              "active": true
+            }
+          ]
+        },
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "project_items_fact"
+                        }
+                      },
+                      "Property": "Coût réel TTC"
+                    }
+                  },
+                  "Function": 0
+                }
+              },
+              "queryRef": "Sum(project_items_fact.Coût réel TTC)",
+              "nativeQueryRef": "Sum of Coût réel TTC"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Coût réel par Sous-catégorie'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "764d612eedc2b37ec1e4",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "project_items_fact"
+              }
+            },
+            "Property": "Sous-catégorie"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "061fa8ec79a40410b0b4",
+        "field": {
+          "Aggregation": {
+            "Expression": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "project_items_fact"
+                  }
+                },
+                "Property": "Coût réel TTC"
+              }
+            },
+            "Function": 0
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
+  }
+}

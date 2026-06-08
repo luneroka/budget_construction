@@ -1,0 +1,23 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json",
+  "name": "308d604d61c13000c00d",
+  "displayName": "Analyse par poste",
+  "displayOption": "FitToPage",
+  "height": 900,
+  "width": 1600,
+  "objects": {
+    "outspacePane": [
+      {
+        "properties": {
+          "width": {
+            "expr": {
+              "Literal": {
+                "Value": "209L"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

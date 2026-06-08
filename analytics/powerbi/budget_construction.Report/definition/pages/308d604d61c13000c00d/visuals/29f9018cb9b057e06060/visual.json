@@ -1,0 +1,238 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "29f9018cb9b057e06060",
+  "position": {
+    "x": 24.598930481283421,
+    "y": 245.98930481283421,
+    "z": 10001,
+    "height": 311.22994652406413,
+    "width": 775.40106951871655,
+    "tabOrder": 10001
+  },
+  "visual": {
+    "visualType": "donutChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "project_items_fact"
+                    }
+                  },
+                  "Property": "Catégorie"
+                }
+              },
+              "queryRef": "project_items_fact.Catégorie",
+              "nativeQueryRef": "Catégorie",
+              "active": true
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "project_items_fact"
+                        }
+                      },
+                      "Property": "Coût réel TTC"
+                    }
+                  },
+                  "Function": 0
+                }
+              },
+              "queryRef": "Sum(project_items_fact.Coût réel TTC)",
+              "nativeQueryRef": "Sum of Coût réel TTC"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Aggregation": {
+                "Expression": {
+                  "Column": {
+                    "Expression": {
+                      "SourceRef": {
+                        "Entity": "project_items_fact"
+                      }
+                    },
+                    "Property": "Coût réel TTC"
+                  }
+                },
+                "Function": 0
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "objects": {
+      "dataPoint": [
+        {
+          "properties": {
+            "fill": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 4,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "selector": {
+            "data": [
+              {
+                "scopeId": {
+                  "Comparison": {
+                    "ComparisonKind": 0,
+                    "Left": {
+                      "Column": {
+                        "Expression": {
+                          "SourceRef": {
+                            "Entity": "project_items_fact"
+                          }
+                        },
+                        "Property": "Catégorie"
+                      }
+                    },
+                    "Right": {
+                      "Literal": {
+                        "Value": "'Gros œuvre'"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "fill": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 2,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "selector": {
+            "data": [
+              {
+                "scopeId": {
+                  "Comparison": {
+                    "ComparisonKind": 0,
+                    "Left": {
+                      "Column": {
+                        "Expression": {
+                          "SourceRef": {
+                            "Entity": "project_items_fact"
+                          }
+                        },
+                        "Property": "Catégorie"
+                      }
+                    },
+                    "Right": {
+                      "Literal": {
+                        "Value": "'Finitions'"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "labels": [
+        {
+          "properties": {
+            "labelStyle": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Percent of total'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Coût réel par Catégorie'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "3087ef737d73d44e802b",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "project_items_fact"
+              }
+            },
+            "Property": "Catégorie"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "7b96b3e660bd77d8d074",
+        "field": {
+          "Aggregation": {
+            "Expression": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "project_items_fact"
+                  }
+                },
+                "Property": "Coût réel TTC"
+              }
+            },
+            "Function": 0
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
+  }
+}
