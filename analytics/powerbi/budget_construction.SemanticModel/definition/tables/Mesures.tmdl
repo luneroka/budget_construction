@@ -2,9 +2,8 @@ table Mesures
 	lineageTag: f9804fb8-6d0c-4df0-bc32-16be2da1748c
 
 	measure 'Budget total' = SUM(project_items_fact[Budget TTC])
+		formatString: #,0\ "€";-#,0\ "€";#,0\ "€"
 		lineageTag: 21dd523c-5e93-418b-853a-8f4c6b79ddce
-
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	measure 'Montant payé' = SUM(project_items_fact[Montant payé TTC])
 		lineageTag: 39a78fe1-e435-448f-b2fd-3aa46d74a8a1

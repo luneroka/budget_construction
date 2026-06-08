@@ -61,13 +61,14 @@ table project_items_fact
 
 	column 'Budget TTC'
 		dataType: double
+		formatString: 0
 		lineageTag: 5e8897bc-ef31-4708-9241-0812436b2e22
 		summarizeBy: sum
 		sourceColumn: Budget TTC
 
 		annotation SummarizationSetBy = Automatic
 
-		annotation PBI_FormatHint = {"isGeneralNumber":true}
+		annotation PBI_FormatHint = {"isDecimal":true}
 
 	column 'Coût réel TTC'
 		dataType: double
