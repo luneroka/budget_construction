@@ -157,6 +157,7 @@ Table budget_lines {
   project_id integer [not null]
   template_item_id integer
   product_id integer [not null]
+  selected_budget_transaction_id integer
   name varchar(255) [not null]
   item_type budget_line_type [not null]
   sort_order integer [not null, default: 0]
@@ -168,6 +169,7 @@ Table budget_lines {
     template_item_id [name: 'ix_budget_lines_template_item_id']
     product_id [name: 'ix_budget_lines_product_id']
     (project_id, product_id) [unique, name: 'uq_budget_lines_project_id_product_id_product_type', note: 'Partial index: WHERE item_type = product AND deleted_at IS NULL']
+    selected_budget_transaction_id [unique, name: 'uq_budget_lines_selected_budget_transaction', note: 'Partial index: WHERE selected_budget_transaction_id IS NOT NULL AND deleted_at IS NULL']
   }
 
   Note: '''
@@ -180,6 +182,8 @@ Table budget_lines {
     Mixing both modes for the same project + product is forbidden.
     Payment installments (acompte, solde, etc.) must be modeled as multiple
     transactions on the same budget_line, not as additional breakdown budget_lines.
+    selected_budget_transaction_id points to the active quote or DIY estimate
+    selected as the planned budget for the budget_line.
   '''
 }
 
@@ -199,18 +203,15 @@ Table transactions {
   quote_status quote_status
   invoice_status invoice_status
   payment_method payment_method
-  is_selected_budget boolean [not null, default: false]
   ~timestamps
   deleted_at timestamp
 
   indexes {
     budget_line_id [name: 'ix_transactions_budget_line_id']
     supplier_id [name: 'ix_transactions_supplier_id']
-    budget_line_id [unique, name: 'uq_transactions_budget_line_selected_budget', note: 'Partial index: WHERE is_selected_budget AND deleted_at IS NULL']
   }
 
   checks {
-    `NOT is_selected_budget OR transaction_type IN ('quote', 'diy_estimate')` [name: 'ck_transactions_selected_budget_candidate']
     `amount_ht >= 0` [name: 'ck_transactions_amount_ht_positive']
     `vat_rate IS NULL OR vat_rate >= 0` [name: 'ck_transactions_vat_rate_positive']
     `amount_vat IS NULL OR amount_vat >= 0` [name: 'ck_transactions_amount_vat_positive']
@@ -253,6 +254,7 @@ Ref: template_items.product_id > products.id
 Ref: budget_lines.project_id > projects.id [delete: cascade]
 Ref: budget_lines.template_item_id > template_items.id [delete: set null]
 Ref: budget_lines.product_id > products.id
+Ref: budget_lines.selected_budget_transaction_id > transactions.id [delete: set null]
 Ref: transactions.budget_line_id > budget_lines.id [delete: cascade]
 Ref: transactions.supplier_id > suppliers.id [delete: set null]
 Ref: documents.transaction_id > transactions.id [delete: cascade]

@@ -51,7 +51,6 @@ class TransactionBase(BaseModel):
     quote_status: QuoteStatus | None = None
     invoice_status: InvoiceStatus | None = None
     payment_method: PaymentMethod | None = None
-    is_selected_budget: bool = False
 
     @model_validator(mode='after')
     def validate_statuses(self) -> TransactionBase:
@@ -67,7 +66,7 @@ class TransactionBase(BaseModel):
 
 
 class TransactionCreate(TransactionBase):
-    pass
+    select_as_budget: bool = False
 
 
 class TransactionCreateForProduct(TransactionCreate):
@@ -88,7 +87,6 @@ class TransactionUpdate(BaseModel):
     quote_status: QuoteStatus | None = None
     invoice_status: InvoiceStatus | None = None
     payment_method: PaymentMethod | None = None
-    is_selected_budget: bool | None = None
 
 
 class TransactionRead(TransactionBase):

@@ -188,7 +188,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "bureau_etudes_demo",
@@ -204,7 +204,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -230,7 +230,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "notaire_demo",
@@ -246,7 +246,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -272,7 +272,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "urbanisme_demo",
@@ -288,7 +288,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -314,7 +314,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "urbanisme_demo",
@@ -330,7 +330,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -356,7 +356,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "bureau_etudes_demo",
@@ -372,7 +372,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -398,7 +398,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "assurance_demo",
@@ -414,7 +414,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -440,7 +440,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "bureau_etudes_demo",
@@ -456,7 +456,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -482,7 +482,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "terrassement_demo",
@@ -498,7 +498,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -524,7 +524,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -540,7 +540,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "terrassement_demo",
@@ -556,7 +556,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -582,7 +582,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -598,7 +598,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "terrassement_demo",
@@ -614,7 +614,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -640,7 +640,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -656,7 +656,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "terrassement_demo",
@@ -672,7 +672,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -698,7 +698,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -714,7 +714,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "terrassement_demo",
@@ -730,7 +730,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -756,7 +756,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -772,7 +772,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "terrassement_demo",
@@ -788,7 +788,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -814,7 +814,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -830,7 +830,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "terrassement_demo",
@@ -846,7 +846,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -872,7 +872,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -888,7 +888,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "terrassement_demo",
@@ -904,7 +904,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -930,7 +930,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "terrassement_demo",
@@ -946,7 +946,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -972,7 +972,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -988,7 +988,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "terrassement_demo",
@@ -1004,7 +1004,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -1030,7 +1030,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -1046,7 +1046,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -1062,7 +1062,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -1088,7 +1088,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -1104,7 +1104,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -1120,7 +1120,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -1146,7 +1146,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -1162,7 +1162,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -1188,7 +1188,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -1204,7 +1204,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -1230,7 +1230,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -1246,7 +1246,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -1262,7 +1262,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -1288,7 +1288,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -1304,7 +1304,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "electricite_demo",
@@ -1320,7 +1320,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -1346,7 +1346,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -1362,7 +1362,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "electricite_demo",
@@ -1378,7 +1378,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -1404,7 +1404,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "electricite_demo",
@@ -1420,7 +1420,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -1446,7 +1446,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -1462,7 +1462,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "electricite_demo",
@@ -1478,7 +1478,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -1504,7 +1504,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -1520,7 +1520,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -1536,7 +1536,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -1562,7 +1562,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -1578,7 +1578,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -1594,7 +1594,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -1620,7 +1620,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -1636,7 +1636,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -1652,7 +1652,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -1678,7 +1678,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -1694,7 +1694,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -1710,7 +1710,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -1736,7 +1736,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -1752,7 +1752,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -1768,7 +1768,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -1794,7 +1794,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -1810,7 +1810,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "electricite_demo",
@@ -1826,7 +1826,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -1852,7 +1852,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -1868,7 +1868,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "electricite_demo",
@@ -1884,7 +1884,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -1910,7 +1910,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "electricite_demo",
@@ -1926,7 +1926,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -1952,7 +1952,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -1968,7 +1968,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "electricite_demo",
@@ -1984,7 +1984,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -2010,7 +2010,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -2026,7 +2026,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "electricite_demo",
@@ -2042,7 +2042,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -2068,7 +2068,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -2084,7 +2084,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -2100,7 +2100,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -2126,7 +2126,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -2142,7 +2142,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -2158,7 +2158,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -2184,7 +2184,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -2200,7 +2200,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -2216,7 +2216,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -2242,7 +2242,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "materiaux_demo",
@@ -2258,7 +2258,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -2284,7 +2284,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -2300,7 +2300,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -2316,7 +2316,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -2342,7 +2342,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -2358,7 +2358,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -2374,7 +2374,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -2400,7 +2400,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -2416,7 +2416,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -2432,7 +2432,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -2458,7 +2458,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -2474,7 +2474,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -2490,7 +2490,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -2516,7 +2516,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -2532,7 +2532,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -2548,7 +2548,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -2574,7 +2574,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -2590,7 +2590,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -2606,7 +2606,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -2632,7 +2632,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -2648,7 +2648,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -2664,7 +2664,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -2690,7 +2690,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -2706,7 +2706,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -2722,7 +2722,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -2748,7 +2748,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -2764,7 +2764,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -2780,7 +2780,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -2806,7 +2806,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -2822,7 +2822,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -2838,7 +2838,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -2864,7 +2864,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -2880,7 +2880,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -2896,7 +2896,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -2922,7 +2922,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -2938,7 +2938,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -2954,7 +2954,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -2980,7 +2980,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -2996,7 +2996,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -3012,7 +3012,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -3038,7 +3038,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -3054,7 +3054,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -3070,7 +3070,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -3096,7 +3096,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "materiaux_demo",
@@ -3112,7 +3112,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -3138,7 +3138,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -3154,7 +3154,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -3170,7 +3170,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -3196,7 +3196,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -3212,7 +3212,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "maconnerie_demo",
@@ -3228,7 +3228,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -3254,7 +3254,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -3270,7 +3270,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -3286,7 +3286,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -3312,7 +3312,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -3328,7 +3328,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -3344,7 +3344,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -3370,7 +3370,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "materiaux_demo",
@@ -3386,7 +3386,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -3412,7 +3412,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -3428,7 +3428,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -3444,7 +3444,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -3470,7 +3470,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -3486,7 +3486,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -3502,7 +3502,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -3528,7 +3528,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -3544,7 +3544,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "charpente_couverture_demo",
@@ -3560,7 +3560,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -3586,7 +3586,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -3602,7 +3602,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -3618,7 +3618,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -3644,7 +3644,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -3660,7 +3660,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -3676,7 +3676,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -3702,7 +3702,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -3718,7 +3718,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -3734,7 +3734,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -3760,7 +3760,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -3776,7 +3776,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "menuiseries_demo",
@@ -3792,7 +3792,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -3818,7 +3818,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -3834,7 +3834,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "menuiseries_demo",
@@ -3850,7 +3850,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -3876,7 +3876,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -3892,7 +3892,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "menuiseries_demo",
@@ -3908,7 +3908,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -3934,7 +3934,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "menuiseries_demo",
@@ -3950,7 +3950,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -3976,7 +3976,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -3992,7 +3992,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "menuiseries_demo",
@@ -4008,7 +4008,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -4034,7 +4034,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -4050,7 +4050,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "menuiseries_demo",
@@ -4066,7 +4066,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -4092,7 +4092,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -4108,7 +4108,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "menuiseries_demo",
@@ -4124,7 +4124,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -4150,7 +4150,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -4166,7 +4166,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "menuiseries_demo",
@@ -4182,7 +4182,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -4208,7 +4208,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "menuiseries_demo",
@@ -4224,7 +4224,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -4250,7 +4250,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -4266,7 +4266,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "menuiseries_demo",
@@ -4282,7 +4282,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -4308,7 +4308,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -4324,7 +4324,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -4340,7 +4340,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -4366,7 +4366,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -4382,7 +4382,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -4398,7 +4398,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -4424,7 +4424,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -4440,7 +4440,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -4456,7 +4456,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -4482,7 +4482,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "materiaux_demo",
@@ -4498,7 +4498,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -4524,7 +4524,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -4540,7 +4540,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -4556,7 +4556,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -4582,7 +4582,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -4598,7 +4598,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -4614,7 +4614,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -4640,7 +4640,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -4656,7 +4656,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -4672,7 +4672,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -4698,7 +4698,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -4714,7 +4714,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -4730,7 +4730,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -4756,7 +4756,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "materiaux_demo",
@@ -4772,7 +4772,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -4798,7 +4798,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -4814,7 +4814,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -4830,7 +4830,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -4856,7 +4856,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -4872,7 +4872,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "electricite_demo",
@@ -4888,7 +4888,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -4914,7 +4914,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -4930,7 +4930,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "electricite_demo",
@@ -4946,7 +4946,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -4972,7 +4972,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -4988,7 +4988,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "electricite_demo",
@@ -5004,7 +5004,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -5030,7 +5030,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -5046,7 +5046,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "electricite_demo",
@@ -5062,7 +5062,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -5088,7 +5088,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -5104,7 +5104,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "electricite_demo",
@@ -5120,7 +5120,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -5146,7 +5146,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -5162,7 +5162,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -5178,7 +5178,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -5204,7 +5204,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -5220,7 +5220,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -5236,7 +5236,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -5262,7 +5262,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -5278,7 +5278,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -5294,7 +5294,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -5320,7 +5320,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -5336,7 +5336,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -5352,7 +5352,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -5378,7 +5378,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -5394,7 +5394,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -5410,7 +5410,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -5436,7 +5436,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -5452,7 +5452,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -5468,7 +5468,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -5494,7 +5494,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -5510,7 +5510,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "plomberie_chauffage_demo",
@@ -5526,7 +5526,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -5552,7 +5552,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -5568,7 +5568,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "electricite_demo",
@@ -5584,7 +5584,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -5610,7 +5610,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -5626,7 +5626,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -5642,7 +5642,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -5668,7 +5668,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "materiaux_demo",
@@ -5684,7 +5684,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -5710,7 +5710,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -5726,7 +5726,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "materiaux_demo",
@@ -5742,7 +5742,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -5768,7 +5768,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -5784,7 +5784,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "sols_carrelage_demo",
@@ -5800,7 +5800,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -5826,7 +5826,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -5842,7 +5842,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "sols_carrelage_demo",
@@ -5858,7 +5858,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -5884,7 +5884,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "sols_carrelage_demo",
@@ -5900,7 +5900,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -5926,7 +5926,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -5942,7 +5942,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "sols_carrelage_demo",
@@ -5958,7 +5958,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -5984,7 +5984,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -6000,7 +6000,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "sols_carrelage_demo",
@@ -6016,7 +6016,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -6042,7 +6042,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -6058,7 +6058,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "peinture_demo",
@@ -6074,7 +6074,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -6100,7 +6100,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -6116,7 +6116,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "peinture_demo",
@@ -6132,7 +6132,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -6158,7 +6158,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": "peinture_demo",
@@ -6174,7 +6174,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -6200,7 +6200,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -6216,7 +6216,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "sols_carrelage_demo",
@@ -6232,7 +6232,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -6258,7 +6258,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -6274,7 +6274,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "peinture_demo",
@@ -6290,7 +6290,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -6316,7 +6316,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -6332,7 +6332,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "cuisine_bain_demo",
@@ -6348,7 +6348,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -6374,7 +6374,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -6390,7 +6390,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "cuisine_bain_demo",
@@ -6406,7 +6406,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -6432,7 +6432,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -6448,7 +6448,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "cuisine_bain_demo",
@@ -6464,7 +6464,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -6490,7 +6490,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -6506,7 +6506,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "cuisine_bain_demo",
@@ -6522,7 +6522,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -6548,7 +6548,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -6564,7 +6564,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "cuisine_bain_demo",
@@ -6580,7 +6580,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -6606,7 +6606,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -6622,7 +6622,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "cuisine_bain_demo",
@@ -6638,7 +6638,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -6664,7 +6664,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -6680,7 +6680,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "cuisine_bain_demo",
@@ -6696,7 +6696,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -6722,7 +6722,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -6738,7 +6738,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "cuisine_bain_demo",
@@ -6754,7 +6754,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -6780,7 +6780,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -6796,7 +6796,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "cuisine_bain_demo",
@@ -6812,7 +6812,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -6838,7 +6838,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -6854,7 +6854,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "cuisine_bain_demo",
@@ -6870,7 +6870,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -6896,7 +6896,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -6912,7 +6912,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "exterieurs_demo",
@@ -6928,7 +6928,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -6954,7 +6954,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -6970,7 +6970,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "exterieurs_demo",
@@ -6986,7 +6986,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -7012,7 +7012,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -7028,7 +7028,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "exterieurs_demo",
@@ -7044,7 +7044,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -7070,7 +7070,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -7086,7 +7086,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "exterieurs_demo",
@@ -7102,7 +7102,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -7128,7 +7128,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -7144,7 +7144,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "exterieurs_demo",
@@ -7160,7 +7160,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -7186,7 +7186,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -7202,7 +7202,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "exterieurs_demo",
@@ -7218,7 +7218,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -7244,7 +7244,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -7260,7 +7260,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "exterieurs_demo",
@@ -7276,7 +7276,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -7302,7 +7302,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -7318,7 +7318,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "exterieurs_demo",
@@ -7334,7 +7334,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -7360,7 +7360,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -7376,7 +7376,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "exterieurs_demo",
@@ -7392,7 +7392,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -7418,7 +7418,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -7434,7 +7434,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "exterieurs_demo",
@@ -7450,7 +7450,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -7476,7 +7476,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -7492,7 +7492,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "exterieurs_demo",
@@ -7508,7 +7508,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -7534,7 +7534,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -7550,7 +7550,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "exterieurs_demo",
@@ -7566,7 +7566,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -7592,7 +7592,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -7608,7 +7608,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "exterieurs_demo",
@@ -7624,7 +7624,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -7650,7 +7650,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -7666,7 +7666,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "exterieurs_demo",
@@ -7682,7 +7682,7 @@
           "quote_status": null,
           "invoice_status": "paid",
           "payment_method": "wire",
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     },
@@ -7708,7 +7708,7 @@
           "quote_status": "validated",
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": true
+          "select_as_budget": true
         },
         {
           "supplier_key": null,
@@ -7724,7 +7724,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         },
         {
           "supplier_key": "exterieurs_demo",
@@ -7740,7 +7740,7 @@
           "quote_status": null,
           "invoice_status": "unpaid",
           "payment_method": null,
-          "is_selected_budget": false
+          "select_as_budget": false
         }
       ]
     }
@@ -7767,7 +7767,7 @@
         "quote_status": "validated for generated quote transactions.",
         "invoice_status": "paid or unpaid for generated invoice transactions.",
         "payment_method": "wire for paid invoices, null otherwise.",
-        "is_selected_budget": "true only for the Cout_moyen quote transaction."
+        "select_as_budget": "true only for the Cout_moyen quote transaction."
       }
     ]
   }

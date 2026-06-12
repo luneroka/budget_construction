@@ -12,10 +12,8 @@ from sqlalchemy import (
     Enum,
     Numeric,
     ForeignKey,
-    Index,
     Text,
     func,
-    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -88,9 +86,6 @@ class Transaction(Base):
         Enum(PaymentMethod, name='payment_method'),
         nullable=True,
     )
-    is_selected_budget: Mapped[bool] = mapped_column(
-        default=False, server_default='false', nullable=False
-    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=lambda: datetime.now(UTC).replace(tzinfo=None),
@@ -107,10 +102,6 @@ class Transaction(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     __table_args__ = (
-        CheckConstraint(
-            "NOT is_selected_budget OR transaction_type IN ('quote', 'diy_estimate')",
-            name='ck_transactions_selected_budget_candidate',
-        ),
         CheckConstraint('amount_ht >= 0', name='ck_transactions_amount_ht_positive'),
         CheckConstraint(
             'vat_rate IS NULL OR vat_rate >= 0',
@@ -145,16 +136,12 @@ class Transaction(Base):
             "transaction_type = 'invoice' OR payment_date IS NULL",
             name='ck_transactions_payment_date_only_for_invoices',
         ),
-        Index(
-            'uq_transactions_budget_line_selected_budget',
-            'budget_line_id',
-            unique=True,
-            postgresql_where=text('is_selected_budget AND deleted_at IS NULL'),
-        ),
     )
 
     budget_line: Mapped[BudgetLine] = relationship(
-        'BudgetLine', back_populates='transactions'
+        'BudgetLine',
+        back_populates='transactions',
+        foreign_keys=[budget_line_id],
     )
     documents = relationship(
         'Document',

@@ -27,7 +27,9 @@ class TransactionValidationError(ValueError):
 
 
 def _apply_create_defaults(transaction_data: TransactionCreate) -> dict[str, object]:
-    values: dict[str, object] = transaction_data.model_dump()
+    values: dict[str, object] = transaction_data.model_dump(
+        exclude={'select_as_budget'}
+    )
 
     if values['transaction_type'] == TransactionType.quote:
         values['quote_status'] = values['quote_status'] or QuoteStatus.to_confirm
@@ -125,28 +127,43 @@ def _validate_update(
             'payment_date is only allowed for invoice transactions'
         )
 
-    if (
-        transaction.transaction_type == TransactionType.invoice
-        and values.get('is_selected_budget') is True
-    ):
-        raise TransactionValidationError(
-            'Invoices cannot be selected as budget candidates'
-        )
-
     return values
 
 
-async def _clear_selected_budget_candidate(
+def _validate_selected_budget_candidate(transaction_type: TransactionType) -> None:
+    if transaction_type not in {
+        TransactionType.quote,
+        TransactionType.diy_estimate,
+    }:
+        raise TransactionValidationError(
+            'Only quotes and DIY estimates can be selected as budget candidates'
+        )
+
+
+async def _set_selected_budget_candidate(
     db: AsyncSession,
     budget_line_id: int,
+    transaction_id: int | None,
 ) -> None:
     await db.execute(
-        update(Transaction)
+        update(BudgetLine)
+        .where(BudgetLine.id == budget_line_id)
+        .values(selected_budget_transaction_id=transaction_id)
+    )
+
+
+async def _clear_selected_budget_candidate_if_matches(
+    db: AsyncSession,
+    budget_line_id: int,
+    transaction_id: int,
+) -> None:
+    await db.execute(
+        update(BudgetLine)
         .where(
-            Transaction.budget_line_id == budget_line_id,
-            Transaction.deleted_at.is_(None),
+            BudgetLine.id == budget_line_id,
+            BudgetLine.selected_budget_transaction_id == transaction_id,
         )
-        .values(is_selected_budget=False)
+        .values(selected_budget_transaction_id=None)
     )
 
 
@@ -163,18 +180,16 @@ async def create_transaction(
     await _validate_supplier(db, transaction_data.supplier_id, user_id)
 
     values = _apply_create_defaults(transaction_data)
-    if (
-        values['transaction_type'] == TransactionType.invoice
-        and values['is_selected_budget']
-    ):
-        raise TransactionValidationError(
-            'Invoices cannot be selected as budget candidates'
+    if transaction_data.select_as_budget:
+        _validate_selected_budget_candidate(
+            cast(TransactionType, values['transaction_type'])
         )
-    if values['is_selected_budget']:
-        await _clear_selected_budget_candidate(db, budget_line_id)
 
     transaction = Transaction(**values, budget_line_id=budget_line_id)
     db.add(transaction)
+    await db.flush()
+    if transaction_data.select_as_budget:
+        await _set_selected_budget_candidate(db, budget_line_id, transaction.id)
     await db.commit()
 
     return await get_transaction_by_id(
@@ -210,18 +225,16 @@ async def create_transaction_for_product(
     await _validate_supplier(db, transaction_payload.supplier_id, user_id)
 
     values = _apply_create_defaults(transaction_payload)
-    if (
-        values['transaction_type'] == TransactionType.invoice
-        and values['is_selected_budget']
-    ):
-        raise TransactionValidationError(
-            'Invoices cannot be selected as budget candidates'
+    if transaction_payload.select_as_budget:
+        _validate_selected_budget_candidate(
+            cast(TransactionType, values['transaction_type'])
         )
-    if values['is_selected_budget']:
-        await _clear_selected_budget_candidate(db, budget_line.id)
 
     transaction = Transaction(**values, budget_line_id=budget_line.id)
     db.add(transaction)
+    await db.flush()
+    if transaction_payload.select_as_budget:
+        await _set_selected_budget_candidate(db, budget_line.id, transaction.id)
     await db.commit()
 
     return await get_transaction_by_id(
@@ -304,9 +317,6 @@ async def update_transaction(
             cast(int | None, values['supplier_id']),
             user_id,
         )
-    if values.get('is_selected_budget') is True:
-        await _clear_selected_budget_candidate(db, budget_line_id)
-
     for field, value in values.items():
         setattr(transaction, field, value)
 
@@ -343,6 +353,11 @@ async def soft_delete_transaction(
             )
             .values(deleted_at=deleted_at, updated_at=deleted_at)
         )
+        await _clear_selected_budget_candidate_if_matches(
+            db,
+            transaction.budget_line_id,
+            transaction.id,
+        )
         transaction.deleted_at = deleted_at
 
         await db.commit()
@@ -371,16 +386,8 @@ async def select_budget_candidate(
     if transaction is None:
         return None
 
-    if transaction.transaction_type not in {
-        TransactionType.quote,
-        TransactionType.diy_estimate,
-    }:
-        raise TransactionValidationError(
-            'Only quotes and DIY estimates can be selected as budget candidates'
-        )
-
-    await _clear_selected_budget_candidate(db, transaction.budget_line_id)
-    transaction.is_selected_budget = True
+    _validate_selected_budget_candidate(transaction.transaction_type)
+    await _set_selected_budget_candidate(db, transaction.budget_line_id, transaction.id)
 
     await db.commit()
     await db.refresh(transaction)
