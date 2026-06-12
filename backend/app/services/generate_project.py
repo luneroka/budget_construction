@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.budget_line import BudgetLine
 from app.models.project import Project
+from app.repositories.project import validate_project_dates
 from app.repositories import budget_line as budget_line_repository
 from app.schemas.project import ProjectFromTemplateCreate
 
@@ -19,6 +20,7 @@ async def generate_project_from_template(
     project_data: ProjectFromTemplateCreate,
     user_id: int,
 ) -> GeneratedProject:
+    validate_project_dates(project_data.start_date, project_data.end_date)
     project_values = project_data.model_dump(exclude={'template_id'})
     project = Project(**project_values, user_id=user_id)
 

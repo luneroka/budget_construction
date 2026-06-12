@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 from typing import cast
 
@@ -144,6 +144,25 @@ def _validate_transaction_lifecycle(values: dict[str, object]) -> None:
         )
 
 
+def _validate_transaction_dates(values: dict[str, object]) -> None:
+    issued_date = cast(date | None, values.get('issued_date'))
+    due_date = cast(date | None, values.get('due_date'))
+    payment_date = cast(date | None, values.get('payment_date'))
+
+    if issued_date is None:
+        raise TransactionValidationError('issued_date is required')
+
+    if due_date is not None and due_date < issued_date:
+        raise TransactionValidationError(
+            'due_date must be greater than or equal to issued_date'
+        )
+
+    if payment_date is not None and payment_date < issued_date:
+        raise TransactionValidationError(
+            'payment_date must be greater than or equal to issued_date'
+        )
+
+
 def _apply_create_defaults(transaction_data: TransactionCreate) -> dict[str, object]:
     values: dict[str, object] = transaction_data.model_dump(
         exclude={'select_as_budget'}
@@ -158,6 +177,7 @@ def _apply_create_defaults(transaction_data: TransactionCreate) -> dict[str, obj
         values['invoice_type'] = values['invoice_type'] or InvoiceType.full
 
     _validate_transaction_lifecycle(values)
+    _validate_transaction_dates(values)
 
     return values
 
@@ -285,6 +305,14 @@ def _validate_update(
     }
     lifecycle_values.update(values)
     _validate_transaction_lifecycle(lifecycle_values)
+
+    date_values: dict[str, object] = {
+        'issued_date': transaction.issued_date,
+        'due_date': transaction.due_date,
+        'payment_date': transaction.payment_date,
+    }
+    date_values.update(values)
+    _validate_transaction_dates(date_values)
 
     return values
 

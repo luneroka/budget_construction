@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import date, datetime, UTC
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,9 +9,24 @@ from app.models.transaction import Transaction
 from app.schemas.project import ProjectCreate, ProjectUpdate
 
 
+class ProjectValidationError(ValueError):
+    pass
+
+
+def validate_project_dates(
+    start_date: date | None,
+    end_date: date | None,
+) -> None:
+    if start_date is not None and end_date is not None and end_date < start_date:
+        raise ProjectValidationError(
+            'end_date must be greater than or equal to start_date'
+        )
+
+
 async def create_project(
     db: AsyncSession, project_data: ProjectCreate, user_id: int
 ) -> Project:
+    validate_project_dates(project_data.start_date, project_data.end_date)
     project = Project(**project_data.model_dump(), user_id=user_id)
 
     db.add(project)
@@ -61,7 +76,13 @@ async def update_project(
     if project is None:
         return None
 
-    for field, value in project_data.model_dump(exclude_unset=True).items():
+    update_data = project_data.model_dump(exclude_unset=True)
+    validate_project_dates(
+        update_data.get('start_date', project.start_date),
+        update_data.get('end_date', project.end_date),
+    )
+
+    for field, value in update_data.items():
         setattr(project, field, value)
 
     await db.commit()

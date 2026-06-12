@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from datetime import datetime, date
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from app.models.project import ProjectStatus
 from app.schemas.budget_line import BudgetLineRead
@@ -13,6 +15,16 @@ class ProjectBase(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     project_status: ProjectStatus = ProjectStatus.active
+
+    @model_validator(mode='after')
+    def validate_dates(self) -> ProjectBase:
+        if (
+            self.start_date is not None
+            and self.end_date is not None
+            and self.end_date < self.start_date
+        ):
+            raise ValueError('end_date must be greater than or equal to start_date')
+        return self
 
 
 class ProjectCreate(ProjectBase):
@@ -30,6 +42,16 @@ class ProjectUpdate(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     project_status: ProjectStatus | None = None
+
+    @model_validator(mode='after')
+    def validate_dates(self) -> ProjectUpdate:
+        if (
+            self.start_date is not None
+            and self.end_date is not None
+            and self.end_date < self.start_date
+        ):
+            raise ValueError('end_date must be greater than or equal to start_date')
+        return self
 
     @field_validator('project_status')
     @classmethod

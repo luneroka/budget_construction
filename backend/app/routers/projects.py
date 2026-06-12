@@ -29,6 +29,11 @@ async def create_project(
 ):
     try:
         return await project_repository.create_project(db, project_data, current_user.id)
+    except project_repository.ProjectValidationError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        ) from error
     except IntegrityError as error:
         await raise_integrity_conflict(db, error)
 
@@ -47,6 +52,11 @@ async def generate_project_from_template(
         return await generate_project_service.generate_project_from_template(
             db, project_data, current_user.id
         )
+    except project_repository.ProjectValidationError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        ) from error
     except budget_line_repository.BudgetLineValidationError as error:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -101,6 +111,11 @@ async def update_project(
         project = await project_repository.update_project(
             db, project_id, project_data, current_user.id
         )
+    except project_repository.ProjectValidationError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        ) from error
     except IntegrityError as error:
         await raise_integrity_conflict(db, error)
 
