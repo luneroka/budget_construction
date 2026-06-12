@@ -22,11 +22,21 @@ async def create_project(
 
 
 async def get_project_by_id(
-    db: AsyncSession, project_id: int, user_id: int
+    db: AsyncSession,
+    project_id: int,
+    user_id: int,
+    *,
+    include_deleted: bool = False,
 ) -> Project | None:
-    result = await db.execute(
-        select(Project).where(Project.id == project_id, Project.user_id == user_id)
+    query = select(Project).where(
+        Project.id == project_id,
+        Project.user_id == user_id,
     )
+
+    if not include_deleted:
+        query = query.where(Project.deleted_at.is_(None))
+
+    result = await db.execute(query)
 
     return result.scalar_one_or_none()
 
@@ -48,7 +58,7 @@ async def update_project(
 ) -> Project | None:
     project = await get_project_by_id(db, project_id, user_id)
 
-    if project is None or project.deleted_at is not None:
+    if project is None:
         return None
 
     for field, value in project_data.model_dump(exclude_unset=True).items():

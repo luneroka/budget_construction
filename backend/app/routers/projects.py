@@ -63,11 +63,15 @@ async def get_projects(
 @router.get('/{project_id}', response_model=ProjectRead)
 async def get_project(
     project_id: int,
+    include_deleted: bool = False,
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
     project = await project_repository.get_project_by_id(
-        db, project_id, current_user.id
+        db,
+        project_id,
+        current_user.id,
+        include_deleted=include_deleted,
     )
 
     if project is None:
