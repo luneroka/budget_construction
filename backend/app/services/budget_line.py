@@ -30,7 +30,7 @@ class BudgetLineService:
 
         product = await self._get_active_product(db, product_id)
         if product is None:
-            raise BudgetLineValidationError('Product not found')
+            raise BudgetLineValidationError('Product not found or inactive')
 
         template_item = await self._find_template_item_for_project_product(
             db,
@@ -112,7 +112,9 @@ class BudgetLineService:
         product_id: int,
     ) -> TemplateItem:
         if project.template_id is None:
-            raise BudgetLineValidationError('Project has no template loaded')
+            raise BudgetLineValidationError(
+                'Cannot create budget lines because this project has no template'
+            )
 
         result = await db.execute(
             select(TemplateItem).where(
@@ -122,7 +124,9 @@ class BudgetLineService:
         )
         template_item = result.scalar_one_or_none()
         if template_item is None:
-            raise BudgetLineValidationError('Product is not part of project template')
+            raise BudgetLineValidationError(
+                "Product is not available in this project's template"
+            )
 
         return template_item
 

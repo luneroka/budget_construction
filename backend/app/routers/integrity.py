@@ -51,7 +51,7 @@ async def raise_integrity_conflict(
     db: AsyncSession,
     error: IntegrityError,
     *,
-    default_detail: str = 'Database constraint violation',
+    default_detail: str = 'Request conflicts with an existing record or database constraint',
 ) -> Never:
     await db.rollback()
     constraint_name = _constraint_name(error)

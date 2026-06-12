@@ -50,7 +50,7 @@ async def get_product(product_id: int, db: AsyncSession = Depends(get_db_session
 
     if product is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='product not found'
+            status_code=status.HTTP_404_NOT_FOUND, detail='Product not found'
         )
 
     return product

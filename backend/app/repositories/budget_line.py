@@ -207,7 +207,7 @@ async def create_budget_line(
         return None
 
     if await _get_active_product(db, budget_line_create.product_id) is None:
-        raise BudgetLineValidationError('Product not found')
+        raise BudgetLineValidationError('Product not found or inactive')
 
     template_item = await find_template_item_for_project_product(
         db,
@@ -240,7 +240,9 @@ async def find_template_item_for_project_product(
     product_id: int,
 ) -> TemplateItem:
     if project.template_id is None:
-        raise BudgetLineValidationError('Project has no template loaded')
+        raise BudgetLineValidationError(
+            'Cannot create budget lines because this project has no template'
+        )
 
     result = await db.execute(
         select(TemplateItem).where(
@@ -250,7 +252,9 @@ async def find_template_item_for_project_product(
     )
     template_item = result.scalar_one_or_none()
     if template_item is None:
-        raise BudgetLineValidationError('Product is not part of project template')
+        raise BudgetLineValidationError(
+            "Product is not available in this project's template"
+        )
 
     return template_item
 
@@ -268,7 +272,7 @@ async def update_budget_line(
 
     update_data = budget_line_update.model_dump(exclude_unset=True)
     if update_data.get('item_type', budget_line.item_type) is None:
-        raise BudgetLineValidationError('Budget line type cannot be null')
+        raise BudgetLineValidationError('Budget line type is required')
     item_type = update_data.get('item_type', budget_line.item_type)
 
     await _validate_item_mode(

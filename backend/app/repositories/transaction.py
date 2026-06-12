@@ -219,7 +219,7 @@ async def _validate_supplier(
         )
     )
     if result.scalar_one_or_none() is None:
-        raise TransactionValidationError('Supplier not found')
+        raise TransactionValidationError('Supplier not found or inactive')
 
 
 def _validate_update(

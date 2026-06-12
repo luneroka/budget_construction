@@ -134,7 +134,7 @@ async def _validate_item_data(
     product_id: int,
 ) -> None:
     if await _get_active_product(db, product_id) is None:
-        raise TemplateItemValidationError('Product not found')
+        raise TemplateItemValidationError('Product not found or inactive')
 
 
 async def _ensure_product_not_in_template(

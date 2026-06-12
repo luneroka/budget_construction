@@ -167,7 +167,7 @@ async def restore_user(db: AsyncSession, user_id: int) -> User | None:
         return None
 
     if user.deleted_at is None:
-        raise UserLifecycleError('User is not soft-deleted')
+        raise UserLifecycleError('User is not deleted')
 
     deleted_at = user.deleted_at
     restored_at = datetime.now(UTC).replace(tzinfo=None)
@@ -254,7 +254,7 @@ async def hard_delete_user(db: AsyncSession, user_id: int) -> bool:
         return False
 
     if user.deleted_at is None:
-        raise UserLifecycleError('User must be soft-deleted before hard deletion')
+        raise UserLifecycleError('User must be deleted before permanent deletion')
 
     try:
         result = await db.execute(
