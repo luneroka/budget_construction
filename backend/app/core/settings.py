@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: Optional[str] = None
+    database_echo: bool = False
     secret_key: Optional[str] = None
     algorithm: Optional[str] = None
     access_token_expire_minutes: Optional[int] = None
