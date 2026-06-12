@@ -22,6 +22,13 @@ Enum invoice_status {
   paid
 }
 
+Enum invoice_type {
+  full
+  deposit
+  interim
+  balance
+}
+
 Enum payment_method {
   cash
   card
@@ -202,6 +209,7 @@ Table transactions {
   description text
   quote_status quote_status
   invoice_status invoice_status
+  invoice_type invoice_type
   payment_method payment_method
   ~timestamps
   deleted_at timestamp
@@ -219,6 +227,7 @@ Table transactions {
     `amount_ttc >= amount_ht` [name: 'ck_transactions_ttc_greater_than_ht']
     `transaction_type = 'quote' OR quote_status IS NULL` [name: 'ck_transactions_quote_status_only_for_quotes']
     `transaction_type = 'invoice' OR invoice_status IS NULL` [name: 'ck_transactions_invoice_status_only_for_invoices']
+    `transaction_type = 'invoice' OR invoice_type IS NULL` [name: 'ck_transactions_invoice_type_only_for_invoices']
     `transaction_type = 'invoice' OR payment_method IS NULL` [name: 'ck_transactions_payment_method_only_for_invoices']
     `transaction_type IN ('quote', 'invoice') OR due_date IS NULL` [name: 'ck_transactions_due_date_only_for_quotes_or_invoices']
     `transaction_type = 'invoice' OR payment_date IS NULL` [name: 'ck_transactions_payment_date_only_for_invoices']

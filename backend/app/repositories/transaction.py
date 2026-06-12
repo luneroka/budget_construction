@@ -11,6 +11,7 @@ from app.models.budget_line import BudgetLine
 from app.models.supplier import Supplier
 from app.models.transaction import (
     InvoiceStatus,
+    InvoiceType,
     QuoteStatus,
     Transaction,
     TransactionType,
@@ -124,6 +125,7 @@ def _apply_create_defaults(transaction_data: TransactionCreate) -> dict[str, obj
 
     if values['transaction_type'] == TransactionType.invoice:
         values['invoice_status'] = values['invoice_status'] or InvoiceStatus.unpaid
+        values['invoice_type'] = values['invoice_type'] or InvoiceType.full
 
     return values
 
@@ -188,6 +190,14 @@ def _validate_update(
     ):
         raise TransactionValidationError(
             'invoice_status is only allowed for invoice transactions'
+        )
+
+    if (
+        transaction.transaction_type != TransactionType.invoice
+        and values.get('invoice_type') is not None
+    ):
+        raise TransactionValidationError(
+            'invoice_type is only allowed for invoice transactions'
         )
 
     if (

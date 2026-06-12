@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, model_validator
 from app.models.budget_line import BudgetLineType
 from app.models.transaction import (
     InvoiceStatus,
+    InvoiceType,
     PaymentMethod,
     QuoteStatus,
     TransactionType,
@@ -18,6 +19,7 @@ def _validate_statuses(
     transaction_type: TransactionType,
     quote_status: QuoteStatus | None,
     invoice_status: InvoiceStatus | None,
+    invoice_type: InvoiceType | None,
     payment_method: PaymentMethod | None,
     due_date: date | None,
     payment_date: date | None,
@@ -26,6 +28,8 @@ def _validate_statuses(
         raise ValueError('quote_status is only allowed for quote transactions')
     if transaction_type != TransactionType.invoice and invoice_status is not None:
         raise ValueError('invoice_status is only allowed for invoice transactions')
+    if transaction_type != TransactionType.invoice and invoice_type is not None:
+        raise ValueError('invoice_type is only allowed for invoice transactions')
     if transaction_type != TransactionType.invoice and payment_method is not None:
         raise ValueError('payment_method is only allowed for invoice transactions')
     if (
@@ -50,6 +54,7 @@ class TransactionBase(BaseModel):
     description: str | None = None
     quote_status: QuoteStatus | None = None
     invoice_status: InvoiceStatus | None = None
+    invoice_type: InvoiceType | None = None
     payment_method: PaymentMethod | None = None
 
     @model_validator(mode='after')
@@ -58,6 +63,7 @@ class TransactionBase(BaseModel):
             self.transaction_type,
             self.quote_status,
             self.invoice_status,
+            self.invoice_type,
             self.payment_method,
             self.due_date,
             self.payment_date,
@@ -86,6 +92,7 @@ class TransactionUpdate(BaseModel):
     description: str | None = None
     quote_status: QuoteStatus | None = None
     invoice_status: InvoiceStatus | None = None
+    invoice_type: InvoiceType | None = None
     payment_method: PaymentMethod | None = None
 
 
@@ -102,6 +109,7 @@ class TransactionReadBase(BaseModel):
     description: str | None = None
     quote_status: QuoteStatus | None = None
     invoice_status: InvoiceStatus | None = None
+    invoice_type: InvoiceType | None = None
     payment_method: PaymentMethod | None = None
 
 

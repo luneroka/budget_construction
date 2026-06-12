@@ -42,6 +42,13 @@ class InvoiceStatus(str, enum.Enum):
     paid = 'paid'
 
 
+class InvoiceType(str, enum.Enum):
+    full = 'full'
+    deposit = 'deposit'
+    interim = 'interim'
+    balance = 'balance'
+
+
 class PaymentMethod(str, enum.Enum):
     cash = 'cash'
     card = 'card'
@@ -79,6 +86,11 @@ class Transaction(Base):
 
     invoice_status: Mapped[InvoiceStatus | None] = mapped_column(
         Enum(InvoiceStatus, name='invoice_status'),
+        nullable=True,
+    )
+
+    invoice_type: Mapped[InvoiceType | None] = mapped_column(
+        Enum(InvoiceType, name='invoice_type'),
         nullable=True,
     )
 
@@ -123,6 +135,10 @@ class Transaction(Base):
         CheckConstraint(
             "transaction_type = 'invoice' OR invoice_status IS NULL",
             name='ck_transactions_invoice_status_only_for_invoices',
+        ),
+        CheckConstraint(
+            "transaction_type = 'invoice' OR invoice_type IS NULL",
+            name='ck_transactions_invoice_type_only_for_invoices',
         ),
         CheckConstraint(
             "transaction_type = 'invoice' OR payment_method IS NULL",
