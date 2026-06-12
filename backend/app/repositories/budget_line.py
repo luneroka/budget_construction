@@ -202,11 +202,18 @@ async def create_budget_line(
     budget_line_create: BudgetLineCreate,
     user_id: int,
 ) -> BudgetLine | None:
-    if await _get_active_project(db, project_id, user_id) is None:
+    project = await _get_active_project(db, project_id, user_id)
+    if project is None:
         return None
 
     if await _get_active_product(db, budget_line_create.product_id) is None:
         raise BudgetLineValidationError('Product not found')
+
+    template_item = await find_template_item_for_project_product(
+        db,
+        project=project,
+        product_id=budget_line_create.product_id,
+    )
 
     await _validate_item_mode(
         db,
@@ -218,6 +225,7 @@ async def create_budget_line(
     budget_line = BudgetLine(
         **budget_line_create.model_dump(),
         project_id=project_id,
+        template_item_id=template_item.id,
     )
     db.add(budget_line)
     await db.commit()
@@ -230,9 +238,9 @@ async def find_template_item_for_project_product(
     *,
     project: Project,
     product_id: int,
-) -> TemplateItem | None:
+) -> TemplateItem:
     if project.template_id is None:
-        return None
+        raise BudgetLineValidationError('Project has no template loaded')
 
     result = await db.execute(
         select(TemplateItem).where(
@@ -240,7 +248,11 @@ async def find_template_item_for_project_product(
             TemplateItem.product_id == product_id,
         )
     )
-    return result.scalar_one_or_none()
+    template_item = result.scalar_one_or_none()
+    if template_item is None:
+        raise BudgetLineValidationError('Product is not part of project template')
+
+    return template_item
 
 
 async def get_or_create_budget_line_for_product(
@@ -259,6 +271,12 @@ async def get_or_create_budget_line_for_product(
     product = await _get_active_product(db, product_id)
     if product is None:
         raise BudgetLineValidationError('Product not found')
+
+    template_item = await find_template_item_for_project_product(
+        db,
+        project=project,
+        product_id=product_id,
+    )
 
     result = await db.execute(
         select(BudgetLine)
@@ -307,19 +325,13 @@ async def get_or_create_budget_line_for_product(
     if item_type == BudgetLineType.breakdown and not name:
         raise BudgetLineValidationError('Budget line name is required')
 
-    template_item = await find_template_item_for_project_product(
-        db,
-        project=project,
-        product_id=product_id,
-    )
     budget_line = BudgetLine(
         project_id=project_id,
-        template_item_id=template_item.id if template_item is not None else None,
+        template_item_id=template_item.id,
         product_id=product_id,
-        name=name
-        or (template_item.default_name if template_item is not None else product.name),
+        name=name or template_item.default_name,
         item_type=item_type,
-        sort_order=template_item.sort_order if template_item is not None else 0,
+        sort_order=template_item.sort_order,
     )
 
     await _validate_item_mode(
