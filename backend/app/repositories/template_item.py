@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from typing import cast
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +18,11 @@ from app.schemas.template_item import (
 
 class TemplateItemValidationError(ValueError):
     pass
+
+
+DUPLICATE_TEMPLATE_PRODUCT_MESSAGE = (
+    'A template cannot contain the same product more than once'
+)
 
 
 def _with_product_hierarchy():
@@ -59,6 +65,11 @@ async def create_template_item(
 
     await _validate_item_data(
         db,
+        product_id=template_item_create.product_id,
+    )
+    await _ensure_product_not_in_template(
+        db,
+        template_id=template_id,
         product_id=template_item_create.product_id,
     )
 
@@ -126,17 +137,73 @@ async def _validate_item_data(
         raise TemplateItemValidationError('Product not found')
 
 
+async def _ensure_product_not_in_template(
+    db: AsyncSession,
+    *,
+    template_id: int,
+    product_id: int,
+    template_item_id: int | None = None,
+) -> None:
+    query = select(TemplateItem.id).where(
+        TemplateItem.template_id == template_id,
+        TemplateItem.product_id == product_id,
+    )
+    if template_item_id is not None:
+        query = query.where(TemplateItem.id != template_item_id)
+
+    result = await db.execute(query.limit(1))
+    if result.scalar_one_or_none() is not None:
+        raise TemplateItemValidationError(DUPLICATE_TEMPLATE_PRODUCT_MESSAGE)
+
+
+def _validate_unique_product_ids(
+    template_items_create: list[TemplateItemCreate],
+) -> None:
+    seen_product_ids: set[int] = set()
+    for item in template_items_create:
+        if item.product_id in seen_product_ids:
+            raise TemplateItemValidationError(DUPLICATE_TEMPLATE_PRODUCT_MESSAGE)
+        seen_product_ids.add(item.product_id)
+
+
+async def _ensure_products_not_in_template(
+    db: AsyncSession,
+    *,
+    template_id: int,
+    product_ids: set[int],
+) -> None:
+    if not product_ids:
+        return
+
+    result = await db.execute(
+        select(TemplateItem.id)
+        .where(
+            TemplateItem.template_id == template_id,
+            TemplateItem.product_id.in_(product_ids),
+        )
+        .limit(1)
+    )
+    if result.scalar_one_or_none() is not None:
+        raise TemplateItemValidationError(DUPLICATE_TEMPLATE_PRODUCT_MESSAGE)
+
+
 async def update_template_item(
     db: AsyncSession,
     template_item: TemplateItem,
     template_item_update: TemplateItemUpdate,
 ) -> TemplateItem:
     update_data = template_item_update.model_dump(exclude_unset=True)
-    product_id = update_data.get('product_id', template_item.product_id)
+    product_id = cast(int, update_data.get('product_id', template_item.product_id))
 
     await _validate_item_data(
         db,
         product_id=product_id,
+    )
+    await _ensure_product_not_in_template(
+        db,
+        template_id=template_item.template_id,
+        product_id=product_id,
+        template_item_id=template_item.id,
     )
 
     for key, value in update_data.items():
@@ -168,11 +235,18 @@ async def create_template_items_bulk(
     if await _get_template(db, template_id) is None:
         return None
 
+    _validate_unique_product_ids(template_items_create)
+
     for item in template_items_create:
         await _validate_item_data(
             db,
             product_id=item.product_id,
         )
+    await _ensure_products_not_in_template(
+        db,
+        template_id=template_id,
+        product_ids={item.product_id for item in template_items_create},
+    )
 
     template_items = [
         TemplateItem(**item.model_dump(), template_id=template_id)

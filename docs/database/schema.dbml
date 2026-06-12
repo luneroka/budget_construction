@@ -156,6 +156,7 @@ Table template_items {
   indexes {
     template_id [name: 'ix_template_items_template_id']
     product_id [name: 'ix_template_items_product_id']
+    (template_id, product_id) [unique, name: 'uq_template_items_template_id_product_id']
   }
 }
 

@@ -1,12 +1,14 @@
 from typing import Never
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
 from app.repositories import template as template_repository
 from app.repositories import template_item as template_item_repository
+from app.routers.integrity import raise_integrity_conflict
 from app.schemas.template_item import (
     TemplateItemCreate,
     TemplateItemRead,
@@ -46,6 +48,8 @@ async def create_template_item(
         )
     except template_item_repository.TemplateItemValidationError as error:
         _bad_request(error)
+    except IntegrityError as error:
+        await raise_integrity_conflict(db, error)
 
     if template_item is None:
         raise HTTPException(
@@ -72,6 +76,8 @@ async def create_template_items_bulk(
         )
     except template_item_repository.TemplateItemValidationError as error:
         _bad_request(error)
+    except IntegrityError as error:
+        await raise_integrity_conflict(db, error)
 
     if template_items is None:
         raise HTTPException(
@@ -134,6 +140,8 @@ async def update_template_item(
         )
     except template_item_repository.TemplateItemValidationError as error:
         _bad_request(error)
+    except IntegrityError as error:
+        await raise_integrity_conflict(db, error)
 
 
 @router.delete('/{template_item_id}', status_code=status.HTTP_204_NO_CONTENT)

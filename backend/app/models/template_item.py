@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, UTC
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, DateTime, String, func
+from sqlalchemy import ForeignKey, DateTime, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -50,6 +50,14 @@ class TemplateItem(Base):
         server_default=func.now(),
         onupdate=lambda: datetime.now(UTC).replace(tzinfo=None),
         nullable=False,
+    )
+
+    __table_args__: tuple[UniqueConstraint, ...] = (
+        UniqueConstraint(
+            'template_id',
+            'product_id',
+            name='uq_template_items_template_id_product_id',
+        ),
     )
 
     template: Mapped[Template] = relationship(
