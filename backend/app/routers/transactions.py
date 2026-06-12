@@ -14,6 +14,7 @@ from app.schemas.transaction import (
     TransactionRead,
     TransactionUpdate,
 )
+from app.services.transaction import transaction_service
 
 router = APIRouter(
     prefix='/projects/{project_id}/budget-lines/{budget_line_id}/transactions',
@@ -70,7 +71,7 @@ async def create_transaction_for_product(
     current_user: User = Depends(get_current_user),
 ):
     try:
-        transaction = await transaction_repository.create_transaction_for_product(
+        transaction = await transaction_service.create_for_product(
             db,
             project_id,
             product_id,

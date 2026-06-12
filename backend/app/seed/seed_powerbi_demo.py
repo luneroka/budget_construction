@@ -27,6 +27,7 @@ from app.schemas.supplier import SupplierCreate, SupplierUpdate
 from app.schemas.transaction import TransactionCreate, TransactionCreateForProduct
 from app.schemas.user import UserCreate
 from app.services.generate_project import generate_project_from_template
+from app.services.transaction import transaction_service
 
 DEMO_PATH = Path(__file__).parent / 'data' / 'powerbi_demo.json'
 
@@ -391,7 +392,7 @@ async def seed_transactions(
             if budget_line is None:
                 payload['budget_line_type'] = BudgetLineType.product
                 transaction = (
-                    await transaction_repository.create_transaction_for_product(
+                    await transaction_service.create_for_product(
                         db,
                         project_id,
                         product.id,

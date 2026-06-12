@@ -16,10 +16,8 @@ from app.models.transaction import (
     Transaction,
     TransactionType,
 )
-from app.repositories import budget_line as budget_line_repository
 from app.schemas.transaction import (
     TransactionCreate,
-    TransactionCreateForProduct,
     TransactionUpdate,
 )
 
@@ -313,51 +311,6 @@ async def create_transaction(
         db,
         project_id,
         budget_line_id,
-        transaction.id,
-        user_id,
-    )
-
-
-async def create_transaction_for_product(
-    db: AsyncSession,
-    project_id: int,
-    product_id: int,
-    transaction_data: TransactionCreateForProduct,
-    user_id: int,
-) -> Transaction | None:
-    budget_line = await budget_line_repository.get_or_create_budget_line_for_product(
-        db,
-        project_id,
-        product_id,
-        user_id,
-        name=transaction_data.budget_line_name,
-        item_type=transaction_data.budget_line_type,
-    )
-    if budget_line is None:
-        return None
-
-    transaction_payload = TransactionCreate(
-        **transaction_data.model_dump(exclude={'budget_line_name', 'budget_line_type'})
-    )
-    await _validate_supplier(db, transaction_payload.supplier_id, user_id)
-
-    values = _apply_create_defaults(transaction_payload)
-    if transaction_payload.select_as_budget:
-        _validate_selected_budget_candidate(
-            cast(TransactionType, values['transaction_type'])
-        )
-
-    transaction = Transaction(**values, budget_line_id=budget_line.id)
-    db.add(transaction)
-    await db.flush()
-    if transaction_payload.select_as_budget:
-        await _set_selected_budget_candidate(db, budget_line.id, transaction.id)
-    await db.commit()
-
-    return await get_transaction_by_id(
-        db,
-        project_id,
-        budget_line.id,
         transaction.id,
         user_id,
     )
