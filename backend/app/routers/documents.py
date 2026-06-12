@@ -181,7 +181,6 @@ async def create_document(
         ) from exc
 
 
-
 @router.get(
     '/{transaction_id}/documents',
     response_model=list[DocumentRead],
@@ -312,7 +311,7 @@ async def hard_delete_document(
     if document.deleted_at is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Document must be soft-deleted before permanent deletion',
+            detail='Document must be deleted before permanent deletion',
         )
 
     try:
