@@ -112,6 +112,38 @@ def _normalize_amounts(values: dict[str, object]) -> None:
         values['vat_rate'] = vat_rate
 
 
+def _validate_transaction_lifecycle(values: dict[str, object]) -> None:
+    transaction_type = cast(TransactionType, values['transaction_type'])
+    quote_status = cast(QuoteStatus | None, values.get('quote_status'))
+    invoice_status = cast(InvoiceStatus | None, values.get('invoice_status'))
+    invoice_type = cast(InvoiceType | None, values.get('invoice_type'))
+    payment_date = values.get('payment_date')
+
+    if transaction_type == TransactionType.quote:
+        if quote_status is None:
+            raise TransactionValidationError('quote_status is required for quotes')
+        return
+
+    if transaction_type != TransactionType.invoice:
+        return
+
+    if invoice_status is None:
+        raise TransactionValidationError('invoice_status is required for invoices')
+
+    if invoice_type is None:
+        raise TransactionValidationError('invoice_type is required for invoices')
+
+    if invoice_status == InvoiceStatus.paid:
+        if payment_date is None:
+            raise TransactionValidationError('payment_date is required for paid invoices')
+        return
+
+    if payment_date is not None:
+        raise TransactionValidationError(
+            'payment_date is only allowed when invoice_status is paid'
+        )
+
+
 def _apply_create_defaults(transaction_data: TransactionCreate) -> dict[str, object]:
     values: dict[str, object] = transaction_data.model_dump(
         exclude={'select_as_budget'}
@@ -124,6 +156,8 @@ def _apply_create_defaults(transaction_data: TransactionCreate) -> dict[str, obj
     if values['transaction_type'] == TransactionType.invoice:
         values['invoice_status'] = values['invoice_status'] or InvoiceStatus.unpaid
         values['invoice_type'] = values['invoice_type'] or InvoiceType.full
+
+    _validate_transaction_lifecycle(values)
 
     return values
 
@@ -242,16 +276,36 @@ def _validate_update(
         _normalize_amounts(amount_values)
         values.update(amount_values)
 
+    lifecycle_values: dict[str, object] = {
+        'transaction_type': transaction.transaction_type,
+        'quote_status': transaction.quote_status,
+        'invoice_status': transaction.invoice_status,
+        'invoice_type': transaction.invoice_type,
+        'payment_date': transaction.payment_date,
+    }
+    lifecycle_values.update(values)
+    _validate_transaction_lifecycle(lifecycle_values)
+
     return values
 
 
-def _validate_selected_budget_candidate(transaction_type: TransactionType) -> None:
+def _validate_selected_budget_candidate(
+    transaction_type: TransactionType,
+    quote_status: QuoteStatus | None,
+) -> None:
     if transaction_type not in {
         TransactionType.quote,
         TransactionType.diy_estimate,
     }:
         raise TransactionValidationError(
             'Only quotes and DIY estimates can be selected as budget candidates'
+        )
+    if (
+        transaction_type == TransactionType.quote
+        and quote_status != QuoteStatus.validated
+    ):
+        raise TransactionValidationError(
+            'Only validated quotes can be selected as budget candidates'
         )
 
 
@@ -282,6 +336,33 @@ async def _clear_selected_budget_candidate_if_matches(
     )
 
 
+async def _ensure_selected_budget_candidate_remains_valid(
+    db: AsyncSession,
+    transaction: Transaction,
+    values: dict[str, object],
+) -> None:
+    if transaction.transaction_type != TransactionType.quote:
+        return
+
+    quote_status = cast(
+        QuoteStatus | None,
+        values.get('quote_status', transaction.quote_status),
+    )
+    if quote_status == QuoteStatus.validated:
+        return
+
+    result = await db.execute(
+        select(BudgetLine.id).where(
+            BudgetLine.selected_budget_transaction_id == transaction.id,
+            BudgetLine.deleted_at.is_(None),
+        )
+    )
+    if result.scalar_one_or_none() is not None:
+        raise TransactionValidationError(
+            'A selected budget quote must remain validated'
+        )
+
+
 async def create_transaction(
     db: AsyncSession,
     project_id: int,
@@ -297,7 +378,8 @@ async def create_transaction(
     values = _apply_create_defaults(transaction_data)
     if transaction_data.select_as_budget:
         _validate_selected_budget_candidate(
-            cast(TransactionType, values['transaction_type'])
+            cast(TransactionType, values['transaction_type']),
+            cast(QuoteStatus | None, values.get('quote_status')),
         )
 
     transaction = Transaction(**values, budget_line_id=budget_line_id)
@@ -381,6 +463,7 @@ async def update_transaction(
         return None
 
     values = _validate_update(transaction, transaction_data)
+    await _ensure_selected_budget_candidate_remains_valid(db, transaction, values)
     if 'supplier_id' in values:
         await _validate_supplier(
             db,
@@ -456,7 +539,10 @@ async def select_budget_candidate(
     if transaction is None:
         return None
 
-    _validate_selected_budget_candidate(transaction.transaction_type)
+    _validate_selected_budget_candidate(
+        transaction.transaction_type,
+        transaction.quote_status,
+    )
     await _set_selected_budget_candidate(db, transaction.budget_line_id, transaction.id)
 
     await db.commit()
