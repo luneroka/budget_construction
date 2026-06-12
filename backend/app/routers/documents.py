@@ -16,16 +16,97 @@ from app.services.storage import (
     delete_file_from_r2,
 )
 
-ALLOWED_MIME_TYPES = {
-    'application/pdf',
-    'image/jpeg',
-    'image/png',
-    'image/heic',
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+MIME_EXTENSIONS = {
+    'application/pdf': {'pdf'},
+    'image/jpeg': {'jpg', 'jpeg'},
+    'image/png': {'png'},
+    'image/heic': {'heic'},
 }
+SIGNATURE_READ_SIZE = 32
+
+
+class DocumentUploadValidationError(ValueError):
+    pass
+
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix='/transactions', tags=['Documents'])
 document_router = APIRouter(prefix='/documents', tags=['Documents'])
+
+
+def _detect_mime_type(signature: bytes) -> str | None:
+    if signature.startswith(b'%PDF-'):
+        return 'application/pdf'
+    if signature.startswith(b'\xff\xd8\xff'):
+        return 'image/jpeg'
+    if signature.startswith(b'\x89PNG\r\n\x1a\n'):
+        return 'image/png'
+
+    # HEIC/HEIF files are ISO BMFF containers with an ftyp box near the start.
+    if len(signature) >= 12 and signature[4:8] == b'ftyp':
+        brand = signature[8:12]
+        compatible_brands = signature[16:32]
+        heic_brands = {
+            b'heic',
+            b'heix',
+            b'hevc',
+            b'hevx',
+            b'heim',
+            b'heis',
+            b'mif1',
+            b'msf1',
+        }
+        if brand in heic_brands or any(
+            heic_brand in compatible_brands for heic_brand in heic_brands
+        ):
+            return 'image/heic'
+
+    return None
+
+
+def _validate_document_upload(file: UploadFile) -> tuple[str, str, str, int]:
+    if not file.filename:
+        raise DocumentUploadValidationError('Missing filename')
+
+    original_filename = file.filename
+
+    if '.' not in original_filename:
+        raise DocumentUploadValidationError('Missing file extension')
+
+    extension = original_filename.rsplit('.', 1)[-1].lower()
+    if extension not in {ext for exts in MIME_EXTENSIONS.values() for ext in exts}:
+        raise DocumentUploadValidationError('Unsupported file extension')
+
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)
+
+    if file_size == 0:
+        raise DocumentUploadValidationError('File is empty')
+    if file_size > MAX_FILE_SIZE:
+        raise DocumentUploadValidationError('File is too large')
+
+    signature = file.file.read(SIGNATURE_READ_SIZE)
+    file.file.seek(0)
+
+    detected_mime_type = _detect_mime_type(signature)
+    if detected_mime_type is None:
+        raise DocumentUploadValidationError('Unsupported or invalid file content')
+
+    if extension not in MIME_EXTENSIONS[detected_mime_type]:
+        raise DocumentUploadValidationError(
+            'File extension does not match file content'
+        )
+
+    return original_filename, extension, detected_mime_type, file_size
+
+
+def _cleanup_uploaded_file(object_key: str) -> None:
+    try:
+        delete_file_from_r2(object_key)
+    except Exception:
+        logger.exception('Failed to clean up uploaded document from R2')
 
 
 # API ENDPOINT TO ADD NEW DOCUMENT
@@ -49,40 +130,17 @@ async def create_document(
             status_code=status.HTTP_404_NOT_FOUND, detail='Transaction not found'
         )
 
-    if file.filename is None:
+    try:
+        original_filename, extension, detected_mime_type, file_size = (
+            _validate_document_upload(file)
+        )
+    except DocumentUploadValidationError as error:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Missing filename',
-        )
-
-    if file.content_type is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Missing file content type',
-        )
-
-    # Verify content_type
-    if file.content_type not in ALLOWED_MIME_TYPES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Unsupported file type',
-        )
-
-    # Verify file size
-    file.file.seek(0, 2)
-    file_size = file.file.tell()
-    file.file.seek(0)
-
-    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
-
-    if file_size > MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='File is too large',
-        )
+            detail=str(error),
+        ) from error
 
     # Generate stored filename / R2 object key
-    extension = file.filename.rsplit('.', 1)[-1].lower()
     stored_filename = f'{uuid.uuid4()}.{extension}'
 
     object_key = (
@@ -93,7 +151,7 @@ async def create_document(
 
     try:
         upload_file_to_r2(
-            file=file.file, object_key=object_key, content_type=file.content_type
+            file=file.file, object_key=object_key, content_type=detected_mime_type
         )
     except Exception as exc:
         logger.exception('Failed to upload document to R2')
@@ -102,16 +160,26 @@ async def create_document(
             detail='Failed to upload document',
         ) from exc
 
-    return await document_repository.create_document(
-        db=db,
-        transaction_id=transaction_id,
-        user_id=current_user.id,
-        original_filename=file.filename,
-        stored_filename=stored_filename,
-        file_path=object_key,
-        mime_type=file.content_type,
-        file_size=file_size,
-    )
+    try:
+        return await document_repository.create_document(
+            db=db,
+            transaction_id=transaction_id,
+            user_id=current_user.id,
+            original_filename=original_filename,
+            stored_filename=stored_filename,
+            file_path=object_key,
+            mime_type=detected_mime_type,
+            file_size=file_size,
+        )
+    except Exception as exc:
+        await db.rollback()
+        _cleanup_uploaded_file(object_key)
+        logger.exception('Failed to persist uploaded document metadata')
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail='Failed to save document metadata',
+        ) from exc
+
 
 
 @router.get(
