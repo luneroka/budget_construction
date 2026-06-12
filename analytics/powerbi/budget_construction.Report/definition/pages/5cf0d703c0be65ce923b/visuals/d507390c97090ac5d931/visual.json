@@ -299,7 +299,7 @@
           "Column": {
             "Expression": {
               "SourceRef": {
-                "Entity": "project_items_fact"
+                "Entity": "budget_lines_fact"
               }
             },
             "Property": "Poste de dépense"
@@ -318,7 +318,7 @@
                     "From": [
                       {
                         "Name": "p",
-                        "Entity": "project_items_fact",
+                        "Entity": "budget_lines_fact",
                         "Type": 0
                       }
                     ],
@@ -363,7 +363,7 @@
             },
             {
               "Name": "p",
-              "Entity": "project_items_fact",
+              "Entity": "budget_lines_fact",
               "Type": 0
             }
           ],

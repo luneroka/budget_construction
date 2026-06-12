@@ -173,15 +173,6 @@ table project_summary
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Nombre de postes'
-		dataType: int64
-		formatString: 0
-		lineageTag: 39f088ad-2af6-49a7-b8a2-c01255db774b
-		summarizeBy: sum
-		sourceColumn: Nombre de postes
-
-		annotation SummarizationSetBy = Automatic
-
 	column 'Nombre de factures'
 		dataType: int64
 		isHidden
@@ -194,13 +185,22 @@ table project_summary
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'Nombre de postes'
+		dataType: int64
+		formatString: 0
+		lineageTag: ffafc964-21d7-4595-87d2-b060af85c9c3
+		summarizeBy: sum
+		sourceColumn: Nombre de postes
+
+		annotation SummarizationSetBy = Automatic
+
 	partition project_summary = m
 		mode: import
 		source =
 				let
 				    Source = PostgreSQL.Database("192.168.1.19:5434", "house_building"),
 				    analytics_vw_project_summary = Source{[Schema="analytics",Item="vw_project_summary"]}[Data],
-				    #"Renamed Columns" = Table.RenameColumns(analytics_vw_project_summary,{{"location", "Lieu"}, {"project_id", "ID Projet"}, {"project_name", "Projet"}, {"project_status", "Statut du projet"}, {"start_date", "Date de début"}, {"end_date", "Date de fin"}, {"total_selected_budget_ttc", "Budget TTC"}, {"total_actual_ttc", "Coût réel TTC"}, {"total_paid_ttc", "Montant payé TTC"}, {"total_unpaid_ttc", "Montant impayé TTC"}, {"total_variance_ttc", "Écart budget TTC"}, {"actual_vs_budget_pct", "Budget consommé %"}, {"supplier_count", "Nombre de fournisseurs"}, {"project_item_count", "Nombre de postes"}, {"invoice_count", "Nombre de factures"}, {"total_variance_pct", "Écart budget %"}})
+				    #"Renamed Columns" = Table.RenameColumns(analytics_vw_project_summary,{{"location", "Lieu"}, {"project_id", "ID Projet"}, {"project_name", "Projet"}, {"project_status", "Statut du projet"}, {"start_date", "Date de début"}, {"end_date", "Date de fin"}, {"total_selected_budget_ttc", "Budget TTC"}, {"total_actual_ttc", "Coût réel TTC"}, {"total_paid_ttc", "Montant payé TTC"}, {"total_unpaid_ttc", "Montant impayé TTC"}, {"total_variance_ttc", "Écart budget TTC"}, {"actual_vs_budget_pct", "Budget consommé %"}, {"supplier_count", "Nombre de fournisseurs"}, {"budget_line_count", "Nombre de postes"}, {"invoice_count", "Nombre de factures"}, {"total_variance_pct", "Écart budget %"}})
 				in
 				    #"Renamed Columns"
 

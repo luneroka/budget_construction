@@ -1,33 +1,33 @@
-table project_items_fact
+table budget_lines_fact
 	lineageTag: 88be174c-6ee0-4035-942d-5e6c33adb8ee
 
-	measure 'Nombre de produits' = DISTINCTCOUNT(project_items_fact[Produit])
+	measure 'Nombre de produits' = DISTINCTCOUNT(budget_lines_fact[Produit])
 		formatString: 0
 		lineageTag: 3db55751-ebe0-431a-af10-22c303dd4314
 
 	measure 'Postes facturés' =
 			
 			CALCULATE(
-			    COUNTROWS(project_items_fact),
-			    project_items_fact[Facturé] = "Oui"
+			    COUNTROWS(budget_lines_fact),
+			    budget_lines_fact[Facturé] = "Oui"
 			)
 		formatString: 0
 		lineageTag: 973fb67a-0b61-4818-8662-642a3e69511a
 
-	measure 'Nombre de postes' = COUNT(project_items_fact[Poste de dépense])
+	measure 'Nombre de postes' = COUNT(budget_lines_fact[Poste de dépense])
 		formatString: 0
 		lineageTag: 84589d61-1fd2-432d-b490-bf2af9740377
 
 	measure 'Budget moyen par poste' =
 			
-			AVERAGE(project_items_fact[Budget TTC])
+			AVERAGE(budget_lines_fact[Budget TTC])
 		lineageTag: a9dfde35-5084-401c-b855-5b613e806e0f
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	measure 'Coût moyen par poste' =
 			
-			AVERAGE(project_items_fact[Coût réel TTC])
+			AVERAGE(budget_lines_fact[Coût réel TTC])
 		lineageTag: 29637116-2aa7-42a7-b85e-8fbf4edf23fa
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
@@ -48,23 +48,6 @@ table project_items_fact
 		sourceColumn: Projet
 
 		annotation SummarizationSetBy = Automatic
-
-	column 'ID Poste'
-		dataType: int64
-		formatString: 0
-		lineageTag: 4a766325-24a6-4fb6-bd2e-016ef259d0f6
-		summarizeBy: none
-		sourceColumn: ID Poste
-
-		annotation SummarizationSetBy = User
-
-	column 'Poste de dépense'
-		dataType: string
-		lineageTag: ee8bdd45-9450-4a0b-a0e8-e92a1d01f6c2
-		summarizeBy: none
-		sourceColumn: Poste de dépense
-
-		annotation SummarizationSetBy = User
 
 	column Catégorie
 		dataType: string
@@ -163,13 +146,30 @@ table project_items_fact
 
 		annotation SummarizationSetBy = User
 
-	partition project_items_fact = m
+	column 'ID Poste'
+		dataType: int64
+		formatString: 0
+		lineageTag: d4c9a3ad-f873-4498-be68-ec6550482f3f
+		summarizeBy: sum
+		sourceColumn: ID Poste
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Poste de dépense'
+		dataType: string
+		lineageTag: 391e695d-4f2d-4da2-8097-71199fb8c2f0
+		summarizeBy: none
+		sourceColumn: Poste de dépense
+
+		annotation SummarizationSetBy = Automatic
+
+	partition budget_lines_fact = m
 		mode: import
 		source =
 				let
 				    Source = PostgreSQL.Database("192.168.1.19:5434", "house_building"),
-				    analytics_vw_project_items_fact = Source{[Schema="analytics",Item="vw_project_items_fact"]}[Data],
-				    #"Renamed Columns" = Table.RenameColumns(analytics_vw_project_items_fact,{{"project_id", "ID Projet"}, {"project_name", "Projet"}, {"project_item_id", "ID Poste"}, {"project_item_name", "Poste de dépense"}, {"category_name", "Catégorie"}, {"subcategory_name", "Sous-catégorie"}, {"product_name", "Produit"}, {"selected_budget_amount_ttc", "Budget TTC"}, {"actual_amount_ttc", "Coût réel TTC"}, {"paid_amount_ttc", "Montant payé TTC"}, {"unpaid_amount_ttc", "Montant impayé TTC"}, {"variance_ttc", "Écart budget TTC"}, {"variance_pct", "Écart budget %"}, {"invoice_count", "Nombre de factures"}, {"has_invoice", "Facturé"}}),
+				    analytics_vw_budget_lines_fact = Source{[Schema="analytics",Item="vw_budget_lines_fact"]}[Data],
+				    #"Renamed Columns" = Table.RenameColumns(analytics_vw_budget_lines_fact,{{"project_id", "ID Projet"}, {"project_name", "Projet"}, {"budget_line_id", "ID Poste"}, {"budget_line_name", "Poste de dépense"}, {"category_name", "Catégorie"}, {"subcategory_name", "Sous-catégorie"}, {"product_name", "Produit"}, {"selected_budget_amount_ttc", "Budget TTC"}, {"actual_amount_ttc", "Coût réel TTC"}, {"paid_amount_ttc", "Montant payé TTC"}, {"unpaid_amount_ttc", "Montant impayé TTC"}, {"variance_ttc", "Écart budget TTC"}, {"variance_pct", "Écart budget %"}, {"invoice_count", "Nombre de factures"}, {"has_invoice", "Facturé"}}),
 				    #"Changed Type" = Table.TransformColumnTypes(#"Renamed Columns",{{"Facturé", type text}}),
 				    #"Replaced Value" = Table.ReplaceValue(#"Changed Type","0","Non",Replacer.ReplaceText,{"Facturé"}),
 				    #"Replaced Value1" = Table.ReplaceValue(#"Replaced Value","1","Oui",Replacer.ReplaceText,{"Facturé"})

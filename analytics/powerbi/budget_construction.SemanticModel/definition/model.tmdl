@@ -8,14 +8,14 @@ model Model
 
 annotation __PBI_TimeIntelligenceEnabled = 1
 
-annotation PBI_QueryOrder = ["monthly_cashflow","monthly_invoice_activity","project_items_fact","project_summary","supplier_performance","transactions_fact"]
+annotation PBI_QueryOrder = ["monthly_cashflow","monthly_invoice_activity","budget_lines_fact","project_summary","supplier_performance","transactions_fact"]
 
 annotation PBI_ProTooling = ["DevMode"]
 
 ref table monthly_cashflow
 ref table DateTableTemplate_cddabdb5-4b76-41f5-83f2-d3d94dd9fc83
 ref table monthly_invoice_activity
-ref table project_items_fact
+ref table budget_lines_fact
 ref table project_summary
 ref table LocalDateTable_2e38923c-b811-42f6-ad55-c9587a9957d0
 ref table LocalDateTable_baa884fb-2b73-4333-8c8c-0cec3c9e39ba

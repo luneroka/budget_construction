@@ -20,7 +20,7 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "project_items_fact"
+                      "Entity": "budget_lines_fact"
                     }
                   },
                   "Property": "Catégorie"

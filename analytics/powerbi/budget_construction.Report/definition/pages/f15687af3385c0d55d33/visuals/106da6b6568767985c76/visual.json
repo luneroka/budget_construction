@@ -20,7 +20,7 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "project_items_fact"
+                      "Entity": "budget_lines_fact"
                     }
                   },
                   "Property": "Catégorie"
@@ -41,7 +41,7 @@
                     "Column": {
                       "Expression": {
                         "SourceRef": {
-                          "Entity": "project_items_fact"
+                          "Entity": "budget_lines_fact"
                         }
                       },
                       "Property": "Budget TTC"
@@ -61,7 +61,7 @@
                     "Column": {
                       "Expression": {
                         "SourceRef": {
-                          "Entity": "project_items_fact"
+                          "Entity": "budget_lines_fact"
                         }
                       },
                       "Property": "Coût réel TTC"
@@ -86,7 +86,7 @@
                   "Column": {
                     "Expression": {
                       "SourceRef": {
-                        "Entity": "project_items_fact"
+                        "Entity": "budget_lines_fact"
                       }
                     },
                     "Property": "Budget TTC"

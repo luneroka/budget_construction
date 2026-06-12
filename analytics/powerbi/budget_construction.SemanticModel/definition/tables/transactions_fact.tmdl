@@ -27,23 +27,6 @@ table transactions_fact
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'ID Poste'
-		dataType: int64
-		formatString: 0
-		lineageTag: be921248-76cb-4815-bf63-47bafb3a2be3
-		summarizeBy: none
-		sourceColumn: ID Poste
-
-		annotation SummarizationSetBy = User
-
-	column 'Poste de dépense'
-		dataType: string
-		lineageTag: 8dbcb796-fdbf-4111-8d17-01a75ec36d4e
-		summarizeBy: none
-		sourceColumn: Poste de dépense
-
-		annotation SummarizationSetBy = Automatic
-
 	column 'ID Fournisseur'
 		dataType: int64
 		formatString: 0
@@ -217,13 +200,30 @@ table transactions_fact
 
 		annotation SummarizationSetBy = Automatic
 
+	column 'ID Poste'
+		dataType: int64
+		formatString: 0
+		lineageTag: 7414f74e-2f0a-4e61-8740-de14e6700aeb
+		summarizeBy: sum
+		sourceColumn: ID Poste
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Poste de dépense'
+		dataType: string
+		lineageTag: a465dde7-b8c1-4b8e-b326-ba447c028b1b
+		summarizeBy: none
+		sourceColumn: Poste de dépense
+
+		annotation SummarizationSetBy = Automatic
+
 	partition transactions_fact = m
 		mode: import
 		source =
 				let
 				    Source = PostgreSQL.Database("192.168.1.19:5434", "house_building"),
 				    analytics_vw_transactions_fact = Source{[Schema="analytics",Item="vw_transactions_fact"]}[Data],
-				    #"Renamed Columns" = Table.RenameColumns(analytics_vw_transactions_fact,{{"transaction_id", "ID Transaction"}, {"project_id", "ID Projet"}, {"project_item_id", "ID Poste"}, {"project_name", "Projet"}, {"supplier_id", "ID Fournisseur"}, {"project_item_name", "Poste de dépense"}, {"supplier_name", "Fournisseur"}, {"category_name", "Catégorie"}, {"subcategory_name", "Sous-catégorie"}, {"product_name", "Produit"}, {"transaction_type", "Type de transaction"}, {"quote_status", "Statut devis"}, {"invoice_status", "Statut facture"}, {"is_selected_budget", "Budget sélectionné"}, {"amount_ht", "Montant HT"}, {"amount_vat", "TVA"}, {"amount_ttc", "Montant TTC"}, {"issued_date", "Date d’émission"}, {"due_date", "Date d’échéance"}, {"payment_date", "Date de paiement"}, {"payment_delay_days_raw", "Retard brut (jours)"}, {"payment_delay_days", "Retard paiement (jours)"}, {"is_late_payment", "Paiement en retard"}}),
+				    #"Renamed Columns" = Table.RenameColumns(analytics_vw_transactions_fact,{{"transaction_id", "ID Transaction"}, {"project_id", "ID Projet"}, {"budget_line_id", "ID Poste"}, {"project_name", "Projet"}, {"supplier_id", "ID Fournisseur"}, {"budget_line_name", "Poste de dépense"}, {"supplier_name", "Fournisseur"}, {"category_name", "Catégorie"}, {"subcategory_name", "Sous-catégorie"}, {"product_name", "Produit"}, {"transaction_type", "Type de transaction"}, {"quote_status", "Statut devis"}, {"invoice_status", "Statut facture"}, {"is_selected_budget", "Budget sélectionné"}, {"amount_ht", "Montant HT"}, {"amount_vat", "TVA"}, {"amount_ttc", "Montant TTC"}, {"issued_date", "Date d’émission"}, {"due_date", "Date d’échéance"}, {"payment_date", "Date de paiement"}, {"payment_delay_days_raw", "Retard brut (jours)"}, {"payment_delay_days", "Retard paiement (jours)"}, {"is_late_payment", "Paiement en retard"}}),
 				    #"Changed Type" = Table.TransformColumnTypes(#"Renamed Columns",{{"Paiement en retard", type text}}),
 				    #"Replaced Value" = Table.ReplaceValue(#"Changed Type","0","Non",Replacer.ReplaceText,{"Paiement en retard"}),
 				    #"Replaced Value1" = Table.ReplaceValue(#"Replaced Value","1","Oui",Replacer.ReplaceText,{"Paiement en retard"}),
@@ -231,9 +231,9 @@ table transactions_fact
 				    #"Replaced Value3" = Table.ReplaceValue(#"Replaced Value2","invoice","Facture",Replacer.ReplaceText,{"Type de transaction"}),
 				    #"Replaced Value4" = Table.ReplaceValue(#"Replaced Value3","diy_estimate","Estimation DIY",Replacer.ReplaceText,{"Type de transaction"}),
 				    #"Replaced Value5" = Table.ReplaceValue(#"Replaced Value4","to_confirm","À confirmer",Replacer.ReplaceText,{"Statut devis"}),
-				    #"Replaced Value6" = Table.ReplaceValue(#"Replaced Value5","validated","Validé",Replacer.ReplaceText,{"Statut devis"}),
-				    #"Replaced Value7" = Table.ReplaceValue(#"Replaced Value6","unpaid","Impayée",Replacer.ReplaceText,{"Statut facture"}),
-				    #"Replaced Value8" = Table.ReplaceValue(#"Replaced Value7","paidImpayée","Payée",Replacer.ReplaceText,{"Statut facture"}),
+				    #"Replaced Value7" = Table.ReplaceValue(#"Replaced Value5","unpaid","Impayée",Replacer.ReplaceText,{"Statut facture"}),
+				    #"Replaced Value6" = Table.ReplaceValue(#"Replaced Value7","validated","Validé",Replacer.ReplaceText,{"Statut devis"}),
+				    #"Replaced Value8" = Table.ReplaceValue(#"Replaced Value6","paidImpayée","Payée",Replacer.ReplaceText,{"Statut facture"}),
 				    #"Replaced Value9" = Table.ReplaceValue(#"Replaced Value8","paid","Payée",Replacer.ReplaceText,{"Statut facture"}),
 				    #"Changed Type1" = Table.TransformColumnTypes(#"Replaced Value9",{{"Budget sélectionné", type text}}),
 				    #"Replaced Value10" = Table.ReplaceValue(#"Changed Type1","true","Oui",Replacer.ReplaceText,{"Budget sélectionné"}),

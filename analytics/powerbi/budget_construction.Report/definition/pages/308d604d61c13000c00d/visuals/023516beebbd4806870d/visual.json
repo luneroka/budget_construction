@@ -20,7 +20,7 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "project_items_fact"
+                      "Entity": "budget_lines_fact"
                     }
                   },
                   "Property": "Postes facturés"
@@ -39,7 +39,7 @@
               "Measure": {
                 "Expression": {
                   "SourceRef": {
-                    "Entity": "project_items_fact"
+                    "Entity": "budget_lines_fact"
                   }
                 },
                 "Property": "Postes facturés"

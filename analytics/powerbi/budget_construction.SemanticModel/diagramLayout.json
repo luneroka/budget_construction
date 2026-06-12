@@ -36,19 +36,6 @@
         },
         {
           "location": {
-            "x": 290.63801586333307,
-            "y": 0
-          },
-          "nodeIndex": "project_items_fact",
-          "nodeLineageTag": "88be174c-6ee0-4035-942d-5e6c33adb8ee",
-          "size": {
-            "height": 300,
-            "width": 234
-          },
-          "zIndex": 8
-        },
-        {
-          "location": {
             "x": 294.69959263231135,
             "y": 386.97508719558505
           },
@@ -110,6 +97,18 @@
             "width": 234
           },
           "zIndex": 1
+        },
+        {
+          "location": {
+            "x": 290.63801586333307,
+            "y": 0
+          },
+          "nodeIndex": "budget_lines_fact",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 0
         }
       ],
       "name": "All tables",

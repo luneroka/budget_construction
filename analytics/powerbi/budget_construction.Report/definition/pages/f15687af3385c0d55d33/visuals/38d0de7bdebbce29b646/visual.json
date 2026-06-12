@@ -22,7 +22,7 @@
                     "Column": {
                       "Expression": {
                         "SourceRef": {
-                          "Entity": "project_items_fact"
+                          "Entity": "budget_lines_fact"
                         }
                       },
                       "Property": "Budget TTC"
@@ -48,7 +48,7 @@
                   "Column": {
                     "Expression": {
                       "SourceRef": {
-                        "Entity": "project_items_fact"
+                        "Entity": "budget_lines_fact"
                       }
                     },
                     "Property": "Budget TTC"

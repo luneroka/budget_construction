@@ -20,7 +20,7 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "project_items_fact"
+                      "Entity": "budget_lines_fact"
                     }
                   },
                   "Property": "Produit"
@@ -41,7 +41,7 @@
                     "Column": {
                       "Expression": {
                         "SourceRef": {
-                          "Entity": "project_items_fact"
+                          "Entity": "budget_lines_fact"
                         }
                       },
                       "Property": "Coût réel TTC"
@@ -66,7 +66,7 @@
                   "Column": {
                     "Expression": {
                       "SourceRef": {
-                        "Entity": "project_items_fact"
+                        "Entity": "budget_lines_fact"
                       }
                     },
                     "Property": "Coût réel TTC"
@@ -96,7 +96,7 @@
                             "Column": {
                               "Expression": {
                                 "SourceRef": {
-                                  "Entity": "project_items_fact"
+                                  "Entity": "budget_lines_fact"
                                 }
                               },
                               "Property": "Coût réel TTC"
@@ -233,7 +233,7 @@
           "Column": {
             "Expression": {
               "SourceRef": {
-                "Entity": "project_items_fact"
+                "Entity": "budget_lines_fact"
               }
             },
             "Property": "Produit"
@@ -252,7 +252,7 @@
                     "From": [
                       {
                         "Name": "p",
-                        "Entity": "project_items_fact",
+                        "Entity": "budget_lines_fact",
                         "Type": 0
                       }
                     ],
@@ -297,7 +297,7 @@
             },
             {
               "Name": "p",
-              "Entity": "project_items_fact",
+              "Entity": "budget_lines_fact",
               "Type": 0
             }
           ],
@@ -336,7 +336,7 @@
               "Column": {
                 "Expression": {
                   "SourceRef": {
-                    "Entity": "project_items_fact"
+                    "Entity": "budget_lines_fact"
                   }
                 },
                 "Property": "Coût réel TTC"

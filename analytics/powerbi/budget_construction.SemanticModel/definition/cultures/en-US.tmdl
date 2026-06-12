@@ -534,7 +534,7 @@ cultureInfo en-US
 			    "project_items_fact": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact"
+			          "ConceptualEntity": "budget_lines_fact"
 			        }
 			      },
 			      "State": "Generated",
@@ -682,7 +682,7 @@ cultureInfo en-US
 			    "project_items_fact.ID_projet": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualEntity": "budget_lines_fact",
 			          "ConceptualProperty": "ID Projet"
 			        }
 			      },
@@ -741,7 +741,7 @@ cultureInfo en-US
 			    "project_items_fact.projet": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualEntity": "budget_lines_fact",
 			          "ConceptualProperty": "Projet"
 			        }
 			      },
@@ -754,82 +754,10 @@ cultureInfo en-US
 			        }
 			      ]
 			    },
-			    "project_items_fact.ID_poste": {
-			      "Definition": {
-			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
-			          "ConceptualProperty": "ID Poste"
-			        }
-			      },
-			      "State": "Generated",
-			      "Terms": [
-			        {
-			          "ID poste": {
-			            "State": "Generated"
-			          }
-			        },
-			        {
-			          "identification poste": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.6
-			          }
-			        },
-			        {
-			          "identity poste": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.6
-			          }
-			        },
-			        {
-			          "identifier poste": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.6
-			          }
-			        },
-			        {
-			          "credential poste": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.582
-			          }
-			        }
-			      ]
-			    },
-			    "project_items_fact.poste_de_dépense": {
-			      "Definition": {
-			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
-			          "ConceptualProperty": "Poste de dépense"
-			        }
-			      },
-			      "State": "Generated",
-			      "Terms": [
-			        {
-			          "poste de dépense": {
-			            "State": "Generated"
-			          }
-			        }
-			      ]
-			    },
 			    "project_items_fact.catégorie": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualEntity": "budget_lines_fact",
 			          "ConceptualProperty": "Catégorie"
 			        }
 			      },
@@ -845,7 +773,7 @@ cultureInfo en-US
 			    "project_items_fact.souscatégorie": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualEntity": "budget_lines_fact",
 			          "ConceptualProperty": "Sous-catégorie"
 			        }
 			      },
@@ -881,7 +809,7 @@ cultureInfo en-US
 			    "project_items_fact.produit": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualEntity": "budget_lines_fact",
 			          "ConceptualProperty": "Produit"
 			        }
 			      },
@@ -897,7 +825,7 @@ cultureInfo en-US
 			    "project_items_fact.budget_TTC": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualEntity": "budget_lines_fact",
 			          "ConceptualProperty": "Budget TTC"
 			        }
 			      },
@@ -949,7 +877,7 @@ cultureInfo en-US
 			    "project_items_fact.coût_réel_TTC": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualEntity": "budget_lines_fact",
 			          "ConceptualProperty": "Coût réel TTC"
 			        }
 			      },
@@ -965,7 +893,7 @@ cultureInfo en-US
 			    "project_items_fact.montant_payé_TTC": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualEntity": "budget_lines_fact",
 			          "ConceptualProperty": "Montant payé TTC"
 			        }
 			      },
@@ -981,7 +909,7 @@ cultureInfo en-US
 			    "project_items_fact.montant_impayé_TTC": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualEntity": "budget_lines_fact",
 			          "ConceptualProperty": "Montant impayé TTC"
 			        }
 			      },
@@ -997,7 +925,7 @@ cultureInfo en-US
 			    "project_items_fact.écart_budget_TTC": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualEntity": "budget_lines_fact",
 			          "ConceptualProperty": "Écart budget TTC"
 			        }
 			      },
@@ -1043,7 +971,7 @@ cultureInfo en-US
 			    "project_items_fact.écart_budget_": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualEntity": "budget_lines_fact",
 			          "ConceptualProperty": "Écart budget %"
 			        }
 			      },
@@ -1109,7 +1037,7 @@ cultureInfo en-US
 			    "project_items_fact.nombre_de_facture": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualEntity": "budget_lines_fact",
 			          "ConceptualProperty": "Nombre de factures"
 			        }
 			      },
@@ -1125,7 +1053,7 @@ cultureInfo en-US
 			    "project_items_fact.facturé": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualEntity": "budget_lines_fact",
 			          "ConceptualProperty": "Facturé"
 			        }
 			      },
@@ -2714,29 +2642,6 @@ cultureInfo en-US
 			        }
 			      ]
 			    },
-			    "project_summary.nombre_de_postes": {
-			      "Definition": {
-			        "Binding": {
-			          "ConceptualEntity": "project_summary",
-			          "ConceptualProperty": "Nombre de postes"
-			        }
-			      },
-			      "State": "Generated",
-			      "Terms": [
-			        {
-			          "nombre de postes": {
-			            "State": "Generated"
-			          }
-			        },
-			        {
-			          "nombre de poste": {
-			            "Type": "Noun",
-			            "State": "Generated",
-			            "Weight": 0.78
-			          }
-			        }
-			      ]
-			    },
 			    "project_summary.nombre_de_facture": {
 			      "Definition": {
 			        "Binding": {
@@ -3546,78 +3451,6 @@ cultureInfo en-US
 			      "Terms": [
 			        {
 			          "projet": {
-			            "State": "Generated"
-			          }
-			        }
-			      ]
-			    },
-			    "transactions_fact.ID_poste": {
-			      "Definition": {
-			        "Binding": {
-			          "ConceptualEntity": "transactions_fact",
-			          "ConceptualProperty": "ID Poste"
-			        }
-			      },
-			      "State": "Generated",
-			      "Terms": [
-			        {
-			          "ID poste": {
-			            "State": "Generated"
-			          }
-			        },
-			        {
-			          "identification poste": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.6
-			          }
-			        },
-			        {
-			          "identity poste": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.6
-			          }
-			        },
-			        {
-			          "identifier poste": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.6
-			          }
-			        },
-			        {
-			          "credential poste": {
-			            "Type": "Noun",
-			            "State": "Suggested",
-			            "Source": {
-			              "Agent": "Thesaurus"
-			            },
-			            "Weight": 0.582
-			          }
-			        }
-			      ]
-			    },
-			    "transactions_fact.poste_de_dépense": {
-			      "Definition": {
-			        "Binding": {
-			          "ConceptualEntity": "transactions_fact",
-			          "ConceptualProperty": "Poste de dépense"
-			        }
-			      },
-			      "State": "Generated",
-			      "Terms": [
-			        {
-			          "poste de dépense": {
 			            "State": "Generated"
 			          }
 			        }
@@ -5322,7 +5155,7 @@ cultureInfo en-US
 			    "project_items_fact.nombre_de_produits": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualEntity": "budget_lines_fact",
 			          "ConceptualProperty": "Nombre de produits"
 			        }
 			      },
@@ -5338,7 +5171,7 @@ cultureInfo en-US
 			    "project_items_fact.postes_facturés": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualEntity": "budget_lines_fact",
 			          "ConceptualProperty": "Postes facturés"
 			        }
 			      },
@@ -5354,7 +5187,7 @@ cultureInfo en-US
 			    "project_items_fact.nombre_de_postes": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualEntity": "budget_lines_fact",
 			          "ConceptualProperty": "Nombre de postes"
 			        }
 			      },
@@ -5370,7 +5203,7 @@ cultureInfo en-US
 			    "project_items_fact.budget_moyen_par_poste": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualEntity": "budget_lines_fact",
 			          "ConceptualProperty": "Budget moyen par poste"
 			        }
 			      },
@@ -5416,7 +5249,7 @@ cultureInfo en-US
 			    "project_items_fact.coût_moyen_par_poste": {
 			      "Definition": {
 			        "Binding": {
-			          "ConceptualEntity": "project_items_fact",
+			          "ConceptualEntity": "budget_lines_fact",
 			          "ConceptualProperty": "Coût moyen par poste"
 			        }
 			      },
@@ -5802,7 +5635,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_project_summary": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -6032,7 +5865,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_coût_moyen_par_poste": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -6065,7 +5898,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_budget_moyen_par_poste": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -6098,7 +5931,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_nombre_de_postes": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -6131,7 +5964,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_postes_facturés": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -6164,7 +5997,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_nombre_de_produits": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -6263,7 +6096,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_mesure_impayé": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -6296,7 +6129,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_mesure_taux_de_paiement": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -6329,7 +6162,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_mesure_budget_consommé_": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -6395,7 +6228,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_mesure_nombre_factures": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -6428,7 +6261,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_mesure_écart_": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -6461,7 +6294,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_mesure_écart_budget": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -6494,7 +6327,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_mesure_montant_impayé": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -6527,7 +6360,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_mesure_coût_réel": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -6560,7 +6393,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_mesure_montant_payé": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -6593,7 +6426,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_mesure_budget_total": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -8198,7 +8031,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_facturé": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -8231,7 +8064,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_nombre_de_facture": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -8264,7 +8097,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_écart_budget_": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -8297,7 +8130,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_écart_budget_TTC": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -8330,7 +8163,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_montant_impayé_TTC": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -8363,7 +8196,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_montant_payé_TTC": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -8423,7 +8256,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_coût_réel_TTC": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -8483,7 +8316,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_budget_TTC": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -8543,7 +8376,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_produit": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -8576,7 +8409,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_souscatégorie": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -8609,7 +8442,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_catégorie": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -8642,7 +8475,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_poste_de_dépense": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -8675,7 +8508,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_ID_poste": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {
@@ -8708,7 +8541,7 @@ cultureInfo en-US
 			    },
 			    "project_items_fact_has_projet": {
 			      "Binding": {
-			        "ConceptualEntity": "project_items_fact"
+			        "ConceptualEntity": "budget_lines_fact"
 			      },
 			      "State": "Generated",
 			      "Roles": {

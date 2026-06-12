@@ -22,7 +22,7 @@ relationship AutoDetected_acb9d08a-24b8-4507-a9cf-2d55fc9c2854
 	toColumn: project_summary.'ID Projet'
 
 relationship AutoDetected_82c66bc9-6a3c-45a5-b9d1-ee5cd6c069a4
-	fromColumn: project_items_fact.'ID Projet'
+	fromColumn: budget_lines_fact.'ID Projet'
 	toColumn: project_summary.'ID Projet'
 
 relationship AutoDetected_d5ad495b-80a1-4d10-be77-4b69f9b35038
@@ -49,4 +49,9 @@ relationship 1702248d-83c2-c56e-b0db-d2dbd5f8f97d
 	isActive: false
 	fromColumn: transactions_fact.'Date de paiement'
 	toColumn: Date.Date
+
+relationship AutoDetected_9e4160f1-dad4-4495-94bb-767245eaeb8a
+	isActive: false
+	fromColumn: transactions_fact.'ID Poste'
+	toColumn: budget_lines_fact.'ID Poste'
 
