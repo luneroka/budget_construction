@@ -6,7 +6,7 @@ from app.models.subcategory import Subcategory
 from app.models.product import Product
 from app.models.template import Template
 from app.models.template_item import TemplateItem
-from app.models.project_item import ProjectItem
+from app.models.budget_line import BudgetLine
 from app.models.transaction import Transaction
 from app.models.document import Document
 
@@ -19,7 +19,7 @@ __all__ = [
     'Product',
     'Template',
     'TemplateItem',
-    'ProjectItem',
+    'BudgetLine',
     'Transaction',
     'Document',
 ]

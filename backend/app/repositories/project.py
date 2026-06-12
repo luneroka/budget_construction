@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.document import Document
 from app.models.project import Project
-from app.models.project_item import ProjectItem
+from app.models.budget_line import BudgetLine
 from app.models.transaction import Transaction
 from app.schemas.project import ProjectCreate, ProjectUpdate
 
@@ -72,15 +72,15 @@ async def soft_delete_project(
 
     transaction_ids = (
         select(Transaction.id)
-        .join(ProjectItem, Transaction.project_item_id == ProjectItem.id)
+        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
         .where(
-            ProjectItem.project_id == project_id,
+            BudgetLine.project_id == project_id,
             Transaction.deleted_at.is_(None),
         )
     )
-    project_item_ids = select(ProjectItem.id).where(
-        ProjectItem.project_id == project_id,
-        ProjectItem.deleted_at.is_(None),
+    budget_line_ids = select(BudgetLine.id).where(
+        BudgetLine.project_id == project_id,
+        BudgetLine.deleted_at.is_(None),
     )
 
     try:
@@ -98,8 +98,8 @@ async def soft_delete_project(
             .values(deleted_at=deleted_at, updated_at=deleted_at)
         )
         await db.execute(
-            update(ProjectItem)
-            .where(ProjectItem.id.in_(project_item_ids))
+            update(BudgetLine)
+            .where(BudgetLine.id.in_(budget_line_ids))
             .values(deleted_at=deleted_at, updated_at=deleted_at)
         )
         project.deleted_at = deleted_at

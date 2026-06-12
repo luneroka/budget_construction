@@ -20,7 +20,7 @@ Power BI
 
 ### Fact Views
 
-- `analytics.vw_project_items_fact`
+- `analytics.vw_budget_lines_fact`
 - `analytics.vw_transactions_fact`
 
 ### Summary & Reporting Views
@@ -108,7 +108,7 @@ Supplier performance and procurement monitoring:
 
 #### 4. Detailed Cost Analysis
 
-Detailed breakdown of project items:
+Detailed breakdown of budget lines:
 
 - Product Count
 - Invoiced Items

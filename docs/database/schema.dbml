@@ -28,7 +28,7 @@ Enum payment_method {
   wire
 }
 
-Enum project_item_type {
+Enum budget_line_type {
   product
   breakdown
 }
@@ -76,6 +76,7 @@ Table suppliers {
 Table projects {
   id integer [pk, increment]
   user_id integer [not null]
+  template_id integer
   name varchar(255) [not null]
   description text
   location varchar(255)
@@ -87,6 +88,7 @@ Table projects {
 
   indexes {
     user_id [name: 'ix_projects_user_id']
+    template_id [name: 'ix_projects_template_id']
     (user_id, name) [unique, name: 'uq_projects_user_id_name', note: 'Partial index: WHERE deleted_at IS NULL']
   }
 }
@@ -150,40 +152,40 @@ Table template_items {
   }
 }
 
-Table project_items {
+Table budget_lines {
   id integer [pk, increment]
   project_id integer [not null]
   template_item_id integer
   product_id integer [not null]
   name varchar(255) [not null]
-  item_type project_item_type [not null]
+  item_type budget_line_type [not null]
   sort_order integer [not null, default: 0]
   ~timestamps
   deleted_at timestamp
 
   indexes {
-    project_id [name: 'ix_project_items_project_id']
-    template_item_id [name: 'ix_project_items_template_item_id']
-    product_id [name: 'ix_project_items_product_id']
-    (project_id, product_id) [unique, name: 'uq_project_items_project_id_product_id_product_type', note: 'Partial index: WHERE item_type = product AND deleted_at IS NULL']
+    project_id [name: 'ix_budget_lines_project_id']
+    template_item_id [name: 'ix_budget_lines_template_item_id']
+    product_id [name: 'ix_budget_lines_product_id']
+    (project_id, product_id) [unique, name: 'uq_budget_lines_project_id_product_id_product_type', note: 'Partial index: WHERE item_type = product AND deleted_at IS NULL']
   }
 
   Note: '''
     Products are the aggregation and reporting level.
-    Breakdown project_items are linked directly to a product via product_id.
-    project_items do not support parent/child relationships.
+    Breakdown budget_lines are linked directly to a product via product_id.
+    budget_lines do not support parent/child relationships.
     For a given project + product, users must choose one budgeting mode:
-    - one "product" project_item representing the whole product, or
-    - multiple "breakdown" project_items representing sub-items.
+    - one "product" budget_line representing the whole product, or
+    - multiple "breakdown" budget_lines representing sub-items.
     Mixing both modes for the same project + product is forbidden.
     Payment installments (acompte, solde, etc.) must be modeled as multiple
-    transactions on the same project_item, not as additional breakdown project_items.
+    transactions on the same budget_line, not as additional breakdown budget_lines.
   '''
 }
 
 Table transactions {
   id integer [pk, increment]
-  project_item_id integer [not null]
+  budget_line_id integer [not null]
   supplier_id integer
   transaction_type transaction_type [not null]
   amount_ht decimal(12,2) [not null]
@@ -202,9 +204,9 @@ Table transactions {
   deleted_at timestamp
 
   indexes {
-    project_item_id [name: 'ix_transactions_project_item_id']
+    budget_line_id [name: 'ix_transactions_budget_line_id']
     supplier_id [name: 'ix_transactions_supplier_id']
-    project_item_id [unique, name: 'uq_transactions_project_item_selected_budget', note: 'Partial index: WHERE is_selected_budget AND deleted_at IS NULL']
+    budget_line_id [unique, name: 'uq_transactions_budget_line_selected_budget', note: 'Partial index: WHERE is_selected_budget AND deleted_at IS NULL']
   }
 
   checks {
@@ -243,14 +245,15 @@ Table documents {
 
 Ref: suppliers.user_id > users.id [delete: cascade]
 Ref: projects.user_id > users.id [delete: cascade]
+Ref: projects.template_id > templates.id [delete: set null]
 Ref: subcategories.category_id > categories.id [delete: cascade]
 Ref: products.subcategory_id > subcategories.id [delete: cascade]
 Ref: template_items.template_id > templates.id [delete: cascade]
 Ref: template_items.product_id > products.id
-Ref: project_items.project_id > projects.id [delete: cascade]
-Ref: project_items.template_item_id > template_items.id [delete: set null]
-Ref: project_items.product_id > products.id
-Ref: transactions.project_item_id > project_items.id [delete: cascade]
+Ref: budget_lines.project_id > projects.id [delete: cascade]
+Ref: budget_lines.template_item_id > template_items.id [delete: set null]
+Ref: budget_lines.product_id > products.id
+Ref: transactions.budget_line_id > budget_lines.id [delete: cascade]
 Ref: transactions.supplier_id > suppliers.id [delete: set null]
 Ref: documents.transaction_id > transactions.id [delete: cascade]
 Ref: documents.user_id > users.id [delete: cascade]

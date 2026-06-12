@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.document import Document
 from app.models.project import Project
-from app.models.project_item import ProjectItem
+from app.models.budget_line import BudgetLine
 from app.models.transaction import Transaction
 
 
@@ -42,8 +42,8 @@ async def get_documents(
     query = (
         select(Document)
         .join(Transaction, Document.transaction_id == Transaction.id)
-        .join(ProjectItem, Transaction.project_item_id == ProjectItem.id)
-        .join(Project, ProjectItem.project_id == Project.id)
+        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
+        .join(Project, BudgetLine.project_id == Project.id)
         .where(Document.user_id == user_id)
         .order_by(Document.stored_filename)
     )
@@ -52,7 +52,7 @@ async def get_documents(
         query = query.where(
             Document.deleted_at.is_(None),
             Transaction.deleted_at.is_(None),
-            ProjectItem.deleted_at.is_(None),
+            BudgetLine.deleted_at.is_(None),
             Project.deleted_at.is_(None),
         )
 
@@ -66,14 +66,14 @@ async def get_document_by_id(
     result = await db.execute(
         select(Document)
         .join(Transaction, Document.transaction_id == Transaction.id)
-        .join(ProjectItem, Transaction.project_item_id == ProjectItem.id)
-        .join(Project, ProjectItem.project_id == Project.id)
+        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
+        .join(Project, BudgetLine.project_id == Project.id)
         .where(
             Document.id == document_id,
             Document.user_id == user_id,
             Document.deleted_at.is_(None),
             Transaction.deleted_at.is_(None),
-            ProjectItem.deleted_at.is_(None),
+            BudgetLine.deleted_at.is_(None),
             Project.deleted_at.is_(None),
         )
     )
@@ -98,8 +98,8 @@ async def get_documents_by_transaction_id(
     query = (
         select(Document)
         .join(Transaction, Document.transaction_id == Transaction.id)
-        .join(ProjectItem, Transaction.project_item_id == ProjectItem.id)
-        .join(Project, ProjectItem.project_id == Project.id)
+        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
+        .join(Project, BudgetLine.project_id == Project.id)
         .where(
             Document.transaction_id == transaction_id,
             Document.user_id == user_id,
@@ -111,7 +111,7 @@ async def get_documents_by_transaction_id(
         query = query.where(
             Document.deleted_at.is_(None),
             Transaction.deleted_at.is_(None),
-            ProjectItem.deleted_at.is_(None),
+            BudgetLine.deleted_at.is_(None),
             Project.deleted_at.is_(None),
         )
 

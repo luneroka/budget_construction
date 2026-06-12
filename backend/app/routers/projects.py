@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
 from app.models.user import User
-from app.repositories import project_item as project_item_repository
+from app.repositories import budget_line as budget_line_repository
 from app.repositories import project as project_repository
 from app.schemas.project import (
     GeneratedProjectRead,
@@ -42,7 +42,7 @@ async def generate_project_from_template(
         return await generate_project_service.generate_project_from_template(
             db, project_data, current_user.id
         )
-    except project_item_repository.ProjectItemValidationError as error:
+    except budget_line_repository.BudgetLineValidationError as error:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(error),

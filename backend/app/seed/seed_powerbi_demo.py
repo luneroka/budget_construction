@@ -15,7 +15,7 @@ from app.db.session import AsyncSessionLocal, engine
 from app.models.category import Category
 from app.models.product import Product
 from app.models.project import Project
-from app.models.project_item import ProjectItem
+from app.models.budget_line import BudgetLine, BudgetLineType
 from app.models.subcategory import Subcategory
 from app.models.supplier import Supplier
 from app.models.transaction import Transaction
@@ -24,7 +24,7 @@ from app.repositories import transaction as transaction_repository
 from app.repositories import user as user_repository
 from app.schemas.project import ProjectFromTemplateCreate
 from app.schemas.supplier import SupplierCreate, SupplierUpdate
-from app.schemas.transaction import TransactionCreate
+from app.schemas.transaction import TransactionCreate, TransactionCreateForProduct
 from app.schemas.user import UserCreate
 from app.services.generate_project import generate_project_from_template
 
@@ -253,10 +253,10 @@ async def find_active_project(
 async def count_project_transactions(db: AsyncSession, project_id: int) -> int:
     result = await db.execute(
         select(func.count(Transaction.id))
-        .join(ProjectItem, Transaction.project_item_id == ProjectItem.id)
+        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
         .where(
-            ProjectItem.project_id == project_id,
-            ProjectItem.deleted_at.is_(None),
+            BudgetLine.project_id == project_id,
+            BudgetLine.deleted_at.is_(None),
             Transaction.deleted_at.is_(None),
         )
     )
@@ -296,30 +296,36 @@ async def ensure_demo_project(
     return generated_project.project
 
 
-async def resolve_project_item(
+async def resolve_budget_line_product(
     db: AsyncSession,
     project_id: int,
-    project_item_ref: dict[str, str],
-) -> ProjectItem | None:
-    if project_item_ref['type'] != 'catalog_path':
-        raise ValueError(
-            f"Unsupported project item ref type: {project_item_ref['type']}"
-        )
+    budget_line_ref: dict[str, str],
+) -> tuple[BudgetLine | None, Product | None]:
+    if budget_line_ref['type'] != 'catalog_path':
+        raise ValueError(f"Unsupported budget line ref type: {budget_line_ref['type']}")
 
     result = await db.execute(
-        select(ProjectItem)
-        .join(Product, ProjectItem.product_id == Product.id)
+        select(BudgetLine, Product)
+        .select_from(Product)
         .join(Subcategory, Product.subcategory_id == Subcategory.id)
         .join(Category, Subcategory.category_id == Category.id)
+        .outerjoin(
+            BudgetLine,
+            (BudgetLine.product_id == Product.id)
+            & (BudgetLine.project_id == project_id)
+            & (BudgetLine.deleted_at.is_(None)),
+        )
         .where(
-            ProjectItem.project_id == project_id,
-            ProjectItem.deleted_at.is_(None),
-            Category.name == project_item_ref['category_name'],
-            Subcategory.name == project_item_ref['subcategory_name'],
-            Product.name == project_item_ref['product_name'],
+            Category.name == budget_line_ref['category_name'],
+            Subcategory.name == budget_line_ref['subcategory_name'],
+            Product.name == budget_line_ref['product_name'],
         )
     )
-    return result.scalar_one_or_none()
+    row = result.first()
+    if row is None:
+        return None, None
+    budget_line, product = row
+    return budget_line, product
 
 
 async def seed_transactions(
@@ -330,20 +336,22 @@ async def seed_transactions(
     transaction_groups: list[dict[str, Any]],
     stats: SeedStats,
 ) -> None:
-    missing_project_items: list[str] = []
+    missing_products: list[str] = []
     unknown_supplier_keys: set[str] = set()
-    resolved_groups: list[tuple[ProjectItem, list[dict[str, Any]]]] = []
+    resolved_groups: list[tuple[BudgetLine | None, Product, list[dict[str, Any]]]] = []
 
     for group in transaction_groups:
-        project_item_ref = group['project_item_ref']
-        project_item = await resolve_project_item(db, project_id, project_item_ref)
-        if project_item is None:
-            missing_project_items.append(
+        budget_line_ref = group['budget_line_ref']
+        budget_line, product = await resolve_budget_line_product(
+            db, project_id, budget_line_ref
+        )
+        if product is None:
+            missing_products.append(
                 ' > '.join(
                     [
-                        project_item_ref['category_name'],
-                        project_item_ref['subcategory_name'],
-                        project_item_ref['product_name'],
+                        budget_line_ref['category_name'],
+                        budget_line_ref['subcategory_name'],
+                        budget_line_ref['product_name'],
                     ]
                 )
             )
@@ -354,12 +362,12 @@ async def seed_transactions(
             if supplier_key is not None and supplier_key not in supplier_ids:
                 unknown_supplier_keys.add(str(supplier_key))
 
-        resolved_groups.append((project_item, group['transactions']))
+        resolved_groups.append((budget_line, product, group['transactions']))
 
-    if missing_project_items:
-        formatted = '\n'.join(f'- {item}' for item in missing_project_items)
+    if missing_products:
+        formatted = '\n'.join(f'- {item}' for item in missing_products)
         raise RuntimeError(
-            'Some demo transactions could not be matched to generated project items:\n'
+            'Some demo transactions could not be matched to catalog products:\n'
             f'{formatted}'
         )
 
@@ -367,7 +375,7 @@ async def seed_transactions(
         formatted = ', '.join(sorted(unknown_supplier_keys))
         raise RuntimeError(f'Unknown supplier keys in demo transactions: {formatted}')
 
-    for project_item, transactions in resolved_groups:
+    for budget_line, product, transactions in resolved_groups:
         for transaction_data in transactions:
             supplier_key = transaction_data.get('supplier_key')
             supplier_id = (
@@ -380,16 +388,28 @@ async def seed_transactions(
             }
             payload['supplier_id'] = supplier_id
 
-            transaction = await transaction_repository.create_transaction(
-                db,
-                project_id,
-                project_item.id,
-                TransactionCreate(**payload),
-                user_id,
-            )
+            if budget_line is None:
+                payload['budget_line_type'] = BudgetLineType.product
+                transaction = (
+                    await transaction_repository.create_transaction_for_product(
+                        db,
+                        project_id,
+                        product.id,
+                        TransactionCreateForProduct(**payload),
+                        user_id,
+                    )
+                )
+            else:
+                transaction = await transaction_repository.create_transaction(
+                    db,
+                    project_id,
+                    budget_line.id,
+                    TransactionCreate(**payload),
+                    user_id,
+                )
             if transaction is None:
                 raise RuntimeError(
-                    f'Project item vanished while seeding: {project_item.name}'
+                    f'Budget line could not be resolved while seeding: {product.name}'
                 )
             stats.transactions_created += 1
 
@@ -438,7 +458,7 @@ async def seed_powerbi_demo(db: AsyncSession, *, reset: bool = False) -> SeedSta
         project.id,
         user_id,
         supplier_ids,
-        demo_data['transactions_by_project_item'],
+        demo_data['transactions_by_budget_line'],
         stats,
     )
 

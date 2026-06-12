@@ -12,7 +12,7 @@ from app.routers import (
     catalog,
     templates,
     template_items,
-    project_items,
+    budget_lines,
     transactions,
     documents,
     admin,
@@ -39,8 +39,9 @@ app.include_router(catalog.router)
 app.include_router(templates.router)
 app.include_router(template_items.router)
 app.include_router(projects.router)
-app.include_router(project_items.router)
+app.include_router(budget_lines.router)
 app.include_router(transactions.router)
+app.include_router(transactions.product_router)
 app.include_router(suppliers.router)
 app.include_router(documents.router)
 app.include_router(documents.document_router)

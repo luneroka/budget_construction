@@ -24,13 +24,13 @@ if TYPE_CHECKING:
     from app.models.transaction import Transaction
 
 
-class ProjectItemType(str, enum.Enum):
+class BudgetLineType(str, enum.Enum):
     product = 'product'
     breakdown = 'breakdown'
 
 
-class ProjectItem(Base):
-    __tablename__ = 'project_items'
+class BudgetLine(Base):
+    __tablename__ = 'budget_lines'
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 
@@ -49,8 +49,8 @@ class ProjectItem(Base):
     )
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    item_type: Mapped[ProjectItemType] = mapped_column(
-        Enum(ProjectItemType, name='project_item_type'),
+    item_type: Mapped[BudgetLineType] = mapped_column(
+        Enum(BudgetLineType, name='budget_line_type'),
         nullable=False,
     )
     sort_order: Mapped[int] = mapped_column(
@@ -73,7 +73,7 @@ class ProjectItem(Base):
 
     __table_args__ = (
         Index(
-            'uq_project_items_project_id_product_id_product_type',
+            'uq_budget_lines_project_id_product_id_product_type',
             'project_id',
             'product_id',
             unique=True,
@@ -81,11 +81,11 @@ class ProjectItem(Base):
         ),
     )
 
-    project: Mapped[Project] = relationship('Project', back_populates='project_items')
+    project: Mapped[Project] = relationship('Project', back_populates='budget_lines')
     template_item: Mapped[TemplateItem | None] = relationship('TemplateItem')
-    product: Mapped[Product] = relationship('Product', back_populates='project_items')
+    product: Mapped[Product] = relationship('Product', back_populates='budget_lines')
     transactions: Mapped[list[Transaction]] = relationship(
         'Transaction',
-        back_populates='project_item',
+        back_populates='budget_line',
         cascade='all, delete-orphan',
     )

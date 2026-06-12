@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.document import Document
 from app.models.project import Project
-from app.models.project_item import ProjectItem
+from app.models.budget_line import BudgetLine
 from app.models.supplier import Supplier
 from app.models.transaction import Transaction
 from app.models.user import User
@@ -89,18 +89,18 @@ async def soft_delete_user(db: AsyncSession, user_id: int) -> User | None:
         Project.user_id == user_id,
         Project.deleted_at.is_(None),
     )
-    project_item_ids = (
-        select(ProjectItem.id)
-        .join(Project, ProjectItem.project_id == Project.id)
+    budget_line_ids = (
+        select(BudgetLine.id)
+        .join(Project, BudgetLine.project_id == Project.id)
         .where(
             Project.user_id == user_id,
-            ProjectItem.deleted_at.is_(None),
+            BudgetLine.deleted_at.is_(None),
         )
     )
     transaction_ids = (
         select(Transaction.id)
-        .join(ProjectItem, Transaction.project_item_id == ProjectItem.id)
-        .join(Project, ProjectItem.project_id == Project.id)
+        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
+        .join(Project, BudgetLine.project_id == Project.id)
         .where(
             Project.user_id == user_id,
             Transaction.deleted_at.is_(None),
@@ -130,8 +130,8 @@ async def soft_delete_user(db: AsyncSession, user_id: int) -> User | None:
             .values(deleted_at=deleted_at, updated_at=deleted_at)
         )
         await db.execute(
-            update(ProjectItem)
-            .where(ProjectItem.id.in_(project_item_ids))
+            update(BudgetLine)
+            .where(BudgetLine.id.in_(budget_line_ids))
             .values(deleted_at=deleted_at, updated_at=deleted_at)
         )
         await db.execute(
@@ -172,18 +172,18 @@ async def restore_user(db: AsyncSession, user_id: int) -> User | None:
     deleted_at = user.deleted_at
     restored_at = datetime.now(UTC).replace(tzinfo=None)
 
-    project_item_ids = (
-        select(ProjectItem.id)
-        .join(Project, ProjectItem.project_id == Project.id)
+    budget_line_ids = (
+        select(BudgetLine.id)
+        .join(Project, BudgetLine.project_id == Project.id)
         .where(
             Project.user_id == user_id,
-            ProjectItem.deleted_at == deleted_at,
+            BudgetLine.deleted_at == deleted_at,
         )
     )
     transaction_ids = (
         select(Transaction.id)
-        .join(ProjectItem, Transaction.project_item_id == ProjectItem.id)
-        .join(Project, ProjectItem.project_id == Project.id)
+        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
+        .join(Project, BudgetLine.project_id == Project.id)
         .where(
             Project.user_id == user_id,
             Transaction.deleted_at == deleted_at,
@@ -213,8 +213,8 @@ async def restore_user(db: AsyncSession, user_id: int) -> User | None:
             .values(deleted_at=None, updated_at=restored_at)
         )
         await db.execute(
-            update(ProjectItem)
-            .where(ProjectItem.id.in_(project_item_ids))
+            update(BudgetLine)
+            .where(BudgetLine.id.in_(budget_line_ids))
             .values(deleted_at=None, updated_at=restored_at)
         )
         await db.execute(

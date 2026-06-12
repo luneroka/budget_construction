@@ -22,7 +22,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
-    from app.models.project_item import ProjectItem
+    from app.models.budget_line import BudgetLine
     from app.models.supplier import Supplier
 
 
@@ -55,8 +55,8 @@ class Transaction(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 
-    project_item_id: Mapped[int] = mapped_column(
-        ForeignKey('project_items.id', ondelete='CASCADE'), nullable=False, index=True
+    budget_line_id: Mapped[int] = mapped_column(
+        ForeignKey('budget_lines.id', ondelete='CASCADE'), nullable=False, index=True
     )
     supplier_id: Mapped[int | None] = mapped_column(
         ForeignKey('suppliers.id', ondelete='SET NULL'), nullable=True, index=True
@@ -146,15 +146,15 @@ class Transaction(Base):
             name='ck_transactions_payment_date_only_for_invoices',
         ),
         Index(
-            'uq_transactions_project_item_selected_budget',
-            'project_item_id',
+            'uq_transactions_budget_line_selected_budget',
+            'budget_line_id',
             unique=True,
             postgresql_where=text('is_selected_budget AND deleted_at IS NULL'),
         ),
     )
 
-    project_item: Mapped[ProjectItem] = relationship(
-        'ProjectItem', back_populates='transactions'
+    budget_line: Mapped[BudgetLine] = relationship(
+        'BudgetLine', back_populates='transactions'
     )
     documents = relationship(
         'Document',

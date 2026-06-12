@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from app.models.budget_line import BudgetLineType
 from app.models.transaction import (
     InvoiceStatus,
     PaymentMethod,
@@ -69,6 +70,11 @@ class TransactionCreate(TransactionBase):
     pass
 
 
+class TransactionCreateForProduct(TransactionCreate):
+    budget_line_name: str | None = None
+    budget_line_type: BudgetLineType = BudgetLineType.product
+
+
 class TransactionUpdate(BaseModel):
     supplier_id: int | None = None
     amount_ht: Decimal | None = None
@@ -87,7 +93,7 @@ class TransactionUpdate(BaseModel):
 
 class TransactionRead(TransactionBase):
     id: int
-    project_item_id: int
+    budget_line_id: int
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = None

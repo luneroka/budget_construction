@@ -3,7 +3,7 @@ from datetime import datetime, date
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.models.project import ProjectStatus
-from app.schemas.project_item import ProjectItemRead
+from app.schemas.budget_line import BudgetLineRead
 
 
 class ProjectBase(BaseModel):
@@ -44,6 +44,7 @@ class ProjectUpdate(BaseModel):
 class ProjectRead(ProjectBase):
     id: int
     user_id: int
+    template_id: int | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
     deleted_at: datetime | None = None
@@ -53,6 +54,6 @@ class ProjectRead(ProjectBase):
 
 class GeneratedProjectRead(BaseModel):
     project: ProjectRead
-    project_items: list[ProjectItemRead]
+    budget_lines: list[BudgetLineRead]
 
     model_config = ConfigDict(from_attributes=True)

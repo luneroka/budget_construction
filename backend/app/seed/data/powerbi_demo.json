@@ -165,9 +165,9 @@
     "invoice_status": "paid",
     "payment_method": "wire"
   },
-  "transactions_by_project_item": [
+  "transactions_by_budget_line": [
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Terrain & Préparation",
         "subcategory_name": "Études & administratif",
@@ -209,7 +209,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Terrain & Préparation",
         "subcategory_name": "Études & administratif",
@@ -251,7 +251,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Terrain & Préparation",
         "subcategory_name": "Études & administratif",
@@ -293,7 +293,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Terrain & Préparation",
         "subcategory_name": "Études & administratif",
@@ -335,7 +335,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Terrain & Préparation",
         "subcategory_name": "Études & administratif",
@@ -377,7 +377,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Terrain & Préparation",
         "subcategory_name": "Études & administratif",
@@ -419,7 +419,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Terrain & Préparation",
         "subcategory_name": "Études & administratif",
@@ -461,7 +461,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Terrain & Préparation",
         "subcategory_name": "Terrassement",
@@ -503,7 +503,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Terrain & Préparation",
         "subcategory_name": "Terrassement",
@@ -561,7 +561,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Terrain & Préparation",
         "subcategory_name": "Terrassement",
@@ -619,7 +619,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Terrain & Préparation",
         "subcategory_name": "Terrassement",
@@ -677,7 +677,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Terrain & Préparation",
         "subcategory_name": "Terrassement",
@@ -735,7 +735,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Terrain & Préparation",
         "subcategory_name": "Accès chantier",
@@ -793,7 +793,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Terrain & Préparation",
         "subcategory_name": "Accès chantier",
@@ -851,7 +851,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Terrain & Préparation",
         "subcategory_name": "Accès chantier",
@@ -909,7 +909,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Terrain & Préparation",
         "subcategory_name": "Accès chantier",
@@ -951,7 +951,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Terrain & Préparation",
         "subcategory_name": "Accès chantier",
@@ -1009,7 +1009,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Raccordement eau",
@@ -1067,7 +1067,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Raccordement eau",
@@ -1125,7 +1125,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Raccordement eau",
@@ -1167,7 +1167,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Raccordement eau",
@@ -1209,7 +1209,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Raccordement eau",
@@ -1267,7 +1267,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Raccordement électricité",
@@ -1325,7 +1325,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Raccordement électricité",
@@ -1383,7 +1383,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Raccordement électricité",
@@ -1425,7 +1425,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Raccordement électricité",
@@ -1483,7 +1483,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Assainissement",
@@ -1541,7 +1541,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Assainissement",
@@ -1599,7 +1599,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Assainissement",
@@ -1657,7 +1657,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Assainissement",
@@ -1715,7 +1715,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Assainissement",
@@ -1773,7 +1773,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Télécom / fibre",
@@ -1831,7 +1831,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Télécom / fibre",
@@ -1889,7 +1889,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Télécom / fibre",
@@ -1931,7 +1931,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Télécom / fibre",
@@ -1989,7 +1989,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Viabilisation",
         "subcategory_name": "Télécom / fibre",
@@ -2047,7 +2047,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Fondations",
@@ -2105,7 +2105,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Fondations",
@@ -2163,7 +2163,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Fondations",
@@ -2221,7 +2221,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Fondations",
@@ -2263,7 +2263,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Fondations",
@@ -2321,7 +2321,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Soubassement / vide sanitaire",
@@ -2379,7 +2379,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Soubassement / vide sanitaire",
@@ -2437,7 +2437,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Soubassement / vide sanitaire",
@@ -2495,7 +2495,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Soubassement / vide sanitaire",
@@ -2553,7 +2553,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Soubassement / vide sanitaire",
@@ -2611,7 +2611,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Dalle",
@@ -2669,7 +2669,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Dalle",
@@ -2727,7 +2727,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Dalle",
@@ -2785,7 +2785,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Dalle",
@@ -2843,7 +2843,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Dalle",
@@ -2901,7 +2901,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Élévation murs",
@@ -2959,7 +2959,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Élévation murs",
@@ -3017,7 +3017,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Élévation murs",
@@ -3075,7 +3075,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Élévation murs",
@@ -3117,7 +3117,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Élévation murs",
@@ -3175,7 +3175,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Façades",
@@ -3233,7 +3233,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Charpente",
@@ -3291,7 +3291,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Charpente",
@@ -3349,7 +3349,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Charpente",
@@ -3391,7 +3391,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Charpente",
@@ -3449,7 +3449,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Charpente",
@@ -3507,7 +3507,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Couverture",
@@ -3565,7 +3565,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Couverture",
@@ -3623,7 +3623,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Couverture",
@@ -3681,7 +3681,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Gros œuvre",
         "subcategory_name": "Couverture",
@@ -3739,7 +3739,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Menuiseries",
         "subcategory_name": "Fenêtres",
@@ -3797,7 +3797,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Menuiseries",
         "subcategory_name": "Fenêtres",
@@ -3855,7 +3855,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Menuiseries",
         "subcategory_name": "Fenêtres",
@@ -3913,7 +3913,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Menuiseries",
         "subcategory_name": "Fenêtres",
@@ -3955,7 +3955,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Menuiseries",
         "subcategory_name": "Portes extérieures",
@@ -4013,7 +4013,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Menuiseries",
         "subcategory_name": "Portes extérieures",
@@ -4071,7 +4071,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Menuiseries",
         "subcategory_name": "Portes extérieures",
@@ -4129,7 +4129,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Menuiseries",
         "subcategory_name": "Volets",
@@ -4187,7 +4187,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Menuiseries",
         "subcategory_name": "Volets",
@@ -4229,7 +4229,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Menuiseries",
         "subcategory_name": "Volets",
@@ -4287,7 +4287,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Isolation",
@@ -4345,7 +4345,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Isolation",
@@ -4403,7 +4403,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Isolation",
@@ -4461,7 +4461,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Isolation",
@@ -4503,7 +4503,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Isolation",
@@ -4561,7 +4561,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Cloisons",
@@ -4619,7 +4619,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Cloisons",
@@ -4677,7 +4677,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Cloisons",
@@ -4735,7 +4735,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Cloisons",
@@ -4777,7 +4777,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Cloisons",
@@ -4835,7 +4835,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Électricité",
@@ -4893,7 +4893,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Électricité",
@@ -4951,7 +4951,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Électricité",
@@ -5009,7 +5009,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Électricité",
@@ -5067,7 +5067,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Électricité",
@@ -5125,7 +5125,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Plomberie",
@@ -5183,7 +5183,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Plomberie",
@@ -5241,7 +5241,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Plomberie",
@@ -5299,7 +5299,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Chauffage",
@@ -5357,7 +5357,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Chauffage",
@@ -5415,7 +5415,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Chauffage",
@@ -5473,7 +5473,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Ventilation",
@@ -5531,7 +5531,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Ventilation",
@@ -5589,7 +5589,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Ventilation",
@@ -5647,7 +5647,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Ventilation",
@@ -5689,7 +5689,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Second œuvre",
         "subcategory_name": "Ventilation",
@@ -5747,7 +5747,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Sols",
@@ -5805,7 +5805,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Sols",
@@ -5863,7 +5863,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Sols",
@@ -5905,7 +5905,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Sols",
@@ -5963,7 +5963,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Sols",
@@ -6021,7 +6021,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Murs & plafonds",
@@ -6079,7 +6079,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Murs & plafonds",
@@ -6137,7 +6137,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Murs & plafonds",
@@ -6179,7 +6179,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Murs & plafonds",
@@ -6237,7 +6237,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Murs & plafonds",
@@ -6295,7 +6295,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Cuisine",
@@ -6353,7 +6353,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Cuisine",
@@ -6411,7 +6411,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Cuisine",
@@ -6469,7 +6469,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Cuisine",
@@ -6527,7 +6527,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Cuisine",
@@ -6585,7 +6585,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Salle de bain",
@@ -6643,7 +6643,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Salle de bain",
@@ -6701,7 +6701,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Salle de bain",
@@ -6759,7 +6759,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Salle de bain",
@@ -6817,7 +6817,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Finitions",
         "subcategory_name": "Salle de bain",
@@ -6875,7 +6875,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Extérieurs",
         "subcategory_name": "Aménagement terrain",
@@ -6933,7 +6933,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Extérieurs",
         "subcategory_name": "Aménagement terrain",
@@ -6991,7 +6991,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Extérieurs",
         "subcategory_name": "Aménagement terrain",
@@ -7049,7 +7049,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Extérieurs",
         "subcategory_name": "Aménagement terrain",
@@ -7107,7 +7107,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Extérieurs",
         "subcategory_name": "Aménagement terrain",
@@ -7165,7 +7165,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Extérieurs",
         "subcategory_name": "Terrasse",
@@ -7223,7 +7223,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Extérieurs",
         "subcategory_name": "Terrasse",
@@ -7281,7 +7281,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Extérieurs",
         "subcategory_name": "Terrasse",
@@ -7339,7 +7339,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Extérieurs",
         "subcategory_name": "Terrasse",
@@ -7397,7 +7397,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Extérieurs",
         "subcategory_name": "Terrasse",
@@ -7455,7 +7455,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Extérieurs",
         "subcategory_name": "Allées / accès",
@@ -7513,7 +7513,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Extérieurs",
         "subcategory_name": "Allées / accès",
@@ -7571,7 +7571,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Extérieurs",
         "subcategory_name": "Allées / accès",
@@ -7629,7 +7629,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Extérieurs",
         "subcategory_name": "Allées / accès",
@@ -7687,7 +7687,7 @@
       ]
     },
     {
-      "project_item_ref": {
+      "budget_line_ref": {
         "type": "catalog_path",
         "category_name": "Extérieurs",
         "subcategory_name": "Allées / accès",
@@ -7746,11 +7746,11 @@
     }
   ],
   "transaction_row_schema": {
-    "project_item_ref": {
+    "budget_line_ref": {
       "type": "catalog_path",
       "category_name": "Category name from the catalog/template source.",
       "subcategory_name": "Subcategory name from the catalog/template source.",
-      "product_name": "Product/project item name generated from the Maison Plain-Pied template."
+      "product_name": "Product/budget line name generated from the Maison Plain-Pied template."
     },
     "transactions": [
       {

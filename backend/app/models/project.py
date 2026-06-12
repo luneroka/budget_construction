@@ -10,7 +10,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
-    from app.models.project_item import ProjectItem
+    from app.models.budget_line import BudgetLine
+    from app.models.template import Template
 
 
 class ProjectStatus(str, enum.Enum):
@@ -27,6 +28,9 @@ class Project(Base):
 
     user_id: Mapped[int] = mapped_column(
         ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True
+    )
+    template_id: Mapped[int | None] = mapped_column(
+        ForeignKey('templates.id', ondelete='SET NULL'), nullable=True, index=True
     )
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -66,8 +70,9 @@ class Project(Base):
     )
 
     user = relationship('User', back_populates='projects')
-    project_items: Mapped[list[ProjectItem]] = relationship(
-        'ProjectItem', back_populates='project'
+    template: Mapped[Template | None] = relationship('Template')
+    budget_lines: Mapped[list[BudgetLine]] = relationship(
+        'BudgetLine', back_populates='project'
     )
 
     def __repr__(self):

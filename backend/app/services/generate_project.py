@@ -2,16 +2,16 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.budget_line import BudgetLine
 from app.models.project import Project
-from app.models.project_item import ProjectItem
-from app.repositories import project_item as project_item_repository
+from app.repositories import budget_line as budget_line_repository
 from app.schemas.project import ProjectFromTemplateCreate
 
 
 @dataclass(frozen=True)
 class GeneratedProject:
     project: Project
-    project_items: list[ProjectItem]
+    budget_lines: list[BudgetLine]
 
 
 async def generate_project_from_template(
@@ -26,7 +26,7 @@ async def generate_project_from_template(
 
     try:
         await db.flush()
-        project_items = await project_item_repository.load_template(
+        budget_lines = await budget_line_repository.load_template(
             db,
             project.id,
             project_data.template_id,
@@ -36,7 +36,7 @@ async def generate_project_from_template(
         await db.rollback()
         raise
 
-    assert project_items is not None
+    assert budget_lines is not None
     await db.refresh(project)
 
-    return GeneratedProject(project=project, project_items=project_items)
+    return GeneratedProject(project=project, budget_lines=budget_lines)
