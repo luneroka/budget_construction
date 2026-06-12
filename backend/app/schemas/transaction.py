@@ -43,7 +43,7 @@ class TransactionBase(BaseModel):
     amount_ht: Decimal
     vat_rate: Decimal | None = None
     amount_vat: Decimal | None = None
-    amount_ttc: Decimal
+    amount_ttc: Decimal | None = None
     issued_date: date
     due_date: date | None = None
     payment_date: date | None = None
@@ -89,7 +89,23 @@ class TransactionUpdate(BaseModel):
     payment_method: PaymentMethod | None = None
 
 
-class TransactionRead(TransactionBase):
+class TransactionReadBase(BaseModel):
+    supplier_id: int | None = None
+    transaction_type: TransactionType
+    amount_ht: Decimal
+    vat_rate: Decimal | None = None
+    amount_vat: Decimal | None = None
+    amount_ttc: Decimal
+    issued_date: date
+    due_date: date | None = None
+    payment_date: date | None = None
+    description: str | None = None
+    quote_status: QuoteStatus | None = None
+    invoice_status: InvoiceStatus | None = None
+    payment_method: PaymentMethod | None = None
+
+
+class TransactionRead(TransactionReadBase):
     id: int
     budget_line_id: int
     created_at: datetime

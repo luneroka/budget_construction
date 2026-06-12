@@ -277,6 +277,12 @@ async def get_or_create_budget_line_for_product(
         project=project,
         product_id=product_id,
     )
+    if item_type == BudgetLineType.product:
+        budget_line_name = template_item.default_name
+    else:
+        budget_line_name = name.strip() if name is not None else None
+        if not budget_line_name:
+            raise BudgetLineValidationError('Budget line name is required')
 
     result = await db.execute(
         select(BudgetLine)
@@ -302,7 +308,10 @@ async def get_or_create_budget_line_for_product(
             matching_lines = [
                 line
                 for line in existing_lines
-                if line.item_type == BudgetLineType.breakdown and line.name == name
+                if (
+                    line.item_type == BudgetLineType.breakdown
+                    and line.name == budget_line_name
+                )
             ]
             if matching_lines:
                 return matching_lines[0]
@@ -322,14 +331,11 @@ async def get_or_create_budget_line_for_product(
                 'multiple breakdown items, not both'
             )
 
-    if item_type == BudgetLineType.breakdown and not name:
-        raise BudgetLineValidationError('Budget line name is required')
-
     budget_line = BudgetLine(
         project_id=project_id,
         template_item_id=template_item.id,
         product_id=product_id,
-        name=name or template_item.default_name,
+        name=budget_line_name,
         item_type=item_type,
         sort_order=template_item.sort_order,
     )

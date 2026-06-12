@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from decimal import Decimal, ROUND_HALF_UP
 from typing import cast
 
 from sqlalchemy import select, update
@@ -26,10 +27,97 @@ class TransactionValidationError(ValueError):
     pass
 
 
+MONEY_QUANT = Decimal('0.01')
+VAT_RATE_DIVISOR = Decimal('100')
+AMOUNT_TOLERANCE = Decimal('0.01')
+
+
+def _as_decimal(value: object, field_name: str) -> Decimal:
+    if isinstance(value, Decimal):
+        return value
+    try:
+        return Decimal(str(value))
+    except Exception as error:
+        raise TransactionValidationError(f'{field_name} must be a decimal') from error
+
+
+def _money(value: Decimal) -> Decimal:
+    return value.quantize(MONEY_QUANT, rounding=ROUND_HALF_UP)
+
+
+def _amounts_differ(left: Decimal, right: Decimal) -> bool:
+    return abs(_money(left) - _money(right)) > AMOUNT_TOLERANCE
+
+
+def _normalize_amounts(values: dict[str, object]) -> None:
+    amount_ht = _money(_as_decimal(values['amount_ht'], 'amount_ht'))
+    amount_vat_value = values.get('amount_vat')
+    amount_ttc_value = values.get('amount_ttc')
+    vat_rate_value = values.get('vat_rate')
+
+    if amount_ht < 0:
+        raise TransactionValidationError('amount_ht must be greater than or equal to 0')
+
+    vat_rate: Decimal | None = None
+    if vat_rate_value is not None:
+        vat_rate = _as_decimal(vat_rate_value, 'vat_rate')
+        if vat_rate < 0:
+            raise TransactionValidationError(
+                'vat_rate must be greater than or equal to 0'
+            )
+
+    amount_ttc: Decimal | None = None
+    if amount_ttc_value is not None:
+        amount_ttc = _money(_as_decimal(amount_ttc_value, 'amount_ttc'))
+        if amount_ttc < 0:
+            raise TransactionValidationError(
+                'amount_ttc must be greater than or equal to 0'
+            )
+
+    if amount_vat_value is None:
+        if vat_rate is not None:
+            amount_vat = _money(amount_ht * vat_rate / VAT_RATE_DIVISOR)
+        elif amount_ttc is not None:
+            amount_vat = _money(amount_ttc - amount_ht)
+        else:
+            raise TransactionValidationError(
+                'amount_ttc is required when vat_rate and amount_vat are not provided'
+            )
+    else:
+        amount_vat = _money(_as_decimal(amount_vat_value, 'amount_vat'))
+
+    if amount_vat < 0:
+        raise TransactionValidationError(
+            'amount_vat must be greater than or equal to 0'
+        )
+
+    if vat_rate is not None and amount_vat_value is not None:
+        expected_amount_vat = _money(amount_ht * vat_rate / VAT_RATE_DIVISOR)
+        if _amounts_differ(amount_vat, expected_amount_vat):
+            raise TransactionValidationError(
+                'amount_vat does not match amount_ht and vat_rate'
+            )
+
+    expected_amount_ttc = _money(amount_ht + amount_vat)
+    if amount_ttc is None:
+        amount_ttc = expected_amount_ttc
+    elif _amounts_differ(amount_ttc, expected_amount_ttc):
+        raise TransactionValidationError(
+            'amount_ttc does not match amount_ht and amount_vat'
+        )
+
+    values['amount_ht'] = amount_ht
+    values['amount_vat'] = amount_vat
+    values['amount_ttc'] = amount_ttc
+    if vat_rate is not None:
+        values['vat_rate'] = vat_rate
+
+
 def _apply_create_defaults(transaction_data: TransactionCreate) -> dict[str, object]:
     values: dict[str, object] = transaction_data.model_dump(
         exclude={'select_as_budget'}
     )
+    _normalize_amounts(values)
 
     if values['transaction_type'] == TransactionType.quote:
         values['quote_status'] = values['quote_status'] or QuoteStatus.to_confirm
@@ -126,6 +214,25 @@ def _validate_update(
         raise TransactionValidationError(
             'payment_date is only allowed for invoice transactions'
         )
+
+    if {'amount_ht', 'vat_rate', 'amount_vat', 'amount_ttc'} & values.keys():
+        amount_values: dict[str, object] = {
+            'amount_ht': transaction.amount_ht,
+            'vat_rate': transaction.vat_rate,
+            'amount_vat': transaction.amount_vat,
+            'amount_ttc': transaction.amount_ttc,
+        }
+        amount_values.update(values)
+        if {'amount_ht', 'vat_rate'} & values.keys() and 'amount_vat' not in values:
+            amount_values['amount_vat'] = None
+        if {
+            'amount_ht',
+            'vat_rate',
+            'amount_vat',
+        } & values.keys() and 'amount_ttc' not in values:
+            amount_values['amount_ttc'] = None
+        _normalize_amounts(amount_values)
+        values.update(amount_values)
 
     return values
 
