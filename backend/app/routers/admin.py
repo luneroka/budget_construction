@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 from app.db.session import get_db_session
 from app.repositories import admin as admin_repository
+from app.routers.integrity import raise_integrity_conflict
 from app.schemas.user import AdminUserRead, AdminUserUpdate
 from app.dependencies.auth import get_current_admin_user
 from app.services import user_lifecycle
@@ -63,11 +64,7 @@ async def admin_update_user(
             detail=str(error),
         ) from error
     except IntegrityError as error:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail='A user with this email already exists',
-        ) from error
+        await raise_integrity_conflict(db, error)
 
     if user is None:
         raise HTTPException(

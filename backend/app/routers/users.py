@@ -6,6 +6,7 @@ from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.db.session import get_db_session
 from app.repositories import user as user_repository
+from app.routers.integrity import raise_integrity_conflict
 from app.schemas.user import UserProfileUpdate, UserRead
 from app.services import user_lifecycle
 
@@ -30,11 +31,7 @@ async def update_me(
             db, current_user.id, user_data.model_dump(exclude_unset=True)
         )
     except IntegrityError as error:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail='A user with this email already exists',
-        ) from error
+        await raise_integrity_conflict(db, error)
 
     if user is None:
         raise HTTPException(

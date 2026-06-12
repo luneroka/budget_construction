@@ -1,6 +1,7 @@
 from typing import Never
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
@@ -14,6 +15,7 @@ from app.schemas.transaction import (
     TransactionRead,
     TransactionUpdate,
 )
+from app.routers.integrity import raise_integrity_conflict
 from app.services.transaction import transaction_service
 
 router = APIRouter(
@@ -48,6 +50,8 @@ async def create_transaction(
         )
     except transaction_repository.TransactionValidationError as error:
         _bad_request(error)
+    except IntegrityError as error:
+        await raise_integrity_conflict(db, error)
 
     if transaction is None:
         raise HTTPException(
@@ -83,6 +87,8 @@ async def create_transaction_for_product(
         BudgetLineValidationError,
     ) as error:
         _bad_request(error)
+    except IntegrityError as error:
+        await raise_integrity_conflict(db, error)
 
     if transaction is None:
         raise HTTPException(
@@ -161,6 +167,8 @@ async def update_transaction(
         )
     except transaction_repository.TransactionValidationError as error:
         _bad_request(error)
+    except IntegrityError as error:
+        await raise_integrity_conflict(db, error)
 
     if transaction is None:
         raise HTTPException(
@@ -214,6 +222,8 @@ async def select_budget_candidate(
         )
     except transaction_repository.TransactionValidationError as error:
         _bad_request(error)
+    except IntegrityError as error:
+        await raise_integrity_conflict(db, error)
 
     if transaction is None:
         raise HTTPException(

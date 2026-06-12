@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.repositories import supplier as supplier_repository
+from app.routers.integrity import raise_integrity_conflict
 from app.schemas.supplier import SupplierCreate, SupplierRead, SupplierUpdate
 
 router = APIRouter(prefix='/suppliers', tags=['Suppliers'])
@@ -17,7 +19,10 @@ async def create_supplier(
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
-    return await supplier_repository.create_supplier(db, supplier_data, current_user.id)
+    try:
+        return await supplier_repository.create_supplier(db, supplier_data, current_user.id)
+    except IntegrityError as error:
+        await raise_integrity_conflict(db, error)
 
 
 # API ENDPOINT TO GET ALL SUPPLIERS
@@ -58,9 +63,12 @@ async def update_supplier(
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
-    supplier = await supplier_repository.update_supplier(
-        db, supplier_id, supplier_data, current_user.id
-    )
+    try:
+        supplier = await supplier_repository.update_supplier(
+            db, supplier_id, supplier_data, current_user.id
+        )
+    except IntegrityError as error:
+        await raise_integrity_conflict(db, error)
 
     if supplier is None:
         raise HTTPException(

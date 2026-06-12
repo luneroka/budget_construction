@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
@@ -14,6 +15,7 @@ from app.schemas.project import (
     ProjectUpdate,
 )
 from app.services import generate_project as generate_project_service
+from app.routers.integrity import raise_integrity_conflict
 
 router = APIRouter(prefix='/projects', tags=['Projects'])
 
@@ -25,7 +27,10 @@ async def create_project(
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
-    return await project_repository.create_project(db, project_data, current_user.id)
+    try:
+        return await project_repository.create_project(db, project_data, current_user.id)
+    except IntegrityError as error:
+        await raise_integrity_conflict(db, error)
 
 
 @router.post(
@@ -47,6 +52,8 @@ async def generate_project_from_template(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(error),
         ) from error
+    except IntegrityError as error:
+        await raise_integrity_conflict(db, error)
 
 
 # API ENDPOINT TO GET ALL PROJECTS
@@ -90,9 +97,12 @@ async def update_project(
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
-    project = await project_repository.update_project(
-        db, project_id, project_data, current_user.id
-    )
+    try:
+        project = await project_repository.update_project(
+            db, project_id, project_data, current_user.id
+        )
+    except IntegrityError as error:
+        await raise_integrity_conflict(db, error)
 
     if project is None:
         raise HTTPException(

@@ -1,5 +1,3 @@
-from typing import Never
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
 from app.repositories import template as template_repository
+from app.routers.integrity import raise_integrity_conflict
 from app.schemas.template import (
     TemplateCreate,
     TemplateRead,
@@ -20,14 +19,6 @@ router = APIRouter(
 )
 
 
-async def _conflict(db: AsyncSession) -> Never:
-    await db.rollback()
-    raise HTTPException(
-        status_code=status.HTTP_409_CONFLICT,
-        detail='A template with this name already exists',
-    )
-
-
 @router.post('/', response_model=TemplateRead, status_code=status.HTTP_201_CREATED)
 async def create_template(
     template_data: TemplateCreate,
@@ -35,8 +26,8 @@ async def create_template(
 ):
     try:
         return await template_repository.create_template(db, template_data)
-    except IntegrityError:
-        await _conflict(db)
+    except IntegrityError as error:
+        await raise_integrity_conflict(db, error)
 
 
 @router.get('/', response_model=list[TemplateRead])
@@ -77,8 +68,8 @@ async def update_template(
 
     try:
         return await template_repository.update_template(db, template, template_data)
-    except IntegrityError:
-        await _conflict(db)
+    except IntegrityError as error:
+        await raise_integrity_conflict(db, error)
 
 
 @router.delete('/{template_id}', response_model=TemplateRead)
