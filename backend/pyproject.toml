@@ -9,6 +9,7 @@ dependencies = [
     "asyncpg>=0.31.0",
     "bcrypt==4.0.1",
     "fastapi[standard]>=0.128.8",
+    "greenlet>=3.5.0",
     "passlib[bcrypt]>=1.7.4",
     "pydantic-settings>=2.11.0",
     "python-jose[cryptography]>=3.5.0",
@@ -29,6 +30,11 @@ target-version = "py311"
 [tool.ruff.format]
 quote-style = "single"
 indent-style = "space"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
 
 [tool.alembic]
 
@@ -55,6 +61,10 @@ prepend_sys_path = [
 dev = [
     "black>=25.11.0",
     "boto3-stubs[s3]>=1.43.21",
+    "faker>=40.23.0",
+    "pytest>=9.1.0",
+    "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
     "ruff>=0.15.13",
 ]
 
