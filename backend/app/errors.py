@@ -64,8 +64,24 @@ ERROR_DEFINITIONS: dict[str, ErrorDefinition] = {
         'message': 'Budget line type is required',
         'field': 'item_type',
     },
+    'breakdown_names_duplicate': {
+        'message': 'Breakdown names must be unique',
+        'field': 'new_breakdown_names',
+    },
+    'breakdown_name_conflict': {
+        'message': 'Breakdown name already exists for this product',
+        'field': 'new_breakdown_names',
+    },
     'budget_transaction_already_selected': {
         'message': 'This budget transaction is already selected by another budget line',
+    },
+    'conversion_existing_line_name_not_allowed': {
+        'message': 'existing_line_new_name is only allowed when reusing the existing line',
+        'field': 'existing_line_new_name',
+    },
+    'conversion_strategy_required': {
+        'message': 'Conversion strategy is required when the budget line has transactions',
+        'field': 'strategy',
     },
     'category_not_found': {
         'message': 'Category not found',
@@ -189,6 +205,26 @@ ERROR_DEFINITIONS: dict[str, ErrorDefinition] = {
     },
     'product_not_found_or_inactive': {
         'message': 'Product not found or inactive',
+        'field': 'product_id',
+    },
+    'product_already_budgeted_with_breakdowns': {
+        'message': 'Product is already budgeted with breakdown lines',
+        'field': 'product_id',
+    },
+    'product_budget_line_missing': {
+        'message': 'No active budget line exists for this product',
+        'field': 'product_id',
+    },
+    'product_budget_line_ambiguous': {
+        'message': 'Select a specific budget line for this product transaction',
+        'field': 'budget_line_id',
+    },
+    'product_breakdown_name_required': {
+        'message': 'At least one breakdown name is required',
+        'field': 'new_breakdown_names',
+    },
+    'product_line_not_found': {
+        'message': 'Whole-product budget line not found',
         'field': 'product_id',
     },
     'project_already_has_template': {

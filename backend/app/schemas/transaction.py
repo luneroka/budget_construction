@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
+import enum
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from app.models.budget_line import BudgetLineType
 from app.models.transaction import (
     InvoiceStatus,
     InvoiceType,
@@ -13,6 +13,11 @@ from app.models.transaction import (
     QuoteStatus,
     TransactionType,
 )
+
+
+class BudgetConcern(str, enum.Enum):
+    entire_product = 'entire_product'
+    specific_element = 'specific_element'
 
 
 def _validate_statuses(
@@ -77,7 +82,45 @@ class TransactionCreate(TransactionBase):
 
 class TransactionCreateForProduct(TransactionCreate):
     budget_line_name: str | None = None
-    budget_line_type: BudgetLineType = BudgetLineType.product
+    budget_concern: BudgetConcern | None = None
+
+    @model_validator(mode='after')
+    def validate_product_intent(self) -> TransactionCreateForProduct:
+        budget_transaction_types = {
+            TransactionType.quote,
+            TransactionType.diy_estimate,
+        }
+        if self.transaction_type in budget_transaction_types:
+            if self.budget_concern is None:
+                raise ValueError(
+                    'budget_concern is required for product budget transactions'
+                )
+            if (
+                self.budget_concern == BudgetConcern.specific_element
+                and not self.budget_line_name
+            ):
+                raise ValueError(
+                    'budget_line_name is required for specific element budget transactions'
+                )
+            if (
+                self.budget_concern == BudgetConcern.entire_product
+                and self.budget_line_name is not None
+            ):
+                raise ValueError(
+                    'budget_line_name is only allowed for specific element budget transactions'
+                )
+            return self
+
+        if self.budget_concern is not None:
+            raise ValueError(
+                'budget_concern is only allowed for quote and DIY estimate transactions'
+            )
+        if self.budget_line_name is not None:
+            raise ValueError(
+                'budget_line_name is only allowed for quote and DIY estimate transactions'
+            )
+
+        return self
 
 
 class TransactionUpdate(BaseModel):

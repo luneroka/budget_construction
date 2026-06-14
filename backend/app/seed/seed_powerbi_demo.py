@@ -15,7 +15,7 @@ from app.db.session import AsyncSessionLocal, engine
 from app.models.category import Category
 from app.models.product import Product
 from app.models.project import Project
-from app.models.budget_line import BudgetLine, BudgetLineType
+from app.models.budget_line import BudgetLine
 from app.models.subcategory import Subcategory
 from app.models.supplier import Supplier
 from app.models.transaction import Transaction
@@ -24,7 +24,11 @@ from app.repositories import transaction as transaction_repository
 from app.repositories import user as user_repository
 from app.schemas.project import ProjectFromTemplateCreate
 from app.schemas.supplier import SupplierCreate, SupplierUpdate
-from app.schemas.transaction import TransactionCreate, TransactionCreateForProduct
+from app.schemas.transaction import (
+    BudgetConcern,
+    TransactionCreate,
+    TransactionCreateForProduct,
+)
 from app.schemas.user import UserCreate
 from app.services.generate_project import generate_project_from_template
 from app.services.transaction import transaction_service
@@ -390,7 +394,8 @@ async def seed_transactions(
             payload['supplier_id'] = supplier_id
 
             if budget_line is None:
-                payload['budget_line_type'] = BudgetLineType.product
+                if payload.get('transaction_type') in {'quote', 'diy_estimate'}:
+                    payload['budget_concern'] = BudgetConcern.entire_product
                 transaction = (
                     await transaction_service.create_for_product(
                         db,

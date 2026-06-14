@@ -13,9 +13,15 @@ from app.schemas.budget_line import (
     BudgetLineCreate,
     BudgetLineRead,
     BudgetLineUpdate,
+    ProductLineConvertToBreakdown,
 )
+from app.services.budget_line import budget_line_service
 
 router = APIRouter(prefix='/projects/{project_id}/budget-lines', tags=['Budget Lines'])
+product_router = APIRouter(
+    prefix='/projects/{project_id}/products/{product_id}/budget-lines',
+    tags=['Budget Lines'],
+)
 
 
 def _bad_request(error: budget_line_repository.BudgetLineValidationError) -> Never:
@@ -151,3 +157,36 @@ async def soft_delete_budget_line(
         )
 
     return budget_line
+
+
+@product_router.post(
+    '/convert-to-breakdown',
+    response_model=list[BudgetLineRead],
+    status_code=status.HTTP_201_CREATED,
+)
+async def convert_product_line_to_breakdown_lines(
+    project_id: int,
+    product_id: int,
+    conversion_data: ProductLineConvertToBreakdown,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        budget_lines = await budget_line_service.convert_product_line_to_breakdown_lines(
+            db,
+            project_id,
+            product_id,
+            conversion_data,
+            current_user.id,
+        )
+    except budget_line_repository.BudgetLineValidationError as error:
+        _bad_request(error)
+    except IntegrityError as error:
+        await raise_integrity_conflict(db, error)
+
+    if budget_lines is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
+        )
+
+    return budget_lines
