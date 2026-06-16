@@ -112,7 +112,7 @@ def normalize_transaction_amounts(values: dict[str, object]) -> None:
         values['vat_rate'] = vat_rate
 
 
-def _validate_transaction_lifecycle(values: dict[str, object]) -> None:
+def validate_transaction_lifecycle(values: dict[str, object]) -> None:
     transaction_type = cast(TransactionType, values['transaction_type'])
     quote_status = cast(QuoteStatus | None, values.get('quote_status'))
     invoice_status = cast(InvoiceStatus | None, values.get('invoice_status'))
@@ -135,7 +135,9 @@ def _validate_transaction_lifecycle(values: dict[str, object]) -> None:
 
     if invoice_status == InvoiceStatus.paid:
         if payment_date is None:
-            raise TransactionValidationError('payment_date is required for paid invoices')
+            raise TransactionValidationError(
+                'payment_date is required for paid invoices'
+            )
         return
 
     if payment_date is not None:
@@ -176,7 +178,7 @@ def _apply_create_defaults(transaction_data: TransactionCreate) -> dict[str, obj
         values['invoice_status'] = values['invoice_status'] or InvoiceStatus.unpaid
         values['invoice_type'] = values['invoice_type'] or InvoiceType.full
 
-    _validate_transaction_lifecycle(values)
+    validate_transaction_lifecycle(values)
     _validate_transaction_dates(values)
 
     return values
@@ -304,7 +306,7 @@ def _validate_update(
         'payment_date': transaction.payment_date,
     }
     lifecycle_values.update(values)
-    _validate_transaction_lifecycle(lifecycle_values)
+    validate_transaction_lifecycle(lifecycle_values)
 
     date_values: dict[str, object] = {
         'issued_date': transaction.issued_date,
@@ -317,7 +319,7 @@ def _validate_update(
     return values
 
 
-def _validate_selected_budget_candidate(
+def validate_selected_budget_candidate(
     transaction_type: TransactionType,
     quote_status: QuoteStatus | None,
 ) -> None:
@@ -405,7 +407,7 @@ async def create_transaction(
 
     values = _apply_create_defaults(transaction_data)
     if transaction_data.select_as_budget:
-        _validate_selected_budget_candidate(
+        validate_selected_budget_candidate(
             cast(TransactionType, values['transaction_type']),
             cast(QuoteStatus | None, values.get('quote_status')),
         )
@@ -567,7 +569,7 @@ async def select_budget_candidate(
     if transaction is None:
         return None
 
-    _validate_selected_budget_candidate(
+    validate_selected_budget_candidate(
         transaction.transaction_type,
         transaction.quote_status,
     )
