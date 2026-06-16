@@ -146,7 +146,7 @@ def validate_transaction_lifecycle(values: dict[str, object]) -> None:
         )
 
 
-def _validate_transaction_dates(values: dict[str, object]) -> None:
+def validate_transaction_dates(values: dict[str, object]) -> None:
     issued_date = cast(date | None, values.get('issued_date'))
     due_date = cast(date | None, values.get('due_date'))
     payment_date = cast(date | None, values.get('payment_date'))
@@ -179,7 +179,7 @@ def _apply_create_defaults(transaction_data: TransactionCreate) -> dict[str, obj
         values['invoice_type'] = values['invoice_type'] or InvoiceType.full
 
     validate_transaction_lifecycle(values)
-    _validate_transaction_dates(values)
+    validate_transaction_dates(values)
 
     return values
 
@@ -314,7 +314,7 @@ def _validate_update(
         'payment_date': transaction.payment_date,
     }
     date_values.update(values)
-    _validate_transaction_dates(date_values)
+    validate_transaction_dates(date_values)
 
     return values
 
