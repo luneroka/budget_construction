@@ -48,7 +48,7 @@ def _amounts_differ(left: Decimal, right: Decimal) -> bool:
     return abs(_money(left) - _money(right)) > AMOUNT_TOLERANCE
 
 
-def _normalize_amounts(values: dict[str, object]) -> None:
+def normalize_transaction_amounts(values: dict[str, object]) -> None:
     amount_ht = _money(_as_decimal(values['amount_ht'], 'amount_ht'))
     amount_vat_value = values.get('amount_vat')
     amount_ttc_value = values.get('amount_ttc')
@@ -167,7 +167,7 @@ def _apply_create_defaults(transaction_data: TransactionCreate) -> dict[str, obj
     values: dict[str, object] = transaction_data.model_dump(
         exclude={'select_as_budget'}
     )
-    _normalize_amounts(values)
+    normalize_transaction_amounts(values)
 
     if values['transaction_type'] == TransactionType.quote:
         values['quote_status'] = values['quote_status'] or QuoteStatus.to_confirm
@@ -293,7 +293,7 @@ def _validate_update(
             'amount_vat',
         } & values.keys() and 'amount_ttc' not in values:
             amount_values['amount_ttc'] = None
-        _normalize_amounts(amount_values)
+        normalize_transaction_amounts(amount_values)
         values.update(amount_values)
 
     lifecycle_values: dict[str, object] = {
