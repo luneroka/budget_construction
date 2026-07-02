@@ -190,6 +190,7 @@ async def find_active_supplier(
 def supplier_payload(supplier_data: dict[str, Any]) -> dict[str, Any]:
     return {
         'name': supplier_data['name'],
+        'siret': supplier_data.get('siret'),
         'email': supplier_data.get('email'),
         'contact_name': supplier_data.get('contact_name'),
         'phone_number': supplier_data.get('phone_number'),

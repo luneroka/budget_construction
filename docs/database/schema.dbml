@@ -67,6 +67,7 @@ Table suppliers {
   id integer [pk, increment]
   user_id integer [not null]
   name varchar(255) [not null]
+  siret varchar(14)
   email varchar(255)
   contact_name varchar(50)
   phone_number varchar(50)

@@ -16,6 +16,7 @@ class Supplier(Base):
     )
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    siret: Mapped[str | None] = mapped_column(String(14), nullable=True)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     contact_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
     phone_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
