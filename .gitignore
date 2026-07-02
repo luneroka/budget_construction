@@ -23,9 +23,23 @@ postgres_data/
 # macOS
 .DS_Store
 
-# Node
-node_modules/
-dist/
+# Frontend (Vite / React)
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/logs/
+frontend/*.log
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/lerna-debug.log*
+frontend/*.local
+frontend/*.suo
+frontend/*.ntvs*
+frontend/*.njsproj
+frontend/*.sln
+frontend/*.sw?
 
 # IDE
 .vscode/
