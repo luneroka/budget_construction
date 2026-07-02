@@ -7,6 +7,7 @@ from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.repositories import budget_line as budget_line_repository
 from app.repositories import project as project_repository
+from app.schemas.financial_engine import ProjectFinancialSummaryRead
 from app.schemas.project import (
     GeneratedProjectRead,
     ProjectCreate,
@@ -15,6 +16,7 @@ from app.schemas.project import (
     ProjectUpdate,
 )
 from app.services import generate_project as generate_project_service
+from app.services.financial_engine import financial_engine
 from app.routers.integrity import raise_integrity_conflict
 
 router = APIRouter(prefix='/projects', tags=['Projects'])
@@ -97,6 +99,28 @@ async def get_project(
         )
 
     return project
+
+
+@router.get(
+    '/{project_id}/financial-summary', response_model=ProjectFinancialSummaryRead
+)
+async def get_project_financial_summary(
+    project_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    financial_summary = await financial_engine.get_project_summary(
+        db,
+        project_id,
+        current_user.id,
+    )
+
+    if financial_summary is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
+        )
+
+    return financial_summary
 
 
 # API ENDPOINT TO UPDATE A PROJECT
