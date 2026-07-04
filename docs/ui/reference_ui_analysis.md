@@ -1212,20 +1212,60 @@ Acceptance:
 
 Goal:
 
-Create realistic construction data shaped like the current backend.
+Create realistic construction data shaped like the current backend by reusing
+the existing backend seed data first. During the UI phase,
+`backend/app/seed/data/catalog.json` and
+`backend/app/seed/data/powerbi_demo.json` are the single source of truth for demo
+domain data. The frontend should consume copied seed files through adapters
+instead of manually recreating the same project, catalog, supplier, budget, and
+transaction domain. The objective is to minimize duplicated mock maintenance.
 
 Tasks:
 
-- Create `src/lib/mock-data.ts` with typed mock data for:
-  - projects
-  - suppliers
-  - catalog categories/subcategories/products
-  - templates/template items
-  - budget lines
-  - transactions
-  - documents
-  - financial summary
-  - monthly invoice activity
+- Copy the backend seed files into the frontend demo data folder for frontend
+  development:
+
+```text
+frontend/src/
+  demo/
+    adapters/
+      buildBudgetWorkspace.ts
+      buildDashboard.ts
+      buildSuppliers.ts
+      buildDocuments.ts
+    data/
+      catalog.json
+      powerbi_demo.json
+  lib/
+    format.ts
+```
+
+- `frontend/src/demo/data/catalog.json` is copied from
+  `backend/app/seed/data/catalog.json`.
+- `frontend/src/demo/data/powerbi_demo.json` is copied from
+  `backend/app/seed/data/powerbi_demo.json`.
+- Components must never consume raw seed JSON directly.
+- Adapter functions transform backend-shaped demo data into frontend View Models.
+- Adapters must be pure transformation functions: no async work, no mutation of
+  inputs, and no hidden side effects.
+- View Models should preserve backend IDs whenever possible so later API
+  integration does not require UI identity rewrites.
+- Derive these View Models from backend seed data:
+  - Projects
+  - Catalog hierarchy
+  - Templates
+  - Budget hierarchy
+  - Suppliers
+  - Transactions
+  - Financial summary
+- Keep only these frontend-derived UI states outside the backend seed source:
+  - document attachment display states
+  - chart series
+  - accordion expansion state
+  - currently selected project
+  - current filters
+  - current sorting
+  - current search text
 - Use exact backend enum values:
   - `draft`, `active`, `completed`, `archived`
   - `product`, `breakdown`
@@ -1241,10 +1281,61 @@ Tasks:
   - percent/progress values
 - Run `npm run build`.
 
+### Demo Data Adapter Layer
+
+Adapters convert backend seed entities into UI-oriented View Models. React
+components should consume View Models only, not raw backend seed objects.
+Adapters are pure functions: they receive seed-shaped data, return View Models,
+and do not fetch, mutate, or persist anything.
+
+Recommended View Models:
+
+- `DashboardViewModel`
+- `BudgetWorkspaceViewModel`
+- `SupplierTableViewModel`
+- `DocumentsViewModel`
+
+The Budget adapter should transform transaction-centric demo data into the
+hierarchy expected by the UI:
+
+```text
+Project
+    Category
+        Product
+            Budget Line
+                Transactions
+```
+
+This transformation must happen once inside the adapter layer. React components
+must not rebuild this hierarchy repeatedly.
+
+### Single Source of Truth
+
+- `catalog.json` remains the reference for categories, subcategories, and
+  products.
+- `powerbi_demo.json` remains the reference for projects, suppliers,
+  transactions, and financial examples.
+- Adding or modifying demo records should happen in the backend seed first
+  whenever practical.
+- The frontend should introduce derived UI data only when no backend equivalent
+  exists.
+
+When backend integration begins, adapters remain in place and only their data
+source changes. Seed JSON files are replaced by API responses, while View Models
+stay unchanged. This minimizes UI refactoring.
+
 Acceptance:
 
-- Mock data mirrors backend field names.
-- Pages can be implemented without inventing incompatible fields.
+- Backend seed files are the authoritative demo source.
+- Mock data is traceable back to `catalog.json` and `powerbi_demo.json` wherever
+  seed coverage exists.
+- React components consume View Models instead of raw backend entities.
+- Hierarchical Budget data is built once by adapters.
+- Mock data mirrors backend field names and enum values.
+- Derived frontend-only mock data is minimal and clearly marked.
+- Replacing seed JSON with API responses should require minimal UI changes.
+- Pages can be implemented without inventing incompatible fields or a second
+  fake project domain.
 
 ### Chunk 5 - Dashboard Only
 
