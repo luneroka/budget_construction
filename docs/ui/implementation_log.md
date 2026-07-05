@@ -89,3 +89,26 @@ Notes
 - `powerbi_demo.json` contains 17 suppliers, 137 budget-line transaction groups, and 388 transactions.
 - `npm run build` completed successfully from `frontend/`.
 - No backend files were changed.
+
+## Chunk 5 - Dashboard Only
+
+Status: Completed
+
+Summary
+- Installed `recharts` and implemented the dashboard charts with `ResponsiveContainer`.
+- Expanded the dashboard KPI grid to show budget sélectionné, coût facturé, factures payées, factures à payer, écart budget, and devis validés.
+- Added chart cards for budget sélectionné vs coût facturé by category, invoice status distribution, monthly invoice activity, and transaction counts.
+- Added recent transactions and product variance tables backed by adapter view models.
+- Updated dashboard-facing French labels to include proper accents.
+- Updated shared status labels and project status formatting with accented French labels.
+
+Plan Deviations
+- Kept the implementation on the existing adapter view models from Chunk 4; no additional mock-only dashboard state was introduced.
+- Did not add code splitting for Recharts during this chunk. The production build warns that the JavaScript chunk is larger than 500 kB after adding Recharts, but the build succeeds and code splitting can be handled as a later optimization.
+
+Notes
+- `npm install recharts` initially failed inside the sandbox with `ENOTFOUND registry.npmjs.org`; it succeeded after rerunning with approved network escalation.
+- The Docker frontend service had a stale `/app/node_modules` volume again; running `docker compose exec frontend npm install` restored `recharts` resolution inside the container, then the frontend service was restarted.
+- `npm run build` completed successfully from `frontend/`.
+- Build output includes a Vite chunk-size warning after adding Recharts.
+- No backend files were changed.

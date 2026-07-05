@@ -10,11 +10,18 @@ export function formatProjectStatus(status: string): string {
   const labels: Record<string, string> = {
     draft: 'Brouillon',
     active: 'Actif',
-    completed: 'Termine',
-    archived: 'Archive',
+    completed: 'Terminé',
+    archived: 'Archivé',
   }
 
   return labels[status] ?? status
+}
+
+export function formatMonth(value: string): string {
+  return new Intl.DateTimeFormat('fr-FR', {
+    month: 'short',
+    year: '2-digit',
+  }).format(new Date(`${value}-01T00:00:00`))
 }
 
 export function formatDate(value: string | null | undefined): string {
