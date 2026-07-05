@@ -112,3 +112,26 @@ Notes
 - `npm run build` completed successfully from `frontend/`.
 - Build output includes a Vite chunk-size warning after adding Recharts.
 - No backend files were changed.
+
+## Chunk 6 - Budget Workspace Only
+
+Status: Completed
+
+Summary
+- Replaced the Budget placeholder with the main operational workspace.
+- Rendered the adapter-built hierarchy as expandable sections: Category > Product > Budget Line > Transactions.
+- Added category headers with budget, facturé, and écart totals.
+- Added dense product and budget-line financial rows with budget, devis validés, estimation DIY, facturé, payé, à payer, écart, and progression.
+- Added contextual transaction child tables under expanded budget lines with date, type, fournisseur, description, montant TTC, statut devis, statut facture, and document.
+- Added row-level mock actions to create a devis, estimation DIY, or facture from a specific budget line.
+- Highlighted negative variances with destructive styling and over-budget progress with destructive progress bars.
+
+Plan Deviations
+- Kept transaction creation actions as a lightweight demonstration panel because the backend-compatible form/modal is explicitly planned for Chunk 7.
+- The current demo seed produces one product-level budget line per product. The UI is structured to support multiple budget lines and breakdown indentation, but the copied backend seed does not yet contain breakdown-line examples.
+- Kept expansion state local to `BudgetPage` because persistence and route-level state are not required by Chunk 6.
+
+Notes
+- `npm run build` completed successfully from `frontend/`.
+- Build output still includes the Recharts chunk-size warning introduced in Chunk 5.
+- No backend files were changed.
