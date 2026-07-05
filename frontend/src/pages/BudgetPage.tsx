@@ -155,11 +155,11 @@ function CategoryHeader({
   return (
     <button
       type="button"
-      className="flex w-full flex-col gap-3 bg-primary px-4 py-3 text-left text-primary-foreground transition-colors hover:bg-primary/95 sm:flex-row sm:items-center sm:justify-between"
+      className="grid w-full grid-cols-1 gap-y-3 bg-primary px-4 py-3 text-left text-primary-foreground transition-colors hover:bg-primary/95 sm:grid-cols-[minmax(18rem,1fr)_4.75rem_7.25rem_7.25rem_7.25rem] sm:items-center sm:gap-x-1"
       onClick={onToggle}
       aria-expanded={isOpen}
     >
-      <span className="flex min-w-0 items-center gap-2">
+      <span className="flex min-w-0 items-center gap-2 sm:col-span-2">
         <ToggleIcon isOpen={isOpen} />
         <span>
           <span className="block font-heading text-lg font-semibold">
@@ -170,23 +170,21 @@ function CategoryHeader({
           </span>
         </span>
       </span>
-      <span className="grid w-full grid-cols-3 gap-3 text-right text-xs sm:w-auto sm:gap-5">
-        <span>
-          <span className="block text-primary-foreground/65">Budget</span>
-          <span className="font-semibold">
-            {formatCurrency(category.selected_budget_amount_ttc)}
-          </span>
+      <span className="text-right text-xs">
+        <span className="block text-primary-foreground/65">Budget</span>
+        <span className="font-semibold">
+          {formatCurrency(category.selected_budget_amount_ttc)}
         </span>
-        <span>
-          <span className="block text-primary-foreground/65">Facturé</span>
-          <span className="font-semibold">
-            {formatCurrency(category.actual_cost_amount_ttc)}
-          </span>
+      </span>
+      <span className="text-right text-xs">
+        <span className="block text-primary-foreground/65">Facturé</span>
+        <span className="font-semibold">
+          {formatCurrency(category.actual_cost_amount_ttc)}
         </span>
-        <span>
-          <span className="block text-primary-foreground/65">Écart</span>
-          <span className="font-semibold">{formatCurrency(variance)}</span>
-        </span>
+      </span>
+      <span className="text-right text-xs">
+        <span className="block text-primary-foreground/65">Écart</span>
+        <span className="font-semibold">{formatCurrency(variance)}</span>
       </span>
     </button>
   )
@@ -208,9 +206,9 @@ function ProductContextRows({
   const supportsBreakdowns = line === null
 
   return (
-    <TableRow className="border-t-0 bg-card hover:!bg-card">
-      <TableCell colSpan={7} className="px-6 py-2">
-        <div className="flex items-center justify-between border-t border-border/50 pt-2 pl-7">
+    <TableRow className="border-t-0 bg-card hover:bg-card!">
+      <TableCell colSpan={7} className="px-6 pt-1 pb-0">
+        <div className="flex items-center justify-between border-t border-border/50 pt-1 pl-4">
           <span className="text-xs text-muted-foreground">
             {supportsBreakdowns
               ? 'Produit décomposé en sous-produits'
@@ -221,7 +219,7 @@ function ProductContextRows({
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-8 text-muted-foreground hover:!bg-gold/15 hover:!text-gold"
+                className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
                 onClick={() => onAddBreakdown({ product })}
               >
                 <Layers3 aria-hidden="true" />
@@ -232,7 +230,7 @@ function ProductContextRows({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8 text-muted-foreground hover:!bg-gold/15 hover:!text-gold"
+                  className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
                   onClick={() => onDecomposeProduct({ product })}
                 >
                   <Layers3 aria-hidden="true" />
@@ -241,7 +239,7 @@ function ProductContextRows({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8 text-muted-foreground hover:!bg-gold/15 hover:!text-gold"
+                  className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
                   onClick={() =>
                     onAddTransaction({ budgetLine: line, product })
                   }
@@ -266,7 +264,7 @@ function EmptyProductRow({
   onAddFirstTransaction: (action: BreakdownAction) => void
 }) {
   return (
-    <TableRow className="border-t-0 bg-card hover:!bg-card">
+    <TableRow className="border-t-0 bg-card hover:bg-card!">
       <TableCell colSpan={7} className="px-6 py-4">
         <div className="flex items-center justify-between border-t border-border/50 pt-4 pl-7">
           <div>
@@ -301,16 +299,16 @@ function BudgetLineContextRow({
   onAddTransaction: (action: TransactionAction) => void
 }) {
   return (
-    <TableRow className="border-t-0 bg-muted/25 hover:!bg-muted/25">
-      <TableCell colSpan={7} className="px-6 py-2">
-        <div className="flex items-center justify-between border-t border-border/50 pt-2 pl-20">
+    <TableRow className="border-t-0 bg-muted/25 hover:bg-muted/25!">
+      <TableCell colSpan={7} className="px-6 pt-1 pb-0">
+        <div className="flex items-center justify-between border-t border-border/50 pt-1 pl-16">
           <span className="text-xs text-muted-foreground">
             Transactions de ce poste de budget
           </span>
           <Button
             size="sm"
             variant="ghost"
-            className="h-8 text-muted-foreground hover:!bg-gold/15 hover:!text-gold"
+            className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
             onClick={() => onAddTransaction({ budgetLine: line, product })}
           >
             <Plus aria-hidden="true" />
@@ -336,29 +334,64 @@ function SubcategoryRow({
       <TableCell colSpan={7} className="px-4 py-2">
         <button
           type="button"
-          className="flex w-full flex-col gap-2 text-left sm:flex-row sm:items-center sm:justify-between"
+          className="grid w-full grid-cols-1 gap-y-2 text-left sm:grid-cols-[minmax(18rem,1fr)_4.75rem_7.25rem_7.25rem_7.25rem] sm:items-center sm:gap-x-1"
           onClick={onToggle}
           aria-expanded={isOpen}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <ToggleIcon isOpen={isOpen} />
             <div>
-              <p className="font-heading text-base font-semibold text-foreground">
+              <p className="truncate font-heading text-base font-semibold text-foreground">
                 {group.name}
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <span>{group.products.length} produits</span>
-            <span>
-              Budget {formatCurrency(group.selected_budget_amount_ttc)}
-            </span>
-            <span>Facturé {formatCurrency(group.actual_cost_amount_ttc)}</span>
-            <span className={varianceClass(group.selected_budget_variance_ttc)}>
-              Écart {formatCurrency(group.selected_budget_variance_ttc)}
-            </span>
-          </div>
+          <span className="whitespace-nowrap text-right text-xs text-muted-foreground">
+            {group.products.length} produits
+          </span>
+          <span className="whitespace-nowrap text-right text-xs text-muted-foreground">
+            Budget {formatCurrency(group.selected_budget_amount_ttc)}
+          </span>
+          <span className="whitespace-nowrap text-right text-xs text-muted-foreground">
+            Facturé {formatCurrency(group.actual_cost_amount_ttc)}
+          </span>
+          <span
+            className={cn(
+              'whitespace-nowrap text-right text-xs',
+              varianceClass(group.selected_budget_variance_ttc),
+            )}
+          >
+            Écart {formatCurrency(group.selected_budget_variance_ttc)}
+          </span>
         </button>
+      </TableCell>
+    </TableRow>
+  )
+}
+
+function SubcategoryProductHeaderRow() {
+  return (
+    <TableRow className="bg-muted/35 hover:bg-muted/35!">
+      <TableCell className="px-5 py-2 pl-6 text-xs font-semibold text-muted-foreground">
+        Élément
+      </TableCell>
+      <TableCell className="px-5 py-2 text-right text-xs font-semibold text-muted-foreground">
+        Budget
+      </TableCell>
+      <TableCell className="px-5 py-2 text-right text-xs font-semibold text-muted-foreground">
+        DIY
+      </TableCell>
+      <TableCell className="px-5 py-2 text-right text-xs font-semibold text-muted-foreground">
+        Facturé
+      </TableCell>
+      <TableCell className="px-5 py-2 text-right text-xs font-semibold text-muted-foreground">
+        Payé
+      </TableCell>
+      <TableCell className="px-5 py-2 text-right text-xs font-semibold text-muted-foreground">
+        À payer
+      </TableCell>
+      <TableCell className="px-5 py-2 text-right text-xs font-semibold text-muted-foreground">
+        Écart
       </TableCell>
     </TableRow>
   )
@@ -478,44 +511,40 @@ function BudgetLineRow({
 function TransactionsRows({
   transactions,
   onAddTransaction,
-  level = 'product',
 }: {
   transactions: TransactionViewModel[]
   onAddTransaction: () => void
-  level?: 'product' | 'breakdown'
 }) {
   return (
-    <TableRow className="border-t-0 bg-muted/10 hover:!bg-muted/10">
+    <TableRow className="border-t-0 bg-muted/10 hover:bg-muted/10!">
       <TableCell colSpan={7} className="p-0">
-        <div
-          className={cn('py-2 pr-6', level === 'breakdown' ? 'pl-20' : 'pl-14')}
-        >
+        <div className="pt-0 pr-6 pb-2">
           <div className="bg-background/70">
             <Table className="text-xs">
               <TableHeader className="bg-transparent">
-                <TableRow className="border-t-0 border-border/50 hover:!bg-transparent">
-                  <TableHead className="whitespace-nowrap px-3 py-2 text-[11px] uppercase text-muted-foreground">
+                <TableRow className="border-t-0 border-border/50 hover:bg-transparent!">
+                  <TableHead className="whitespace-nowrap px-2 py-2 text-[11px] uppercase text-muted-foreground">
                     Date
                   </TableHead>
-                  <TableHead className="whitespace-nowrap px-3 py-2 text-[11px] uppercase text-muted-foreground">
+                  <TableHead className="whitespace-nowrap px-2 py-2 text-[11px] uppercase text-muted-foreground">
                     Type
                   </TableHead>
-                  <TableHead className="whitespace-nowrap px-3 py-2 text-[11px] uppercase text-muted-foreground">
+                  <TableHead className="whitespace-nowrap px-2 py-2 text-[11px] uppercase text-muted-foreground">
                     Fournisseur
                   </TableHead>
-                  <TableHead className="min-w-80 px-3 py-2 text-[11px] uppercase text-muted-foreground">
+                  <TableHead className="min-w-80 px-2 py-2 text-[11px] uppercase text-muted-foreground">
                     Description
                   </TableHead>
-                  <TableHead className="whitespace-nowrap px-3 py-2 text-right text-[11px] uppercase text-muted-foreground">
+                  <TableHead className="whitespace-nowrap px-2 py-2 text-right text-[11px] uppercase text-muted-foreground">
                     Montant TTC
                   </TableHead>
-                  <TableHead className="whitespace-nowrap px-3 py-2 text-[11px] uppercase text-muted-foreground">
+                  <TableHead className="whitespace-nowrap px-2 py-2 text-[11px] uppercase text-muted-foreground">
                     Statut devis
                   </TableHead>
-                  <TableHead className="whitespace-nowrap px-3 py-2 text-[11px] uppercase text-muted-foreground">
+                  <TableHead className="whitespace-nowrap px-2 py-2 text-[11px] uppercase text-muted-foreground">
                     Statut facture
                   </TableHead>
-                  <TableHead className="whitespace-nowrap px-3 py-2 text-[11px] uppercase text-muted-foreground">
+                  <TableHead className="whitespace-nowrap px-2 py-2 text-[11px] uppercase text-muted-foreground">
                     Document
                   </TableHead>
                 </TableRow>
@@ -524,44 +553,44 @@ function TransactionsRows({
                 {transactions.map((transaction) => (
                   <TableRow
                     key={transaction.id}
-                    className="border-border/40 hover:!bg-transparent"
+                    className="border-border/40 hover:bg-transparent!"
                   >
-                    <TableCell className="whitespace-nowrap px-3 py-2">
+                    <TableCell className="whitespace-nowrap px-2 py-2">
                       {formatDate(transaction.issued_date)}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap px-3 py-2">
+                    <TableCell className="whitespace-nowrap px-2 py-2">
                       <StatusBadge status={transaction.transaction_type} />
                     </TableCell>
-                    <TableCell className="whitespace-nowrap px-3 py-2">
+                    <TableCell className="whitespace-nowrap px-2 py-2">
                       {transaction.supplier_name ?? 'Autoconstruction'}
                     </TableCell>
-                    <TableCell className="min-w-80 px-3 py-2">
+                    <TableCell className="min-w-80 px-2 py-2">
                       {transaction.description}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap px-3 py-2 text-right font-medium">
+                    <TableCell className="whitespace-nowrap px-2 py-2 text-right font-medium">
                       {formatCurrency(transaction.amount_ttc)}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap px-3 py-2">
+                    <TableCell className="whitespace-nowrap px-2 py-2">
                       {transaction.quote_status ? (
                         <StatusBadge status={transaction.quote_status} />
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap px-3 py-2">
+                    <TableCell className="whitespace-nowrap px-2 py-2">
                       {transaction.invoice_status ? (
                         <StatusBadge status={transaction.invoice_status} />
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap px-3 py-2">
+                    <TableCell className="whitespace-nowrap px-2 py-2">
                       <StatusBadge status={transaction.document_state} />
                     </TableCell>
                   </TableRow>
                 ))}
-                <TableRow className="border-border/40 hover:!bg-transparent">
-                  <TableCell colSpan={8} className="px-3 py-2">
+                <TableRow className="border-border/40 hover:bg-transparent!">
+                  <TableCell colSpan={8} className="px-2 py-2">
                     <button
                       type="button"
                       className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
@@ -699,17 +728,6 @@ export function BudgetPage() {
               />
               {isCategoryOpen ? (
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Élément</TableHead>
-                      <TableHead className="text-right">Budget</TableHead>
-                      <TableHead className="text-right">DIY</TableHead>
-                      <TableHead className="text-right">Facturé</TableHead>
-                      <TableHead className="text-right">Payé</TableHead>
-                      <TableHead className="text-right">À payer</TableHead>
-                      <TableHead className="text-right">Écart</TableHead>
-                    </TableRow>
-                  </TableHeader>
                   <TableBody>
                     {subcategoryGroups.map((group) => {
                       const subcategoryId = `${category.category_id}:${group.name}`
@@ -725,6 +743,9 @@ export function BudgetPage() {
                               toggleSet(setOpenSubcategories, subcategoryId)
                             }
                           />
+                          {isSubcategoryOpen ? (
+                            <SubcategoryProductHeaderRow />
+                          ) : null}
                           {isSubcategoryOpen
                             ? group.products.map((product) => {
                                 const isProductOpen = openProducts.has(
@@ -818,7 +839,6 @@ export function BudgetPage() {
                                                         }
                                                       />
                                                       <TransactionsRows
-                                                        level="breakdown"
                                                         transactions={
                                                           line.transactions
                                                         }
