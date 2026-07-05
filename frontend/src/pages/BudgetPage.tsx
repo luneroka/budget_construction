@@ -25,17 +25,22 @@ import { formatCurrency, formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 type TransactionAction = {
-  budgetLine: BudgetLineSummaryViewModel
+  budgetLine?: BudgetLineSummaryViewModel
   product: ProductSummaryViewModel
+  initialStructure?: ProductStructureChoice
 }
 
 type BreakdownAction = {
   product: ProductSummaryViewModel
 }
 
+type ProductStructureChoice = 'single' | 'breakdown'
+
 type ActiveAction =
   | ({ kind: 'transaction' } & TransactionAction)
   | ({ kind: 'breakdown' } & BreakdownAction)
+  | ({ kind: 'decompose-product' } & BreakdownAction)
+  | ({ kind: 'structure-choice' } & BreakdownAction)
 
 const transactionTypeLabels: Record<TransactionType, string> = {
   quote: 'Devis',
@@ -122,6 +127,19 @@ function getWholeProductBudgetLine(product: ProductSummaryViewModel) {
     : null
 }
 
+function isProductEmpty(product: ProductSummaryViewModel) {
+  return (
+    product.budget_lines.length === 0 ||
+    product.budget_lines.every(
+      (line) =>
+        line.transactions.length === 0 &&
+        line.selected_budget_amount_ttc === 0 &&
+        line.actual_cost_amount_ttc === 0 &&
+        line.diy_estimate_amount_ttc === 0,
+    )
+  )
+}
+
 function CategoryHeader({
   category,
   isOpen,
@@ -179,11 +197,13 @@ function ProductContextRows({
   line,
   onAddBreakdown,
   onAddTransaction,
+  onDecomposeProduct,
 }: {
   product: ProductSummaryViewModel
   line: BudgetLineSummaryViewModel | null
   onAddBreakdown: (action: BreakdownAction) => void
   onAddTransaction: (action: TransactionAction) => void
+  onDecomposeProduct: (action: BreakdownAction) => void
 }) {
   const supportsBreakdowns = line === null
 
@@ -193,30 +213,78 @@ function ProductContextRows({
         <div className="flex items-center justify-between border-t border-border/50 pt-2 pl-7">
           <span className="text-xs text-muted-foreground">
             {supportsBreakdowns
-              ? 'Produit décomposé en postes de budget'
+              ? 'Produit décomposé en sous-produits'
               : 'Transactions rattachées directement au produit'}
           </span>
-          {supportsBreakdowns ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 text-muted-foreground hover:!bg-gold/15 hover:!text-gold"
-              onClick={() => onAddBreakdown({ product })}
-            >
-              <Layers3 aria-hidden="true" />
-              Ajouter un sous-produit
-            </Button>
-          ) : line ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 text-muted-foreground hover:!bg-gold/15 hover:!text-gold"
-              onClick={() => onAddTransaction({ budgetLine: line, product })}
-            >
-              <Plus aria-hidden="true" />
-              Ajouter une transaction
-            </Button>
-          ) : null}
+          <div className="flex items-center justify-end gap-1">
+            {supportsBreakdowns ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-muted-foreground hover:!bg-gold/15 hover:!text-gold"
+                onClick={() => onAddBreakdown({ product })}
+              >
+                <Layers3 aria-hidden="true" />
+                Ajouter un sous-produit
+              </Button>
+            ) : line ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 text-muted-foreground hover:!bg-gold/15 hover:!text-gold"
+                  onClick={() => onDecomposeProduct({ product })}
+                >
+                  <Layers3 aria-hidden="true" />
+                  Décomposer le produit
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 text-muted-foreground hover:!bg-gold/15 hover:!text-gold"
+                  onClick={() =>
+                    onAddTransaction({ budgetLine: line, product })
+                  }
+                >
+                  <Plus aria-hidden="true" />
+                  Ajouter une transaction
+                </Button>
+              </>
+            ) : null}
+          </div>
+        </div>
+      </TableCell>
+    </TableRow>
+  )
+}
+
+function EmptyProductRow({
+  product,
+  onAddFirstTransaction,
+}: {
+  product: ProductSummaryViewModel
+  onAddFirstTransaction: (action: BreakdownAction) => void
+}) {
+  return (
+    <TableRow className="border-t-0 bg-card hover:!bg-card">
+      <TableCell colSpan={7} className="px-6 py-4">
+        <div className="flex items-center justify-between border-t border-border/50 pt-4 pl-7">
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              Aucune transaction
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Commencez par ajouter une première transaction pour ce produit.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="gold"
+            onClick={() => onAddFirstTransaction({ product })}
+          >
+            <Plus aria-hidden="true" />
+            Ajouter une première transaction
+          </Button>
         </div>
       </TableCell>
     </TableRow>
@@ -529,6 +597,8 @@ export function BudgetPage() {
   const [activeAction, setActiveAction] = useState<ActiveAction | null>(null)
   const [selectedTransactionType, setSelectedTransactionType] =
     useState<TransactionType>('quote')
+  const [selectedStructureChoice, setSelectedStructureChoice] =
+    useState<ProductStructureChoice>('single')
 
   const visibleCounts = useMemo(
     () => ({
@@ -554,6 +624,18 @@ export function BudgetPage() {
   function openTransactionAction(action: TransactionAction) {
     setSelectedTransactionType('quote')
     setActiveAction({ kind: 'transaction', ...action })
+  }
+
+  function openStructureChoice(action: BreakdownAction) {
+    setSelectedStructureChoice('single')
+    setActiveAction({ kind: 'structure-choice', ...action })
+  }
+
+  function continueFromStructureChoice(action: BreakdownAction) {
+    openTransactionAction({
+      product: action.product,
+      initialStructure: selectedStructureChoice,
+    })
   }
 
   return (
@@ -650,6 +732,7 @@ export function BudgetPage() {
                                 )
                                 const wholeProductLine =
                                   getWholeProductBudgetLine(product)
+                                const isEmptyProduct = isProductEmpty(product)
 
                                 return (
                                   <Fragment key={product.product_id}>
@@ -664,81 +747,98 @@ export function BudgetPage() {
                                       }
                                     />
                                     {isProductOpen ? (
-                                      <>
-                                        <ProductContextRows
+                                      isEmptyProduct ? (
+                                        <EmptyProductRow
                                           product={product}
-                                          line={wholeProductLine}
-                                          onAddBreakdown={(action) =>
-                                            setActiveAction({
-                                              kind: 'breakdown',
-                                              ...action,
-                                            })
-                                          }
-                                          onAddTransaction={
-                                            openTransactionAction
+                                          onAddFirstTransaction={
+                                            openStructureChoice
                                           }
                                         />
-                                        {wholeProductLine ? (
-                                          <TransactionsRows
-                                            transactions={
-                                              wholeProductLine.transactions
+                                      ) : (
+                                        <>
+                                          <ProductContextRows
+                                            product={product}
+                                            line={wholeProductLine}
+                                            onAddBreakdown={(action) =>
+                                              setActiveAction({
+                                                kind: 'breakdown',
+                                                ...action,
+                                              })
                                             }
-                                            onAddTransaction={() =>
-                                              openTransactionAction({
-                                                budgetLine: wholeProductLine,
-                                                product,
+                                            onAddTransaction={
+                                              openTransactionAction
+                                            }
+                                            onDecomposeProduct={(action) =>
+                                              setActiveAction({
+                                                kind: 'decompose-product',
+                                                ...action,
                                               })
                                             }
                                           />
-                                        ) : (
-                                          product.budget_lines.map((line) => {
-                                            const isLineOpen =
-                                              openBudgetLines.has(
-                                                line.budget_line_id,
-                                              )
+                                          {wholeProductLine ? (
+                                            <TransactionsRows
+                                              transactions={
+                                                wholeProductLine.transactions
+                                              }
+                                              onAddTransaction={() =>
+                                                openTransactionAction({
+                                                  budgetLine: wholeProductLine,
+                                                  product,
+                                                })
+                                              }
+                                            />
+                                          ) : (
+                                            product.budget_lines.map((line) => {
+                                              const isLineOpen =
+                                                openBudgetLines.has(
+                                                  line.budget_line_id,
+                                                )
 
-                                            return (
-                                              <Fragment
-                                                key={line.budget_line_id}
-                                              >
-                                                <BudgetLineRow
-                                                  line={line}
-                                                  isOpen={isLineOpen}
-                                                  onToggle={() =>
-                                                    toggleSet(
-                                                      setOpenBudgetLines,
-                                                      line.budget_line_id,
-                                                    )
-                                                  }
-                                                />
-                                                {isLineOpen ? (
-                                                  <>
-                                                    <BudgetLineContextRow
-                                                      line={line}
-                                                      product={product}
-                                                      onAddTransaction={
-                                                        openTransactionAction
-                                                      }
-                                                    />
-                                                    <TransactionsRows
-                                                      level="breakdown"
-                                                      transactions={
-                                                        line.transactions
-                                                      }
-                                                      onAddTransaction={() =>
-                                                        openTransactionAction({
-                                                          budgetLine: line,
-                                                          product,
-                                                        })
-                                                      }
-                                                    />
-                                                  </>
-                                                ) : null}
-                                              </Fragment>
-                                            )
-                                          })
-                                        )}
-                                      </>
+                                              return (
+                                                <Fragment
+                                                  key={line.budget_line_id}
+                                                >
+                                                  <BudgetLineRow
+                                                    line={line}
+                                                    isOpen={isLineOpen}
+                                                    onToggle={() =>
+                                                      toggleSet(
+                                                        setOpenBudgetLines,
+                                                        line.budget_line_id,
+                                                      )
+                                                    }
+                                                  />
+                                                  {isLineOpen ? (
+                                                    <>
+                                                      <BudgetLineContextRow
+                                                        line={line}
+                                                        product={product}
+                                                        onAddTransaction={
+                                                          openTransactionAction
+                                                        }
+                                                      />
+                                                      <TransactionsRows
+                                                        level="breakdown"
+                                                        transactions={
+                                                          line.transactions
+                                                        }
+                                                        onAddTransaction={() =>
+                                                          openTransactionAction(
+                                                            {
+                                                              budgetLine: line,
+                                                              product,
+                                                            },
+                                                          )
+                                                        }
+                                                      />
+                                                    </>
+                                                  ) : null}
+                                                </Fragment>
+                                              )
+                                            })
+                                          )}
+                                        </>
+                                      )
                                     ) : null}
                                   </Fragment>
                                 )
@@ -764,11 +864,65 @@ export function BudgetPage() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="font-heading text-xl font-semibold">
-                  {activeAction.kind === 'transaction'
-                    ? 'Ajouter une transaction'
-                    : 'Ajouter un sous-produit'}
+                  {activeAction.kind === 'structure-choice'
+                    ? 'Comment souhaitez-vous gérer ce produit ?'
+                    : activeAction.kind === 'transaction'
+                      ? 'Ajouter une transaction'
+                      : activeAction.kind === 'decompose-product'
+                        ? 'Décomposer le produit'
+                        : 'Ajouter un sous-produit'}
                 </p>
-                {activeAction.kind === 'transaction' ? (
+                {activeAction.kind === 'structure-choice' ? (
+                  <>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Ce choix détermine l'organisation de vos postes de budget.
+                      Vous pourrez le modifier ultérieurement.
+                    </p>
+                    <div className="mt-4 grid gap-2">
+                      {(
+                        [
+                          {
+                            value: 'single',
+                            title: 'Un seul poste de budget',
+                            description:
+                              'Recommandé si vous souhaitez suivre le produit dans son ensemble.',
+                          },
+                          {
+                            value: 'breakdown',
+                            title: 'Plusieurs sous-produits',
+                            description:
+                              'Recommandé si vous souhaitez suivre plusieurs éléments séparément (ex. baie vitrée, fenêtre cuisine, fenêtre chambre...).',
+                          },
+                        ] satisfies Array<{
+                          value: ProductStructureChoice
+                          title: string
+                          description: string
+                        }>
+                      ).map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={cn(
+                            'rounded-md border px-4 py-3 text-left transition-colors',
+                            selectedStructureChoice === option.value
+                              ? 'border-gold bg-gold/10'
+                              : 'border-border bg-background hover:border-gold/60',
+                          )}
+                          onClick={() =>
+                            setSelectedStructureChoice(option.value)
+                          }
+                        >
+                          <span className="block font-medium text-foreground">
+                            {option.title}
+                          </span>
+                          <span className="mt-1 block text-sm text-muted-foreground">
+                            {option.description}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                ) : activeAction.kind === 'transaction' ? (
                   <>
                     <div className="mt-4">
                       <label
@@ -797,23 +951,51 @@ export function BudgetPage() {
                       </Select>
                     </div>
                     <p className="mt-3 text-sm text-muted-foreground">
-                      Action de démonstration depuis la ligne «{' '}
-                      {activeAction.budgetLine.name} » du produit «{' '}
-                      {activeAction.product.product_name} ». Le formulaire
-                      compatible backend arrive au Chunk 7.
+                      {activeAction.budgetLine ? (
+                        <>
+                          Action de démonstration depuis la ligne «{' '}
+                          {activeAction.budgetLine.name} » du produit «{' '}
+                          {activeAction.product.product_name} ».
+                        </>
+                      ) : (
+                        <>
+                          La première transaction créera{' '}
+                          {activeAction.initialStructure === 'breakdown'
+                            ? 'un premier sous-produit'
+                            : 'un poste de budget unique'}{' '}
+                          pour « {activeAction.product.product_name} ».
+                        </>
+                      )}{' '}
+                      Le formulaire complet sera raccordé ultérieurement.
                     </p>
                   </>
+                ) : activeAction.kind === 'decompose-product' ? (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Action de démonstration pour convertir le produit «{' '}
+                    {activeAction.product.product_name} » en plusieurs
+                    sous-produits. Cette conversion est déjà prévue dans le
+                    modèle de budget.
+                  </p>
                 ) : (
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Action de démonstration pour ajouter un poste de budget au
+                    Action de démonstration pour ajouter un sous-produit au
                     produit « {activeAction.product.product_name} ». Le
-                    formulaire compatible backend arrive au Chunk 7.
+                    formulaire complet sera raccordé ultérieurement.
                   </p>
                 )}
               </div>
             </div>
-            <div className="mt-6 flex justify-end">
-              <Button onClick={() => setActiveAction(null)}>Fermer</Button>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setActiveAction(null)}>
+                Fermer
+              </Button>
+              {activeAction.kind === 'structure-choice' ? (
+                <Button
+                  onClick={() => continueFromStructureChoice(activeAction)}
+                >
+                  Continuer
+                </Button>
+              ) : null}
             </div>
           </div>
         </div>
