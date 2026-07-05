@@ -1,15 +1,10 @@
 import { Fragment, useMemo, useState } from 'react'
-import {
-  ChevronDown,
-  FilePlus2,
-  Hammer,
-  ReceiptText,
-  ScrollText,
-} from 'lucide-react'
+import { ChevronDown, FilePlus2, Layers3, Plus } from 'lucide-react'
 
 import { PageHeader } from '@/components/shared/PageHeader'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -30,15 +25,22 @@ import { formatCurrency, formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 type TransactionAction = {
-  type: TransactionType
   budgetLine: BudgetLineSummaryViewModel
   product: ProductSummaryViewModel
 }
 
-const transactionActionLabels: Record<TransactionType, string> = {
-  quote: 'Ajouter un devis',
-  diy_estimate: 'Ajouter une estimation DIY',
-  invoice: 'Ajouter une facture',
+type BreakdownAction = {
+  product: ProductSummaryViewModel
+}
+
+type ActiveAction =
+  | ({ kind: 'transaction' } & TransactionAction)
+  | ({ kind: 'breakdown' } & BreakdownAction)
+
+const transactionTypeLabels: Record<TransactionType, string> = {
+  quote: 'Devis',
+  diy_estimate: 'Estimation DIY',
+  invoice: 'Facture',
 }
 
 function sumBudgetLines(
@@ -172,44 +174,83 @@ function CategoryHeader({
   )
 }
 
-function TransactionActionButtons({
+function ProductContextRows({
+  product,
+  line,
+  onAddBreakdown,
+  onAddTransaction,
+}: {
+  product: ProductSummaryViewModel
+  line: BudgetLineSummaryViewModel | null
+  onAddBreakdown: (action: BreakdownAction) => void
+  onAddTransaction: (action: TransactionAction) => void
+}) {
+  const supportsBreakdowns = line === null
+
+  return (
+    <TableRow className="border-t-0 bg-card hover:!bg-card">
+      <TableCell colSpan={7} className="px-6 py-2">
+        <div className="flex items-center justify-between border-t border-border/50 pt-2 pl-7">
+          <span className="text-xs text-muted-foreground">
+            {supportsBreakdowns
+              ? 'Produit décomposé en postes de budget'
+              : 'Transactions rattachées directement au produit'}
+          </span>
+          {supportsBreakdowns ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 text-muted-foreground hover:!bg-gold/15 hover:!text-gold"
+              onClick={() => onAddBreakdown({ product })}
+            >
+              <Layers3 aria-hidden="true" />
+              Ajouter un sous-produit
+            </Button>
+          ) : line ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 text-muted-foreground hover:!bg-gold/15 hover:!text-gold"
+              onClick={() => onAddTransaction({ budgetLine: line, product })}
+            >
+              <Plus aria-hidden="true" />
+              Ajouter une transaction
+            </Button>
+          ) : null}
+        </div>
+      </TableCell>
+    </TableRow>
+  )
+}
+
+function BudgetLineContextRow({
   line,
   product,
-  onAction,
+  onAddTransaction,
 }: {
   line: BudgetLineSummaryViewModel
   product: ProductSummaryViewModel
-  onAction: (action: TransactionAction) => void
+  onAddTransaction: (action: TransactionAction) => void
 }) {
   return (
-    <div className="flex justify-end gap-1">
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => onAction({ type: 'quote', budgetLine: line, product })}
-      >
-        <ScrollText aria-hidden="true" />
-        Devis
-      </Button>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() =>
-          onAction({ type: 'diy_estimate', budgetLine: line, product })
-        }
-      >
-        <Hammer aria-hidden="true" />
-        DIY
-      </Button>
-      <Button
-        size="sm"
-        variant="gold"
-        onClick={() => onAction({ type: 'invoice', budgetLine: line, product })}
-      >
-        <ReceiptText aria-hidden="true" />
-        Facture
-      </Button>
-    </div>
+    <TableRow className="border-t-0 bg-muted/25 hover:!bg-muted/25">
+      <TableCell colSpan={7} className="px-6 py-2">
+        <div className="flex items-center justify-between border-t border-border/50 pt-2 pl-20">
+          <span className="text-xs text-muted-foreground">
+            Transactions de ce poste de budget
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 text-muted-foreground hover:!bg-gold/15 hover:!text-gold"
+            onClick={() => onAddTransaction({ budgetLine: line, product })}
+          >
+            <Plus aria-hidden="true" />
+            Ajouter une transaction
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
   )
 }
 
@@ -224,7 +265,7 @@ function SubcategoryRow({
 }) {
   return (
     <TableRow className="bg-muted/70 hover:bg-muted/70">
-      <TableCell colSpan={8} className="px-4 py-2">
+      <TableCell colSpan={7} className="px-4 py-2">
         <button
           type="button"
           className="flex w-full flex-col gap-2 text-left sm:flex-row sm:items-center sm:justify-between"
@@ -259,32 +300,23 @@ function ProductRow({
   product,
   isOpen,
   onToggle,
-  onAction,
 }: {
   product: ProductSummaryViewModel
   isOpen: boolean
   onToggle: () => void
-  onAction: (action: TransactionAction) => void
 }) {
-  const wholeProductLine = getWholeProductBudgetLine(product)
-
   return (
     <TableRow className="bg-card hover:bg-muted/40">
       <TableCell className="min-w-72 pl-6">
         <button
           type="button"
-          className="flex w-full items-center gap-2 text-left"
+          className="flex w-full items-center gap-3 text-left"
           onClick={onToggle}
           aria-expanded={isOpen}
         >
           <ToggleIcon isOpen={isOpen} />
-          <span>
-            <span className="block font-medium text-foreground">
-              {product.product_name}
-            </span>
-            <span className="mt-0.5 block text-xs text-muted-foreground">
-              Produit
-            </span>
+          <span className="block font-medium text-foreground">
+            {product.product_name}
           </span>
         </button>
       </TableCell>
@@ -311,33 +343,18 @@ function ProductRow({
       >
         {formatCurrency(product.selected_budget_variance_ttc)}
       </TableCell>
-      <TableCell>
-        {wholeProductLine ? (
-          <TransactionActionButtons
-            line={wholeProductLine}
-            product={product}
-            onAction={onAction}
-          />
-        ) : (
-          <span className="block text-right text-muted-foreground">-</span>
-        )}
-      </TableCell>
     </TableRow>
   )
 }
 
 function BudgetLineRow({
   line,
-  product,
   isOpen,
   onToggle,
-  onAction,
 }: {
   line: BudgetLineSummaryViewModel
-  product: ProductSummaryViewModel
   isOpen: boolean
   onToggle: () => void
-  onAction: (action: TransactionAction) => void
 }) {
   return (
     <TableRow className="bg-muted/25 hover:bg-muted/50">
@@ -349,6 +366,10 @@ function BudgetLineRow({
           aria-expanded={isOpen}
         >
           <ToggleIcon isOpen={isOpen} />
+          <span
+            className="h-7 w-1.5 rounded-full bg-gold/75"
+            aria-hidden="true"
+          />
           <span>
             <span className="block font-medium text-foreground">
               {line.name}
@@ -382,76 +403,110 @@ function BudgetLineRow({
       >
         {formatCurrency(line.selected_budget_variance_ttc)}
       </TableCell>
-      <TableCell>
-        <TransactionActionButtons
-          line={line}
-          product={product}
-          onAction={onAction}
-        />
-      </TableCell>
     </TableRow>
   )
 }
 
 function TransactionsRows({
   transactions,
+  onAddTransaction,
+  level = 'product',
 }: {
   transactions: TransactionViewModel[]
+  onAddTransaction: () => void
+  level?: 'product' | 'breakdown'
 }) {
   return (
-    <TableRow className="border-t-0 bg-background hover:bg-background">
-      <TableCell colSpan={8} className="p-0">
-        <div className="bg-background px-8 py-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Fournisseur</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Montant TTC</TableHead>
-                <TableHead>Statut devis</TableHead>
-                <TableHead>Statut facture</TableHead>
-                <TableHead>Document</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactions.map((transaction) => (
-                <TableRow key={transaction.id}>
-                  <TableCell>{formatDate(transaction.issued_date)}</TableCell>
-                  <TableCell>
-                    <StatusBadge status={transaction.transaction_type} />
-                  </TableCell>
-                  <TableCell>
-                    {transaction.supplier_name ?? 'Autoconstruction'}
-                  </TableCell>
-                  <TableCell className="min-w-96">
-                    {transaction.description}
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatCurrency(transaction.amount_ttc)}
-                  </TableCell>
-                  <TableCell>
-                    {transaction.quote_status ? (
-                      <StatusBadge status={transaction.quote_status} />
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {transaction.invoice_status ? (
-                      <StatusBadge status={transaction.invoice_status} />
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={transaction.document_state} />
+    <TableRow className="border-t-0 bg-muted/10 hover:!bg-muted/10">
+      <TableCell colSpan={7} className="p-0">
+        <div
+          className={cn('py-2 pr-6', level === 'breakdown' ? 'pl-20' : 'pl-14')}
+        >
+          <div className="bg-background/70">
+            <Table className="text-xs">
+              <TableHeader className="bg-transparent">
+                <TableRow className="border-t-0 border-border/50 hover:!bg-transparent">
+                  <TableHead className="whitespace-nowrap px-3 py-2 text-[11px] uppercase text-muted-foreground">
+                    Date
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap px-3 py-2 text-[11px] uppercase text-muted-foreground">
+                    Type
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap px-3 py-2 text-[11px] uppercase text-muted-foreground">
+                    Fournisseur
+                  </TableHead>
+                  <TableHead className="min-w-80 px-3 py-2 text-[11px] uppercase text-muted-foreground">
+                    Description
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap px-3 py-2 text-right text-[11px] uppercase text-muted-foreground">
+                    Montant TTC
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap px-3 py-2 text-[11px] uppercase text-muted-foreground">
+                    Statut devis
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap px-3 py-2 text-[11px] uppercase text-muted-foreground">
+                    Statut facture
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap px-3 py-2 text-[11px] uppercase text-muted-foreground">
+                    Document
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transactions.map((transaction) => (
+                  <TableRow
+                    key={transaction.id}
+                    className="border-border/40 hover:!bg-transparent"
+                  >
+                    <TableCell className="whitespace-nowrap px-3 py-2">
+                      {formatDate(transaction.issued_date)}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-3 py-2">
+                      <StatusBadge status={transaction.transaction_type} />
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-3 py-2">
+                      {transaction.supplier_name ?? 'Autoconstruction'}
+                    </TableCell>
+                    <TableCell className="min-w-80 px-3 py-2">
+                      {transaction.description}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-3 py-2 text-right font-medium">
+                      {formatCurrency(transaction.amount_ttc)}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-3 py-2">
+                      {transaction.quote_status ? (
+                        <StatusBadge status={transaction.quote_status} />
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-3 py-2">
+                      {transaction.invoice_status ? (
+                        <StatusBadge status={transaction.invoice_status} />
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-3 py-2">
+                      <StatusBadge status={transaction.document_state} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+                <TableRow className="border-border/40 hover:!bg-transparent">
+                  <TableCell colSpan={8} className="px-3 py-2">
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
+                      onClick={onAddTransaction}
+                    >
+                      <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                      Ajouter une transaction
+                    </button>
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </TableCell>
     </TableRow>
@@ -471,9 +526,9 @@ export function BudgetPage() {
   const [openBudgetLines, setOpenBudgetLines] = useState<Set<string>>(
     () => new Set(),
   )
-  const [activeAction, setActiveAction] = useState<TransactionAction | null>(
-    null,
-  )
+  const [activeAction, setActiveAction] = useState<ActiveAction | null>(null)
+  const [selectedTransactionType, setSelectedTransactionType] =
+    useState<TransactionType>('quote')
 
   const visibleCounts = useMemo(
     () => ({
@@ -494,6 +549,11 @@ export function BudgetPage() {
       else next.add(id)
       return next
     })
+  }
+
+  function openTransactionAction(action: TransactionAction) {
+    setSelectedTransactionType('quote')
+    setActiveAction({ kind: 'transaction', ...action })
   }
 
   return (
@@ -566,7 +626,6 @@ export function BudgetPage() {
                       <TableHead className="text-right">Payé</TableHead>
                       <TableHead className="text-right">À payer</TableHead>
                       <TableHead className="text-right">Écart</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -603,47 +662,83 @@ export function BudgetPage() {
                                           product.product_id,
                                         )
                                       }
-                                      onAction={setActiveAction}
                                     />
                                     {isProductOpen ? (
-                                      wholeProductLine ? (
-                                        <TransactionsRows
-                                          transactions={
-                                            wholeProductLine.transactions
+                                      <>
+                                        <ProductContextRows
+                                          product={product}
+                                          line={wholeProductLine}
+                                          onAddBreakdown={(action) =>
+                                            setActiveAction({
+                                              kind: 'breakdown',
+                                              ...action,
+                                            })
+                                          }
+                                          onAddTransaction={
+                                            openTransactionAction
                                           }
                                         />
-                                      ) : (
-                                        product.budget_lines.map((line) => {
-                                          const isLineOpen =
-                                            openBudgetLines.has(
-                                              line.budget_line_id,
-                                            )
+                                        {wholeProductLine ? (
+                                          <TransactionsRows
+                                            transactions={
+                                              wholeProductLine.transactions
+                                            }
+                                            onAddTransaction={() =>
+                                              openTransactionAction({
+                                                budgetLine: wholeProductLine,
+                                                product,
+                                              })
+                                            }
+                                          />
+                                        ) : (
+                                          product.budget_lines.map((line) => {
+                                            const isLineOpen =
+                                              openBudgetLines.has(
+                                                line.budget_line_id,
+                                              )
 
-                                          return (
-                                            <Fragment key={line.budget_line_id}>
-                                              <BudgetLineRow
-                                                line={line}
-                                                product={product}
-                                                isOpen={isLineOpen}
-                                                onToggle={() =>
-                                                  toggleSet(
-                                                    setOpenBudgetLines,
-                                                    line.budget_line_id,
-                                                  )
-                                                }
-                                                onAction={setActiveAction}
-                                              />
-                                              {isLineOpen ? (
-                                                <TransactionsRows
-                                                  transactions={
-                                                    line.transactions
+                                            return (
+                                              <Fragment
+                                                key={line.budget_line_id}
+                                              >
+                                                <BudgetLineRow
+                                                  line={line}
+                                                  isOpen={isLineOpen}
+                                                  onToggle={() =>
+                                                    toggleSet(
+                                                      setOpenBudgetLines,
+                                                      line.budget_line_id,
+                                                    )
                                                   }
                                                 />
-                                              ) : null}
-                                            </Fragment>
-                                          )
-                                        })
-                                      )
+                                                {isLineOpen ? (
+                                                  <>
+                                                    <BudgetLineContextRow
+                                                      line={line}
+                                                      product={product}
+                                                      onAddTransaction={
+                                                        openTransactionAction
+                                                      }
+                                                    />
+                                                    <TransactionsRows
+                                                      level="breakdown"
+                                                      transactions={
+                                                        line.transactions
+                                                      }
+                                                      onAddTransaction={() =>
+                                                        openTransactionAction({
+                                                          budgetLine: line,
+                                                          product,
+                                                        })
+                                                      }
+                                                    />
+                                                  </>
+                                                ) : null}
+                                              </Fragment>
+                                            )
+                                          })
+                                        )}
+                                      </>
                                     ) : null}
                                   </Fragment>
                                 )
@@ -667,16 +762,54 @@ export function BudgetPage() {
               <span className="flex h-10 w-10 items-center justify-center rounded-md bg-gold/15 text-gold">
                 <FilePlus2 className="h-5 w-5" aria-hidden="true" />
               </span>
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="font-heading text-xl font-semibold">
-                  {transactionActionLabels[activeAction.type]}
+                  {activeAction.kind === 'transaction'
+                    ? 'Ajouter une transaction'
+                    : 'Ajouter un sous-produit'}
                 </p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Action de démonstration depuis la ligne «{' '}
-                  {activeAction.budgetLine.name} » du produit «{' '}
-                  {activeAction.product.product_name} ». Le formulaire
-                  compatible backend arrive au Chunk 7.
-                </p>
+                {activeAction.kind === 'transaction' ? (
+                  <>
+                    <div className="mt-4">
+                      <label
+                        htmlFor="transaction-type"
+                        className="text-xs font-medium uppercase text-muted-foreground"
+                      >
+                        Type de transaction
+                      </label>
+                      <Select
+                        id="transaction-type"
+                        className="mt-1"
+                        value={selectedTransactionType}
+                        onChange={(event) =>
+                          setSelectedTransactionType(
+                            event.target.value as TransactionType,
+                          )
+                        }
+                      >
+                        {Object.entries(transactionTypeLabels).map(
+                          ([type, label]) => (
+                            <option key={type} value={type}>
+                              {label}
+                            </option>
+                          ),
+                        )}
+                      </Select>
+                    </div>
+                    <p className="mt-3 text-sm text-muted-foreground">
+                      Action de démonstration depuis la ligne «{' '}
+                      {activeAction.budgetLine.name} » du produit «{' '}
+                      {activeAction.product.product_name} ». Le formulaire
+                      compatible backend arrive au Chunk 7.
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Action de démonstration pour ajouter un poste de budget au
+                    produit « {activeAction.product.product_name} ». Le
+                    formulaire compatible backend arrive au Chunk 7.
+                  </p>
+                )}
               </div>
             </div>
             <div className="mt-6 flex justify-end">
