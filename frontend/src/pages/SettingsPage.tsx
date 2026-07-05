@@ -6,7 +6,6 @@ export function SettingsPage() {
   return (
     <section>
       <PageHeader
-        eyebrow="Configuration"
         title="Parametres"
         description="Point d'entree pour les reglages, le catalogue et les modeles de projet."
       />

@@ -92,7 +92,6 @@ export function DashboardPage() {
   return (
     <section>
       <PageHeader
-        eyebrow="Vue projet"
         title="Tableau de bord"
         description={`Aperçu financier pour ${dashboardViewModel.project.name}. Données dérivées des seeds backend.`}
       />

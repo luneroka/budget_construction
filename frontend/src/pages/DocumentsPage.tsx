@@ -16,7 +16,6 @@ export function DocumentsPage() {
   return (
     <section>
       <PageHeader
-        eyebrow="Justificatifs"
         title="Documents"
         description="Recherche et suivi des fichiers rattaches aux transactions du projet."
       />

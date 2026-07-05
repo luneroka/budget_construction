@@ -19,7 +19,6 @@ export function SuppliersPage() {
   return (
     <section>
       <PageHeader
-        eyebrow="Annuaire"
         title="Fournisseurs"
         description="Gestion des fournisseurs selon les champs backend: nom, contact, telephone, email, SIRET et commentaire."
         actions={

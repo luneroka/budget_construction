@@ -687,7 +687,6 @@ export function BudgetPage() {
   return (
     <section>
       <PageHeader
-        eyebrow="Workspace"
         title="Budget"
         description={`${project.name} · ${visibleCounts.categories} catégories, ${visibleCounts.products} produits et ${visibleCounts.transactions} transactions.`}
       />

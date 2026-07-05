@@ -7,7 +7,6 @@ export function NotFoundPage() {
   return (
     <section>
       <PageHeader
-        eyebrow="Introuvable"
         title="Page inconnue"
         description="Cette route ne correspond a aucun ecran de l'application."
       />
