@@ -1,18 +1,18 @@
 import { Fragment, useMemo, useState } from 'react'
-import { ChevronDown, FilePlus2, Layers3, Plus } from 'lucide-react'
+import {
+  ChevronDown,
+  Eye,
+  FilePlus2,
+  Layers3,
+  Paperclip,
+  Plus,
+} from 'lucide-react'
 
 import { PageHeader } from '@/components/shared/PageHeader'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import { budgetWorkspaceViewModel } from '@/demo/demo-data'
 import type {
   BudgetCategoryViewModel,
@@ -162,7 +162,7 @@ function CategoryHeader({
       <span className="flex min-w-0 items-center gap-2 sm:col-span-2">
         <ToggleIcon isOpen={isOpen} />
         <span>
-          <span className="block font-heading text-lg font-semibold">
+          <span className="block text-lg font-semibold">
             {category.category_name}
           </span>
           <span className="mt-0.5 block text-xs text-primary-foreground/75">
@@ -341,7 +341,7 @@ function SubcategoryRow({
           <div className="flex min-w-0 items-center gap-2">
             <ToggleIcon isOpen={isOpen} />
             <div>
-              <p className="truncate font-heading text-base font-semibold text-foreground">
+              <p className="truncate text-base font-semibold text-foreground">
                 {group.name}
               </p>
             </div>
@@ -511,98 +511,113 @@ function BudgetLineRow({
 function TransactionsRows({
   transactions,
   onAddTransaction,
+  onViewTransaction,
 }: {
   transactions: TransactionViewModel[]
   onAddTransaction: () => void
+  onViewTransaction: (transaction: TransactionViewModel) => void
 }) {
+  const transactionGridClass =
+    'grid min-w-[44rem] grid-cols-[5rem_8rem_minmax(10rem,1fr)_7rem_6.25rem_4rem_4rem] items-center'
+
   return (
     <TableRow className="border-t-0 bg-muted/10 hover:bg-muted/10!">
-      <TableCell colSpan={7} className="p-0">
-        <div className="pt-0 pr-6 pb-2">
-          <div className="bg-background/70">
-            <Table className="text-xs">
-              <TableHeader className="bg-transparent">
-                <TableRow className="border-t-0 border-border/50 hover:bg-transparent!">
-                  <TableHead className="whitespace-nowrap px-2 py-2 text-[11px] uppercase text-muted-foreground">
-                    Date
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap px-2 py-2 text-[11px] uppercase text-muted-foreground">
-                    Type
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap px-2 py-2 text-[11px] uppercase text-muted-foreground">
-                    Fournisseur
-                  </TableHead>
-                  <TableHead className="min-w-80 px-2 py-2 text-[11px] uppercase text-muted-foreground">
-                    Description
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap px-2 py-2 text-right text-[11px] uppercase text-muted-foreground">
-                    Montant TTC
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap px-2 py-2 text-[11px] uppercase text-muted-foreground">
-                    Statut devis
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap px-2 py-2 text-[11px] uppercase text-muted-foreground">
-                    Statut facture
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap px-2 py-2 text-[11px] uppercase text-muted-foreground">
-                    Document
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions.map((transaction) => (
-                  <TableRow
-                    key={transaction.id}
-                    className="border-border/40 hover:bg-transparent!"
-                  >
-                    <TableCell className="whitespace-nowrap px-2 py-2">
-                      {formatDate(transaction.issued_date)}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap px-2 py-2">
-                      <StatusBadge status={transaction.transaction_type} />
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap px-2 py-2">
-                      {transaction.supplier_name ?? 'Autoconstruction'}
-                    </TableCell>
-                    <TableCell className="min-w-80 px-2 py-2">
-                      {transaction.description}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap px-2 py-2 text-right font-medium">
-                      {formatCurrency(transaction.amount_ttc)}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap px-2 py-2">
-                      {transaction.quote_status ? (
-                        <StatusBadge status={transaction.quote_status} />
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap px-2 py-2">
-                      {transaction.invoice_status ? (
-                        <StatusBadge status={transaction.invoice_status} />
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap px-2 py-2">
-                      <StatusBadge status={transaction.document_state} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-                <TableRow className="border-border/40 hover:bg-transparent!">
-                  <TableCell colSpan={8} className="px-2 py-2">
+      <TableCell colSpan={7} className="max-w-0 p-0">
+        <div className="min-w-0 px-6 pb-2">
+          <div className="w-full min-w-0 overflow-x-auto bg-background/70 text-xs">
+            <div
+              className={cn(transactionGridClass, 'border-t border-border/50')}
+            >
+              <div className="px-1.5 py-2 text-[11px] font-semibold text-muted-foreground uppercase">
+                Date
+              </div>
+              <div className="px-1.5 py-2 text-[11px] font-semibold text-muted-foreground uppercase">
+                Type
+              </div>
+              <div className="px-2 py-2 text-[11px] font-semibold text-muted-foreground uppercase">
+                Fournisseur
+              </div>
+              <div className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground uppercase">
+                Montant TTC
+              </div>
+              <div className="px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase">
+                Statut
+              </div>
+              <div className="px-1 py-2 text-center text-[11px] font-semibold text-muted-foreground uppercase">
+                Voir
+              </div>
+              <div className="px-1 py-2 text-center text-[11px] font-semibold text-muted-foreground uppercase">
+                Doc
+              </div>
+            </div>
+
+            {transactions.map((transaction) => {
+              const financialStatus =
+                transaction.quote_status ?? transaction.invoice_status
+
+              return (
+                <div
+                  key={transaction.id}
+                  className={cn(
+                    transactionGridClass,
+                    'border-t border-border/40',
+                  )}
+                >
+                  <div className="px-1.5 py-2 whitespace-nowrap">
+                    {formatDate(transaction.issued_date)}
+                  </div>
+                  <div className="px-1.5 py-2 whitespace-nowrap">
+                    <StatusBadge status={transaction.transaction_type} />
+                  </div>
+                  <div className="min-w-0 px-2 py-2 leading-snug wrap-break-words">
+                    {transaction.supplier_name ?? 'Autoconstruction'}
+                  </div>
+                  <div className="px-3 py-2 text-right font-medium whitespace-nowrap">
+                    {formatCurrency(transaction.amount_ttc)}
+                  </div>
+                  <div className="px-3 py-2 whitespace-nowrap">
+                    {financialStatus ? (
+                      <StatusBadge status={financialStatus} />
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </div>
+                  <div className="px-1 py-2 text-center whitespace-nowrap">
                     <button
                       type="button"
-                      className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
-                      onClick={onAddTransaction}
+                      className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
+                      onClick={() => onViewTransaction(transaction)}
+                      aria-label="Voir la transaction"
                     >
-                      <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                      Ajouter une transaction
+                      <Eye className="h-4 w-4" aria-hidden="true" />
                     </button>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+                  </div>
+                  <div className="px-1 py-2 text-center whitespace-nowrap">
+                    {transaction.document_state === 'attached' ? (
+                      <Paperclip
+                        className="mx-auto h-4 w-4 text-muted-foreground"
+                        aria-label="Document joint"
+                      />
+                    ) : null}
+                  </div>
+                </div>
+              )
+            })}
+
+            <div
+              className={cn(transactionGridClass, 'border-t border-border/40')}
+            >
+              <div className="col-span-7 px-2 py-2">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
+                  onClick={onAddTransaction}
+                >
+                  <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                  Ajouter une transaction
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </TableCell>
@@ -624,6 +639,8 @@ export function BudgetPage() {
     () => new Set(),
   )
   const [activeAction, setActiveAction] = useState<ActiveAction | null>(null)
+  const [viewedTransaction, setViewedTransaction] =
+    useState<TransactionViewModel | null>(null)
   const [selectedTransactionType, setSelectedTransactionType] =
     useState<TransactionType>('quote')
   const [selectedStructureChoice, setSelectedStructureChoice] =
@@ -801,6 +818,9 @@ export function BudgetPage() {
                                               transactions={
                                                 wholeProductLine.transactions
                                               }
+                                              onViewTransaction={
+                                                setViewedTransaction
+                                              }
                                               onAddTransaction={() =>
                                                 openTransactionAction({
                                                   budgetLine: wholeProductLine,
@@ -841,6 +861,9 @@ export function BudgetPage() {
                                                       <TransactionsRows
                                                         transactions={
                                                           line.transactions
+                                                        }
+                                                        onViewTransaction={
+                                                          setViewedTransaction
                                                         }
                                                         onAddTransaction={() =>
                                                           openTransactionAction(
@@ -1016,6 +1039,43 @@ export function BudgetPage() {
                   Continuer
                 </Button>
               ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {viewedTransaction ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 px-4">
+          <div className="w-full max-w-lg rounded-lg border border-border bg-card p-6 text-foreground shadow-lg">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-md bg-gold/15 text-gold">
+                <Eye className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-heading text-xl font-semibold">
+                  Détails de la transaction
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Placeholder pour les détails de la transaction. Le contenu
+                  complet sera raccordé ultérieurement.
+                </p>
+                <div className="mt-4 rounded-md border border-border bg-background p-3 text-sm">
+                  <p className="font-medium text-foreground">
+                    {formatCurrency(viewedTransaction.amount_ttc)}
+                  </p>
+                  <p className="mt-1 text-muted-foreground">
+                    {formatDate(viewedTransaction.issued_date)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setViewedTransaction(null)}
+              >
+                Fermer
+              </Button>
             </div>
           </div>
         </div>
