@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   FileText,
   LayoutDashboard,
-  ReceiptText,
+  CircleDollarSign,
   Settings,
   Users,
 } from 'lucide-react'
@@ -17,13 +17,13 @@ type SidebarItem = {
 
 const primaryItems: SidebarItem[] = [
   { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
-  { label: 'Budget', to: '/budget', icon: ReceiptText },
+  { label: 'Budget', to: '/budget', icon: CircleDollarSign },
   { label: 'Fournisseurs', to: '/suppliers', icon: Users },
   { label: 'Documents', to: '/documents', icon: FileText },
 ]
 
 const secondaryItems: SidebarItem[] = [
-  { label: 'Parametres', to: '/settings', icon: Settings },
+  { label: 'Paramètres', to: '/settings', icon: Settings },
 ]
 
 function navClassName({ isActive }: { isActive: boolean }) {
@@ -57,7 +57,7 @@ export function SidebarNav() {
   return (
     <nav className="flex-1 space-y-4 p-3">
       <SidebarSection items={primaryItems} />
-      <div className="border-t border-sidebar-border pt-4">
+      <div className="-mx-3 border-t border-sidebar-border px-3 pt-4">
         <SidebarSection items={secondaryItems} />
       </div>
     </nav>

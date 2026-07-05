@@ -5,7 +5,7 @@ import { BudgetPage } from '@/pages/BudgetPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { DocumentsPage } from '@/pages/DocumentsPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
-import { SettingsPage } from '@/pages/SettingsPage'
+import { ProjectsSettingsPage, SettingsPage } from '@/pages/SettingsPage'
 import { SuppliersPage } from '@/pages/SuppliersPage'
 
 export default function App() {
@@ -19,6 +19,7 @@ export default function App() {
           <Route path="suppliers" element={<SuppliersPage />} />
           <Route path="documents" element={<DocumentsPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings/projects" element={<ProjectsSettingsPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

@@ -1,30 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
-import {
-  Archive,
-  ChevronDown,
-  Copy,
-  FolderPlus,
-  MoreHorizontal,
-  Trash2,
-} from 'lucide-react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
+import { Check, ChevronDown, FolderPlus, Settings } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
 
-import { formatCurrency, formatProjectStatus } from '@/lib/format'
 import { projectViewModels } from '@/demo/demo-data'
+import { formatCurrency, formatProjectStatus } from '@/lib/format'
 
 const STORAGE_KEY = 'budget-construction:selected-project-id'
-
-type ProjectAction = 'create' | 'duplicate' | 'archive' | 'delete'
-
-const projectActions: Array<{
-  id: ProjectAction
-  label: string
-  icon: typeof FolderPlus
-}> = [
-  { id: 'create', label: 'Creer un projet', icon: FolderPlus },
-  { id: 'duplicate', label: 'Dupliquer', icon: Copy },
-  { id: 'archive', label: 'Archiver', icon: Archive },
-  { id: 'delete', label: 'Supprimer', icon: Trash2 },
-]
 
 function getInitialProjectId() {
   if (typeof window === 'undefined') {
@@ -40,10 +22,11 @@ function getInitialProjectId() {
 }
 
 export function ProjectSwitcher() {
+  const navigate = useNavigate()
   const [selectedProjectId, setSelectedProjectId] =
     useState(getInitialProjectId)
   const [isProjectListOpen, setIsProjectListOpen] = useState(false)
-  const [activeAction, setActiveAction] = useState<ProjectAction | null>(null)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
   const selectedProject = useMemo(
     () =>
@@ -62,113 +45,154 @@ export function ProjectSwitcher() {
     return null
   }
 
-  return (
-    <div className="border-b border-sidebar-border p-4">
-      <button
-        type="button"
-        className="flex w-full items-start justify-between gap-3 rounded-md bg-sidebar-accent/60 p-3 text-left transition-colors hover:bg-sidebar-accent"
-        onClick={() => setIsProjectListOpen((isOpen) => !isOpen)}
-        aria-expanded={isProjectListOpen}
-      >
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold text-sidebar-foreground">
-            {selectedProject.name}
-          </span>
-          <span className="mt-1 block text-xs text-sidebar-foreground/65">
-            {formatCurrency(selectedProject.selected_budget_amount_ttc)} ·{' '}
-            {formatProjectStatus(selectedProject.project_status)}
-          </span>
-          <span className="mt-1 block truncate text-xs text-sidebar-foreground/45">
-            {selectedProject.location}
-          </span>
-        </span>
-        <ChevronDown
-          className={`mt-0.5 h-4 w-4 shrink-0 text-gold transition-transform ${
-            isProjectListOpen ? 'rotate-180' : ''
-          }`}
-          aria-hidden="true"
-        />
-      </button>
-
-      {isProjectListOpen ? (
-        <div className="mt-3 rounded-md border border-sidebar-border bg-sidebar-accent/30 p-2">
-          <div className="space-y-1">
-            {projectViewModels.map((project) => (
-              <button
-                type="button"
-                key={project.id}
-                className={`w-full rounded-sm px-2 py-2 text-left transition-colors ${
-                  project.id === selectedProjectId
-                    ? 'bg-sidebar-accent text-gold'
-                    : 'text-sidebar-foreground/75 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground'
-                }`}
-                onClick={() => {
-                  setSelectedProjectId(project.id)
-                  setIsProjectListOpen(false)
-                }}
-              >
-                <span className="block truncate text-sm font-medium">
-                  {project.name}
-                </span>
-                <span className="mt-0.5 block text-xs opacity-70">
-                  {formatCurrency(project.selected_budget_amount_ttc)} ·{' '}
-                  {formatProjectStatus(project.project_status)}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      <div className="mt-3 grid grid-cols-4 gap-1">
-        {projectActions.map((action) => (
-          <button
-            type="button"
-            key={action.id}
-            className="flex h-9 items-center justify-center rounded-md text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-gold"
-            onClick={() => setActiveAction(action.id)}
-            title={action.label}
-            aria-label={action.label}
-          >
-            <action.icon className="h-4 w-4" aria-hidden="true" />
-          </button>
-        ))}
-      </div>
-
-      <button
-        type="button"
-        className="mt-2 flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-xs text-sidebar-foreground/55 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-        onClick={() => setActiveAction('create')}
-      >
-        <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
-        Gerer les projets
-      </button>
-
-      {activeAction ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 px-4">
-          <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-foreground shadow-lg">
-            <p className="font-heading text-xl font-semibold">
-              Gestion de projet
-            </p>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Action placeholder:{' '}
-              {projectActions.find((action) => action.id === activeAction)
-                ?.label ?? 'Gerer les projets'}
-              . Les formulaires complets seront traites dans les chunks
-              suivants.
-            </p>
+  const createProjectModal = isCreateModalOpen
+    ? createPortal(
+        <div className="fixed inset-0 z-1000 flex items-center justify-center bg-foreground/45 px-4">
+          <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-foreground shadow-xl">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-gold/15 text-gold">
+                <FolderPlus className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <p className="font-heading text-xl font-semibold">
+                  Nouveau projet
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Placeholder pour la création de projet. Le formulaire complet
+                  sera raccordé ultérieurement.
+                </p>
+              </div>
+            </div>
             <div className="mt-6 flex justify-end">
               <button
                 type="button"
                 className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                onClick={() => setActiveAction(null)}
+                onClick={() => setIsCreateModalOpen(false)}
               >
                 Fermer
               </button>
             </div>
           </div>
+        </div>,
+        document.body,
+      )
+    : null
+
+  return (
+    <div className="border-b border-sidebar-border p-4">
+      <button
+        type="button"
+        className="w-full rounded-md border border-sidebar-border bg-sidebar-accent/35 px-3 py-3 text-left transition-colors hover:bg-sidebar-accent/55"
+        onClick={() => setIsProjectListOpen((isOpen) => !isOpen)}
+        aria-expanded={isProjectListOpen}
+      >
+        <span className="flex items-start justify-between gap-3">
+          <span className="min-w-0">
+            <span className="block text-xs font-medium text-sidebar-foreground/55">
+              Projet actif
+            </span>
+            <span className="mt-1 block truncate text-sm font-semibold text-sidebar-foreground">
+              {selectedProject.name}
+            </span>
+            <span className="mt-1 block truncate text-xs text-sidebar-foreground/60">
+              {selectedProject.location}
+            </span>
+            <span className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-sidebar-foreground/70">
+              <span>{formatProjectStatus(selectedProject.project_status)}</span>
+              <span aria-hidden="true">·</span>
+              <span>
+                {formatCurrency(selectedProject.selected_budget_amount_ttc)}
+              </span>
+            </span>
+          </span>
+          <ChevronDown
+            className={`mt-1 h-4 w-4 shrink-0 text-gold transition-transform ${
+              isProjectListOpen ? 'rotate-180' : ''
+            }`}
+            aria-hidden="true"
+          />
+        </span>
+      </button>
+
+      {isProjectListOpen ? (
+        <div className="mt-3 overflow-hidden rounded-md border border-sidebar-border bg-sidebar-accent/20 shadow-sm">
+          <div className="py-1">
+            {projectViewModels.map((project) => (
+              <ProjectMenuItem
+                key={project.id}
+                label={project.name}
+                icon={
+                  project.id === selectedProjectId ? (
+                    <Check className="h-4 w-4 stroke-[1.8]" aria-hidden="true" />
+                  ) : null
+                }
+                onClick={() => {
+                  setSelectedProjectId(project.id)
+                  setIsProjectListOpen(false)
+                }}
+              />
+            ))}
+          </div>
+
+          <div className="border-t border-sidebar-border" />
+
+          <ProjectMenuItem
+            icon={
+              <FolderPlus
+                className="h-4 w-4 stroke-[1.8]"
+                aria-hidden="true"
+              />
+            }
+            label="Nouveau projet"
+            onClick={() => {
+              setIsCreateModalOpen(true)
+              setIsProjectListOpen(false)
+            }}
+          />
+
+          <div className="border-t border-sidebar-border" />
+
+          <ProjectMenuItem
+            icon={
+              <Settings className="h-4 w-4 stroke-[1.8]" aria-hidden="true" />
+            }
+            label="Gérer les projets"
+            onClick={() => {
+              setIsProjectListOpen(false)
+              navigate('/settings/projects')
+            }}
+          />
         </div>
       ) : null}
+
+      {createProjectModal}
     </div>
+  )
+}
+
+type ProjectMenuItemProps = {
+  label: string
+  icon?: ReactNode
+  onClick: () => void
+}
+
+function ProjectMenuItem({
+  label,
+  icon,
+  onClick,
+}: ProjectMenuItemProps) {
+  return (
+    <button
+      type="button"
+      className="flex h-10 w-full items-center gap-3 px-3 text-left font-body text-sm font-normal leading-5 text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+      onClick={onClick}
+    >
+      <span className="flex h-4 w-4 shrink-0 items-center justify-center text-gold">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1 truncate font-body text-sm font-normal leading-5">
+        {label}
+      </span>
+    </button>
   )
 }

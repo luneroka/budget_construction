@@ -1,27 +1,51 @@
+import { FolderKanban, SlidersHorizontal } from 'lucide-react'
+import { Link } from 'react-router-dom'
+
 import { PageHeader } from '@/components/shared/PageHeader'
 import { SectionCard } from '@/components/shared/SectionCard'
-import { budgetWorkspaceViewModel, templateViewModels } from '@/demo/demo-data'
+import { SettingsBackButton } from '@/components/shared/SettingsBackButton'
 
 export function SettingsPage() {
   return (
     <section>
       <PageHeader
-        title="Parametres"
-        description="Point d'entree pour les reglages, le catalogue et les modeles de projet."
+        title="Paramètres"
+        description="Gestion des paramètres de l'application et des projets."
       />
       <div className="grid gap-4 md:grid-cols-2">
-        <SectionCard title="Catalogue">
+        <SectionCard
+          title="Paramètres généraux"
+          description="Réglages de l'application."
+          icon={SlidersHorizontal}
+        >
           <p className="text-sm text-muted-foreground">
-            {budgetWorkspaceViewModel.categories.length} categories et{' '}
-            {budgetWorkspaceViewModel.financialSummary.products.length} produits.
+            Cette section sera complétée ultérieurement.
           </p>
         </SectionCard>
-        <SectionCard title="Modeles">
-          <p className="text-sm text-muted-foreground">
-            {templateViewModels.map((template) => template.name).join(', ')}
-          </p>
-        </SectionCard>
+        <Link
+          to="/settings/projects"
+          className="block rounded-lg transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          <SectionCard
+            title="Projets"
+            description="Gestion des projets."
+            icon={FolderKanban}
+          >
+            <p className="text-sm font-medium text-primary">
+              Ouvrir la gestion des projets
+            </p>
+          </SectionCard>
+        </Link>
       </div>
+    </section>
+  )
+}
+
+export function ProjectsSettingsPage() {
+  return (
+    <section>
+      <SettingsBackButton />
+      <PageHeader title="Projets" description="Gestion des projets." />
     </section>
   )
 }
