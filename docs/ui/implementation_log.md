@@ -43,3 +43,23 @@ Notes
 - Local HTTP smoke checks returned `200` for `/`, `/dashboard`, `/budget`, `/suppliers`, `/documents`, `/settings`, and `/unknown-route`.
 - The Docker frontend service on port `5173` had a stale `/app/node_modules` volume; running `docker compose exec frontend npm install` restored `react-router-dom` and `lucide-react` resolution inside the container, then the frontend service was restarted.
 - No backend files were changed.
+
+## Chunk 3 - Shared UI Primitives
+
+Status: Completed
+
+Summary
+- Added a local `cn` helper in `src/lib/utils.ts`.
+- Added local UI primitives for button, input, label, select, textarea, checkbox, card, table, and badge.
+- Added shared components for page headers, KPI cards, chart cards, status badges, section cards, table toolbars, and progress bars.
+- Wired the placeholder pages to import and render the shared components so they compile in real route usage.
+- Implemented `StatusBadge` with backend-aligned project, transaction, invoice, budget line, and document states from the reference plan.
+
+Plan Deviations
+- Did not install `clsx`, `tailwind-merge`, or `class-variance-authority`; the current primitives are small enough to use a local dependency-free `cn` helper and manual variant maps.
+- Implemented `select` and `checkbox` as native controls rather than Radix/shadcn primitives because Chunk 3 only requires compile-ready local building blocks and richer behavior is not needed yet.
+- Updated placeholder pages to render the new shared components, although Chunk 3 only required they be importable. This keeps the component layer exercised before real mock data arrives.
+
+Notes
+- `npm run build` completed successfully from `frontend/`.
+- No backend files were changed.
