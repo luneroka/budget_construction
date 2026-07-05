@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 
 import { formatCurrency, formatProjectStatus } from '@/lib/format'
-import { mockProjects } from '@/lib/mock-data'
+import { projectViewModels } from '@/demo/demo-data'
 
 const STORAGE_KEY = 'budget-construction:selected-project-id'
 
@@ -28,15 +28,15 @@ const projectActions: Array<{
 
 function getInitialProjectId() {
   if (typeof window === 'undefined') {
-    return mockProjects[0]?.id ?? ''
+    return projectViewModels[0]?.id ?? ''
   }
 
   const storedProjectId = window.localStorage.getItem(STORAGE_KEY)
-  const storedProject = mockProjects.find(
+  const storedProject = projectViewModels.find(
     (project) => project.id === storedProjectId,
   )
 
-  return storedProject?.id ?? mockProjects[0]?.id ?? ''
+  return storedProject?.id ?? projectViewModels[0]?.id ?? ''
 }
 
 export function ProjectSwitcher() {
@@ -47,8 +47,8 @@ export function ProjectSwitcher() {
 
   const selectedProject = useMemo(
     () =>
-      mockProjects.find((project) => project.id === selectedProjectId) ??
-      mockProjects[0],
+      projectViewModels.find((project) => project.id === selectedProjectId) ??
+      projectViewModels[0],
     [selectedProjectId],
   )
 
@@ -93,7 +93,7 @@ export function ProjectSwitcher() {
       {isProjectListOpen ? (
         <div className="mt-3 rounded-md border border-sidebar-border bg-sidebar-accent/30 p-2">
           <div className="space-y-1">
-            {mockProjects.map((project) => (
+            {projectViewModels.map((project) => (
               <button
                 type="button"
                 key={project.id}

@@ -63,3 +63,29 @@ Plan Deviations
 Notes
 - `npm run build` completed successfully from `frontend/`.
 - No backend files were changed.
+
+## Chunk 4 - Backend-Shaped Mock Data
+
+Status: Completed
+
+Summary
+- Copied `backend/app/seed/data/catalog.json` to `frontend/src/demo/data/catalog.json`.
+- Copied `backend/app/seed/data/powerbi_demo.json` to `frontend/src/demo/data/powerbi_demo.json`.
+- Added backend-shaped demo types and pure adapter functions under `src/demo/adapters/`.
+- Added adapter-produced view models for the budget workspace, dashboard, suppliers, documents, projects, and templates.
+- Replaced the earlier one-off `src/lib/mock-data.ts` project fixture with adapter-produced project data from the backend seed.
+- Updated current placeholder pages and the Project Switcher to consume view models from `src/demo/demo-data.ts` instead of raw seed JSON.
+- Expanded `src/lib/format.ts` with date, file-size, percent, and progress formatters.
+
+Plan Deviations
+- Added `resolveJsonModule` to `tsconfig.app.json` so TypeScript can import copied seed JSON directly through Vite.
+- Kept all copied seed JSON under `src/demo/data/` rather than importing backend files across package boundaries, preserving frontend build isolation.
+- Represented supplier fields absent from the seed, such as `siret`, `created_at`, and `deleted_at`, as nullable values instead of inventing persisted backend data.
+- Derived `invoice_type: full` for invoice transactions because `powerbi_demo.json` has invoice transactions but does not include an invoice type field.
+- Built document rows from invoice transactions because the seed has no document table. These rows are marked as derived frontend demo data and preserve the transaction id relationship.
+
+Notes
+- `catalog.json` contains 7 categories, 30 subcategories, and 137 products.
+- `powerbi_demo.json` contains 17 suppliers, 137 budget-line transaction groups, and 388 transactions.
+- `npm run build` completed successfully from `frontend/`.
+- No backend files were changed.

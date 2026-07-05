@@ -11,8 +11,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { supplierTableViewModel } from '@/demo/demo-data'
 
 export function SuppliersPage() {
+  const suppliers = supplierTableViewModel.suppliers
+
   return (
     <section>
       <PageHeader
@@ -37,11 +40,13 @@ export function SuppliersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow>
-              <TableCell className="font-medium">Rhone Terrassement</TableCell>
-              <TableCell>Jean Martin</TableCell>
-              <TableCell>contact@example.test</TableCell>
-            </TableRow>
+            {suppliers.slice(0, 8).map((supplier) => (
+              <TableRow key={supplier.id}>
+                <TableCell className="font-medium">{supplier.name}</TableCell>
+                <TableCell>{supplier.contact_name}</TableCell>
+                <TableCell>{supplier.email}</TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </div>

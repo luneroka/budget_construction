@@ -8,8 +8,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { documentsViewModel } from '@/demo/demo-data'
 
 export function DocumentsPage() {
+  const documents = documentsViewModel.documents
+
   return (
     <section>
       <PageHeader
@@ -27,13 +30,17 @@ export function DocumentsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow>
-              <TableCell className="font-medium">devis-terrassement.pdf</TableCell>
-              <TableCell>application/pdf</TableCell>
-              <TableCell>
-                <StatusBadge status="attached" />
-              </TableCell>
-            </TableRow>
+            {documents.slice(0, 8).map((document) => (
+              <TableRow key={document.id}>
+                <TableCell className="font-medium">
+                  {document.original_filename}
+                </TableCell>
+                <TableCell>{document.mime_type}</TableCell>
+                <TableCell>
+                  <StatusBadge status={document.state} />
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </div>

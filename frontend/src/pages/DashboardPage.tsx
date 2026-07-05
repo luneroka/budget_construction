@@ -12,35 +12,39 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { dashboardViewModel } from '@/demo/demo-data'
+import { formatCurrency } from '@/lib/format'
 
 export function DashboardPage() {
+  const { financialSummary, recentTransactions } = dashboardViewModel
+
   return (
     <section>
       <PageHeader
         eyebrow="Vue projet"
         title="Tableau de bord"
-        description="Apercu financier du projet selectionne. Les indicateurs detailles seront branches sur les donnees de synthese dans les prochains chunks."
+        description={`Apercu financier pour ${dashboardViewModel.project.name}. Donnees derivees des seeds backend.`}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <KpiCard
           label="Budget selectionne"
-          value="245 000 €"
-          detail="Montant provisoire de demonstration"
+          value={formatCurrency(financialSummary.selected_budget_amount_ttc)}
+          detail="selected_budget_amount_ttc"
           icon={CircleDollarSign}
           tone="gold"
         />
         <KpiCard
           label="Cout facture"
-          value="118 400 €"
-          detail="Factures rattachees aux lignes budget"
+          value={formatCurrency(financialSummary.actual_cost_amount_ttc)}
+          detail="actual_cost_amount_ttc"
           icon={ReceiptText}
           tone="primary"
         />
         <KpiCard
           label="Factures a payer"
-          value="24 800 €"
-          detail="Statut invoice_status = unpaid"
+          value={formatCurrency(financialSummary.unpaid_invoice_amount_ttc)}
+          detail="invoice_status = unpaid"
           icon={FileClock}
           tone="warning"
         />
@@ -66,13 +70,25 @@ export function DashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow>
-                <TableCell className="font-medium">Devis terrassement</TableCell>
-                <TableCell>
-                  <StatusBadge status="to_confirm" />
-                </TableCell>
-                <TableCell className="text-right">18 500 €</TableCell>
-              </TableRow>
+              {recentTransactions.slice(0, 4).map((transaction) => (
+                <TableRow key={transaction.id}>
+                  <TableCell className="font-medium">
+                    {transaction.description}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge
+                      status={
+                        transaction.quote_status ??
+                        transaction.invoice_status ??
+                        transaction.transaction_type
+                      }
+                    />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatCurrency(transaction.amount_ttc)}
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </ChartCard>
