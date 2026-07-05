@@ -17,3 +17,29 @@ Notes
 - `npm run build` completed successfully from `frontend/`.
 - The built CSS includes the required token utilities, including `bg-background`, `text-foreground`, `bg-card`, `text-muted-foreground`, `bg-sidebar`, and `text-gold`.
 - No backend files were changed.
+
+## Chunk 2 - App Shell & Routing
+
+Status: Completed
+
+Summary
+- Replaced the Chunk 1 token smoke screen with React Router routes for `/`, `/dashboard`, `/budget`, `/suppliers`, `/documents`, `/settings`, and `*`.
+- Added the admin shell in `src/components/layout/AppLayout.tsx` with the fixed-width sticky sidebar and `main.flex-1.bg-background` workspace.
+- Added `SidebarNav` with backend-aligned primary navigation and active states using `bg-sidebar-accent`, `text-gold`, and `border-gold`.
+- Added `ProjectSwitcher` with mock project selection, local storage persistence, and placeholder project management actions.
+- Added placeholder route pages for Dashboard, Budget, Suppliers, Documents, Settings, and Not Found.
+- Installed `lucide-react` for route and project-action icons.
+
+Plan Deviations
+- Added `src/lib/format.ts` in this chunk to keep the Project Switcher currency and project status labels out of the component. The broader formatter work still belongs to Chunk 4.
+- Added a minimal `src/lib/mock-data.ts` with project-only mock data so the Project Switcher can actually switch and persist projects. This does not replace the backend-shaped demo adapter work planned for Chunk 4.
+- Implemented project management actions as a local lightweight placeholder modal instead of a reusable dialog primitive because shared UI primitives are scheduled for Chunk 3.
+
+Notes
+- `npm install lucide-react` initially failed inside the sandbox with `ENOTFOUND registry.npmjs.org`; it succeeded after rerunning with approved network escalation.
+- `npm run build` completed successfully from `frontend/`.
+- Starting Vite inside the sandbox failed with `listen EPERM` on `127.0.0.1:5173`; it succeeded after rerunning with approved escalation.
+- Vite selected `http://127.0.0.1:5174/` because port `5173` was already in use.
+- Local HTTP smoke checks returned `200` for `/`, `/dashboard`, `/budget`, `/suppliers`, `/documents`, `/settings`, and `/unknown-route`.
+- The Docker frontend service on port `5173` had a stale `/app/node_modules` volume; running `docker compose exec frontend npm install` restored `react-router-dom` and `lucide-react` resolution inside the container, then the frontend service was restarted.
+- No backend files were changed.
