@@ -8,17 +8,23 @@ import {
   Plus,
 } from 'lucide-react'
 
+import {
+  TransactionModal,
+  TransactionReviewModal,
+  type ViewedTransactionContext,
+} from '@/components/budget/TransactionModal'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
-import { budgetWorkspaceViewModel } from '@/demo/demo-data'
+import {
+  budgetWorkspaceViewModel,
+  supplierTableViewModel,
+} from '@/demo/demo-data'
 import type {
   BudgetCategoryViewModel,
   BudgetLineSummaryViewModel,
   ProductSummaryViewModel,
-  TransactionType,
   TransactionViewModel,
 } from '@/demo/types'
 import { formatCurrency, formatDate } from '@/lib/format'
@@ -41,12 +47,6 @@ type ActiveAction =
   | ({ kind: 'breakdown' } & BreakdownAction)
   | ({ kind: 'decompose-product' } & BreakdownAction)
   | ({ kind: 'structure-choice' } & BreakdownAction)
-
-const transactionTypeLabels: Record<TransactionType, string> = {
-  quote: 'Devis',
-  diy_estimate: 'Estimation DIY',
-  invoice: 'Facture',
-}
 
 function sumBudgetLines(
   product: ProductSummaryViewModel,
@@ -510,12 +510,16 @@ function BudgetLineRow({
 
 function TransactionsRows({
   transactions,
+  budgetLine,
+  product,
   onAddTransaction,
   onViewTransaction,
 }: {
   transactions: TransactionViewModel[]
+  budgetLine: BudgetLineSummaryViewModel
+  product: ProductSummaryViewModel
   onAddTransaction: () => void
-  onViewTransaction: (transaction: TransactionViewModel) => void
+  onViewTransaction: (context: ViewedTransactionContext) => void
 }) {
   const transactionGridClass =
     'grid min-w-[44rem] grid-cols-[5rem_8rem_minmax(10rem,1fr)_7rem_6.25rem_4rem_4rem] items-center'
@@ -586,7 +590,13 @@ function TransactionsRows({
                     <button
                       type="button"
                       className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
-                      onClick={() => onViewTransaction(transaction)}
+                      onClick={() =>
+                        onViewTransaction({
+                          budgetLine,
+                          product,
+                          transaction,
+                        })
+                      }
                       aria-label="Voir la transaction"
                     >
                       <Eye className="h-4 w-4" aria-hidden="true" />
@@ -640,9 +650,7 @@ export function BudgetPage() {
   )
   const [activeAction, setActiveAction] = useState<ActiveAction | null>(null)
   const [viewedTransaction, setViewedTransaction] =
-    useState<TransactionViewModel | null>(null)
-  const [selectedTransactionType, setSelectedTransactionType] =
-    useState<TransactionType>('quote')
+    useState<ViewedTransactionContext | null>(null)
   const [selectedStructureChoice, setSelectedStructureChoice] =
     useState<ProductStructureChoice>('single')
 
@@ -668,7 +676,6 @@ export function BudgetPage() {
   }
 
   function openTransactionAction(action: TransactionAction) {
-    setSelectedTransactionType('quote')
     setActiveAction({ kind: 'transaction', ...action })
   }
 
@@ -817,6 +824,8 @@ export function BudgetPage() {
                                               transactions={
                                                 wholeProductLine.transactions
                                               }
+                                              budgetLine={wholeProductLine}
+                                              product={product}
                                               onViewTransaction={
                                                 setViewedTransaction
                                               }
@@ -861,6 +870,8 @@ export function BudgetPage() {
                                                         transactions={
                                                           line.transactions
                                                         }
+                                                        budgetLine={line}
+                                                        product={product}
                                                         onViewTransaction={
                                                           setViewedTransaction
                                                         }
@@ -897,7 +908,18 @@ export function BudgetPage() {
         })}
       </div>
 
-      {activeAction ? (
+      {activeAction?.kind === 'transaction' ? (
+        <TransactionModal
+          project={project}
+          product={activeAction.product}
+          budgetLine={activeAction.budgetLine}
+          initialStructure={activeAction.initialStructure}
+          suppliers={supplierTableViewModel.suppliers}
+          onClose={() => setActiveAction(null)}
+        />
+      ) : null}
+
+      {activeAction && activeAction.kind !== 'transaction' ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 px-4">
           <div className="w-full max-w-lg rounded-lg border border-border bg-card p-6 text-foreground shadow-lg">
             <div className="flex items-start gap-3">
@@ -908,11 +930,9 @@ export function BudgetPage() {
                 <p className="font-heading text-xl font-semibold">
                   {activeAction.kind === 'structure-choice'
                     ? 'Comment souhaitez-vous gérer ce produit ?'
-                    : activeAction.kind === 'transaction'
-                      ? 'Ajouter une transaction'
-                      : activeAction.kind === 'decompose-product'
-                        ? 'Décomposer le produit'
-                        : 'Ajouter un sous-produit'}
+                    : activeAction.kind === 'decompose-product'
+                      ? 'Décomposer le produit'
+                      : 'Ajouter un sous-produit'}
                 </p>
                 {activeAction.kind === 'structure-choice' ? (
                   <>
@@ -964,53 +984,6 @@ export function BudgetPage() {
                       ))}
                     </div>
                   </>
-                ) : activeAction.kind === 'transaction' ? (
-                  <>
-                    <div className="mt-4">
-                      <label
-                        htmlFor="transaction-type"
-                        className="text-xs font-medium uppercase text-muted-foreground"
-                      >
-                        Type de transaction
-                      </label>
-                      <Select
-                        id="transaction-type"
-                        className="mt-1"
-                        value={selectedTransactionType}
-                        onChange={(event) =>
-                          setSelectedTransactionType(
-                            event.target.value as TransactionType,
-                          )
-                        }
-                      >
-                        {Object.entries(transactionTypeLabels).map(
-                          ([type, label]) => (
-                            <option key={type} value={type}>
-                              {label}
-                            </option>
-                          ),
-                        )}
-                      </Select>
-                    </div>
-                    <p className="mt-3 text-sm text-muted-foreground">
-                      {activeAction.budgetLine ? (
-                        <>
-                          Action de démonstration depuis la ligne «{' '}
-                          {activeAction.budgetLine.name} » du produit «{' '}
-                          {activeAction.product.product_name} ».
-                        </>
-                      ) : (
-                        <>
-                          La première transaction créera{' '}
-                          {activeAction.initialStructure === 'breakdown'
-                            ? 'un premier sous-produit'
-                            : 'un poste de budget unique'}{' '}
-                          pour « {activeAction.product.product_name} ».
-                        </>
-                      )}{' '}
-                      Le formulaire complet sera raccordé ultérieurement.
-                    </p>
-                  </>
                 ) : activeAction.kind === 'decompose-product' ? (
                   <p className="mt-2 text-sm text-muted-foreground">
                     Action de démonstration pour convertir le produit «{' '}
@@ -1044,40 +1017,11 @@ export function BudgetPage() {
       ) : null}
 
       {viewedTransaction ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 px-4">
-          <div className="w-full max-w-lg rounded-lg border border-border bg-card p-6 text-foreground shadow-lg">
-            <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-md bg-gold/15 text-gold">
-                <Eye className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="font-heading text-xl font-semibold">
-                  Détails de la transaction
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Placeholder pour les détails de la transaction. Le contenu
-                  complet sera raccordé ultérieurement.
-                </p>
-                <div className="mt-4 rounded-md border border-border bg-background p-3 text-sm">
-                  <p className="font-medium text-foreground">
-                    {formatCurrency(viewedTransaction.amount_ttc)}
-                  </p>
-                  <p className="mt-1 text-muted-foreground">
-                    {formatDate(viewedTransaction.issued_date)}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="mt-6 flex justify-end">
-              <Button
-                variant="outline"
-                onClick={() => setViewedTransaction(null)}
-              >
-                Fermer
-              </Button>
-            </div>
-          </div>
-        </div>
+        <TransactionReviewModal
+          project={project}
+          context={viewedTransaction}
+          onClose={() => setViewedTransaction(null)}
+        />
       ) : null}
     </section>
   )
