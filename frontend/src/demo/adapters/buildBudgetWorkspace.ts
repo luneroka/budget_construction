@@ -98,11 +98,17 @@ function buildBudgetLine(
     slugify(subcategoryName),
     slugify(productName),
   ].join('-')
-  const selectedBudgetTransaction =
+  const selectedQuoteTransaction =
     transactions.find(
       (transaction) =>
         transaction.select_as_budget &&
-        transaction.transaction_type !== 'invoice',
+        transaction.transaction_type === 'quote',
+    ) ?? null
+  const selectedDiyEstimateTransaction =
+    transactions.find(
+      (transaction) =>
+        transaction.select_as_budget &&
+        transaction.transaction_type === 'diy_estimate',
     ) ?? null
   const quotes = transactions.filter(
     (transaction) => transaction.transaction_type === 'quote',
@@ -116,13 +122,17 @@ function buildBudgetLine(
   const actualCostAmount = sumInvoicesByStatus(transactions, 'paid') +
     sumInvoicesByStatus(transactions, 'unpaid') +
     sumInvoicesByStatus(transactions, 'on_hold')
-  const selectedBudgetAmount = selectedBudgetTransaction?.amount_ttc ?? 0
+  const selectedBudgetAmount =
+    (selectedQuoteTransaction?.amount_ttc ?? 0) +
+    (selectedDiyEstimateTransaction?.amount_ttc ?? 0)
 
   return {
     budget_line_id: budgetLineId,
     name: productName,
     item_type: 'product',
-    selected_budget_transaction_id: selectedBudgetTransaction?.id ?? null,
+    selected_quote_transaction_id: selectedQuoteTransaction?.id ?? null,
+    selected_diy_estimate_transaction_id:
+      selectedDiyEstimateTransaction?.id ?? null,
     selected_budget_amount_ttc: selectedBudgetAmount,
     quote_amount_ttc: sum(quotes.map((transaction) => transaction.amount_ttc)),
     validated_quote_amount_ttc: sum(

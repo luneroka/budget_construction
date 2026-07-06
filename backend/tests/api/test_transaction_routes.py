@@ -86,6 +86,16 @@ def invoice_payload() -> dict[str, object]:
     }
 
 
+def diy_estimate_payload() -> dict[str, object]:
+    return {
+        'transaction_type': 'diy_estimate',
+        'amount_ht': '50.00',
+        'vat_rate': '20.00',
+        'issued_date': '2026-06-18',
+        'budget_concern': 'entire_product',
+    }
+
+
 async def create_product_transaction(
     client: AsyncClient,
     context: TransactionRouteContext,
@@ -186,7 +196,58 @@ async def test_select_budget_candidate(
     assert selected_transaction['id'] == transaction_id
 
     budget_line = await get_budget_line(db_session, budget_line_id)
-    assert budget_line.selected_budget_transaction_id == transaction_id
+    assert budget_line.selected_quote_transaction_id == transaction_id
+
+
+async def test_select_budget_candidate_keeps_quote_and_diy_selections(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_transaction_route_context(
+        db_session,
+        email='composite-select-budget-candidate-user@example.com',
+    )
+    quote = await create_product_transaction(
+        client,
+        context,
+        quote_payload(quote_status='validated'),
+    )
+    diy_estimate = await create_product_transaction(
+        client,
+        context,
+        diy_estimate_payload(),
+    )
+    replacement_quote = await create_product_transaction(
+        client,
+        context,
+        {
+            **quote_payload(quote_status='validated'),
+            'amount_ht': '200.00',
+        },
+    )
+
+    budget_line_id = quote['budget_line_id']
+    quote_id = quote['id']
+    diy_estimate_id = diy_estimate['id']
+    replacement_quote_id = replacement_quote['id']
+    assert isinstance(budget_line_id, int)
+    assert isinstance(quote_id, int)
+    assert isinstance(diy_estimate_id, int)
+    assert isinstance(replacement_quote_id, int)
+
+    for transaction_id in [quote_id, diy_estimate_id, replacement_quote_id]:
+        response = await client.post(
+            (
+                f'/projects/{context.project_id}/budget-lines/{budget_line_id}'
+                f'/transactions/{transaction_id}/select-budget'
+            ),
+            headers=auth_headers(context.access_token),
+        )
+        assert response.status_code == 200
+
+    budget_line = await get_budget_line(db_session, budget_line_id)
+    assert budget_line.selected_quote_transaction_id == replacement_quote_id
+    assert budget_line.selected_diy_estimate_transaction_id == diy_estimate_id
 
 
 async def test_invalid_selected_candidate_returns_400(
@@ -201,6 +262,35 @@ async def test_invalid_selected_candidate_returns_400(
         client,
         context,
         quote_payload(quote_status='to_confirm'),
+    )
+    transaction_id = transaction['id']
+    budget_line_id = transaction['budget_line_id']
+    assert isinstance(transaction_id, int)
+    assert isinstance(budget_line_id, int)
+
+    response = await client.post(
+        (
+            f'/projects/{context.project_id}/budget-lines/{budget_line_id}'
+            f'/transactions/{transaction_id}/select-budget'
+        ),
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 400
+
+
+async def test_invoice_cannot_be_selected_as_budget_candidate(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_transaction_route_context(
+        db_session,
+        email='invoice-select-budget-candidate-user@example.com',
+    )
+    transaction = await create_product_transaction(
+        client,
+        context,
+        invoice_payload(),
     )
     transaction_id = transaction['id']
     budget_line_id = transaction['budget_line_id']

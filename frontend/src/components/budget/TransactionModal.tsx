@@ -688,7 +688,7 @@ export function TransactionModal({
                     </span>
                     <span className="mt-1 block text-muted-foreground">
                       {canSelectAsBudget
-                        ? 'Disponible pour les devis et les estimations DIY.'
+                        ? 'Le montant contribuera au budget sélectionné de ce poste.'
                         : 'Les factures alimentent le réalisé et ne peuvent pas devenir budget sélectionné.'}
                     </span>
                   </span>

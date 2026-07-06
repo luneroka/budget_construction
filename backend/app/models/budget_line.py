@@ -48,7 +48,12 @@ class BudgetLine(Base):
         ForeignKey('products.id'), nullable=False, index=True
     )
 
-    selected_budget_transaction_id: Mapped[int | None] = mapped_column(
+    selected_quote_transaction_id: Mapped[int | None] = mapped_column(
+        ForeignKey('transactions.id', ondelete='SET NULL'),
+        nullable=True,
+    )
+
+    selected_diy_estimate_transaction_id: Mapped[int | None] = mapped_column(
         ForeignKey('transactions.id', ondelete='SET NULL'),
         nullable=True,
     )
@@ -85,11 +90,20 @@ class BudgetLine(Base):
             postgresql_where=text("item_type = 'product' AND deleted_at IS NULL"),
         ),
         Index(
-            'uq_budget_lines_selected_budget_transaction',
-            'selected_budget_transaction_id',
+            'uq_budget_lines_selected_quote_transaction',
+            'selected_quote_transaction_id',
             unique=True,
             postgresql_where=text(
-                'selected_budget_transaction_id IS NOT NULL ' 'AND deleted_at IS NULL'
+                'selected_quote_transaction_id IS NOT NULL AND deleted_at IS NULL'
+            ),
+        ),
+        Index(
+            'uq_budget_lines_selected_diy_estimate_transaction',
+            'selected_diy_estimate_transaction_id',
+            unique=True,
+            postgresql_where=text(
+                'selected_diy_estimate_transaction_id IS NOT NULL '
+                'AND deleted_at IS NULL'
             ),
         ),
     )
@@ -97,9 +111,14 @@ class BudgetLine(Base):
     project: Mapped[Project] = relationship('Project', back_populates='budget_lines')
     template_item: Mapped[TemplateItem | None] = relationship('TemplateItem')
     product: Mapped[Product] = relationship('Product', back_populates='budget_lines')
-    selected_budget_transaction: Mapped[Transaction | None] = relationship(
+    selected_quote_transaction: Mapped[Transaction | None] = relationship(
         'Transaction',
-        foreign_keys=[selected_budget_transaction_id],
+        foreign_keys=[selected_quote_transaction_id],
+        post_update=True,
+    )
+    selected_diy_estimate_transaction: Mapped[Transaction | None] = relationship(
+        'Transaction',
+        foreign_keys=[selected_diy_estimate_transaction_id],
         post_update=True,
     )
     transactions: Mapped[list[Transaction]] = relationship(

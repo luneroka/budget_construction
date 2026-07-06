@@ -342,12 +342,22 @@ def validate_selected_budget_candidate(
 async def _set_selected_budget_candidate(
     db: AsyncSession,
     budget_line_id: int,
-    transaction_id: int | None,
+    transaction_id: int,
+    transaction_type: TransactionType,
 ) -> None:
+    if transaction_type == TransactionType.quote:
+        values = {'selected_quote_transaction_id': transaction_id}
+    elif transaction_type == TransactionType.diy_estimate:
+        values = {'selected_diy_estimate_transaction_id': transaction_id}
+    else:
+        raise TransactionValidationError(
+            'Only quotes and DIY estimates can be selected as budget candidates'
+        )
+
     await db.execute(
         update(BudgetLine)
         .where(BudgetLine.id == budget_line_id)
-        .values(selected_budget_transaction_id=transaction_id)
+        .values(**values)
     )
 
 
@@ -360,9 +370,17 @@ async def _clear_selected_budget_candidate_if_matches(
         update(BudgetLine)
         .where(
             BudgetLine.id == budget_line_id,
-            BudgetLine.selected_budget_transaction_id == transaction_id,
+            BudgetLine.selected_quote_transaction_id == transaction_id,
         )
-        .values(selected_budget_transaction_id=None)
+        .values(selected_quote_transaction_id=None)
+    )
+    await db.execute(
+        update(BudgetLine)
+        .where(
+            BudgetLine.id == budget_line_id,
+            BudgetLine.selected_diy_estimate_transaction_id == transaction_id,
+        )
+        .values(selected_diy_estimate_transaction_id=None)
     )
 
 
@@ -383,7 +401,7 @@ async def _ensure_selected_budget_candidate_remains_valid(
 
     result = await db.execute(
         select(BudgetLine.id).where(
-            BudgetLine.selected_budget_transaction_id == transaction.id,
+            BudgetLine.selected_quote_transaction_id == transaction.id,
             BudgetLine.deleted_at.is_(None),
         )
     )
@@ -416,7 +434,12 @@ async def create_transaction(
     db.add(transaction)
     await db.flush()
     if transaction_data.select_as_budget:
-        await _set_selected_budget_candidate(db, budget_line_id, transaction.id)
+        await _set_selected_budget_candidate(
+            db,
+            budget_line_id,
+            transaction.id,
+            transaction.transaction_type,
+        )
     await db.commit()
 
     return await get_transaction_by_id(
@@ -573,7 +596,12 @@ async def select_budget_candidate(
         transaction.transaction_type,
         transaction.quote_status,
     )
-    await _set_selected_budget_candidate(db, transaction.budget_line_id, transaction.id)
+    await _set_selected_budget_candidate(
+        db,
+        transaction.budget_line_id,
+        transaction.id,
+        transaction.transaction_type,
+    )
 
     await db.commit()
     await db.refresh(transaction)

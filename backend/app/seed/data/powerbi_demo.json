@@ -540,7 +540,7 @@
           "quote_status": null,
           "invoice_status": null,
           "payment_method": null,
-          "select_as_budget": false
+          "select_as_budget": true
         },
         {
           "supplier_key": "terrassement_demo",

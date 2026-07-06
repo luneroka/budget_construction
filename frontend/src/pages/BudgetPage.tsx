@@ -24,6 +24,7 @@ import {
 } from '@/components/budget/TransactionModal'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import {
@@ -78,6 +79,31 @@ function varianceClass(value: number) {
   if (value < 0) return 'text-destructive'
   if (value > 0) return 'text-success'
   return 'text-muted-foreground'
+}
+
+function getSelectedBudgetParts(line: BudgetLineSummaryViewModel) {
+  const selectedQuote = line.transactions.find(
+    (transaction) => transaction.id === line.selected_quote_transaction_id,
+  )
+  const selectedDiyEstimate = line.transactions.find(
+    (transaction) =>
+      transaction.id === line.selected_diy_estimate_transaction_id,
+  )
+
+  return {
+    selectedQuote,
+    selectedDiyEstimate,
+  }
+}
+
+function formatSelectedBudgetSource(line: BudgetLineSummaryViewModel) {
+  const { selectedQuote, selectedDiyEstimate } = getSelectedBudgetParts(line)
+  const parts = [
+    selectedQuote ? '1 devis' : null,
+    selectedDiyEstimate ? '1 estimation DIY' : null,
+  ].filter(Boolean)
+
+  return parts.length > 0 ? parts.join(' + ') : 'Aucun budget sélectionné'
 }
 
 function ToggleIcon({ isOpen }: { isOpen: boolean }) {
@@ -355,7 +381,7 @@ function SubcategoryRow({
   onToggle: () => void
 }) {
   return (
-    <TableRow className="bg-muted/70 hover:bg-muted/70">
+    <TableRow className="border-y border-primary/40 bg-primary/10 hover:bg-primary/10">
       <TableCell colSpan={7} className="px-4 py-2">
         <button
           type="button"
@@ -364,20 +390,19 @@ function SubcategoryRow({
           aria-expanded={isOpen}
         >
           <div className="flex min-w-0 items-center gap-2">
-            <ToggleIcon isOpen={isOpen} />
             <div>
-              <p className="truncate text-base font-semibold text-foreground">
+              <p className="truncate text-base font-semibold text-primary">
                 {group.name}
               </p>
             </div>
           </div>
-          <span className="whitespace-nowrap text-right text-xs text-muted-foreground">
+          <span className="whitespace-nowrap text-right text-xs font-medium text-primary/80">
             {group.products.length} produits
           </span>
-          <span className="whitespace-nowrap text-right text-xs text-muted-foreground">
+          <span className="whitespace-nowrap text-right text-xs font-medium text-primary/80">
             Budget {formatCurrency(group.selected_budget_amount_ttc)}
           </span>
-          <span className="whitespace-nowrap text-right text-xs text-muted-foreground">
+          <span className="whitespace-nowrap text-right text-xs font-medium text-primary/80">
             Facturé {formatCurrency(group.actual_cost_amount_ttc)}
           </span>
           <span
@@ -501,7 +526,9 @@ function BudgetLineRow({
               {line.name}
             </span>
             <span className="mt-1 block text-xs text-muted-foreground">
-              {line.transactions.length} transactions
+              Budget sélectionné: {formatCurrency(line.selected_budget_amount_ttc)}
+              {' '}
+              ({formatSelectedBudgetSource(line)})
             </span>
           </span>
         </button>
@@ -547,13 +574,133 @@ function TransactionsRows({
   onViewTransaction: (context: ViewedTransactionContext) => void
 }) {
   const transactionGridClass =
-    'grid min-w-[44rem] grid-cols-[5rem_8rem_minmax(10rem,1fr)_7rem_6.25rem_4rem_4rem] items-center'
+    'grid min-w-[52rem] grid-cols-[5rem_8rem_minmax(10rem,1fr)_7rem_6.25rem_7rem_4rem_4rem] items-center'
+  const budgetCandidates = transactions.filter((transaction) =>
+    ['quote', 'diy_estimate'].includes(transaction.transaction_type),
+  )
+  const invoices = transactions.filter(
+    (transaction) => transaction.transaction_type === 'invoice',
+  )
+
+  function renderSectionDivider(label: string) {
+    return (
+      <div
+        className={cn(
+          transactionGridClass,
+          'border-y border-border bg-muted/55',
+        )}
+      >
+        <div className="col-span-8 px-2.5 py-2 text-[11px] font-bold tracking-normal text-foreground uppercase">
+          {label}
+        </div>
+      </div>
+    )
+  }
+
+  function isSelectedBudgetTransaction(transaction: TransactionViewModel) {
+    return (
+      transaction.id === budgetLine.selected_quote_transaction_id ||
+      transaction.id === budgetLine.selected_diy_estimate_transaction_id
+    )
+  }
+
+  function renderTransactionRows(sectionTransactions: TransactionViewModel[]) {
+    if (sectionTransactions.length === 0) {
+      return (
+        <div className={cn(transactionGridClass, 'border-t border-border/40')}>
+          <div className="col-span-8 px-2 py-2 text-muted-foreground">
+            Aucune transaction
+          </div>
+        </div>
+      )
+    }
+
+    return sectionTransactions.map((transaction) => {
+      const financialStatus =
+        transaction.quote_status ?? transaction.invoice_status
+      const isSelectedBudget = isSelectedBudgetTransaction(transaction)
+
+      return (
+        <div
+          key={transaction.id}
+          className={cn(
+            transactionGridClass,
+            'border-t border-border/40',
+            isSelectedBudget && 'bg-gold/10',
+          )}
+        >
+          <div className="px-1.5 py-2 whitespace-nowrap">
+            {formatDate(transaction.issued_date)}
+          </div>
+          <div className="px-1.5 py-2 whitespace-nowrap">
+            <StatusBadge status={transaction.transaction_type} />
+          </div>
+          <div className="min-w-0 px-2 py-2 leading-snug wrap-break-words">
+            {transaction.supplier_name ?? 'Autoconstruction'}
+          </div>
+          <div className="px-3 py-2 text-right font-medium whitespace-nowrap">
+            {formatCurrency(transaction.amount_ttc)}
+          </div>
+          <div className="px-3 py-2 whitespace-nowrap">
+            {financialStatus ? (
+              <StatusBadge status={financialStatus} />
+            ) : (
+              <span className="text-muted-foreground">-</span>
+            )}
+          </div>
+          <div className="px-3 py-2 whitespace-nowrap">
+            {transaction.transaction_type === 'invoice' ? (
+              <span className="text-muted-foreground">-</span>
+            ) : isSelectedBudget ? (
+              <Badge variant="gold">Sélectionné</Badge>
+            ) : (
+              <Badge variant="muted" className="opacity-75">
+                Non retenu
+              </Badge>
+            )}
+          </div>
+          <div className="px-1 py-2 text-center whitespace-nowrap">
+            <button
+              type="button"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
+              onClick={() =>
+                onViewTransaction({
+                  budgetLine,
+                  product,
+                  transaction,
+                })
+              }
+              aria-label="Voir la transaction"
+            >
+              <Eye className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+          <div className="px-1 py-2 text-center whitespace-nowrap">
+            {transaction.document_state === 'attached' ? (
+              <Paperclip
+                className="mx-auto h-4 w-4 text-muted-foreground"
+                aria-label="Document joint"
+              />
+            ) : null}
+          </div>
+        </div>
+      )
+    })
+  }
 
   return (
     <TableRow className="border-t-0 bg-muted/10 hover:bg-muted/10!">
       <TableCell colSpan={7} className="max-w-0 p-0">
         <div className="min-w-0 px-6 pb-2">
           <div className="w-full min-w-0 overflow-x-auto bg-background/70 text-xs">
+            <div className="border-t border-border/50 px-2 py-2">
+              <p className="whitespace-nowrap font-medium text-foreground">
+                Budget sélectionné {formatCurrency(budgetLine.selected_budget_amount_ttc)}
+                <span className="ml-1 text-muted-foreground">
+                  ({formatSelectedBudgetSource(budgetLine)})
+                </span>
+              </p>
+            </div>
             <div
               className={cn(transactionGridClass, 'border-t border-border/50')}
             >
@@ -572,6 +719,9 @@ function TransactionsRows({
               <div className="px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase">
                 Statut
               </div>
+              <div className="px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase">
+                Budget
+              </div>
               <div className="px-1 py-2 text-center text-[11px] font-semibold text-muted-foreground uppercase">
                 Voir
               </div>
@@ -580,69 +730,16 @@ function TransactionsRows({
               </div>
             </div>
 
-            {transactions.map((transaction) => {
-              const financialStatus =
-                transaction.quote_status ?? transaction.invoice_status
+            {renderSectionDivider('Candidats budget')}
+            {renderTransactionRows(budgetCandidates)}
 
-              return (
-                <div
-                  key={transaction.id}
-                  className={cn(
-                    transactionGridClass,
-                    'border-t border-border/40',
-                  )}
-                >
-                  <div className="px-1.5 py-2 whitespace-nowrap">
-                    {formatDate(transaction.issued_date)}
-                  </div>
-                  <div className="px-1.5 py-2 whitespace-nowrap">
-                    <StatusBadge status={transaction.transaction_type} />
-                  </div>
-                  <div className="min-w-0 px-2 py-2 leading-snug wrap-break-words">
-                    {transaction.supplier_name ?? 'Autoconstruction'}
-                  </div>
-                  <div className="px-3 py-2 text-right font-medium whitespace-nowrap">
-                    {formatCurrency(transaction.amount_ttc)}
-                  </div>
-                  <div className="px-3 py-2 whitespace-nowrap">
-                    {financialStatus ? (
-                      <StatusBadge status={financialStatus} />
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </div>
-                  <div className="px-1 py-2 text-center whitespace-nowrap">
-                    <button
-                      type="button"
-                      className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
-                      onClick={() =>
-                        onViewTransaction({
-                          budgetLine,
-                          product,
-                          transaction,
-                        })
-                      }
-                      aria-label="Voir la transaction"
-                    >
-                      <Eye className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                  </div>
-                  <div className="px-1 py-2 text-center whitespace-nowrap">
-                    {transaction.document_state === 'attached' ? (
-                      <Paperclip
-                        className="mx-auto h-4 w-4 text-muted-foreground"
-                        aria-label="Document joint"
-                      />
-                    ) : null}
-                  </div>
-                </div>
-              )
-            })}
+            {renderSectionDivider('Dépenses réelles')}
+            {renderTransactionRows(invoices)}
 
             <div
               className={cn(transactionGridClass, 'border-t border-border/40')}
             >
-              <div className="col-span-7 px-2 py-2">
+              <div className="col-span-8 px-2 py-2">
                 <button
                   type="button"
                   className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"

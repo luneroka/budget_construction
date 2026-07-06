@@ -38,7 +38,8 @@ class BudgetLineRead(BaseModel):
     project_id: int
     template_item_id: int | None = None
     product_id: int
-    selected_budget_transaction_id: int | None = None
+    selected_quote_transaction_id: int | None = None
+    selected_diy_estimate_transaction_id: int | None = None
     name: str
     item_type: BudgetLineType
     sort_order: int

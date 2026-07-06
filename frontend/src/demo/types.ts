@@ -157,7 +157,8 @@ export type BudgetLineSummaryViewModel = {
   budget_line_id: string
   name: string
   item_type: BudgetLineType
-  selected_budget_transaction_id: string | null
+  selected_quote_transaction_id: string | null
+  selected_diy_estimate_transaction_id: string | null
   selected_budget_amount_ttc: number
   quote_amount_ttc: number
   validated_quote_amount_ttc: number

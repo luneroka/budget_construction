@@ -268,8 +268,12 @@ Important rules:
   breakdown item (`breakdown`).
 - For a given project/product, the user cannot mix one whole-product line and
   multiple breakdown lines unless using the conversion workflow.
-- `selected_budget_transaction_id` points to the chosen quote or DIY estimate
-  that defines the planned budget for that budget line.
+- `selected_quote_transaction_id` points to the chosen validated quote, if any.
+- `selected_diy_estimate_transaction_id` points to the chosen DIY estimate, if
+  any.
+- The selected budget for a budget line is the sum of selected quote TTC plus
+  selected DIY estimate TTC. Invoices are actual expenses and are never budget
+  candidates.
 
 UI implication:
 
@@ -357,6 +361,9 @@ Important validation rules:
 - `due_date` is only allowed for `quote` and `invoice`.
 - `select_as_budget` is allowed on create and is not persisted on the transaction
   row.
+- Selecting a quote replaces only the selected quote for the budget line.
+- Selecting a DIY estimate replaces only the selected DIY estimate for the budget
+  line.
 - Invoices cannot be selected as budget candidates.
 
 UI implication:
@@ -485,7 +492,8 @@ Each budget line summary contains:
 - `budget_line_id`
 - `name`
 - `item_type`
-- `selected_budget_transaction_id`
+- `selected_quote_transaction_id`
+- `selected_diy_estimate_transaction_id`
 - totals
 
 UI implication:

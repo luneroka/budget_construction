@@ -75,6 +75,11 @@ async def create_financial_summary_context(
         transaction_type=TransactionType.diy_estimate,
         amount='300.00',
     )
+    selected_foundation_diy = _transaction(
+        budget_line,
+        transaction_type=TransactionType.diy_estimate,
+        amount='150.00',
+    )
 
     db_session.add_all([user, category, subcategory, product, second_product, project])
     await db_session.flush()
@@ -82,11 +87,7 @@ async def create_financial_summary_context(
         [
             selected_quote,
             unselected_quote,
-            _transaction(
-                budget_line,
-                transaction_type=TransactionType.diy_estimate,
-                amount='150.00',
-            ),
+            selected_foundation_diy,
             _invoice(
                 budget_line,
                 amount='100.00',
@@ -124,8 +125,9 @@ async def create_financial_summary_context(
         ]
     )
     await db_session.flush()
-    budget_line.selected_budget_transaction_id = selected_quote.id
-    second_budget_line.selected_budget_transaction_id = selected_diy.id
+    budget_line.selected_quote_transaction_id = selected_quote.id
+    budget_line.selected_diy_estimate_transaction_id = selected_foundation_diy.id
+    second_budget_line.selected_diy_estimate_transaction_id = selected_diy.id
     await db_session.commit()
     await db_session.refresh(user)
     await db_session.refresh(project)
@@ -215,9 +217,9 @@ async def test_project_financial_summary_returns_dashboard_totals(
     assert response.status_code == 200
     summary = cast(dict[str, object], response.json())
     assert summary['project_id'] == context.project_id
-    assert summary['selected_budget_amount_ttc'] == '1300.00'
+    assert summary['selected_budget_amount_ttc'] == '1450.00'
     assert summary['selected_quote_budget_amount_ttc'] == '1000.00'
-    assert summary['selected_diy_budget_amount_ttc'] == '300.00'
+    assert summary['selected_diy_budget_amount_ttc'] == '450.00'
     assert summary['quote_amount_ttc'] == '2200.00'
     assert summary['validated_quote_amount_ttc'] == '1000.00'
     assert summary['diy_estimate_amount_ttc'] == '450.00'
@@ -225,7 +227,7 @@ async def test_project_financial_summary_returns_dashboard_totals(
     assert summary['paid_invoice_amount_ttc'] == '125.00'
     assert summary['unpaid_invoice_amount_ttc'] == '250.00'
     assert summary['on_hold_invoice_amount_ttc'] == '50.00'
-    assert summary['selected_budget_variance_ttc'] == '875.00'
+    assert summary['selected_budget_variance_ttc'] == '1025.00'
     assert summary['selected_quote_budget_variance_ttc'] == '575.00'
     assert summary['quote_count'] == 2
     assert summary['validated_quote_count'] == 1
@@ -252,7 +254,9 @@ async def test_project_financial_summary_breaks_down_by_product(
     windows = products_by_id[context.second_product_id]
 
     assert foundation['product_name'] == 'Foundations'
+    assert foundation['selected_budget_amount_ttc'] == '1150.00'
     assert foundation['selected_quote_budget_amount_ttc'] == '1000.00'
+    assert foundation['selected_diy_budget_amount_ttc'] == '150.00'
     assert foundation['diy_estimate_amount_ttc'] == '150.00'
     assert foundation['actual_cost_amount_ttc'] == '400.00'
     assert foundation['invoice_count'] == 3

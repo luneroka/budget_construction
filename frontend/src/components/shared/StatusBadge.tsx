@@ -10,7 +10,7 @@ const statusVariants: Record<string, BadgeVariant> = {
   completed: 'success',
   archived: 'muted',
   quote: 'accent',
-  diy_estimate: 'gold',
+  diy_estimate: 'accent',
   invoice: 'default',
   to_confirm: 'warning',
   to_negotiate: 'warning',
