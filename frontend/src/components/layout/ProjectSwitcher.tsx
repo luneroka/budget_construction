@@ -3,43 +3,53 @@ import { Check, ChevronDown, FolderPlus, Settings } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 
+import { useProjectsQuery } from '@/api/projects'
+import type { ProjectRead } from '@/api/types'
 import { projectViewModels } from '@/demo/demo-data'
+import type { ProjectViewModel } from '@/demo/types'
 import { formatCurrency, formatProjectStatus } from '@/lib/format'
+import { useAppState } from '@/state/appState'
 
-const STORAGE_KEY = 'budget-construction:selected-project-id'
-
-function getInitialProjectId() {
-  if (typeof window === 'undefined') {
-    return projectViewModels[0]?.id ?? ''
+function toProjectViewModel(project: ProjectRead): ProjectViewModel {
+  return {
+    id: String(project.id),
+    user_id: String(project.user_id),
+    template_id: project.template_id ?? 0,
+    name: project.name,
+    description: project.description ?? '',
+    location: project.location ?? '',
+    start_date: project.start_date ?? '',
+    end_date: project.end_date ?? '',
+    project_status: project.project_status,
+    selected_budget_amount_ttc: 0,
   }
-
-  const storedProjectId = window.localStorage.getItem(STORAGE_KEY)
-  const storedProject = projectViewModels.find(
-    (project) => project.id === storedProjectId,
-  )
-
-  return storedProject?.id ?? projectViewModels[0]?.id ?? ''
 }
 
 export function ProjectSwitcher() {
   const navigate = useNavigate()
-  const [selectedProjectId, setSelectedProjectId] =
-    useState(getInitialProjectId)
+  const { selectedProjectId, setSelectedProjectId } = useAppState()
+  const projectsQuery = useProjectsQuery()
   const [isProjectListOpen, setIsProjectListOpen] = useState(false)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const projects = useMemo(() => {
+    if (projectsQuery.data && projectsQuery.data.length > 0) {
+      return projectsQuery.data.map(toProjectViewModel)
+    }
+
+    return projectViewModels
+  }, [projectsQuery.data])
 
   const selectedProject = useMemo(
     () =>
-      projectViewModels.find((project) => project.id === selectedProjectId) ??
-      projectViewModels[0],
-    [selectedProjectId],
+      projects.find((project) => project.id === selectedProjectId) ?? projects[0],
+    [projects, selectedProjectId],
   )
 
   useEffect(() => {
-    if (selectedProjectId) {
-      window.localStorage.setItem(STORAGE_KEY, selectedProjectId)
+    if (selectedProject && selectedProject.id !== selectedProjectId) {
+      setSelectedProjectId(selectedProject.id)
     }
-  }, [selectedProjectId])
+  }, [selectedProject, selectedProjectId, setSelectedProjectId])
 
   if (!selectedProject) {
     return null
@@ -117,7 +127,7 @@ export function ProjectSwitcher() {
       {isProjectListOpen ? (
         <div className="mt-3 overflow-hidden rounded-md border border-sidebar-border bg-sidebar-accent/20 shadow-sm">
           <div className="py-1">
-            {projectViewModels.map((project) => (
+            {projects.map((project) => (
               <ProjectMenuItem
                 key={project.id}
                 label={project.name}

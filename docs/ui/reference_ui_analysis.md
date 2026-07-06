@@ -1472,34 +1472,6 @@ Acceptance:
 - Supplier page does not persist fake supplier categories or totals as real fields.
 - Document page distinguishes backend fields from derived UI state.
 
-### Chunk 9 - First API Integration Layer
-
-Goal:
-
-Prepare for backend integration without wiring every screen.
-
-Tasks:
-
-- Add an API client module using existing `axios` or fetch.
-- Add TanStack Query provider if not already added.
-- Define TypeScript API types matching schemas documented above.
-- Add query functions for:
-  - `GET /projects/`
-  - `GET /projects/{project_id}/financial-summary`
-  - `GET /suppliers/`
-- Add document query helpers only in transaction context:
-  - `GET /transactions/{transaction_id}/documents`
-  - `GET /documents/{document_id}/download-url`
-- Do not remove mock data yet. Add a clear switch or keep API functions unused until auth and environment configuration are ready.
-- Respect current auth requirements; do not fake production auth tokens in code.
-- Run `npm run build`.
-
-Acceptance:
-
-- API types and query functions compile.
-- UI still works without a running backend.
-- Integration path is clear and backend-compatible.
-
 ---
 
 ## 9. Things Not To Do
@@ -1542,3 +1514,32 @@ Check:
 - Text fits in buttons, sidebar items, badges, and table cells.
 - Color use is token-based.
 - The page still reads as a construction budget tool, not a charity dashboard.
+
+## 11. Transition to next task - First API Integration Layer
+
+Goal:
+
+Prepare the frontend for backend integration by introducing the API layer, query infrastructure, and application state management while preserving the existing mock-driven UI. This task focuses on read-only integration and establishing the infrastructure required for later authentication and CRUD operations.
+
+Tasks:
+
+- Add an API client module using existing `axios` or fetch.
+- Add TanStack Query provider if not already added.
+- Define TypeScript API types matching schemas documented above.
+- Add read-only query functions for:
+  - `GET /projects/`
+  - `GET /projects/{project_id}/financial-summary`
+  - `GET /suppliers/`
+- Add document query helpers only in transaction context:
+  - `GET /transactions/{transaction_id}/documents`
+  - `GET /documents/{document_id}/download-url`
+- Keep all create/update/delete operations mocked. Write operations will be connected later during the feature-specific implementation tasks (Transaction Workspace, Suppliers Management, Documents Management, etc.).
+- Do not remove mock data yet. Add a clear switch or keep API functions unused until auth and environment configuration are ready.
+- Respect current auth requirements; do not fake production auth tokens in code.
+- Run `npm run build`.
+
+Acceptance:
+
+- API types and query functions compile.
+- Existing pages continue to work using mock data when the backend is unavailable.
+- Integration path is clear and backend-compatible.
