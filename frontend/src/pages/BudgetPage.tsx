@@ -1,11 +1,20 @@
 import { Fragment, useMemo, useState } from 'react'
 import {
   ChevronDown,
+  DoorOpen,
+  Droplets,
   Eye,
   FilePlus2,
+  Hammer,
+  HardHat,
   Layers3,
+  Paintbrush,
+  PaintRoller,
   Paperclip,
   Plus,
+  Shovel,
+  Trees,
+  type LucideIcon,
 } from 'lucide-react'
 
 import {
@@ -47,6 +56,16 @@ type ActiveAction =
   | ({ kind: 'breakdown' } & BreakdownAction)
   | ({ kind: 'decompose-product' } & BreakdownAction)
   | ({ kind: 'structure-choice' } & BreakdownAction)
+
+const categoryIcons: Record<string, LucideIcon> = {
+  'Terrain & Préparation': Shovel,
+  Viabilisation: Droplets,
+  'Gros œuvre': HardHat,
+  Menuiseries: DoorOpen,
+  'Second œuvre': PaintRoller,
+  Finitions: Paintbrush,
+  Extérieurs: Trees,
+}
 
 function sumBudgetLines(
   product: ProductSummaryViewModel,
@@ -151,6 +170,7 @@ function CategoryHeader({
 }) {
   const variance =
     category.selected_budget_amount_ttc - category.actual_cost_amount_ttc
+  const Icon = categoryIcons[category.category_name] ?? Hammer
 
   return (
     <button
@@ -160,7 +180,12 @@ function CategoryHeader({
       aria-expanded={isOpen}
     >
       <span className="flex min-w-0 items-center gap-2 sm:col-span-2">
-        <ToggleIcon isOpen={isOpen} />
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-foreground/10 text-primary-foreground/90"
+          aria-hidden="true"
+        >
+          <Icon className="h-5 w-5" />
+        </span>
         <span>
           <span className="block text-lg font-semibold">
             {category.category_name}
