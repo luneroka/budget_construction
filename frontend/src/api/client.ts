@@ -7,9 +7,14 @@ export type ApiErrorBody = {
 }
 
 let accessToken: string | null = null
+let unauthorizedHandler: (() => void) | null = null
 
 export function setApiAccessToken(token: string | null) {
   accessToken = token
+}
+
+export function setApiUnauthorizedHandler(handler: (() => void) | null) {
+  unauthorizedHandler = handler
 }
 
 export const apiClient = axios.create({
@@ -26,6 +31,17 @@ apiClient.interceptors.request.use((config) => {
 
   return config
 })
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      unauthorizedHandler?.()
+    }
+
+    return Promise.reject(error)
+  },
+)
 
 export async function apiGet<TResponse>(
   url: string,
@@ -44,6 +60,24 @@ export function getApiErrorMessage(error: unknown): string {
 
   if (typeof detail === 'string') {
     return detail
+  }
+
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => item.msg)
+      .filter((message): message is string => typeof message === 'string')
+
+    if (messages.length > 0) {
+      return messages.join(' ')
+    }
+  }
+
+  if (
+    detail &&
+    !Array.isArray(detail) &&
+    typeof detail.message === 'string'
+  ) {
+    return detail.message
   }
 
   return error.message

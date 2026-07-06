@@ -5,6 +5,19 @@ export type ApiDecimal = string
 export type ProjectStatus = 'draft' | 'active' | 'completed' | 'archived'
 export type BudgetLineType = 'product' | 'breakdown'
 
+export type TokenRead = {
+  access_token: string
+}
+
+export type UserRead = {
+  id: number
+  name: string
+  email: string
+  created_at: ApiDateTime
+  updated_at: ApiDateTime | null
+  deleted_at: ApiDateTime | null
+}
+
 export type ProjectRead = {
   id: number
   user_id: number

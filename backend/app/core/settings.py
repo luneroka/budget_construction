@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     r2_access_key_id: Optional[str] = None
     r2_secret_access_key: Optional[str] = None
     r2_bucket_name: Optional[str] = None
+    cors_allowed_origins: list[str] = [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:5174',
+        'http://127.0.0.1:5174',
+    ]
 
     model_config = SettingsConfigDict(
         env_file='.env',

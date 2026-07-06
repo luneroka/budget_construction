@@ -12,6 +12,24 @@ async def test_openapi_schema_is_available(client: AsyncClient) -> None:
     assert 'paths' in response.json()
 
 
+async def test_local_frontend_origin_is_allowed_for_cors(
+    client: AsyncClient,
+) -> None:
+    response = await client.options(
+        '/auth/login',
+        headers={
+            'Origin': 'http://localhost:5173',
+            'Access-Control-Request-Method': 'POST',
+            'Access-Control-Request-Headers': 'content-type',
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers['access-control-allow-origin'] == (
+        'http://localhost:5173'
+    )
+
+
 async def test_test_database_starts_empty(db_session: AsyncSession) -> None:
     users_count = await db_session.scalar(select(func.count()).select_from(User))
 
