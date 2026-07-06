@@ -1,0 +1,414 @@
+import {
+  ChevronDown,
+  DoorOpen,
+  Droplets,
+  Hammer,
+  HardHat,
+  Layers3,
+  Paintbrush,
+  PaintRoller,
+  Plus,
+  Shovel,
+  Trees,
+  type LucideIcon,
+} from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import { TableCell, TableRow } from '@/components/ui/table'
+import type {
+  BreakdownAction,
+  TransactionAction,
+} from '@/components/budget/types'
+import type {
+  BudgetCategoryViewModel,
+  BudgetLineSummaryViewModel,
+  ProductSummaryViewModel,
+} from '@/demo/types'
+import { formatCurrency } from '@/lib/format'
+import {
+  formatSelectedBudgetSource,
+  type SubcategoryGroup,
+  varianceClass,
+} from '@/lib/budgetViewModel'
+import { cn } from '@/lib/utils'
+
+const categoryIcons: Record<string, LucideIcon> = {
+  'Terrain & Préparation': Shovel,
+  Viabilisation: Droplets,
+  'Gros œuvre': HardHat,
+  Menuiseries: DoorOpen,
+  'Second œuvre': PaintRoller,
+  Finitions: Paintbrush,
+  Extérieurs: Trees,
+}
+
+function ToggleIcon({ isOpen }: { isOpen: boolean }) {
+  return (
+    <ChevronDown
+      className={cn(
+        'h-4 w-4 shrink-0 transition-transform',
+        isOpen && 'rotate-180',
+      )}
+      aria-hidden="true"
+    />
+  )
+}
+
+export function CategoryHeader({
+  category,
+  isOpen,
+  onToggle,
+}: {
+  category: BudgetCategoryViewModel
+  isOpen: boolean
+  onToggle: () => void
+}) {
+  const variance =
+    category.selected_budget_amount_ttc - category.actual_cost_amount_ttc
+  const Icon = categoryIcons[category.category_name] ?? Hammer
+
+  return (
+    <button
+      type="button"
+      className="grid w-full grid-cols-1 gap-y-3 bg-primary px-4 py-3 text-left text-primary-foreground transition-colors hover:bg-primary/95 sm:grid-cols-[minmax(18rem,1fr)_7.25rem_7.25rem_7.25rem] sm:items-center sm:gap-x-1"
+      onClick={onToggle}
+      aria-expanded={isOpen}
+    >
+      <span className="flex min-w-0 items-center gap-2">
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-foreground/10 text-primary-foreground/90"
+          aria-hidden="true"
+        >
+          <Icon className="h-5 w-5" />
+        </span>
+        <span>
+          <span className="block text-lg font-semibold">
+            {category.category_name}
+          </span>
+          <span className="mt-0.5 block text-xs text-primary-foreground/75">
+            {category.products.length} produits
+          </span>
+        </span>
+      </span>
+      <span className="text-right text-xs">
+        <span className="block text-primary-foreground/65">Budget</span>
+        <span className="font-semibold">
+          {formatCurrency(category.selected_budget_amount_ttc)}
+        </span>
+      </span>
+      <span className="text-right text-xs">
+        <span className="block text-primary-foreground/65">Facturé</span>
+        <span className="font-semibold">
+          {formatCurrency(category.actual_cost_amount_ttc)}
+        </span>
+      </span>
+      <span className="text-right text-xs">
+        <span className="block text-primary-foreground/65">Écart</span>
+        <span className="font-semibold">{formatCurrency(variance)}</span>
+      </span>
+    </button>
+  )
+}
+
+export function ProductContextRows({
+  product,
+  line,
+  onAddBreakdown,
+  onAddTransaction,
+  onDecomposeProduct,
+}: {
+  product: ProductSummaryViewModel
+  line: BudgetLineSummaryViewModel | null
+  onAddBreakdown: (action: BreakdownAction) => void
+  onAddTransaction: (action: TransactionAction) => void
+  onDecomposeProduct: (action: BreakdownAction) => void
+}) {
+  const supportsBreakdowns = line === null
+
+  return (
+    <TableRow className="border-t-0 bg-card hover:bg-card!">
+      <TableCell colSpan={7} className="px-6! pt-0! pb-0!">
+        <div className="flex items-center justify-between pt-1 pb-3">
+          <span className="text-xs text-muted-foreground">
+            {supportsBreakdowns
+              ? 'Produit décomposé en sous-produits'
+              : 'Transactions rattachées directement au produit'}
+          </span>
+          <div className="flex items-center justify-end gap-1">
+            {supportsBreakdowns ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
+                onClick={() => onAddBreakdown({ product })}
+              >
+                <Layers3 aria-hidden="true" />
+                Ajouter un sous-produit
+              </Button>
+            ) : line ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
+                  onClick={() => onDecomposeProduct({ product })}
+                >
+                  <Layers3 aria-hidden="true" />
+                  Décomposer le produit
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
+                  onClick={() =>
+                    onAddTransaction({ budgetLine: line, product })
+                  }
+                >
+                  <Plus aria-hidden="true" />
+                  Ajouter une transaction
+                </Button>
+              </>
+            ) : null}
+          </div>
+        </div>
+      </TableCell>
+    </TableRow>
+  )
+}
+
+export function EmptyProductRow({
+  product,
+  onAddFirstTransaction,
+}: {
+  product: ProductSummaryViewModel
+  onAddFirstTransaction: (action: BreakdownAction) => void
+}) {
+  return (
+    <TableRow className="border-t-0 bg-card hover:bg-card!">
+      <TableCell colSpan={7} className="px-6 py-4">
+        <div className="flex items-center justify-between border-t border-border/50 pt-4 pl-7">
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              Aucune transaction
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Commencez par ajouter une première transaction pour ce produit.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="gold"
+            onClick={() => onAddFirstTransaction({ product })}
+          >
+            <Plus aria-hidden="true" />
+            Ajouter une première transaction
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  )
+}
+
+export function BudgetLineContextRow({
+  line,
+  product,
+  onAddTransaction,
+}: {
+  line: BudgetLineSummaryViewModel
+  product: ProductSummaryViewModel
+  onAddTransaction: (action: TransactionAction) => void
+}) {
+  return (
+    <TableRow className="border-t-0 bg-muted/25 hover:bg-muted/25!">
+      <TableCell colSpan={7} className="px-6! pt-1! pb-0!">
+        <div className="flex items-center justify-between pt-1 pb-3">
+          <span className="text-xs text-muted-foreground">
+            Transactions pour ce sous-produit
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
+            onClick={() => onAddTransaction({ budgetLine: line, product })}
+          >
+            <Plus aria-hidden="true" />
+            Ajouter une transaction
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  )
+}
+
+export function SubcategoryRow({
+  group,
+  isOpen,
+  onToggle,
+}: {
+  group: SubcategoryGroup
+  isOpen: boolean
+  onToggle: () => void
+}) {
+  return (
+    <TableRow className="border-y border-primary/40 bg-primary/10 hover:bg-primary/10">
+      <TableCell colSpan={7} className="px-4 py-2">
+        <button
+          type="button"
+          className="grid w-full grid-cols-1 gap-y-3 text-left sm:grid-cols-[minmax(18rem,1fr)_7.25rem_7.25rem_7.25rem] sm:items-center sm:gap-x-1"
+          onClick={onToggle}
+          aria-expanded={isOpen}
+        >
+          <div className="flex min-w-0 items-center gap-2">
+            <div>
+              <p className="truncate text-base font-semibold text-primary">
+                {group.name}
+              </p>
+              <p className="mt-0.5 text-xs text-primary/70">
+                {group.products.length} produits
+              </p>
+            </div>
+          </div>
+          <span className="text-right text-xs">
+            <span className="block text-primary/65">Budget</span>
+            <span className="font-semibold text-primary/80">
+              {formatCurrency(group.selected_budget_amount_ttc)}
+            </span>
+          </span>
+          <span className="text-right text-xs">
+            <span className="block text-primary/65">Facturé</span>
+            <span className="font-semibold text-primary/80">
+              {formatCurrency(group.actual_cost_amount_ttc)}
+            </span>
+          </span>
+          <span className="text-right text-xs">
+            <span className="block text-primary/65">Écart</span>
+            <span
+              className={cn(
+                'font-semibold',
+                varianceClass(group.selected_budget_variance_ttc),
+              )}
+            >
+              {formatCurrency(group.selected_budget_variance_ttc)}
+            </span>
+          </span>
+        </button>
+      </TableCell>
+    </TableRow>
+  )
+}
+
+export function ProductRow({
+  product,
+  isOpen,
+  onToggle,
+}: {
+  product: ProductSummaryViewModel
+  isOpen: boolean
+  onToggle: () => void
+}) {
+  return (
+    <TableRow className="bg-card hover:bg-muted/40">
+      <TableCell colSpan={7} className="px-4 py-2">
+        <button
+          type="button"
+          className="grid w-full grid-cols-1 gap-y-3 text-left sm:grid-cols-[minmax(18rem,1fr)_7.25rem_7.25rem_7.25rem] sm:items-center sm:gap-x-1"
+          onClick={onToggle}
+          aria-expanded={isOpen}
+        >
+          <span className="flex min-w-0 items-center gap-3">
+            <ToggleIcon isOpen={isOpen} />
+            <span className="block font-medium text-foreground">
+              {product.product_name}
+            </span>
+          </span>
+          <span className="hidden text-right text-xs">
+            <span className="block text-muted-foreground">Budget</span>
+            <span className="font-semibold text-foreground">
+              {formatCurrency(product.selected_budget_amount_ttc)}
+            </span>
+          </span>
+          <span className="hidden text-right text-xs">
+            <span className="block text-muted-foreground">Facturé</span>
+            <span className="font-semibold text-foreground">
+              {formatCurrency(product.actual_cost_amount_ttc)}
+            </span>
+          </span>
+          <span className="hidden text-right text-xs">
+            <span className="block text-muted-foreground">Écart</span>
+            <span
+              className={cn(
+                'font-semibold',
+                varianceClass(product.selected_budget_variance_ttc),
+              )}
+            >
+              {formatCurrency(product.selected_budget_variance_ttc)}
+            </span>
+          </span>
+        </button>
+      </TableCell>
+    </TableRow>
+  )
+}
+
+export function BudgetLineRow({
+  line,
+  isOpen,
+  onToggle,
+}: {
+  line: BudgetLineSummaryViewModel
+  isOpen: boolean
+  onToggle: () => void
+}) {
+  return (
+    <TableRow className="bg-muted/25 hover:bg-muted/50">
+      <TableCell colSpan={7} className="px-4 py-2 pl-12">
+        <button
+          type="button"
+          className="grid w-full grid-cols-1 gap-y-3 text-left sm:grid-cols-[minmax(18rem,1fr)_7.25rem_7.25rem_7.25rem] sm:items-center sm:gap-x-1"
+          onClick={onToggle}
+          aria-expanded={isOpen}
+        >
+          <span className="flex min-w-0 items-center gap-3">
+            <span
+              className="h-7 w-1.5 rounded-full bg-gold/75"
+              aria-hidden="true"
+            />
+            <span>
+              <span className="block font-medium text-foreground">
+                {line.name}
+              </span>
+              <span className="hidden mt-1 text-xs text-muted-foreground">
+                Budget sélectionné:{' '}
+                {formatCurrency(line.selected_budget_amount_ttc)} (
+                {formatSelectedBudgetSource(line)})
+              </span>
+            </span>
+          </span>
+          <span className="hidden text-right text-xs">
+            <span className="block text-muted-foreground">Budget</span>
+            <span className="font-semibold text-foreground">
+              {formatCurrency(line.selected_budget_amount_ttc)}
+            </span>
+          </span>
+          <span className="hidden text-right text-xs">
+            <span className="block text-muted-foreground">Facturé</span>
+            <span className="font-semibold text-foreground">
+              {formatCurrency(line.actual_cost_amount_ttc)}
+            </span>
+          </span>
+          <span className="hidden text-right text-xs">
+            <span className="block text-muted-foreground">Écart</span>
+            <span
+              className={cn(
+                'font-semibold',
+                varianceClass(line.selected_budget_variance_ttc),
+              )}
+            >
+              {formatCurrency(line.selected_budget_variance_ttc)}
+            </span>
+          </span>
+        </button>
+      </TableCell>
+    </TableRow>
+  )
+}

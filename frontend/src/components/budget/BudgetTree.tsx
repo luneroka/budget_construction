@@ -1,0 +1,250 @@
+import { Fragment } from 'react'
+
+import type { ViewedTransactionContext } from '@/components/budget/TransactionModal'
+import {
+  BudgetLineContextRow,
+  BudgetLineRow,
+  CategoryHeader,
+  EmptyProductRow,
+  ProductContextRows,
+  ProductRow,
+  SubcategoryRow,
+} from '@/components/budget/BudgetTreeRows'
+import { TransactionsPanel } from '@/components/budget/TransactionsPanel'
+import type {
+  BreakdownAction,
+  TransactionAction,
+} from '@/components/budget/types'
+import { Table, TableBody } from '@/components/ui/table'
+import type {
+  BudgetCategoryViewModel,
+  BudgetLineSummaryViewModel,
+  TransactionViewModel,
+} from '@/demo/types'
+import { useBudgetExpansion } from '@/hooks/useBudgetExpansion'
+import type { BudgetSelectionState } from '@/lib/budgetViewModel'
+import {
+  getWholeProductBudgetLine,
+  groupProductsBySubcategory,
+  isProductEmpty,
+} from '@/lib/budgetViewModel'
+
+type BudgetTreeProps = {
+  categories: BudgetCategoryViewModel[]
+  getBudgetSelection: (
+    line: BudgetLineSummaryViewModel,
+  ) => BudgetSelectionState
+  getLineWithBudgetSelection: (
+    line: BudgetLineSummaryViewModel,
+  ) => BudgetLineSummaryViewModel
+  onAddBreakdown: (action: BreakdownAction) => void
+  onAddFirstTransaction: (action: BreakdownAction) => void
+  onAddTransaction: (action: TransactionAction) => void
+  onDecomposeProduct: (action: BreakdownAction) => void
+  onToggleBudgetSelection: (
+    line: BudgetLineSummaryViewModel,
+    transaction: TransactionViewModel,
+  ) => void
+  onRequestDeleteTransaction: (context: ViewedTransactionContext) => void
+  onEditTransaction: (context: ViewedTransactionContext) => void
+  onViewTransaction: (context: ViewedTransactionContext) => void
+}
+
+export function BudgetTree({
+  categories,
+  getBudgetSelection,
+  getLineWithBudgetSelection,
+  onAddBreakdown,
+  onAddFirstTransaction,
+  onAddTransaction,
+  onDecomposeProduct,
+  onToggleBudgetSelection,
+  onRequestDeleteTransaction,
+  onEditTransaction,
+  onViewTransaction,
+}: BudgetTreeProps) {
+  const {
+    openCategories,
+    openSubcategories,
+    openProducts,
+    openBudgetLines,
+    toggleCategory,
+    toggleSubcategory,
+    toggleProduct,
+    toggleBudgetLine,
+  } = useBudgetExpansion()
+
+  return (
+    <div className="space-y-4">
+      {categories.map((category) => {
+        const isCategoryOpen = openCategories.has(category.category_id)
+        const subcategoryGroups = groupProductsBySubcategory(category.products)
+
+        return (
+          <div
+            key={category.category_id}
+            className="overflow-hidden rounded-lg border border-border bg-card"
+          >
+            <CategoryHeader
+              category={category}
+              isOpen={isCategoryOpen}
+              onToggle={() => toggleCategory(category.category_id)}
+            />
+            {isCategoryOpen ? (
+              <Table>
+                <TableBody>
+                  {subcategoryGroups.map((group) => {
+                    const subcategoryId = `${category.category_id}:${group.name}`
+                    const isSubcategoryOpen =
+                      openSubcategories.has(subcategoryId)
+
+                    return (
+                      <Fragment key={group.name}>
+                        <SubcategoryRow
+                          group={group}
+                          isOpen={isSubcategoryOpen}
+                          onToggle={() => toggleSubcategory(subcategoryId)}
+                        />
+                        {isSubcategoryOpen
+                          ? group.products.map((product) => {
+                              const isProductOpen = openProducts.has(
+                                product.product_id,
+                              )
+                              const wholeProductLine =
+                                getWholeProductBudgetLine(product)
+                              const selectedWholeProductLine = wholeProductLine
+                                ? getLineWithBudgetSelection(wholeProductLine)
+                                : null
+                              const isEmptyProduct = isProductEmpty(product)
+
+                              return (
+                                <Fragment key={product.product_id}>
+                                  <ProductRow
+                                    product={product}
+                                    isOpen={isProductOpen}
+                                    onToggle={() =>
+                                      toggleProduct(product.product_id)
+                                    }
+                                  />
+                                  {isProductOpen ? (
+                                    isEmptyProduct ? (
+                                      <EmptyProductRow
+                                        product={product}
+                                        onAddFirstTransaction={
+                                          onAddFirstTransaction
+                                        }
+                                      />
+                                    ) : (
+                                      <>
+                                        <ProductContextRows
+                                          product={product}
+                                          line={selectedWholeProductLine}
+                                          onAddBreakdown={onAddBreakdown}
+                                          onAddTransaction={onAddTransaction}
+                                          onDecomposeProduct={
+                                            onDecomposeProduct
+                                          }
+                                        />
+                                        {selectedWholeProductLine ? (
+                                          <TransactionsPanel
+                                            transactions={
+                                              selectedWholeProductLine.transactions
+                                            }
+                                            budgetLine={
+                                              selectedWholeProductLine
+                                            }
+                                            budgetSelection={getBudgetSelection(
+                                              selectedWholeProductLine,
+                                            )}
+                                            product={product}
+                                            onToggleBudgetSelection={
+                                              onToggleBudgetSelection
+                                            }
+                                            onRequestDeleteTransaction={
+                                              onRequestDeleteTransaction
+                                            }
+                                            onEditTransaction={
+                                              onEditTransaction
+                                            }
+                                            onViewTransaction={
+                                              onViewTransaction
+                                            }
+                                          />
+                                        ) : (
+                                          product.budget_lines.map((line) => {
+                                            const isLineOpen =
+                                              openBudgetLines.has(
+                                                line.budget_line_id,
+                                              )
+                                            const selectedLine =
+                                              getLineWithBudgetSelection(line)
+
+                                            return (
+                                              <Fragment
+                                                key={line.budget_line_id}
+                                              >
+                                                <BudgetLineRow
+                                                  line={selectedLine}
+                                                  isOpen={isLineOpen}
+                                                  onToggle={() =>
+                                                    toggleBudgetLine(
+                                                      line.budget_line_id,
+                                                    )
+                                                  }
+                                                />
+                                                {isLineOpen ? (
+                                                  <>
+                                                    <BudgetLineContextRow
+                                                      line={selectedLine}
+                                                      product={product}
+                                                      onAddTransaction={
+                                                        onAddTransaction
+                                                      }
+                                                    />
+                                                    <TransactionsPanel
+                                                      transactions={
+                                                        selectedLine.transactions
+                                                      }
+                                                      budgetLine={selectedLine}
+                                                      budgetSelection={getBudgetSelection(
+                                                        selectedLine,
+                                                      )}
+                                                      product={product}
+                                                      onToggleBudgetSelection={
+                                                        onToggleBudgetSelection
+                                                      }
+                                                      onRequestDeleteTransaction={
+                                                        onRequestDeleteTransaction
+                                                      }
+                                                      onEditTransaction={
+                                                        onEditTransaction
+                                                      }
+                                                      onViewTransaction={
+                                                        onViewTransaction
+                                                      }
+                                                    />
+                                                  </>
+                                                ) : null}
+                                              </Fragment>
+                                            )
+                                          })
+                                        )}
+                                      </>
+                                    )
+                                  ) : null}
+                                </Fragment>
+                              )
+                            })
+                          : null}
+                      </Fragment>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            ) : null}
+          </div>
+        )
+      })}
+    </div>
+  )
+}

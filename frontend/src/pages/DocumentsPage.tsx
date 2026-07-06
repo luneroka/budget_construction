@@ -30,14 +30,17 @@ function formatTransactionTitle(description: string): string {
 
 export function DocumentsPage() {
   const [search, setSearch] = useState('')
-  const [selectedAction, setSelectedAction] = useState<DocumentAction | null>(null)
+  const [selectedAction, setSelectedAction] = useState<DocumentAction | null>(
+    null,
+  )
   const [selectedDocument, setSelectedDocument] =
     useState<DocumentRowViewModel | null>(null)
   const documents = useMemo(
     () =>
       [...documentsViewModel.documents].sort(
         (left, right) =>
-          new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
+          new Date(right.created_at).getTime() -
+          new Date(left.created_at).getTime(),
       ),
     [],
   )
@@ -52,8 +55,10 @@ export function DocumentsPage() {
         document.transaction_description,
       ]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(normalizedSearch)),
-      )
+        .some((value) =>
+          String(value).toLowerCase().includes(normalizedSearch),
+        ),
+    )
   }, [documents, normalizedSearch])
 
   function openPlaceholderModal(
@@ -96,7 +101,7 @@ export function DocumentsPage() {
               <TableHead>Transaction</TableHead>
               <TableHead>Ajouté le</TableHead>
               <TableHead className="min-w-20 text-right">Taille</TableHead>
-              <TableHead className="!text-center">Actions</TableHead>
+              <TableHead className="text-center!">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
