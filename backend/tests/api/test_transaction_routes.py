@@ -250,6 +250,107 @@ async def test_select_budget_candidate_keeps_quote_and_diy_selections(
     assert budget_line.selected_diy_estimate_transaction_id == diy_estimate_id
 
 
+async def test_unselect_budget_candidate_clears_only_matching_selection(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_transaction_route_context(
+        db_session,
+        email='unselect-budget-candidate-user@example.com',
+    )
+    quote = await create_product_transaction(
+        client,
+        context,
+        quote_payload(quote_status='validated'),
+    )
+    diy_estimate = await create_product_transaction(
+        client,
+        context,
+        diy_estimate_payload(),
+    )
+
+    budget_line_id = quote['budget_line_id']
+    quote_id = quote['id']
+    diy_estimate_id = diy_estimate['id']
+    assert isinstance(budget_line_id, int)
+    assert isinstance(quote_id, int)
+    assert isinstance(diy_estimate_id, int)
+
+    for transaction_id in [quote_id, diy_estimate_id]:
+        response = await client.post(
+            (
+                f'/projects/{context.project_id}/budget-lines/{budget_line_id}'
+                f'/transactions/{transaction_id}/select-budget'
+            ),
+            headers=auth_headers(context.access_token),
+        )
+        assert response.status_code == 200
+
+    response = await client.delete(
+        (
+            f'/projects/{context.project_id}/budget-lines/{budget_line_id}'
+            f'/transactions/{quote_id}/select-budget'
+        ),
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 200
+    budget_line = await get_budget_line(db_session, budget_line_id)
+    assert budget_line.selected_quote_transaction_id is None
+    assert budget_line.selected_diy_estimate_transaction_id == diy_estimate_id
+
+
+async def test_unselect_budget_candidate_allows_no_selected_budget(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_transaction_route_context(
+        db_session,
+        email='unselect-all-budget-candidates-user@example.com',
+    )
+    quote = await create_product_transaction(
+        client,
+        context,
+        quote_payload(quote_status='validated'),
+    )
+    diy_estimate = await create_product_transaction(
+        client,
+        context,
+        diy_estimate_payload(),
+    )
+
+    budget_line_id = quote['budget_line_id']
+    quote_id = quote['id']
+    diy_estimate_id = diy_estimate['id']
+    assert isinstance(budget_line_id, int)
+    assert isinstance(quote_id, int)
+    assert isinstance(diy_estimate_id, int)
+
+    for transaction_id in [quote_id, diy_estimate_id]:
+        response = await client.post(
+            (
+                f'/projects/{context.project_id}/budget-lines/{budget_line_id}'
+                f'/transactions/{transaction_id}/select-budget'
+            ),
+            headers=auth_headers(context.access_token),
+        )
+        assert response.status_code == 200
+
+    for transaction_id in [quote_id, diy_estimate_id]:
+        response = await client.delete(
+            (
+                f'/projects/{context.project_id}/budget-lines/{budget_line_id}'
+                f'/transactions/{transaction_id}/select-budget'
+            ),
+            headers=auth_headers(context.access_token),
+        )
+        assert response.status_code == 200
+
+    budget_line = await get_budget_line(db_session, budget_line_id)
+    assert budget_line.selected_quote_transaction_id is None
+    assert budget_line.selected_diy_estimate_transaction_id is None
+
+
 async def test_invalid_selected_candidate_returns_400(
     client: AsyncClient,
     db_session: AsyncSession,
@@ -298,6 +399,35 @@ async def test_invoice_cannot_be_selected_as_budget_candidate(
     assert isinstance(budget_line_id, int)
 
     response = await client.post(
+        (
+            f'/projects/{context.project_id}/budget-lines/{budget_line_id}'
+            f'/transactions/{transaction_id}/select-budget'
+        ),
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 400
+
+
+async def test_invoice_cannot_be_unselected_as_budget_candidate(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_transaction_route_context(
+        db_session,
+        email='invoice-unselect-budget-candidate-user@example.com',
+    )
+    transaction = await create_product_transaction(
+        client,
+        context,
+        invoice_payload(),
+    )
+    transaction_id = transaction['id']
+    budget_line_id = transaction['budget_line_id']
+    assert isinstance(transaction_id, int)
+    assert isinstance(budget_line_id, int)
+
+    response = await client.delete(
         (
             f'/projects/{context.project_id}/budget-lines/{budget_line_id}'
             f'/transactions/{transaction_id}/select-budget'

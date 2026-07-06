@@ -1,4 +1,10 @@
-import { Fragment, useMemo, useState } from 'react'
+import {
+  Fragment,
+  useMemo,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react'
 import {
   ChevronDown,
   DoorOpen,
@@ -64,6 +70,11 @@ type TransactionReviewState = {
   initialMode: 'view' | 'edit'
 }
 
+type BudgetSelectionState = {
+  selected_quote_transaction_id: string | null
+  selected_diy_estimate_transaction_id: string | null
+}
+
 const categoryIcons: Record<string, LucideIcon> = {
   'Terrain & Préparation': Shovel,
   Viabilisation: Droplets,
@@ -103,6 +114,52 @@ function formatSelectedBudgetSource(line: BudgetLineSummaryViewModel) {
   ].filter(Boolean)
 
   return parts.length > 0 ? parts.join(' + ') : 'Aucun budget sélectionné'
+}
+
+function canToggleBudgetSelection(transaction: TransactionViewModel) {
+  if (transaction.transaction_type === 'diy_estimate') return true
+  return (
+    transaction.transaction_type === 'quote' &&
+    transaction.quote_status === 'validated'
+  )
+}
+
+function isSelectedBudgetTransaction(
+  transaction: TransactionViewModel,
+  selection: BudgetSelectionState,
+) {
+  return (
+    transaction.id === selection.selected_quote_transaction_id ||
+    transaction.id === selection.selected_diy_estimate_transaction_id
+  )
+}
+
+function applyBudgetSelection(
+  line: BudgetLineSummaryViewModel,
+  selection: BudgetSelectionState,
+): BudgetLineSummaryViewModel {
+  return {
+    ...line,
+    selected_quote_transaction_id: selection.selected_quote_transaction_id,
+    selected_diy_estimate_transaction_id:
+      selection.selected_diy_estimate_transaction_id,
+  }
+}
+
+function createBudgetSelections(
+  products: ProductSummaryViewModel[],
+): Record<string, BudgetSelectionState> {
+  const selections: Record<string, BudgetSelectionState> = {}
+  products.forEach((product) => {
+    product.budget_lines.forEach((line) => {
+      selections[line.budget_line_id] = {
+        selected_quote_transaction_id: line.selected_quote_transaction_id,
+        selected_diy_estimate_transaction_id:
+          line.selected_diy_estimate_transaction_id,
+      }
+    })
+  })
+  return selections
 }
 
 function ToggleIcon({ isOpen }: { isOpen: boolean }) {
@@ -546,13 +603,20 @@ function BudgetLineRow({
 function TransactionsRows({
   transactions,
   budgetLine,
+  budgetSelection,
   product,
+  onToggleBudgetSelection,
   onEditTransaction,
   onViewTransaction,
 }: {
   transactions: TransactionViewModel[]
   budgetLine: BudgetLineSummaryViewModel
+  budgetSelection: BudgetSelectionState
   product: ProductSummaryViewModel
+  onToggleBudgetSelection: (
+    budgetLine: BudgetLineSummaryViewModel,
+    transaction: TransactionViewModel,
+  ) => void
   onEditTransaction: (context: ViewedTransactionContext) => void
   onViewTransaction: (context: ViewedTransactionContext) => void
 }) {
@@ -580,13 +644,6 @@ function TransactionsRows({
     )
   }
 
-  function isSelectedBudgetTransaction(transaction: TransactionViewModel) {
-    return (
-      transaction.id === budgetLine.selected_quote_transaction_id ||
-      transaction.id === budgetLine.selected_diy_estimate_transaction_id
-    )
-  }
-
   function renderTransactionRows(sectionTransactions: TransactionViewModel[]) {
     if (sectionTransactions.length === 0) {
       return (
@@ -601,7 +658,11 @@ function TransactionsRows({
     return sectionTransactions.map((transaction) => {
       const financialStatus =
         transaction.quote_status ?? transaction.invoice_status
-      const isSelectedBudget = isSelectedBudgetTransaction(transaction)
+      const isSelectedBudget = isSelectedBudgetTransaction(
+        transaction,
+        budgetSelection,
+      )
+      const canToggleSelection = canToggleBudgetSelection(transaction)
 
       return (
         <div
@@ -635,11 +696,29 @@ function TransactionsRows({
             {transaction.transaction_type === 'invoice' ? (
               <span className="text-muted-foreground">-</span>
             ) : isSelectedBudget ? (
-              <Badge variant="gold">Sélectionné</Badge>
+              <button
+                type="button"
+                className="inline-flex"
+                onClick={() => onToggleBudgetSelection(budgetLine, transaction)}
+                aria-label="Retirer cette transaction du budget sélectionné"
+              >
+                <Badge variant="gold">Sélectionné</Badge>
+              </button>
             ) : (
-              <Badge variant="muted" className="opacity-75">
-                Non retenu
-              </Badge>
+              <button
+                type="button"
+                className={cn(
+                  'inline-flex',
+                  canToggleSelection
+                    ? 'cursor-pointer'
+                    : 'cursor-not-allowed opacity-75',
+                )}
+                disabled={!canToggleSelection}
+                onClick={() => onToggleBudgetSelection(budgetLine, transaction)}
+                aria-label="Sélectionner cette transaction pour le budget"
+              >
+                <Badge variant="muted">Non retenu</Badge>
+              </button>
             )}
           </div>
           <div className="px-1 py-2 text-center whitespace-nowrap">
@@ -759,6 +838,9 @@ export function BudgetPage() {
     useState<TransactionReviewState | null>(null)
   const [selectedStructureChoice, setSelectedStructureChoice] =
     useState<ProductStructureChoice>('single')
+  const [budgetSelections, setBudgetSelections] = useState<
+    Record<string, BudgetSelectionState>
+  >(() => createBudgetSelections(financialSummary.products))
 
   const visibleCounts = useMemo(
     () => ({
@@ -770,7 +852,7 @@ export function BudgetPage() {
   )
 
   function toggleSet(
-    setter: React.Dispatch<React.SetStateAction<Set<string>>>,
+    setter: Dispatch<SetStateAction<Set<string>>>,
     id: string,
   ) {
     setter((current) => {
@@ -794,6 +876,54 @@ export function BudgetPage() {
     openTransactionAction({
       product: action.product,
       initialStructure: selectedStructureChoice,
+    })
+  }
+
+  function getBudgetSelection(line: BudgetLineSummaryViewModel) {
+    return (
+      budgetSelections[line.budget_line_id] ?? {
+        selected_quote_transaction_id: line.selected_quote_transaction_id,
+        selected_diy_estimate_transaction_id:
+          line.selected_diy_estimate_transaction_id,
+      }
+    )
+  }
+
+  function getLineWithBudgetSelection(line: BudgetLineSummaryViewModel) {
+    return applyBudgetSelection(line, getBudgetSelection(line))
+  }
+
+  function toggleBudgetSelection(
+    line: BudgetLineSummaryViewModel,
+    transaction: TransactionViewModel,
+  ) {
+    if (!canToggleBudgetSelection(transaction)) return
+
+    setBudgetSelections((current) => {
+      const currentSelection =
+        current[line.budget_line_id] ?? getBudgetSelection(line)
+      const isSelected = isSelectedBudgetTransaction(
+        transaction,
+        currentSelection,
+      )
+      const nextSelection: BudgetSelectionState = { ...currentSelection }
+
+      if (transaction.transaction_type === 'quote') {
+        nextSelection.selected_quote_transaction_id = isSelected
+          ? null
+          : transaction.id
+      }
+
+      if (transaction.transaction_type === 'diy_estimate') {
+        nextSelection.selected_diy_estimate_transaction_id = isSelected
+          ? null
+          : transaction.id
+      }
+
+      return {
+        ...current,
+        [line.budget_line_id]: nextSelection,
+      }
     })
   }
 
@@ -879,6 +1009,12 @@ export function BudgetPage() {
                                 )
                                 const wholeProductLine =
                                   getWholeProductBudgetLine(product)
+                                const selectedWholeProductLine =
+                                  wholeProductLine
+                                    ? getLineWithBudgetSelection(
+                                        wholeProductLine,
+                                      )
+                                    : null
                                 const isEmptyProduct = isProductEmpty(product)
 
                                 return (
@@ -905,7 +1041,7 @@ export function BudgetPage() {
                                         <>
                                           <ProductContextRows
                                             product={product}
-                                            line={wholeProductLine}
+                                            line={selectedWholeProductLine}
                                             onAddBreakdown={(action) =>
                                               setActiveAction({
                                                 kind: 'breakdown',
@@ -922,13 +1058,21 @@ export function BudgetPage() {
                                               })
                                             }
                                           />
-                                          {wholeProductLine ? (
+                                          {selectedWholeProductLine ? (
                                             <TransactionsRows
                                               transactions={
-                                                wholeProductLine.transactions
+                                                selectedWholeProductLine.transactions
                                               }
-                                              budgetLine={wholeProductLine}
+                                              budgetLine={
+                                                selectedWholeProductLine
+                                              }
+                                              budgetSelection={getBudgetSelection(
+                                                selectedWholeProductLine,
+                                              )}
                                               product={product}
+                                              onToggleBudgetSelection={
+                                                toggleBudgetSelection
+                                              }
                                               onEditTransaction={(context) =>
                                                 setTransactionReview({
                                                   context,
@@ -948,13 +1092,15 @@ export function BudgetPage() {
                                                 openBudgetLines.has(
                                                   line.budget_line_id,
                                                 )
+                                              const selectedLine =
+                                                getLineWithBudgetSelection(line)
 
                                               return (
                                                 <Fragment
                                                   key={line.budget_line_id}
                                                 >
                                                   <BudgetLineRow
-                                                    line={line}
+                                                    line={selectedLine}
                                                     isOpen={isLineOpen}
                                                     onToggle={() =>
                                                       toggleSet(
@@ -966,7 +1112,7 @@ export function BudgetPage() {
                                                   {isLineOpen ? (
                                                     <>
                                                       <BudgetLineContextRow
-                                                        line={line}
+                                                        line={selectedLine}
                                                         product={product}
                                                         onAddTransaction={
                                                           openTransactionAction
@@ -974,10 +1120,18 @@ export function BudgetPage() {
                                                       />
                                                       <TransactionsRows
                                                         transactions={
-                                                          line.transactions
+                                                          selectedLine.transactions
                                                         }
-                                                        budgetLine={line}
+                                                        budgetLine={
+                                                          selectedLine
+                                                        }
+                                                        budgetSelection={getBudgetSelection(
+                                                          selectedLine,
+                                                        )}
                                                         product={product}
+                                                        onToggleBudgetSelection={
+                                                          toggleBudgetSelection
+                                                        }
                                                         onEditTransaction={(
                                                           context,
                                                         ) =>
@@ -1133,6 +1287,19 @@ export function BudgetPage() {
           context={transactionReview.context}
           initialMode={transactionReview.initialMode}
           suppliers={supplierTableViewModel.suppliers}
+          isBudgetSelected={isSelectedBudgetTransaction(
+            transactionReview.context.transaction,
+            getBudgetSelection(transactionReview.context.budgetLine),
+          )}
+          canToggleBudgetSelection={canToggleBudgetSelection(
+            transactionReview.context.transaction,
+          )}
+          onToggleBudgetSelection={() =>
+            toggleBudgetSelection(
+              transactionReview.context.budgetLine,
+              transactionReview.context.transaction,
+            )
+          }
           onClose={() => setTransactionReview(null)}
         />
       ) : null}

@@ -232,3 +232,33 @@ async def select_budget_candidate(
         )
 
     return transaction
+
+
+@router.delete('/{transaction_id}/select-budget', response_model=TransactionRead)
+async def unselect_budget_candidate(
+    project_id: int,
+    budget_line_id: int,
+    transaction_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        transaction = await transaction_repository.unselect_budget_candidate(
+            db,
+            project_id,
+            budget_line_id,
+            transaction_id,
+            current_user.id,
+        )
+    except transaction_repository.TransactionValidationError as error:
+        _bad_request(error)
+    except IntegrityError as error:
+        await raise_integrity_conflict(db, error)
+
+    if transaction is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Transaction not found',
+        )
+
+    return transaction

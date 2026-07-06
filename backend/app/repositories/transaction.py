@@ -609,6 +609,43 @@ async def select_budget_candidate(
     return transaction
 
 
+async def unselect_budget_candidate(
+    db: AsyncSession,
+    project_id: int,
+    budget_line_id: int,
+    transaction_id: int,
+    user_id: int,
+) -> Transaction | None:
+    transaction = await get_transaction_by_id(
+        db,
+        project_id,
+        budget_line_id,
+        transaction_id,
+        user_id,
+    )
+    if transaction is None:
+        return None
+
+    if transaction.transaction_type not in {
+        TransactionType.quote,
+        TransactionType.diy_estimate,
+    }:
+        raise TransactionValidationError(
+            'Only quotes and DIY estimates can be unselected as budget candidates'
+        )
+
+    await _clear_selected_budget_candidate_if_matches(
+        db,
+        transaction.budget_line_id,
+        transaction.id,
+    )
+
+    await db.commit()
+    await db.refresh(transaction)
+
+    return transaction
+
+
 async def get_transaction_by_id_for_user(
     db: AsyncSession, transaction_id: int, user_id: int
 ) -> Transaction | None:

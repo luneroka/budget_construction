@@ -54,7 +54,7 @@ type MockSubmission = {
 }
 
 type MockUpdateSubmission = {
-  method: 'PATCH'
+  method: 'PATCH' | 'POST' | 'DELETE'
   route: string
   payload: Record<string, string | null>
 }
@@ -95,6 +95,9 @@ type TransactionReviewModalProps = {
   context: ViewedTransactionContext
   initialMode?: 'view' | 'edit'
   suppliers: SupplierRowViewModel[]
+  isBudgetSelected: boolean
+  canToggleBudgetSelection: boolean
+  onToggleBudgetSelection: () => void
   onClose: () => void
 }
 
@@ -159,7 +162,7 @@ function createInitialFormState(
     invoice_status: 'unpaid',
     invoice_type: 'full',
     payment_method: 'wire',
-    select_as_budget: true,
+    select_as_budget: false,
     budget_concern:
       initialStructure === 'breakdown' ? 'specific_element' : 'entire_product',
     budget_line_name: '',
@@ -211,7 +214,7 @@ function normalizeForType(
       invoice_status: 'unpaid',
       invoice_type: 'full',
       payment_method: 'wire',
-      select_as_budget: true,
+      select_as_budget: false,
     }
   }
 
@@ -222,8 +225,13 @@ function normalizeForType(
     invoice_status: 'unpaid',
     invoice_type: 'full',
     payment_method: 'wire',
-    select_as_budget: true,
+    select_as_budget: state.quote_status === 'validated',
   }
+}
+
+function canSelectCreatedTransactionAsBudget(form: TransactionFormState) {
+  if (form.transaction_type === 'diy_estimate') return true
+  return form.transaction_type === 'quote' && form.quote_status === 'validated'
 }
 
 function buildMockUpdateSubmission({
@@ -290,8 +298,9 @@ function buildMockSubmission({
     amount_ttc: emptyToNull(form.amount_ttc),
     issued_date: form.issued_date,
     description: emptyToNull(form.description),
-    select_as_budget:
-      form.transaction_type === 'invoice' ? false : form.select_as_budget,
+    select_as_budget: canSelectCreatedTransactionAsBudget(form)
+      ? form.select_as_budget
+      : false,
   }
 
   if (form.transaction_type === 'quote') {
@@ -413,7 +422,8 @@ export function TransactionModal({
   )
   const [submission, setSubmission] = useState<MockSubmission | null>(null)
   const isProductScoped = !budgetLine
-  const canSelectAsBudget = form.transaction_type !== 'invoice'
+  const canTargetBudgetLine = form.transaction_type !== 'invoice'
+  const canSelectAsBudget = canSelectCreatedTransactionAsBudget(form)
 
   const selectedSupplierName = useMemo(
     () =>
@@ -428,6 +438,25 @@ export function TransactionModal({
   ) {
     setForm((current) => ({ ...current, [key]: value }))
     setSubmission(null)
+  }
+
+  function updateQuoteStatus(quoteStatus: QuoteStatus) {
+    setForm((current) => ({
+      ...current,
+      quote_status: quoteStatus,
+      select_as_budget: quoteStatus === 'validated',
+    }))
+    setSubmission(null)
+  }
+
+  function getSelectAsBudgetHint() {
+    if (form.transaction_type === 'invoice') {
+      return 'Les factures alimentent le réalisé et ne peuvent pas devenir budget sélectionné.'
+    }
+    if (form.transaction_type === 'quote' && form.quote_status !== 'validated') {
+      return 'Validez le devis pour pouvoir le sélectionner comme budget.'
+    }
+    return 'Le montant contribuera au budget sélectionné de ce poste.'
   }
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement, SubmitEvent>) {
@@ -614,8 +643,7 @@ export function TransactionModal({
                       id="transaction-quote-status"
                       value={form.quote_status}
                       onChange={(event) =>
-                        updateField(
-                          'quote_status',
+                        updateQuoteStatus(
                           event.target.value as QuoteStatus,
                         )
                       }
@@ -741,7 +769,7 @@ export function TransactionModal({
             </div>
 
             <div className="mt-4 space-y-4">
-              {isProductScoped && canSelectAsBudget ? (
+              {isProductScoped && canTargetBudgetLine ? (
                 <div className="grid gap-4 md:grid-cols-2">
                   <Field
                     label="Portée budget"
@@ -800,9 +828,7 @@ export function TransactionModal({
                       Sélectionner comme budget
                     </span>
                     <span className="mt-1 block text-muted-foreground">
-                      {canSelectAsBudget
-                        ? 'Le montant contribuera au budget sélectionné de ce poste.'
-                        : 'Les factures alimentent le réalisé et ne peuvent pas devenir budget sélectionné.'}
+                      {getSelectAsBudgetHint()}
                     </span>
                   </span>
                 </label>
@@ -850,6 +876,9 @@ export function TransactionReviewModal({
   context,
   initialMode = 'view',
   suppliers,
+  isBudgetSelected,
+  canToggleBudgetSelection,
+  onToggleBudgetSelection,
   onClose,
 }: TransactionReviewModalProps) {
   const { budgetLine, product, transaction } = context
@@ -899,6 +928,17 @@ export function TransactionReviewModal({
     setSubmission(
       buildMockUpdateSubmission({ project, budgetLine, transaction, form }),
     )
+  }
+
+  function handleBudgetSelectionToggle() {
+    if (!canToggleBudgetSelection) return
+
+    onToggleBudgetSelection()
+    setSubmission({
+      method: isBudgetSelected ? 'DELETE' : 'POST',
+      route: `/projects/${project.id}/budget-lines/${budgetLine.budget_line_id}/transactions/${transaction.id}/select-budget`,
+      payload: {},
+    })
   }
 
   return (
@@ -1200,9 +1240,9 @@ export function TransactionReviewModal({
             </Field>
             <label className="flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm">
               <Checkbox
-                checked={!isInvoice && transaction.select_as_budget}
-                disabled
-                onChange={() => undefined}
+                checked={isBudgetSelected}
+                disabled={!canToggleBudgetSelection}
+                onChange={handleBudgetSelectionToggle}
               />
               Sélectionné pour budget
             </label>
