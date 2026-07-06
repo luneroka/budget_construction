@@ -51,6 +51,15 @@ export async function apiGet<TResponse>(
   return response.data
 }
 
+export async function apiPost<TResponse, TBody = unknown>(
+  url: string,
+  body: TBody,
+  config?: AxiosRequestConfig,
+): Promise<TResponse> {
+  const response = await apiClient.post<TResponse>(url, body, config)
+  return response.data
+}
+
 export function getApiErrorMessage(error: unknown): string {
   if (!axios.isAxiosError<ApiErrorBody>(error)) {
     return 'Unexpected API error'

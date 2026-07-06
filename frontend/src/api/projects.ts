@@ -1,8 +1,13 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { apiConfig } from './config'
-import { apiGet } from './client'
-import type { ProjectFinancialSummaryRead, ProjectRead } from './types'
+import { apiGet, apiPost } from './client'
+import type {
+  GeneratedProjectRead,
+  ProjectFinancialSummaryRead,
+  ProjectFromTemplateCreate,
+  ProjectRead,
+} from './types'
 
 export const projectQueryKeys = {
   all: ['projects'] as const,
@@ -17,6 +22,15 @@ export function getProjects(includeDeleted = false): Promise<ProjectRead[]> {
   return apiGet<ProjectRead[]>('/projects/', {
     params: { include_deleted: includeDeleted },
   })
+}
+
+export function createProjectFromTemplate(
+  project: ProjectFromTemplateCreate,
+): Promise<GeneratedProjectRead> {
+  return apiPost<GeneratedProjectRead, ProjectFromTemplateCreate>(
+    '/projects/from-template',
+    project,
+  )
 }
 
 export function getProjectFinancialSummary(
@@ -53,5 +67,11 @@ export function useProjectFinancialSummaryQuery(
     },
     enabled:
       projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
+  })
+}
+
+export function useCreateProjectFromTemplateMutation() {
+  return useMutation({
+    mutationFn: createProjectFromTemplate,
   })
 }

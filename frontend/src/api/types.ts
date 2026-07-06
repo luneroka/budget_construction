@@ -33,6 +33,30 @@ export type ProjectRead = {
   deleted_at: ApiDateTime | null
 }
 
+export type ProjectFromTemplateCreate = {
+  name: string
+  template_id: number
+  description?: string | null
+  location?: string | null
+  start_date?: ApiDate | null
+  end_date?: ApiDate | null
+  project_status?: ProjectStatus
+}
+
+export type GeneratedProjectRead = {
+  project: ProjectRead
+  budget_lines: unknown[]
+}
+
+export type TemplateRead = {
+  id: number
+  name: string
+  description: string | null
+  is_active: boolean
+  created_at: ApiDateTime
+  updated_at: ApiDateTime
+}
+
 export type SupplierContactRead = {
   id: number
   supplier_id: number

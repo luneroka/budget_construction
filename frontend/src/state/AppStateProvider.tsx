@@ -1,20 +1,15 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 
-import { projectViewModels } from '@/demo/demo-data'
 import { AppStateContext } from '@/state/appState'
 
 const SELECTED_PROJECT_STORAGE_KEY = 'budget-construction:selected-project-id'
 
 function getInitialProjectId() {
   if (typeof window === 'undefined') {
-    return projectViewModels[0]?.id ?? ''
+    return ''
   }
 
-  return (
-    window.localStorage.getItem(SELECTED_PROJECT_STORAGE_KEY) ??
-    projectViewModels[0]?.id ??
-    ''
-  )
+  return window.localStorage.getItem(SELECTED_PROJECT_STORAGE_KEY) ?? ''
 }
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
@@ -30,6 +25,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         SELECTED_PROJECT_STORAGE_KEY,
         selectedProjectId,
       )
+    } else {
+      window.localStorage.removeItem(SELECTED_PROJECT_STORAGE_KEY)
     }
   }, [selectedProjectId])
 

@@ -1,14 +1,21 @@
-import { type ReactNode, useEffect, useMemo, useState } from 'react'
-import { Check, ChevronDown, FolderPlus, Settings } from 'lucide-react'
-import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
+import {
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+import { Check, ChevronDown, FolderPlus, Loader2, Settings } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
+import { getApiErrorMessage } from '@/api/client'
 import { useProjectsQuery } from '@/api/projects'
 import type { ProjectRead } from '@/api/types'
-import { projectViewModels } from '@/demo/demo-data'
 import type { ProjectViewModel } from '@/demo/types'
+import { Button } from '@/components/ui/button'
+import { useProjectOnboarding } from '@/hooks/useProjectOnboarding'
 import { formatCurrency, formatProjectStatus } from '@/lib/format'
 import { useAppState } from '@/state/appState'
+import { ProjectOnboardingDialog } from './ProjectOnboardingDialog'
 
 function toProjectViewModel(project: ProjectRead): ProjectViewModel {
   return {
@@ -26,17 +33,15 @@ function toProjectViewModel(project: ProjectRead): ProjectViewModel {
 }
 
 export function ProjectSwitcher() {
-  const navigate = useNavigate()
   const { selectedProjectId, setSelectedProjectId } = useAppState()
-  const projectsQuery = useProjectsQuery()
+  const projectsQuery = useProjectsQuery({ enabled: true })
   const [isProjectListOpen, setIsProjectListOpen] = useState(false)
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const projects = useMemo(() => {
-    if (projectsQuery.data && projectsQuery.data.length > 0) {
+    if (projectsQuery.data) {
       return projectsQuery.data.map(toProjectViewModel)
     }
 
-    return projectViewModels
+    return []
   }, [projectsQuery.data])
 
   const selectedProject = useMemo(
@@ -51,42 +56,80 @@ export function ProjectSwitcher() {
     }
   }, [selectedProject, selectedProjectId, setSelectedProjectId])
 
-  if (!selectedProject) {
-    return null
+  const projectOnboarding = useProjectOnboarding({
+    projectCount: projects.length,
+    projectsLoaded: projectsQuery.isSuccess,
+    selectedProjectId,
+    setSelectedProjectId,
+    onProjectCreated: () => setIsProjectListOpen(false),
+  })
+  const onboardingDialog = (
+    <ProjectOnboardingDialog
+      open={projectOnboarding.isOpen}
+      canClose={projectOnboarding.canClose}
+      templates={projectOnboarding.templates}
+      isLoadingTemplates={projectOnboarding.isLoadingTemplates}
+      templatesError={projectOnboarding.templatesError}
+      isCreating={projectOnboarding.isCreating}
+      createError={projectOnboarding.createError}
+      onClose={projectOnboarding.close}
+      onSubmit={projectOnboarding.submit}
+    />
+  )
+
+  if (projectsQuery.isLoading || projectsQuery.isFetching) {
+    return (
+      <div className="border-b border-sidebar-border p-4">
+        <div className="flex items-center gap-2 rounded-md border border-sidebar-border bg-sidebar-accent/35 px-3 py-3 text-sm text-sidebar-foreground/70">
+          <Loader2 className="h-4 w-4 animate-spin text-gold" aria-hidden />
+          Chargement des projets
+        </div>
+      </div>
+    )
   }
 
-  const createProjectModal = isCreateModalOpen
-    ? createPortal(
-        <div className="fixed inset-0 z-1000 flex items-center justify-center bg-foreground/45 px-4">
-          <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-foreground shadow-xl">
-            <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-gold/15 text-gold">
-                <FolderPlus className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <div className="min-w-0">
-                <p className="font-heading text-xl font-semibold">
-                  Nouveau projet
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Placeholder pour la création de projet. Le formulaire complet
-                  sera raccordé ultérieurement.
-                </p>
-              </div>
-            </div>
-            <div className="mt-6 flex justify-end">
-              <button
-                type="button"
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                onClick={() => setIsCreateModalOpen(false)}
-              >
-                Fermer
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body,
-      )
-    : null
+  if (projectsQuery.isError) {
+    return (
+      <div className="border-b border-sidebar-border p-4">
+        <div className="rounded-md border border-sidebar-border bg-sidebar-accent/35 px-3 py-3 text-sm text-sidebar-foreground/75">
+          <p className="font-medium text-sidebar-foreground">
+            Projets indisponibles
+          </p>
+          <p className="mt-1 text-xs text-sidebar-foreground/60">
+            {getApiErrorMessage(projectsQuery.error)}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!selectedProject) {
+    return (
+      <div className="border-b border-sidebar-border p-4">
+        <div className="rounded-md border border-sidebar-border bg-sidebar-accent/35 px-3 py-3">
+          <p className="text-xs font-medium text-sidebar-foreground/55">
+            Projet actif
+          </p>
+          <p className="mt-1 text-sm font-semibold text-sidebar-foreground">
+            Aucun projet
+          </p>
+          <p className="mt-1 text-xs text-sidebar-foreground/60">
+            Créez un premier projet pour initialiser le budget.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            className="mt-3 w-full"
+            onClick={projectOnboarding.open}
+          >
+            <FolderPlus aria-hidden />
+            Nouveau projet
+          </Button>
+        </div>
+        {onboardingDialog}
+      </div>
+    )
+  }
 
   return (
     <div className="border-b border-sidebar-border p-4">
@@ -155,27 +198,27 @@ export function ProjectSwitcher() {
             }
             label="Nouveau projet"
             onClick={() => {
-              setIsCreateModalOpen(true)
+              projectOnboarding.open()
               setIsProjectListOpen(false)
             }}
           />
 
           <div className="border-t border-sidebar-border" />
 
-          <ProjectMenuItem
+          <ProjectMenuLink
             icon={
               <Settings className="h-4 w-4 stroke-[1.8]" aria-hidden="true" />
             }
             label="Gérer les projets"
+            to="/settings/projects"
             onClick={() => {
               setIsProjectListOpen(false)
-              navigate('/settings/projects')
             }}
           />
         </div>
       ) : null}
 
-      {createProjectModal}
+      {onboardingDialog}
     </div>
   )
 }
@@ -204,5 +247,31 @@ function ProjectMenuItem({
         {label}
       </span>
     </button>
+  )
+}
+
+type ProjectMenuLinkProps = ProjectMenuItemProps & {
+  to: string
+}
+
+function ProjectMenuLink({
+  label,
+  icon,
+  onClick,
+  to,
+}: ProjectMenuLinkProps) {
+  return (
+    <Link
+      to={to}
+      className="flex h-10 w-full items-center gap-3 px-3 text-left font-body text-sm font-normal leading-5 text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+      onClick={onClick}
+    >
+      <span className="flex h-4 w-4 shrink-0 items-center justify-center text-gold">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1 truncate font-body text-sm font-normal leading-5">
+        {label}
+      </span>
+    </Link>
   )
 }
