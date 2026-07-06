@@ -176,3 +176,26 @@ Notes
 - `pnpm build` completed successfully from `frontend/`.
 - Build output still includes the Recharts chunk-size warning introduced in Chunk 5.
 - No backend files were changed.
+
+## Chunk 8 - Suppliers and Documents
+
+Status: Completed
+
+Summary
+
+- Expanded `SuppliersPage` into an operational backend-shaped supplier directory with searchable columns for name, contact_name, phone_number, email, siret, comment, and created_at.
+- Added supplier summary cards derived only from supplier backend fields; no supplier category or supplier total fields were introduced.
+- Expanded `DocumentsPage` into a searchable document metadata table with original_filename, stored_filename, file_path display, mime_type, file_size, transaction context, created_at, and derived UI state.
+- Kept document state visibly distinct as derived UI state rather than a persisted backend document field.
+- Left `SettingsPage` untouched per the scoped Chunk 8 request.
+
+Plan Deviations
+
+- Implemented only Suppliers and Documents, not Settings, because this run was explicitly scoped away from Settings.
+- Kept create/upload actions as UI entry points only; modal behavior and API wiring remain aligned with later chunks.
+
+Notes
+
+- `npm run build` completed successfully from `frontend/`.
+- Build output still includes the Recharts chunk-size warning introduced in Chunk 5.
+- No backend files were changed.
