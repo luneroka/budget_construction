@@ -68,13 +68,6 @@ const categoryIcons: Record<string, LucideIcon> = {
   Extérieurs: Trees,
 }
 
-function sumBudgetLines(
-  product: ProductSummaryViewModel,
-  key: keyof Pick<BudgetLineSummaryViewModel, 'diy_estimate_amount_ttc'>,
-) {
-  return product.budget_lines.reduce((total, line) => total + line[key], 0)
-}
-
 function varianceClass(value: number) {
   if (value < 0) return 'text-destructive'
   if (value > 0) return 'text-success'
@@ -201,11 +194,11 @@ function CategoryHeader({
   return (
     <button
       type="button"
-      className="grid w-full grid-cols-1 gap-y-3 bg-primary px-4 py-3 text-left text-primary-foreground transition-colors hover:bg-primary/95 sm:grid-cols-[minmax(18rem,1fr)_4.75rem_7.25rem_7.25rem_7.25rem] sm:items-center sm:gap-x-1"
+      className="grid w-full grid-cols-1 gap-y-3 bg-primary px-4 py-3 text-left text-primary-foreground transition-colors hover:bg-primary/95 sm:grid-cols-[minmax(18rem,1fr)_7.25rem_7.25rem_7.25rem] sm:items-center sm:gap-x-1"
       onClick={onToggle}
       aria-expanded={isOpen}
     >
-      <span className="flex min-w-0 items-center gap-2 sm:col-span-2">
+      <span className="flex min-w-0 items-center gap-2">
         <span
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-foreground/10 text-primary-foreground/90"
           aria-hidden="true"
@@ -258,8 +251,8 @@ function ProductContextRows({
 
   return (
     <TableRow className="border-t-0 bg-card hover:bg-card!">
-      <TableCell colSpan={7} className="px-6 pt-1 pb-0">
-        <div className="flex items-center justify-between border-t border-border/50 pt-1 pl-4">
+      <TableCell colSpan={7} className="px-6! pt-0! pb-0!">
+        <div className="flex items-center justify-between pt-1 pb-3">
           <span className="text-xs text-muted-foreground">
             {supportsBreakdowns
               ? 'Produit décomposé en sous-produits'
@@ -351,10 +344,10 @@ function BudgetLineContextRow({
 }) {
   return (
     <TableRow className="border-t-0 bg-muted/25 hover:bg-muted/25!">
-      <TableCell colSpan={7} className="px-6 pt-1 pb-0">
-        <div className="flex items-center justify-between border-t border-border/50 pt-1 pl-16">
+      <TableCell colSpan={7} className="px-6! pt-1! pb-0!">
+        <div className="flex items-center justify-between pt-1 pb-3">
           <span className="text-xs text-muted-foreground">
-            Transactions de ce poste de budget
+            Transactions pour ce sous-produit
           </span>
           <Button
             size="sm"
@@ -385,7 +378,7 @@ function SubcategoryRow({
       <TableCell colSpan={7} className="px-4 py-2">
         <button
           type="button"
-          className="grid w-full grid-cols-1 gap-y-2 text-left sm:grid-cols-[minmax(18rem,1fr)_4.75rem_7.25rem_7.25rem_7.25rem] sm:items-center sm:gap-x-1"
+          className="grid w-full grid-cols-1 gap-y-3 text-left sm:grid-cols-[minmax(18rem,1fr)_7.25rem_7.25rem_7.25rem] sm:items-center sm:gap-x-1"
           onClick={onToggle}
           aria-expanded={isOpen}
         >
@@ -394,54 +387,35 @@ function SubcategoryRow({
               <p className="truncate text-base font-semibold text-primary">
                 {group.name}
               </p>
+              <p className="mt-0.5 text-xs text-primary/70">
+                {group.products.length} produits
+              </p>
             </div>
           </div>
-          <span className="whitespace-nowrap text-right text-xs font-medium text-primary/80">
-            {group.products.length} produits
+          <span className="text-right text-xs">
+            <span className="block text-primary/65">Budget</span>
+            <span className="font-semibold text-primary/80">
+              {formatCurrency(group.selected_budget_amount_ttc)}
+            </span>
           </span>
-          <span className="whitespace-nowrap text-right text-xs font-medium text-primary/80">
-            Budget {formatCurrency(group.selected_budget_amount_ttc)}
+          <span className="text-right text-xs">
+            <span className="block text-primary/65">Facturé</span>
+            <span className="font-semibold text-primary/80">
+              {formatCurrency(group.actual_cost_amount_ttc)}
+            </span>
           </span>
-          <span className="whitespace-nowrap text-right text-xs font-medium text-primary/80">
-            Facturé {formatCurrency(group.actual_cost_amount_ttc)}
-          </span>
-          <span
-            className={cn(
-              'whitespace-nowrap text-right text-xs',
-              varianceClass(group.selected_budget_variance_ttc),
-            )}
-          >
-            Écart {formatCurrency(group.selected_budget_variance_ttc)}
+          <span className="text-right text-xs">
+            <span className="block text-primary/65">Écart</span>
+            <span
+              className={cn(
+                'font-semibold',
+                varianceClass(group.selected_budget_variance_ttc),
+              )}
+            >
+              {formatCurrency(group.selected_budget_variance_ttc)}
+            </span>
           </span>
         </button>
-      </TableCell>
-    </TableRow>
-  )
-}
-
-function SubcategoryProductHeaderRow() {
-  return (
-    <TableRow className="bg-muted/35 hover:bg-muted/35!">
-      <TableCell className="px-5 py-2 pl-6 text-xs font-semibold text-muted-foreground">
-        Élément
-      </TableCell>
-      <TableCell className="px-5 py-2 text-right text-xs font-semibold text-muted-foreground">
-        Budget
-      </TableCell>
-      <TableCell className="px-5 py-2 text-right text-xs font-semibold text-muted-foreground">
-        DIY
-      </TableCell>
-      <TableCell className="px-5 py-2 text-right text-xs font-semibold text-muted-foreground">
-        Facturé
-      </TableCell>
-      <TableCell className="px-5 py-2 text-right text-xs font-semibold text-muted-foreground">
-        Payé
-      </TableCell>
-      <TableCell className="px-5 py-2 text-right text-xs font-semibold text-muted-foreground">
-        À payer
-      </TableCell>
-      <TableCell className="px-5 py-2 text-right text-xs font-semibold text-muted-foreground">
-        Écart
       </TableCell>
     </TableRow>
   )
@@ -458,41 +432,43 @@ function ProductRow({
 }) {
   return (
     <TableRow className="bg-card hover:bg-muted/40">
-      <TableCell className="min-w-72 pl-6">
+      <TableCell colSpan={7} className="px-4 py-2">
         <button
           type="button"
-          className="flex w-full items-center gap-3 text-left"
+          className="grid w-full grid-cols-1 gap-y-3 text-left sm:grid-cols-[minmax(18rem,1fr)_7.25rem_7.25rem_7.25rem] sm:items-center sm:gap-x-1"
           onClick={onToggle}
           aria-expanded={isOpen}
         >
-          <ToggleIcon isOpen={isOpen} />
-          <span className="block font-medium text-foreground">
-            {product.product_name}
+          <span className="flex min-w-0 items-center gap-3">
+            <ToggleIcon isOpen={isOpen} />
+            <span className="block font-medium text-foreground">
+              {product.product_name}
+            </span>
+          </span>
+          <span className="hidden text-right text-xs">
+            <span className="block text-muted-foreground">Budget</span>
+            <span className="font-semibold text-foreground">
+              {formatCurrency(product.selected_budget_amount_ttc)}
+            </span>
+          </span>
+          <span className="hidden text-right text-xs">
+            <span className="block text-muted-foreground">Facturé</span>
+            <span className="font-semibold text-foreground">
+              {formatCurrency(product.actual_cost_amount_ttc)}
+            </span>
+          </span>
+          <span className="hidden text-right text-xs">
+            <span className="block text-muted-foreground">Écart</span>
+            <span
+              className={cn(
+                'font-semibold',
+                varianceClass(product.selected_budget_variance_ttc),
+              )}
+            >
+              {formatCurrency(product.selected_budget_variance_ttc)}
+            </span>
           </span>
         </button>
-      </TableCell>
-      <TableCell className="text-right font-medium">
-        {formatCurrency(product.selected_budget_amount_ttc)}
-      </TableCell>
-      <TableCell className="text-right">
-        {formatCurrency(sumBudgetLines(product, 'diy_estimate_amount_ttc'))}
-      </TableCell>
-      <TableCell className="text-right">
-        {formatCurrency(product.actual_cost_amount_ttc)}
-      </TableCell>
-      <TableCell className="text-right">
-        {formatCurrency(product.paid_invoice_amount_ttc)}
-      </TableCell>
-      <TableCell className="text-right">
-        {formatCurrency(product.unpaid_invoice_amount_ttc)}
-      </TableCell>
-      <TableCell
-        className={cn(
-          'text-right font-semibold',
-          varianceClass(product.selected_budget_variance_ttc),
-        )}
-      >
-        {formatCurrency(product.selected_budget_variance_ttc)}
       </TableCell>
     </TableRow>
   )
@@ -509,52 +485,53 @@ function BudgetLineRow({
 }) {
   return (
     <TableRow className="bg-muted/25 hover:bg-muted/50">
-      <TableCell className="min-w-72 pl-12">
+      <TableCell colSpan={7} className="px-4 py-2 pl-12">
         <button
           type="button"
-          className="flex w-full items-center gap-3 text-left"
+          className="grid w-full grid-cols-1 gap-y-3 text-left sm:grid-cols-[minmax(18rem,1fr)_7.25rem_7.25rem_7.25rem] sm:items-center sm:gap-x-1"
           onClick={onToggle}
           aria-expanded={isOpen}
         >
-          <ToggleIcon isOpen={isOpen} />
-          <span
-            className="h-7 w-1.5 rounded-full bg-gold/75"
-            aria-hidden="true"
-          />
-          <span>
-            <span className="block font-medium text-foreground">
-              {line.name}
+          <span className="flex min-w-0 items-center gap-3">
+            <span
+              className="h-7 w-1.5 rounded-full bg-gold/75"
+              aria-hidden="true"
+            />
+            <span>
+              <span className="block font-medium text-foreground">
+                {line.name}
+              </span>
+              <span className="hidden mt-1 text-xs text-muted-foreground">
+                Budget sélectionné: {formatCurrency(line.selected_budget_amount_ttc)}
+                {' '}
+                ({formatSelectedBudgetSource(line)})
+              </span>
             </span>
-            <span className="mt-1 block text-xs text-muted-foreground">
-              Budget sélectionné: {formatCurrency(line.selected_budget_amount_ttc)}
-              {' '}
-              ({formatSelectedBudgetSource(line)})
+          </span>
+          <span className="hidden text-right text-xs">
+            <span className="block text-muted-foreground">Budget</span>
+            <span className="font-semibold text-foreground">
+              {formatCurrency(line.selected_budget_amount_ttc)}
+            </span>
+          </span>
+          <span className="hidden text-right text-xs">
+            <span className="block text-muted-foreground">Facturé</span>
+            <span className="font-semibold text-foreground">
+              {formatCurrency(line.actual_cost_amount_ttc)}
+            </span>
+          </span>
+          <span className="hidden text-right text-xs">
+            <span className="block text-muted-foreground">Écart</span>
+            <span
+              className={cn(
+                'font-semibold',
+                varianceClass(line.selected_budget_variance_ttc),
+              )}
+            >
+              {formatCurrency(line.selected_budget_variance_ttc)}
             </span>
           </span>
         </button>
-      </TableCell>
-      <TableCell className="text-right font-medium">
-        {formatCurrency(line.selected_budget_amount_ttc)}
-      </TableCell>
-      <TableCell className="text-right">
-        {formatCurrency(line.diy_estimate_amount_ttc)}
-      </TableCell>
-      <TableCell className="text-right">
-        {formatCurrency(line.actual_cost_amount_ttc)}
-      </TableCell>
-      <TableCell className="text-right">
-        {formatCurrency(line.paid_invoice_amount_ttc)}
-      </TableCell>
-      <TableCell className="text-right">
-        {formatCurrency(line.unpaid_invoice_amount_ttc)}
-      </TableCell>
-      <TableCell
-        className={cn(
-          'text-right font-semibold',
-          varianceClass(line.selected_budget_variance_ttc),
-        )}
-      >
-        {formatCurrency(line.selected_budget_variance_ttc)}
       </TableCell>
     </TableRow>
   )
@@ -564,13 +541,11 @@ function TransactionsRows({
   transactions,
   budgetLine,
   product,
-  onAddTransaction,
   onViewTransaction,
 }: {
   transactions: TransactionViewModel[]
   budgetLine: BudgetLineSummaryViewModel
   product: ProductSummaryViewModel
-  onAddTransaction: () => void
   onViewTransaction: (context: ViewedTransactionContext) => void
 }) {
   const transactionGridClass =
@@ -690,10 +665,10 @@ function TransactionsRows({
 
   return (
     <TableRow className="border-t-0 bg-muted/10 hover:bg-muted/10!">
-      <TableCell colSpan={7} className="max-w-0 p-0">
-        <div className="min-w-0 px-6 pb-2">
-          <div className="w-full min-w-0 overflow-x-auto bg-background/70 text-xs">
-            <div className="border-t border-border/50 px-2 py-2">
+      <TableCell colSpan={7} className="max-w-0 p-0!">
+        <div className="min-w-0 px-6 pb-5">
+          <div className="w-full min-w-0 overflow-x-auto border border-border bg-background/70 text-xs">
+            <div className="hidden border-t border-border/50 px-2 py-2">
               <p className="whitespace-nowrap font-medium text-foreground">
                 Budget sélectionné {formatCurrency(budgetLine.selected_budget_amount_ttc)}
                 <span className="ml-1 text-muted-foreground">
@@ -702,7 +677,7 @@ function TransactionsRows({
               </p>
             </div>
             <div
-              className={cn(transactionGridClass, 'border-t border-border/50')}
+              className={transactionGridClass}
             >
               <div className="px-1.5 py-2 text-[11px] font-semibold text-muted-foreground uppercase">
                 Date
@@ -735,21 +710,6 @@ function TransactionsRows({
 
             {renderSectionDivider('Dépenses réelles')}
             {renderTransactionRows(invoices)}
-
-            <div
-              className={cn(transactionGridClass, 'border-t border-border/40')}
-            >
-              <div className="col-span-8 px-2 py-2">
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
-                  onClick={onAddTransaction}
-                >
-                  <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                  Ajouter une transaction
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </TableCell>
@@ -888,9 +848,6 @@ export function BudgetPage() {
                               toggleSet(setOpenSubcategories, subcategoryId)
                             }
                           />
-                          {isSubcategoryOpen ? (
-                            <SubcategoryProductHeaderRow />
-                          ) : null}
                           {isSubcategoryOpen
                             ? group.products.map((product) => {
                                 const isProductOpen = openProducts.has(
@@ -951,12 +908,6 @@ export function BudgetPage() {
                                               onViewTransaction={
                                                 setViewedTransaction
                                               }
-                                              onAddTransaction={() =>
-                                                openTransactionAction({
-                                                  budgetLine: wholeProductLine,
-                                                  product,
-                                                })
-                                              }
                                             />
                                           ) : (
                                             product.budget_lines.map((line) => {
@@ -996,14 +947,6 @@ export function BudgetPage() {
                                                         product={product}
                                                         onViewTransaction={
                                                           setViewedTransaction
-                                                        }
-                                                        onAddTransaction={() =>
-                                                          openTransactionAction(
-                                                            {
-                                                              budgetLine: line,
-                                                              product,
-                                                            },
-                                                          )
                                                         }
                                                       />
                                                     </>
