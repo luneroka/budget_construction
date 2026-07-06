@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Database, FileText, HardDrive, Upload } from 'lucide-react'
+import { Download, Eye, Upload, X } from 'lucide-react'
 
-import { KpiCard } from '@/components/shared/KpiCard'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { TableToolbar } from '@/components/shared/TableToolbar'
@@ -15,11 +14,33 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { documentsViewModel } from '@/demo/demo-data'
+import type { DocumentRowViewModel } from '@/demo/types'
 import { formatDate, formatFileSize } from '@/lib/format'
+
+type DocumentAction = 'view' | 'download'
+
+function formatTransactionTitle(description: string): string {
+  const [documentLabel, ...subjectParts] = description.split(' - ')
+  const subject = subjectParts.join(' - ')
+
+  if (!subject) return description
+
+  return `${subject} - ${documentLabel}`
+}
 
 export function DocumentsPage() {
   const [search, setSearch] = useState('')
-  const documents = documentsViewModel.documents
+  const [selectedAction, setSelectedAction] = useState<DocumentAction | null>(null)
+  const [selectedDocument, setSelectedDocument] =
+    useState<DocumentRowViewModel | null>(null)
+  const documents = useMemo(
+    () =>
+      [...documentsViewModel.documents].sort(
+        (left, right) =>
+          new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
+      ),
+    [],
+  )
   const normalizedSearch = search.trim().toLowerCase()
   const filteredDocuments = useMemo(() => {
     if (!normalizedSearch) return documents
@@ -27,25 +48,26 @@ export function DocumentsPage() {
     return documents.filter((document) =>
       [
         document.original_filename,
-        document.stored_filename,
-        document.file_path,
-        document.mime_type,
-        document.transaction_id,
+        document.transaction_type,
         document.transaction_description,
-        document.state,
       ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(normalizedSearch)),
-    )
+      )
   }, [documents, normalizedSearch])
-  const totalFileSize = documents.reduce(
-    (total, document) => total + document.file_size,
-    0,
-  )
-  const attachedDocuments = documents.filter(
-    (document) => document.state === 'attached',
-  ).length
-  const derivedStates = new Set(documents.map((document) => document.state)).size
+
+  function openPlaceholderModal(
+    action: DocumentAction,
+    document: DocumentRowViewModel,
+  ) {
+    setSelectedAction(action)
+    setSelectedDocument(document)
+  }
+
+  function closePlaceholderModal() {
+    setSelectedAction(null)
+    setSelectedDocument(null)
+  }
 
   return (
     <section>
@@ -60,77 +82,60 @@ export function DocumentsPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <KpiCard
-          label="Documents"
-          value={String(documents.length)}
-          detail="Agrégés depuis les transactions démo"
-          icon={FileText}
-          tone="primary"
-        />
-        <KpiCard
-          label="Volume"
-          value={formatFileSize(totalFileSize)}
-          detail="Somme de file_size"
-          icon={HardDrive}
-          tone="accent"
-        />
-        <KpiCard
-          label="États dérivés"
-          value={String(derivedStates)}
-          detail={`${attachedDocuments} documents joints`}
-          icon={Database}
-          tone="gold"
-        />
-      </div>
-
       <div className="mt-6 overflow-hidden rounded-lg border border-border bg-card">
         <TableToolbar
           searchValue={search}
-          searchPlaceholder="Rechercher fichier, type MIME, transaction..."
+          searchPlaceholder="Rechercher fichier, type, transaction..."
           onSearchChange={setSearch}
         />
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Fichier</TableHead>
-              <TableHead>Type MIME</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead className="text-right">Taille</TableHead>
               <TableHead>Transaction</TableHead>
               <TableHead>Ajouté le</TableHead>
-              <TableHead>État</TableHead>
+              <TableHead className="!text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredDocuments.map((document) => (
               <TableRow key={document.id}>
-                <TableCell>
-                  <p className="font-medium">{document.original_filename}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {document.stored_filename}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {document.file_path ?? 'Chemin de stockage non exposé en démo'}
-                  </p>
+                <TableCell className="font-medium">
+                  {document.original_filename}
                 </TableCell>
-                <TableCell>{document.mime_type}</TableCell>
+                <TableCell>
+                  <StatusBadge status={document.transaction_type} />
+                </TableCell>
                 <TableCell className="text-right font-medium">
                   {formatFileSize(document.file_size)}
                 </TableCell>
-                <TableCell>
-                  <p className="font-medium">{document.transaction_description}</p>
-                  <p className="text-xs text-muted-foreground">
-                    transaction_id: {document.transaction_id}
-                  </p>
+                <TableCell className="font-medium">
+                  {formatTransactionTitle(document.transaction_description)}
                 </TableCell>
                 <TableCell className="whitespace-nowrap">
                   {formatDate(document.created_at)}
                 </TableCell>
-                <TableCell>
-                  <StatusBadge status={document.state} />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    État UI dérivé
-                  </p>
+                <TableCell className="text-center">
+                  <div className="inline-flex justify-center gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label={`Voir ${document.original_filename}`}
+                      onClick={() => openPlaceholderModal('view', document)}
+                    >
+                      <Eye aria-hidden />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label={`Télécharger ${document.original_filename}`}
+                      onClick={() => openPlaceholderModal('download', document)}
+                    >
+                      <Download aria-hidden />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -142,6 +147,40 @@ export function DocumentsPage() {
           </div>
         ) : null}
       </div>
+
+      {selectedAction !== null && selectedDocument !== null ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-base font-semibold">
+                  {selectedAction === 'view'
+                    ? 'Aperçu du document'
+                    : 'Téléchargement du document'}
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {selectedDocument.original_filename}
+                </p>
+              </div>
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Fermer"
+                onClick={closePlaceholderModal}
+              >
+                <X aria-hidden />
+              </Button>
+            </div>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Cette action sera branchée sur le vrai flux document plus tard.
+            </p>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

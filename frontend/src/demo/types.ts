@@ -237,6 +237,7 @@ export type DocumentRowViewModel = {
   updated_at: string
   deleted_at: string | null
   state: DocumentDisplayState
+  transaction_type: TransactionType
   transaction_description: string
 }
 

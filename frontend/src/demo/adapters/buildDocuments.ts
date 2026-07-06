@@ -13,7 +13,6 @@ export function buildDocuments(
 ): DocumentsViewModel {
   const workspace = buildBudgetWorkspace(catalogSeed, powerBiSeed)
   const documents = workspace.transactions
-    .filter((transaction) => transaction.transaction_type === 'invoice')
     .slice(0, 30)
     .map<DocumentRowViewModel>((transaction) => {
       const baseName = slugify(transaction.description)
@@ -32,6 +31,7 @@ export function buildDocuments(
         updated_at: transaction.issued_date,
         deleted_at: null,
         state: transaction.document_state,
+        transaction_type: transaction.transaction_type,
         transaction_description: transaction.description,
       }
     })
