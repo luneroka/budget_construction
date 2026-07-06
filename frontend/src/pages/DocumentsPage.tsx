@@ -92,10 +92,10 @@ export function DocumentsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Fichier</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead className="text-right">Taille</TableHead>
+              <TableHead className="min-w-32">Type</TableHead>
               <TableHead>Transaction</TableHead>
               <TableHead>Ajouté le</TableHead>
+              <TableHead className="min-w-20 text-right">Taille</TableHead>
               <TableHead className="!text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -105,17 +105,17 @@ export function DocumentsPage() {
                 <TableCell className="font-medium">
                   {document.original_filename}
                 </TableCell>
-                <TableCell>
+                <TableCell className="min-w-32 whitespace-nowrap">
                   <StatusBadge status={document.transaction_type} />
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {formatFileSize(document.file_size)}
                 </TableCell>
                 <TableCell className="font-medium">
                   {formatTransactionTitle(document.transaction_description)}
                 </TableCell>
                 <TableCell className="whitespace-nowrap">
                   {formatDate(document.created_at)}
+                </TableCell>
+                <TableCell className="min-w-20 whitespace-nowrap text-right font-medium">
+                  {formatFileSize(document.file_size)}
                 </TableCell>
                 <TableCell className="text-center">
                   <div className="inline-flex justify-center gap-1">
