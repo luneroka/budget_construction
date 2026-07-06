@@ -20,6 +20,7 @@ import {
   Paperclip,
   Plus,
   Shovel,
+  Trash2,
   Trees,
   type LucideIcon,
 } from 'lucide-react'
@@ -69,6 +70,8 @@ type TransactionReviewState = {
   context: ViewedTransactionContext
   initialMode: 'view' | 'edit'
 }
+
+type TransactionDeleteState = ViewedTransactionContext
 
 type BudgetSelectionState = {
   selected_quote_transaction_id: string | null
@@ -606,6 +609,7 @@ function TransactionsRows({
   budgetSelection,
   product,
   onToggleBudgetSelection,
+  onRequestDeleteTransaction,
   onEditTransaction,
   onViewTransaction,
 }: {
@@ -617,11 +621,12 @@ function TransactionsRows({
     budgetLine: BudgetLineSummaryViewModel,
     transaction: TransactionViewModel,
   ) => void
+  onRequestDeleteTransaction: (context: ViewedTransactionContext) => void
   onEditTransaction: (context: ViewedTransactionContext) => void
   onViewTransaction: (context: ViewedTransactionContext) => void
 }) {
   const transactionGridClass =
-    'grid min-w-[54rem] grid-cols-[5rem_8rem_minmax(10rem,1fr)_7rem_6.25rem_7rem_5rem_4rem] items-center'
+    'grid min-w-[55rem] grid-cols-[5rem_8rem_minmax(10rem,1fr)_7rem_6.25rem_7rem_6rem_4rem] items-center'
   const budgetCandidates = transactions.filter((transaction) =>
     ['quote', 'diy_estimate'].includes(transaction.transaction_type),
   )
@@ -751,6 +756,20 @@ function TransactionsRows({
               >
                 <Edit3 className="h-4 w-4" aria-hidden="true" />
               </button>
+              <button
+                type="button"
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                onClick={() =>
+                  onRequestDeleteTransaction({
+                    budgetLine,
+                    product,
+                    transaction,
+                  })
+                }
+                aria-label="Supprimer la transaction"
+              >
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+              </button>
             </div>
           </div>
           <div className="px-1 py-2 text-center whitespace-nowrap">
@@ -820,6 +839,67 @@ function TransactionsRows({
   )
 }
 
+function DeleteTransactionDialog({
+  context,
+  onCancel,
+  onConfirm,
+}: {
+  context: TransactionDeleteState
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  const { budgetLine, product, transaction } = context
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 px-4 py-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-transaction-title"
+    >
+      <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-foreground shadow-lg">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-destructive/10 text-destructive">
+            <Trash2 className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p
+              id="delete-transaction-title"
+              className="font-heading text-xl font-semibold"
+            >
+              Supprimer cette transaction ?
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Cette action demandera confirmation avant suppression. Le
+              raccordement à l'API sera ajouté ultérieurement.
+            </p>
+            <div className="mt-4 rounded-md border border-border bg-background px-3 py-2 text-sm">
+              <p className="font-medium text-foreground">
+                {transaction.supplier_name ?? 'Autoconstruction'}
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                {product.product_name} · {budgetLine.name}
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                {formatDate(transaction.issued_date)} ·{' '}
+                {formatCurrency(transaction.amount_ttc)}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end gap-2">
+          <Button variant="outline" onClick={onCancel}>
+            Annuler
+          </Button>
+          <Button variant="destructive" onClick={onConfirm}>
+            Supprimer
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function BudgetPage() {
   const { categories, financialSummary, project, transactions } =
     budgetWorkspaceViewModel
@@ -836,6 +916,8 @@ export function BudgetPage() {
   const [activeAction, setActiveAction] = useState<ActiveAction | null>(null)
   const [transactionReview, setTransactionReview] =
     useState<TransactionReviewState | null>(null)
+  const [transactionDelete, setTransactionDelete] =
+    useState<TransactionDeleteState | null>(null)
   const [selectedStructureChoice, setSelectedStructureChoice] =
     useState<ProductStructureChoice>('single')
   const [budgetSelections, setBudgetSelections] = useState<
@@ -1073,6 +1155,9 @@ export function BudgetPage() {
                                               onToggleBudgetSelection={
                                                 toggleBudgetSelection
                                               }
+                                              onRequestDeleteTransaction={
+                                                setTransactionDelete
+                                              }
                                               onEditTransaction={(context) =>
                                                 setTransactionReview({
                                                   context,
@@ -1131,6 +1216,9 @@ export function BudgetPage() {
                                                         product={product}
                                                         onToggleBudgetSelection={
                                                           toggleBudgetSelection
+                                                        }
+                                                        onRequestDeleteTransaction={
+                                                          setTransactionDelete
                                                         }
                                                         onEditTransaction={(
                                                           context,
@@ -1301,6 +1389,14 @@ export function BudgetPage() {
             )
           }
           onClose={() => setTransactionReview(null)}
+        />
+      ) : null}
+
+      {transactionDelete ? (
+        <DeleteTransactionDialog
+          context={transactionDelete}
+          onCancel={() => setTransactionDelete(null)}
+          onConfirm={() => setTransactionDelete(null)}
         />
       ) : null}
     </section>
