@@ -9,6 +9,7 @@ from typing import Any, cast
 
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.security import hash_password
 from app.db.session import AsyncSessionLocal, engine
@@ -18,6 +19,7 @@ from app.models.project import Project
 from app.models.budget_line import BudgetLine
 from app.models.subcategory import Subcategory
 from app.models.supplier import Supplier
+from app.models.supplier_contact import SupplierContact
 from app.models.transaction import Transaction
 from app.repositories import supplier as supplier_repository
 from app.repositories import transaction as transaction_repository
@@ -145,7 +147,7 @@ async def hard_delete_demo_entities(
         Supplier.user_id == user_id,
         or_(
             Supplier.name.in_(supplier_names),
-            Supplier.email.in_(supplier_emails),
+            Supplier.contacts.any(SupplierContact.email.in_(supplier_emails)),
         ),
     )
     if not include_active:
@@ -167,7 +169,9 @@ async def find_active_supplier(
     supplier_data: dict[str, Any],
 ) -> Supplier | None:
     result = await db.execute(
-        select(Supplier).where(
+        select(Supplier)
+        .options(selectinload(Supplier.contacts))
+        .where(
             Supplier.user_id == user_id,
             Supplier.deleted_at.is_(None),
             Supplier.name == supplier_data['name'],
@@ -178,10 +182,12 @@ async def find_active_supplier(
         return supplier
 
     result = await db.execute(
-        select(Supplier).where(
+        select(Supplier)
+        .options(selectinload(Supplier.contacts))
+        .where(
             Supplier.user_id == user_id,
             Supplier.deleted_at.is_(None),
-            Supplier.email == supplier_data['email'],
+            Supplier.contacts.any(SupplierContact.email == supplier_data['email']),
         )
     )
     return result.scalars().first()
@@ -191,11 +197,36 @@ def supplier_payload(supplier_data: dict[str, Any]) -> dict[str, Any]:
     return {
         'name': supplier_data['name'],
         'siret': supplier_data.get('siret'),
-        'email': supplier_data.get('email'),
-        'contact_name': supplier_data.get('contact_name'),
-        'phone_number': supplier_data.get('phone_number'),
         'comment': supplier_data.get('comment'),
+        'contacts': [
+            {
+                'name': supplier_data.get('contact_name'),
+                'phone_number': supplier_data.get('phone_number'),
+                'email': supplier_data.get('email'),
+                'is_primary': True,
+            }
+        ],
     }
+
+
+def supplier_contacts_payload(supplier_data: dict[str, Any]) -> list[dict[str, Any]]:
+    return supplier_payload(supplier_data)['contacts']
+
+
+def supplier_contacts_need_update(
+    supplier: Supplier,
+    contacts_payload: list[dict[str, Any]],
+) -> bool:
+    existing_contacts = [
+        {
+            'name': contact.name,
+            'phone_number': contact.phone_number,
+            'email': contact.email,
+            'is_primary': contact.is_primary,
+        }
+        for contact in supplier.contacts
+    ]
+    return existing_contacts != contacts_payload
 
 
 async def ensure_demo_suppliers(
@@ -209,6 +240,7 @@ async def ensure_demo_suppliers(
     for supplier_data in suppliers_data:
         existing_supplier = await find_active_supplier(db, user_id, supplier_data)
         payload = supplier_payload(supplier_data)
+        contacts_payload = supplier_contacts_payload(supplier_data)
 
         if existing_supplier is None:
             supplier = await supplier_repository.create_supplier(
@@ -221,8 +253,11 @@ async def ensure_demo_suppliers(
         updates = {
             key: value
             for key, value in payload.items()
-            if getattr(existing_supplier, key) != value
+            if key != 'contacts' and getattr(existing_supplier, key) != value
         }
+        if supplier_contacts_need_update(existing_supplier, contacts_payload):
+            updates['contacts'] = contacts_payload
+
         if updates:
             supplier = await supplier_repository.update_supplier(
                 db,
@@ -397,14 +432,12 @@ async def seed_transactions(
             if budget_line is None:
                 if payload.get('transaction_type') in {'quote', 'diy_estimate'}:
                     payload['budget_concern'] = BudgetConcern.entire_product
-                transaction = (
-                    await transaction_service.create_for_product(
-                        db,
-                        project_id,
-                        product.id,
-                        TransactionCreateForProduct(**payload),
-                        user_id,
-                    )
+                transaction = await transaction_service.create_for_product(
+                    db,
+                    project_id,
+                    product.id,
+                    TransactionCreateForProduct(**payload),
+                    user_id,
                 )
             else:
                 transaction = await transaction_repository.create_transaction(

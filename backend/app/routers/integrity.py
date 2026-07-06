@@ -5,10 +5,12 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
 CONSTRAINT_MESSAGES = {
     'uq_projects_user_id_name': 'A project with this name already exists',
     'uq_suppliers_user_id_name': 'A supplier with this name already exists',
+    'uq_supplier_contacts_primary_per_supplier': (
+        'A supplier can only have one primary contact'
+    ),
     'uq_template_name': 'A template with this name already exists',
     'uq_template_items_template_id_product_id': (
         'A template cannot contain the same product more than once'

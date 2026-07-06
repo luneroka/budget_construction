@@ -68,9 +68,6 @@ Table suppliers {
   user_id integer [not null]
   name varchar(255) [not null]
   siret varchar(14)
-  email varchar(255)
-  contact_name varchar(50)
-  phone_number varchar(50)
   comment text
   ~timestamps
   deleted_at timestamp
@@ -79,6 +76,29 @@ Table suppliers {
     user_id [name: 'ix_suppliers_user_id']
     (user_id, name) [unique, name: 'uq_suppliers_user_id_name', note: 'Partial index: WHERE deleted_at IS NULL']
   }
+}
+
+Table supplier_contacts {
+  id integer [pk, increment]
+  supplier_id integer [not null]
+  name varchar(255)
+  phone_number varchar(50)
+  email varchar(255)
+  is_primary boolean [not null, default: false]
+  ~timestamps
+
+  indexes {
+    id [name: 'ix_supplier_contacts_id']
+    supplier_id [name: 'ix_supplier_contacts_supplier_id']
+    supplier_id [unique, name: 'uq_supplier_contacts_primary_per_supplier', note: 'Partial index: WHERE is_primary IS TRUE']
+  }
+
+  Note: '''
+    Supplier represents the company. Supplier contacts represent people working
+    for that company. The API validates that writes include exactly one primary
+    contact whenever contacts are supplied. The partial unique index prevents
+    more than one primary contact per supplier at the database level.
+  '''
 }
 
 Table projects {
@@ -256,6 +276,7 @@ Table documents {
 }
 
 Ref: suppliers.user_id > users.id [delete: cascade]
+Ref: supplier_contacts.supplier_id > suppliers.id [delete: cascade]
 Ref: projects.user_id > users.id [delete: cascade]
 Ref: projects.template_id > templates.id [delete: set null]
 Ref: subcategories.category_id > categories.id [delete: cascade]

@@ -183,7 +183,7 @@ Status: Completed
 
 Summary
 
-- Expanded `SuppliersPage` into an operational backend-shaped supplier directory with searchable columns for name, contact_name, phone_number, email, siret, comment, and created_at.
+- Expanded `SuppliersPage` into an operational backend-shaped supplier directory. Supplier contacts are normalized under `contacts`, and the table displays only the primary contact's name, phone, and email.
 - Added supplier summary cards derived only from supplier backend fields; no supplier category or supplier total fields were introduced.
 - Expanded `DocumentsPage` into a searchable document metadata table with original_filename, stored_filename, file_path display, mime_type, file_size, transaction context, created_at, and derived UI state.
 - Kept document state visibly distinct as derived UI state rather than a persisted backend document field.

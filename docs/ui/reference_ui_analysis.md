@@ -373,11 +373,14 @@ UI implication:
 Backend files:
 
 - `backend/app/models/supplier.py`
+- `backend/app/models/supplier_contact.py`
 - `backend/app/schemas/supplier.py`
 - `backend/app/routers/suppliers.py`
 
-Core fields: owner, name, SIRET, email, contact name, phone number, comment,
-created date, and soft-delete state.
+Supplier core fields: owner, name, SIRET, comment, created/updated dates, and
+soft-delete state. Contact people live under `contacts` as
+`SupplierContact[]` with `name`, `phone_number`, `email`, and `is_primary`.
+Supplier is the company; supplier contacts are the people working for it.
 
 Supplier routes:
 
@@ -391,8 +394,10 @@ DELETE /suppliers/{supplier_id}
 
 UI implication:
 
-- Supplier columns should use exact backend names conceptually:
-  `name`, `contact_name`, `phone_number`, `email`, `siret`, `comment`.
+- Supplier list columns should display the supplier company and only the primary
+  contact: supplier, primary contact, phone, and email.
+- Supplier create/edit UI should support adding multiple contacts and selecting
+  exactly one primary contact.
 - Do not invent supplier categories as persisted data. Supplier category can be
   inferred visually from transactions/catalog later, but it is not a supplier
   field today.
@@ -844,12 +849,21 @@ suppliers:
 - user_id
 - name
 - siret
-- email
-- contact_name
-- phone_number
 - comment
+- contacts
 - created_at
+- updated_at
 - deleted_at
+
+supplier contacts:
+- id
+- supplier_id
+- name
+- phone_number
+- email
+- is_primary
+- created_at
+- updated_at
 
 transactions:
 - id
@@ -1010,12 +1024,9 @@ Route:
 Columns:
 
 - Fournisseur
-- Contact
+- Contact principal
 - Téléphone
 - Email
-- SIRET
-- Commentaire
-- Créé le
 
 Do not include persisted supplier category or total amount as base supplier
 fields. Those can be derived analytics later.

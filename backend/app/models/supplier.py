@@ -17,9 +17,6 @@ class Supplier(Base):
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     siret: Mapped[str | None] = mapped_column(String(14), nullable=True)
-    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    contact_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    phone_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
@@ -48,6 +45,12 @@ class Supplier(Base):
 
     user = relationship('User', back_populates='suppliers')
     transactions = relationship('Transaction', back_populates='supplier')
+    contacts = relationship(
+        'SupplierContact',
+        back_populates='supplier',
+        cascade='all, delete-orphan',
+        order_by='SupplierContact.id',
+    )
 
     def __repr__(self):
         return f'<Supplier id={self.id} name={self.name}>'

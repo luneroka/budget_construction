@@ -108,16 +108,26 @@ export type TemplateViewModel = {
   project_id: string
 }
 
+export type SupplierContactViewModel = {
+  id: string
+  supplier_id: string
+  name: string | null
+  phone_number: string | null
+  email: string | null
+  is_primary: boolean
+  created_at: string | null
+  updated_at: string | null
+}
+
 export type SupplierRowViewModel = {
   id: string
   user_id: string
   name: string
   siret: string | null
-  email: string
-  contact_name: string
-  phone_number: string
   comment: string
+  contacts: SupplierContactViewModel[]
   created_at: string | null
+  updated_at: string | null
   deleted_at: string | null
 }
 

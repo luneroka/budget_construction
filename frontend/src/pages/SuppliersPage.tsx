@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react'
-import { Building2, IdCard, Mail, Plus } from 'lucide-react'
+import { Eye, Plus } from 'lucide-react'
 
-import { KpiCard } from '@/components/shared/KpiCard'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { TableToolbar } from '@/components/shared/TableToolbar'
+import {
+  SupplierModal,
+  type SupplierModalMode,
+} from '@/components/suppliers/SupplierModal'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -14,106 +17,124 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { supplierTableViewModel } from '@/demo/demo-data'
-import { formatDate } from '@/lib/format'
+import type { SupplierContactViewModel, SupplierRowViewModel } from '@/demo/types'
+
+function primaryContact(
+  supplier: SupplierRowViewModel,
+): SupplierContactViewModel | undefined {
+  return (
+    supplier.contacts.find((contact) => contact.is_primary) ?? supplier.contacts[0]
+  )
+}
 
 export function SuppliersPage() {
   const [search, setSearch] = useState('')
-  const suppliers = supplierTableViewModel.suppliers
+  const [suppliers, setSuppliers] = useState(supplierTableViewModel.suppliers)
+  const [modalMode, setModalMode] = useState<SupplierModalMode | null>(null)
+  const [selectedSupplier, setSelectedSupplier] =
+    useState<SupplierRowViewModel | null>(null)
   const normalizedSearch = search.trim().toLowerCase()
-  const suppliersWithEmail = suppliers.filter((supplier) => supplier.email).length
-  const suppliersWithSiret = suppliers.filter((supplier) => supplier.siret).length
   const filteredSuppliers = useMemo(() => {
     if (!normalizedSearch) return suppliers
 
     return suppliers.filter((supplier) =>
       [
         supplier.name,
-        supplier.contact_name,
-        supplier.phone_number,
-        supplier.email,
         supplier.siret,
         supplier.comment,
+        ...supplier.contacts.flatMap((contact) => [
+          contact.name,
+          contact.phone_number,
+          contact.email,
+        ]),
       ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(normalizedSearch)),
     )
   }, [normalizedSearch, suppliers])
 
+  function openCreateModal() {
+    setSelectedSupplier(null)
+    setModalMode('create')
+  }
+
+  function openDetailModal(supplier: SupplierRowViewModel) {
+    setSelectedSupplier(supplier)
+    setModalMode('view')
+  }
+
+  function closeModal() {
+    setModalMode(null)
+    setSelectedSupplier(null)
+  }
+
+  function saveSupplier(savedSupplier: SupplierRowViewModel) {
+    setSuppliers((current) => {
+      if (current.every((supplier) => supplier.id !== savedSupplier.id)) {
+        return [...current, savedSupplier]
+      }
+
+      return current.map((supplier) =>
+        supplier.id === savedSupplier.id ? savedSupplier : supplier,
+      )
+    })
+  }
+
   return (
     <section>
       <PageHeader
         title="Fournisseurs"
-        description="Répertoire des fournisseurs du projet, aligné sur les champs backend fournisseur."
+        description="Répertoire des entreprises fournisseurs et de leurs contacts."
         actions={
-          <Button variant="gold">
+          <Button variant="gold" onClick={openCreateModal}>
             <Plus aria-hidden />
             Nouveau fournisseur
           </Button>
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <KpiCard
-          label="Fournisseurs"
-          value={String(suppliers.length)}
-          detail="Enregistrements actifs de la seed"
-          icon={Building2}
-          tone="primary"
-        />
-        <KpiCard
-          label="Emails renseignés"
-          value={String(suppliersWithEmail)}
-          detail={`${suppliers.length - suppliersWithEmail} sans email`}
-          icon={Mail}
-          tone="accent"
-        />
-        <KpiCard
-          label="SIRET renseignés"
-          value={String(suppliersWithSiret)}
-          detail="Champ nullable côté backend"
-          icon={IdCard}
-          tone="gold"
-        />
-      </div>
-
       <div className="mt-6 overflow-hidden rounded-lg border border-border bg-card">
         <TableToolbar
           searchValue={search}
-          searchPlaceholder="Rechercher nom, contact, email, SIRET..."
+          searchPlaceholder="Rechercher fournisseur, contact, email..."
           onSearchChange={setSearch}
         />
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Fournisseur</TableHead>
-              <TableHead>Contact</TableHead>
+              <TableHead>Contact principal</TableHead>
               <TableHead>Téléphone</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>SIRET</TableHead>
-              <TableHead>Commentaire</TableHead>
-              <TableHead>Créé le</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredSuppliers.map((supplier) => (
-              <TableRow key={supplier.id}>
-                <TableCell className="font-medium">{supplier.name}</TableCell>
-                <TableCell>{supplier.contact_name ?? '-'}</TableCell>
-                <TableCell className="whitespace-nowrap">
-                  {supplier.phone_number ?? '-'}
-                </TableCell>
-                <TableCell>{supplier.email ?? '-'}</TableCell>
-                <TableCell className="whitespace-nowrap">
-                  {supplier.siret ?? '-'}
-                </TableCell>
-                <TableCell className="max-w-xs text-muted-foreground">
-                  {supplier.comment ?? '-'}
-                </TableCell>
-                <TableCell className="whitespace-nowrap">
-                  {formatDate(supplier.created_at)}
-                </TableCell>
-              </TableRow>
-            ))}
+            {filteredSuppliers.map((supplier) => {
+              const contact = primaryContact(supplier)
+
+              return (
+                <TableRow key={supplier.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center justify-between gap-3">
+                      <span>{supplier.name}</span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label={`Voir ${supplier.name}`}
+                        onClick={() => openDetailModal(supplier)}
+                      >
+                        <Eye aria-hidden />
+                      </Button>
+                    </div>
+                  </TableCell>
+                  <TableCell>{contact?.name ?? '-'}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {contact?.phone_number ?? '-'}
+                  </TableCell>
+                  <TableCell>{contact?.email ?? '-'}</TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
         {filteredSuppliers.length === 0 ? (
@@ -122,6 +143,16 @@ export function SuppliersPage() {
           </div>
         ) : null}
       </div>
+
+      {modalMode !== null ? (
+        <SupplierModal
+          mode={modalMode}
+          supplier={selectedSupplier}
+          fallbackUserId={supplierTableViewModel.suppliers[0]?.user_id ?? 'demo-user'}
+          onClose={closeModal}
+          onSave={saveSupplier}
+        />
+      ) : null}
     </section>
   )
 }

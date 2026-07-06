@@ -1,28 +1,72 @@
 from datetime import datetime, UTC
+from typing import Sequence, cast
+
 from sqlalchemy import select
+from sqlalchemy.sql import Select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.supplier import Supplier
-from app.schemas.supplier import SupplierCreate, SupplierUpdate
+from app.models.supplier_contact import SupplierContact
+from app.schemas.supplier import (
+    SupplierContactCreate,
+    SupplierContactUpdate,
+    SupplierCreate,
+    SupplierUpdate,
+)
+
+SupplierContactWrite = SupplierContactCreate | SupplierContactUpdate
+
+
+def _supplier_query() -> Select[tuple[Supplier]]:
+    return select(Supplier).options(selectinload(Supplier.contacts))
+
+
+def _contact_values(contact_data: SupplierContactWrite) -> dict[str, object]:
+    return cast(dict[str, object], contact_data.model_dump(exclude={'id'}))
+
+
+async def _replace_supplier_contacts(
+    db: AsyncSession,
+    supplier: Supplier,
+    contacts_data: Sequence[SupplierContactWrite],
+) -> None:
+    for contact in supplier.contacts:
+        contact.is_primary = False
+    await db.flush()
+
+    supplier.contacts.clear()
+    await db.flush()
+
+    supplier.contacts.extend(
+        SupplierContact(**_contact_values(contact_data))
+        for contact_data in contacts_data
+    )
 
 
 async def create_supplier(
     db: AsyncSession, supplier_data: SupplierCreate, user_id: int
 ) -> Supplier:
-    supplier = Supplier(**supplier_data.model_dump(), user_id=user_id)
+    payload = supplier_data.model_dump(exclude={'contacts'})
+    supplier = Supplier(**payload, user_id=user_id)
+    supplier.contacts.extend(
+        SupplierContact(**_contact_values(contact_data))
+        for contact_data in supplier_data.contacts
+    )
 
     db.add(supplier)
     await db.commit()
-    await db.refresh(supplier)
 
-    return supplier
+    created_supplier = await get_supplier_by_id(db, supplier.id, user_id)
+    assert created_supplier is not None
+    return created_supplier
 
 
 async def get_supplier_by_id(
     db: AsyncSession, supplier_id: int, user_id: int
 ) -> Supplier | None:
     result = await db.execute(
-        select(Supplier).where(
+        _supplier_query().where(
             Supplier.id == supplier_id,
             Supplier.user_id == user_id,
             Supplier.deleted_at.is_(None),
@@ -34,7 +78,7 @@ async def get_supplier_by_id(
 async def get_suppliers(
     db: AsyncSession, user_id: int, include_deleted: bool = False
 ) -> list[Supplier]:
-    query = select(Supplier).where(Supplier.user_id == user_id).order_by(Supplier.name)
+    query = _supplier_query().where(Supplier.user_id == user_id).order_by(Supplier.name)
 
     if not include_deleted:
         query = query.where(Supplier.deleted_at.is_(None))
@@ -51,13 +95,18 @@ async def update_supplier(
     if supplier is None or supplier.deleted_at is not None:
         return None
 
-    for field, value in supplier_data.model_dump(exclude_unset=True).items():
+    update_data = supplier_data.model_dump(exclude_unset=True, exclude={'contacts'})
+    for field, value in update_data.items():
         setattr(supplier, field, value)
 
-    await db.commit()
-    await db.refresh(supplier)
+    if supplier_data.contacts is not None:
+        await _replace_supplier_contacts(db, supplier, supplier_data.contacts)
 
-    return supplier
+    await db.commit()
+
+    updated_supplier = await get_supplier_by_id(db, supplier_id, user_id)
+    assert updated_supplier is not None
+    return updated_supplier
 
 
 async def soft_delete_supplier(
@@ -71,6 +120,6 @@ async def soft_delete_supplier(
     supplier.deleted_at = datetime.now(UTC).replace(tzinfo=None)
 
     await db.commit()
-    await db.refresh(supplier)
 
-    return supplier
+    deleted_supplier = await get_supplier_by_id(db, supplier_id, user_id)
+    return deleted_supplier or supplier
