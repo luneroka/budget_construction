@@ -3,6 +3,7 @@ import {
   ChevronDown,
   DoorOpen,
   Droplets,
+  Edit3,
   Eye,
   FilePlus2,
   Hammer,
@@ -57,6 +58,11 @@ type ActiveAction =
   | ({ kind: 'breakdown' } & BreakdownAction)
   | ({ kind: 'decompose-product' } & BreakdownAction)
   | ({ kind: 'structure-choice' } & BreakdownAction)
+
+type TransactionReviewState = {
+  context: ViewedTransactionContext
+  initialMode: 'view' | 'edit'
+}
 
 const categoryIcons: Record<string, LucideIcon> = {
   'Terrain & Préparation': Shovel,
@@ -541,15 +547,17 @@ function TransactionsRows({
   transactions,
   budgetLine,
   product,
+  onEditTransaction,
   onViewTransaction,
 }: {
   transactions: TransactionViewModel[]
   budgetLine: BudgetLineSummaryViewModel
   product: ProductSummaryViewModel
+  onEditTransaction: (context: ViewedTransactionContext) => void
   onViewTransaction: (context: ViewedTransactionContext) => void
 }) {
   const transactionGridClass =
-    'grid min-w-[52rem] grid-cols-[5rem_8rem_minmax(10rem,1fr)_7rem_6.25rem_7rem_4rem_4rem] items-center'
+    'grid min-w-[54rem] grid-cols-[5rem_8rem_minmax(10rem,1fr)_7rem_6.25rem_7rem_5rem_4rem] items-center'
   const budgetCandidates = transactions.filter((transaction) =>
     ['quote', 'diy_estimate'].includes(transaction.transaction_type),
   )
@@ -635,20 +643,36 @@ function TransactionsRows({
             )}
           </div>
           <div className="px-1 py-2 text-center whitespace-nowrap">
-            <button
-              type="button"
-              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
-              onClick={() =>
-                onViewTransaction({
-                  budgetLine,
-                  product,
-                  transaction,
-                })
-              }
-              aria-label="Voir la transaction"
-            >
-              <Eye className="h-4 w-4" aria-hidden="true" />
-            </button>
+            <div className="inline-flex justify-center gap-1">
+              <button
+                type="button"
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
+                onClick={() =>
+                  onViewTransaction({
+                    budgetLine,
+                    product,
+                    transaction,
+                  })
+                }
+                aria-label="Voir la transaction"
+              >
+                <Eye className="h-4 w-4" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
+                onClick={() =>
+                  onEditTransaction({
+                    budgetLine,
+                    product,
+                    transaction,
+                  })
+                }
+                aria-label="Modifier la transaction"
+              >
+                <Edit3 className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
           </div>
           <div className="px-1 py-2 text-center whitespace-nowrap">
             {transaction.document_state === 'attached' ? (
@@ -698,7 +722,7 @@ function TransactionsRows({
                 Budget
               </div>
               <div className="px-1 py-2 text-center text-[11px] font-semibold text-muted-foreground uppercase">
-                Voir
+                Actions
               </div>
               <div className="px-1 py-2 text-center text-[11px] font-semibold text-muted-foreground uppercase">
                 Doc
@@ -731,8 +755,8 @@ export function BudgetPage() {
     () => new Set(),
   )
   const [activeAction, setActiveAction] = useState<ActiveAction | null>(null)
-  const [viewedTransaction, setViewedTransaction] =
-    useState<ViewedTransactionContext | null>(null)
+  const [transactionReview, setTransactionReview] =
+    useState<TransactionReviewState | null>(null)
   const [selectedStructureChoice, setSelectedStructureChoice] =
     useState<ProductStructureChoice>('single')
 
@@ -905,8 +929,17 @@ export function BudgetPage() {
                                               }
                                               budgetLine={wholeProductLine}
                                               product={product}
-                                              onViewTransaction={
-                                                setViewedTransaction
+                                              onEditTransaction={(context) =>
+                                                setTransactionReview({
+                                                  context,
+                                                  initialMode: 'edit',
+                                                })
+                                              }
+                                              onViewTransaction={(context) =>
+                                                setTransactionReview({
+                                                  context,
+                                                  initialMode: 'view',
+                                                })
                                               }
                                             />
                                           ) : (
@@ -945,8 +978,21 @@ export function BudgetPage() {
                                                         }
                                                         budgetLine={line}
                                                         product={product}
-                                                        onViewTransaction={
-                                                          setViewedTransaction
+                                                        onEditTransaction={(
+                                                          context,
+                                                        ) =>
+                                                          setTransactionReview({
+                                                            context,
+                                                            initialMode: 'edit',
+                                                          })
+                                                        }
+                                                        onViewTransaction={(
+                                                          context,
+                                                        ) =>
+                                                          setTransactionReview({
+                                                            context,
+                                                            initialMode: 'view',
+                                                          })
                                                         }
                                                       />
                                                     </>
@@ -1081,11 +1127,13 @@ export function BudgetPage() {
         </div>
       ) : null}
 
-      {viewedTransaction ? (
+      {transactionReview ? (
         <TransactionReviewModal
           project={project}
-          context={viewedTransaction}
-          onClose={() => setViewedTransaction(null)}
+          context={transactionReview.context}
+          initialMode={transactionReview.initialMode}
+          suppliers={supplierTableViewModel.suppliers}
+          onClose={() => setTransactionReview(null)}
         />
       ) : null}
     </section>

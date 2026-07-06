@@ -1,5 +1,5 @@
 import { type ReactNode, type SyntheticEvent, useMemo, useState } from 'react'
-import { ClipboardList, Eye, FilePlus2 } from 'lucide-react'
+import { ClipboardList, Download, Edit3, Eye, FilePlus2 } from 'lucide-react'
 
 import { SectionCard } from '@/components/shared/SectionCard'
 import { StatusBadge } from '@/components/shared/StatusBadge'
@@ -53,6 +53,28 @@ type MockSubmission = {
   payload: Record<string, string | boolean | null>
 }
 
+type MockUpdateSubmission = {
+  method: 'PATCH'
+  route: string
+  payload: Record<string, string | null>
+}
+
+type TransactionUpdateFormState = {
+  supplier_id: string
+  amount_ht: string
+  vat_rate: string
+  amount_vat: string
+  amount_ttc: string
+  issued_date: string
+  due_date: string
+  payment_date: string
+  description: string
+  quote_status: QuoteStatus
+  invoice_status: InvoiceStatus
+  invoice_type: InvoiceType
+  payment_method: PaymentMethod
+}
+
 export type ViewedTransactionContext = {
   transaction: TransactionViewModel
   product: ProductSummaryViewModel
@@ -71,6 +93,8 @@ type TransactionModalProps = {
 type TransactionReviewModalProps = {
   project: ProjectViewModel
   context: ViewedTransactionContext
+  initialMode?: 'view' | 'edit'
+  suppliers: SupplierRowViewModel[]
   onClose: () => void
 }
 
@@ -113,6 +137,10 @@ function emptyToNull(value: string) {
   return value.trim() === '' ? null : value
 }
 
+function formatNumberInput(value: number | null | undefined) {
+  return value == null ? '' : String(value)
+}
+
 function createInitialFormState(
   initialStructure?: ProductStructureChoice,
 ): TransactionFormState {
@@ -135,6 +163,26 @@ function createInitialFormState(
     budget_concern:
       initialStructure === 'breakdown' ? 'specific_element' : 'entire_product',
     budget_line_name: '',
+  }
+}
+
+function createInitialUpdateFormState(
+  transaction: TransactionViewModel,
+): TransactionUpdateFormState {
+  return {
+    supplier_id: transaction.supplier_id ?? '',
+    amount_ht: formatNumberInput(transaction.amount_ht),
+    vat_rate: formatNumberInput(transaction.vat_rate),
+    amount_vat: formatNumberInput(transaction.amount_vat),
+    amount_ttc: formatNumberInput(transaction.amount_ttc),
+    issued_date: transaction.issued_date,
+    due_date: transaction.due_date ?? '',
+    payment_date: transaction.payment_date ?? '',
+    description: transaction.description,
+    quote_status: transaction.quote_status ?? 'to_confirm',
+    invoice_status: transaction.invoice_status ?? 'unpaid',
+    invoice_type: transaction.invoice_type ?? 'full',
+    payment_method: transaction.payment_method ?? 'wire',
   }
 }
 
@@ -175,6 +223,47 @@ function normalizeForType(
     invoice_type: 'full',
     payment_method: 'wire',
     select_as_budget: true,
+  }
+}
+
+function buildMockUpdateSubmission({
+  project,
+  budgetLine,
+  transaction,
+  form,
+}: {
+  project: ProjectViewModel
+  budgetLine: BudgetLineSummaryViewModel
+  transaction: TransactionViewModel
+  form: TransactionUpdateFormState
+}): MockUpdateSubmission {
+  const payload: MockUpdateSubmission['payload'] = {
+    supplier_id: emptyToNull(form.supplier_id),
+    amount_ht: form.amount_ht,
+    vat_rate: emptyToNull(form.vat_rate),
+    amount_ttc: emptyToNull(form.amount_ttc),
+    issued_date: form.issued_date,
+    description: emptyToNull(form.description),
+  }
+
+  if (transaction.transaction_type === 'quote') {
+    payload.quote_status = form.quote_status
+    payload.due_date = emptyToNull(form.due_date)
+  }
+
+  if (transaction.transaction_type === 'invoice') {
+    payload.invoice_status = form.invoice_status
+    payload.invoice_type = form.invoice_type
+    payload.payment_method = form.payment_method
+    payload.due_date = emptyToNull(form.due_date)
+    payload.payment_date =
+      form.invoice_status === 'paid' ? emptyToNull(form.payment_date) : null
+  }
+
+  return {
+    method: 'PATCH',
+    route: `/projects/${project.id}/budget-lines/${budgetLine.budget_line_id}/transactions/${transaction.id}`,
+    payload,
   }
 }
 
@@ -249,15 +338,34 @@ function Field({
   )
 }
 
+function CompactSection({
+  title,
+  children,
+}: {
+  title: string
+  children: ReactNode
+}) {
+  return (
+    <section className="space-y-3 rounded-md border border-border p-4">
+      <h3 className="text-xs font-semibold text-muted-foreground uppercase">
+        {title}
+      </h3>
+      {children}
+    </section>
+  )
+}
+
 function ModalShell({
   title,
   icon,
   children,
+  size = 'wide',
   onClose,
 }: {
   title: string
   icon: ReactNode
   children: ReactNode
+  size?: 'compact' | 'wide'
   onClose: () => void
 }) {
   return (
@@ -267,21 +375,26 @@ function ModalShell({
       aria-modal="true"
       aria-label={title}
     >
-      <div className="max-h-full w-full max-w-5xl overflow-y-auto rounded-lg border border-border bg-background p-5 text-foreground shadow-lg">
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div className="flex min-w-0 items-start gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-gold/15 text-gold">
+      <div
+        className={cn(
+          'flex max-h-[92vh] w-full flex-col overflow-hidden rounded-lg border border-border bg-background text-foreground shadow-lg',
+          size === 'compact' ? 'max-w-4xl' : 'max-w-5xl',
+        )}
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gold/15 text-gold">
               {icon}
             </span>
             <div className="min-w-0">
-              <p className="font-heading text-xl font-semibold">{title}</p>
+              <p className="text-base font-semibold">{title}</p>
             </div>
           </div>
-          <Button variant="outline" onClick={onClose}>
+          <Button size="sm" variant="outline" onClick={onClose}>
             Fermer
           </Button>
         </div>
-        {children}
+        <div className="overflow-y-auto px-5 py-4">{children}</div>
       </div>
     </div>
   )
@@ -735,131 +848,408 @@ export function TransactionModal({
 export function TransactionReviewModal({
   project,
   context,
+  initialMode = 'view',
+  suppliers,
   onClose,
 }: TransactionReviewModalProps) {
   const { budgetLine, product, transaction } = context
+  const [isEditing, setIsEditing] = useState(initialMode === 'edit')
+  const [form, setForm] = useState<TransactionUpdateFormState>(() =>
+    createInitialUpdateFormState(transaction),
+  )
+  const [submission, setSubmission] = useState<MockUpdateSubmission | null>(null)
+  const selectedSupplierName =
+    suppliers.find((supplier) => supplier.id === form.supplier_id)?.name ??
+    'Aucun fournisseur'
+  const isQuote = transaction.transaction_type === 'quote'
+  const isInvoice = transaction.transaction_type === 'invoice'
+  const breadcrumbParts = [
+    product.category_name,
+    product.subcategory_name,
+    product.product_name,
+    budgetLine.item_type === 'product' ? null : budgetLine.name,
+  ].filter(Boolean)
+
+  function updateField<K extends keyof TransactionUpdateFormState>(
+    key: K,
+    value: TransactionUpdateFormState[K],
+  ) {
+    setForm((current) => ({ ...current, [key]: value }))
+    setSubmission(null)
+  }
+
+  function updateInvoiceStatus(invoiceStatus: InvoiceStatus) {
+    setForm((current) => ({
+      ...current,
+      invoice_status: invoiceStatus,
+      payment_date: invoiceStatus === 'paid' ? current.payment_date : '',
+    }))
+    setSubmission(null)
+  }
+
+  function resetEditMode() {
+    setForm(createInitialUpdateFormState(transaction))
+    setSubmission(null)
+    setIsEditing(false)
+  }
+
+  function handleSubmit(event: SyntheticEvent<HTMLFormElement, SubmitEvent>) {
+    event.preventDefault()
+    if (!isEditing) return
+    setSubmission(
+      buildMockUpdateSubmission({ project, budgetLine, transaction, form }),
+    )
+  }
 
   return (
     <ModalShell
-      title="Détails de la transaction"
-      icon={<Eye className="h-5 w-5" aria-hidden="true" />}
+      title={isEditing ? 'Modifier la transaction' : 'Détails de la transaction'}
+      icon={
+        isEditing ? (
+          <Edit3 className="h-5 w-5" aria-hidden="true" />
+        ) : (
+          <Eye className="h-5 w-5" aria-hidden="true" />
+        )
+      }
+      size="compact"
       onClose={onClose}
     >
-      <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
-        <SectionCard title="Contexte" icon={ClipboardList}>
-          <dl className="space-y-3 text-sm">
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground uppercase">
-                Projet
-              </dt>
-              <dd className="mt-1 font-medium text-foreground">
-                {project.name}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground uppercase">
-                Produit
-              </dt>
-              <dd className="mt-1 font-medium text-foreground">
-                {product.product_name}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground uppercase">
-                Ligne de budget
-              </dt>
-              <dd className="mt-1 font-medium text-foreground">
-                {budgetLine.name}
-              </dd>
-            </div>
-          </dl>
-        </SectionCard>
+      <form className="space-y-4 text-sm" onSubmit={handleSubmit}>
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <p className="min-w-0 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{project.name}</span>
+            <span> - {breadcrumbParts.join(' > ')}</span>
+          </p>
+          {isEditing ? (
+            <Button size="sm" variant="outline" type="button" onClick={resetEditMode}>
+              Annuler
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              type="button"
+              onClick={() => setIsEditing(true)}
+            >
+              <Edit3 aria-hidden />
+              Modifier
+            </Button>
+          )}
+        </div>
 
-        <SectionCard title="Transaction" icon={Eye}>
-          <dl className="grid gap-4 text-sm md:grid-cols-2">
+        <CompactSection title="Données transaction">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Field label="Date" htmlFor="review-transaction-issued-date">
+              <Input
+                id="review-transaction-issued-date"
+                className="h-9 text-sm"
+                type={isEditing ? 'date' : 'text'}
+                value={isEditing ? form.issued_date : formatDate(transaction.issued_date)}
+                readOnly={!isEditing}
+                onChange={(event) =>
+                  updateField('issued_date', event.target.value)
+                }
+                required
+              />
+            </Field>
+            <Field label="Fournisseur" htmlFor="review-transaction-supplier">
+              {isEditing ? (
+                <Select
+                  id="review-transaction-supplier"
+                  className="h-9 text-sm"
+                  value={form.supplier_id}
+                  onChange={(event) =>
+                    updateField('supplier_id', event.target.value)
+                  }
+                >
+                  <option value="">Aucun fournisseur</option>
+                  {suppliers.map((supplier) => (
+                    <option key={supplier.id} value={supplier.id}>
+                      {supplier.name}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <Input
+                  id="review-transaction-supplier"
+                  className="h-9 text-sm"
+                  value={transaction.supplier_name ?? selectedSupplierName}
+                  readOnly
+                />
+              )}
+            </Field>
             <div>
-              <dt className="text-xs font-medium text-muted-foreground uppercase">
-                Type
-              </dt>
-              <dd className="mt-1">
+              <p className="text-xs font-medium">Type</p>
+              <div className="mt-1 flex h-9 items-center rounded-md border border-input bg-muted/30 px-3">
                 <StatusBadge status={transaction.transaction_type} />
-              </dd>
+              </div>
             </div>
+            <Field label="Statut" htmlFor="review-transaction-status">
+              {isEditing && isQuote ? (
+                <Select
+                  id="review-transaction-status"
+                  className="h-9 text-sm"
+                  value={form.quote_status}
+                  onChange={(event) =>
+                    updateField('quote_status', event.target.value as QuoteStatus)
+                  }
+                >
+                  {Object.entries(quoteStatusLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </Select>
+              ) : isEditing && isInvoice ? (
+                <Select
+                  id="review-transaction-status"
+                  className="h-9 text-sm"
+                  value={form.invoice_status}
+                  onChange={(event) =>
+                    updateInvoiceStatus(event.target.value as InvoiceStatus)
+                  }
+                >
+                  {Object.entries(invoiceStatusLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <div className="flex h-9 items-center rounded-md border border-input bg-muted/30 px-3">
+                  {isQuote && transaction.quote_status ? (
+                    <StatusBadge status={transaction.quote_status} />
+                  ) : isInvoice && transaction.invoice_status ? (
+                    <StatusBadge status={transaction.invoice_status} />
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </div>
+              )}
+            </Field>
+
+            <Field label="Montant HT" htmlFor="review-transaction-amount-ht">
+              <Input
+                id="review-transaction-amount-ht"
+                className="h-9 text-sm"
+                type={isEditing ? 'number' : 'text'}
+                min="0"
+                step="0.01"
+                value={isEditing ? form.amount_ht : formatCurrency(transaction.amount_ht)}
+                readOnly={!isEditing}
+                onChange={(event) => updateField('amount_ht', event.target.value)}
+                required
+              />
+            </Field>
+            <Field label="TVA" htmlFor="review-transaction-vat-rate">
+              <Input
+                id="review-transaction-vat-rate"
+                className="h-9 text-sm"
+                type={isEditing ? 'number' : 'text'}
+                min="0"
+                step="0.01"
+                value={isEditing ? form.vat_rate : `${transaction.vat_rate} %`}
+                readOnly={!isEditing}
+                onChange={(event) => updateField('vat_rate', event.target.value)}
+              />
+            </Field>
+            <Field label="Montant TVA" htmlFor="review-transaction-amount-vat">
+              <Input
+                id="review-transaction-amount-vat"
+                className="h-9 text-sm"
+                value={isEditing ? form.amount_vat : formatCurrency(transaction.amount_vat)}
+                readOnly
+                disabled={isEditing}
+              />
+            </Field>
+            <Field label="Montant TTC" htmlFor="review-transaction-amount-ttc">
+              <Input
+                id="review-transaction-amount-ttc"
+                className="h-9 text-sm"
+                type={isEditing ? 'number' : 'text'}
+                min="0"
+                step="0.01"
+                value={isEditing ? form.amount_ttc : formatCurrency(transaction.amount_ttc)}
+                readOnly={!isEditing}
+                onChange={(event) => updateField('amount_ttc', event.target.value)}
+                required
+              />
+            </Field>
+          </div>
+
+          {isQuote || isInvoice ? (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Field label="Date d'échéance" htmlFor="review-transaction-due-date">
+                <Input
+                  id="review-transaction-due-date"
+                  className="h-9 text-sm"
+                  type={isEditing ? 'date' : 'text'}
+                  value={isEditing ? form.due_date : formatDate(transaction.due_date)}
+                  readOnly={!isEditing}
+                  onChange={(event) => updateField('due_date', event.target.value)}
+                />
+              </Field>
+              {isInvoice ? (
+                <>
+                  <Field
+                    label="Date de paiement"
+                    htmlFor="review-transaction-payment-date"
+                  >
+                    <Input
+                      id="review-transaction-payment-date"
+                      className="h-9 text-sm"
+                      type={isEditing ? 'date' : 'text'}
+                      value={
+                        isEditing
+                          ? form.payment_date
+                          : formatDate(transaction.payment_date)
+                      }
+                      readOnly={!isEditing}
+                      disabled={isEditing && form.invoice_status !== 'paid'}
+                      onChange={(event) =>
+                        updateField('payment_date', event.target.value)
+                      }
+                      required={isEditing && form.invoice_status === 'paid'}
+                    />
+                  </Field>
+                  <Field label="Type facture" htmlFor="review-transaction-invoice-type">
+                    {isEditing ? (
+                      <Select
+                        id="review-transaction-invoice-type"
+                        className="h-9 text-sm"
+                        value={form.invoice_type}
+                        onChange={(event) =>
+                          updateField(
+                            'invoice_type',
+                            event.target.value as InvoiceType,
+                          )
+                        }
+                      >
+                        {Object.entries(invoiceTypeLabels).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </Select>
+                    ) : (
+                      <Input
+                        id="review-transaction-invoice-type"
+                        className="h-9 text-sm"
+                        value={
+                          transaction.invoice_type
+                            ? invoiceTypeLabels[transaction.invoice_type]
+                            : '-'
+                        }
+                        readOnly
+                      />
+                    )}
+                  </Field>
+                  <Field
+                    label="Moyen de paiement"
+                    htmlFor="review-transaction-payment-method"
+                  >
+                    {isEditing ? (
+                      <Select
+                        id="review-transaction-payment-method"
+                        className="h-9 text-sm"
+                        value={form.payment_method}
+                        onChange={(event) =>
+                          updateField(
+                            'payment_method',
+                            event.target.value as PaymentMethod,
+                          )
+                        }
+                      >
+                        {Object.entries(paymentMethodLabels).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </Select>
+                    ) : (
+                      <Input
+                        id="review-transaction-payment-method"
+                        className="h-9 text-sm"
+                        value={
+                          transaction.payment_method
+                            ? paymentMethodLabels[transaction.payment_method]
+                            : '-'
+                        }
+                        readOnly
+                      />
+                    )}
+                  </Field>
+                </>
+              ) : null}
+            </div>
+          ) : null}
+        </CompactSection>
+
+        <CompactSection title="Détails">
+          <div className="grid gap-3 lg:grid-cols-[minmax(16rem,1fr)_13rem_minmax(12rem,auto)] lg:items-end">
+            <Field label="Description" htmlFor="review-transaction-description">
+              <Input
+                id="review-transaction-description"
+                className="h-9 text-sm"
+                value={form.description}
+                readOnly={!isEditing}
+                onChange={(event) =>
+                  updateField('description', event.target.value)
+                }
+              />
+            </Field>
+            <label className="flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm">
+              <Checkbox
+                checked={!isInvoice && transaction.select_as_budget}
+                disabled
+                onChange={() => undefined}
+              />
+              Sélectionné pour budget
+            </label>
             <div>
-              <dt className="text-xs font-medium text-muted-foreground uppercase">
-                Montant TTC
-              </dt>
-              <dd className="mt-1 font-semibold text-foreground">
-                {formatCurrency(transaction.amount_ttc)}
-              </dd>
+              <p className="text-xs font-medium">Document</p>
+              {transaction.document_state === 'attached' ? (
+                <div className="mt-1 flex h-9 gap-2">
+                  <Button size="sm" variant="outline">
+                    <Eye aria-hidden />
+                    Voir
+                  </Button>
+                  <Button size="sm" variant="outline">
+                    <Download aria-hidden />
+                    Télécharger
+                  </Button>
+                </div>
+              ) : (
+                <div className="mt-1 flex h-9 items-center rounded-md border border-input bg-muted/30 px-3 text-sm text-muted-foreground">
+                  Aucun
+                </div>
+              )}
             </div>
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground uppercase">
-                Date
-              </dt>
-              <dd className="mt-1 text-foreground">
-                {formatDate(transaction.issued_date)}
-              </dd>
+          </div>
+        </CompactSection>
+
+        {submission ? (
+          <CompactSection title="Payload mock">
+            <div className="rounded-md border border-border bg-muted/30 p-3">
+              <p className="text-xs font-semibold text-foreground">
+                {submission.method} {submission.route}
+              </p>
+              <pre className="mt-3 max-h-60 overflow-auto text-xs text-muted-foreground">
+                {JSON.stringify(submission.payload, null, 2)}
+              </pre>
             </div>
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground uppercase">
-                Fournisseur
-              </dt>
-              <dd className="mt-1 text-foreground">
-                {transaction.supplier_name ?? 'Autoconstruction'}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground uppercase">
-                Statut devis
-              </dt>
-              <dd className="mt-1">
-                {transaction.quote_status ? (
-                  <StatusBadge status={transaction.quote_status} />
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground uppercase">
-                Statut facture
-              </dt>
-              <dd className="mt-1">
-                {transaction.invoice_status ? (
-                  <StatusBadge status={transaction.invoice_status} />
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground uppercase">
-                Échéance
-              </dt>
-              <dd className="mt-1 text-foreground">
-                {formatDate(transaction.due_date)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground uppercase">
-                Paiement
-              </dt>
-              <dd className="mt-1 text-foreground">
-                {formatDate(transaction.payment_date)}
-              </dd>
-            </div>
-            <div className="md:col-span-2">
-              <dt className="text-xs font-medium text-muted-foreground uppercase">
-                Description
-              </dt>
-              <dd className="mt-1 text-foreground">
-                {transaction.description}
-              </dd>
-            </div>
-          </dl>
-        </SectionCard>
-      </div>
+          </CompactSection>
+        ) : null}
+
+        {isEditing ? (
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" type="button" onClick={resetEditMode}>
+              Annuler
+            </Button>
+            <Button type="submit">Enregistrer en mock</Button>
+          </div>
+        ) : null}
+      </form>
     </ModalShell>
   )
 }
