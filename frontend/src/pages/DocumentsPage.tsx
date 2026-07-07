@@ -12,6 +12,7 @@ import {
 } from '@/api/documents'
 import type { DocumentListRead } from '@/api/types'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { TableToolbar } from '@/components/shared/TableToolbar'
 import { Button } from '@/components/ui/button'
@@ -57,6 +58,8 @@ export function DocumentsPage() {
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [activeDocumentId, setActiveDocumentId] = useState<number | null>(null)
+  const [documentPendingDeletion, setDocumentPendingDeletion] =
+    useState<DocumentListRead | null>(null)
   const documentsQuery = useDocumentsQuery({ enabled: true })
   const uploadDocumentMutation = useUploadTransactionDocumentMutation()
   const deleteDocumentMutation = useDeleteDocumentMutation()
@@ -161,11 +164,6 @@ export function DocumentsPage() {
   }
 
   async function deleteDocument(document: DocumentListRead) {
-    const confirmed = window.confirm(
-      `Supprimer le document "${document.original_filename}" ?`,
-    )
-    if (!confirmed) return
-
     setActiveDocumentId(document.id)
     setActionError(null)
 
@@ -182,6 +180,7 @@ export function DocumentsPage() {
       void queryClient.invalidateQueries({
         queryKey: documentQueryKeys.byTransaction(document.transaction_id),
       })
+      setDocumentPendingDeletion(null)
     } catch (error) {
       setActionError(getApiErrorMessage(error))
     } finally {
@@ -266,7 +265,10 @@ export function DocumentsPage() {
                 variant="ghost"
                 aria-label={`Supprimer ${document.original_filename}`}
                 disabled={isBusy}
-                onClick={() => deleteDocument(document)}
+                onClick={() => {
+                  setActionError(null)
+                  setDocumentPendingDeletion(document)
+                }}
               >
                 <Trash2 aria-hidden />
               </Button>
@@ -422,6 +424,30 @@ export function DocumentsPage() {
             </div>
           </div>
         </div>
+      ) : null}
+
+      {documentPendingDeletion ? (
+        <ConfirmationDialog
+          title="Supprimer ce document ?"
+          description="Ce document sera retiré de la transaction associée."
+          error={actionError}
+          isPending={activeDocumentId === documentPendingDeletion.id}
+          onCancel={() => {
+            if (activeDocumentId === documentPendingDeletion.id) return
+            setDocumentPendingDeletion(null)
+            setActionError(null)
+          }}
+          onConfirm={() => deleteDocument(documentPendingDeletion)}
+        >
+          <p className="font-medium text-foreground">
+            {documentPendingDeletion.original_filename}
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            {formatTransactionTitle(
+              documentPendingDeletion.transaction_description,
+            )}
+          </p>
+        </ConfirmationDialog>
       ) : null}
     </section>
   )

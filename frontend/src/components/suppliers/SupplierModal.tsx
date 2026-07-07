@@ -4,6 +4,7 @@ import { Check, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
 import type { SupplierRowViewModel } from '@/demo/types'
 
 export type SupplierModalMode = 'create' | 'view' | 'edit'
@@ -77,6 +78,11 @@ function normalizeOptional(value: string): string | null {
   return trimmed === '' ? null : trimmed
 }
 
+function normalizeBusinessIdentifier(value: string): string | null {
+  const normalized = value.replace(/\s+/g, '')
+  return normalized === '' ? null : normalized
+}
+
 function readValue(value: string | null | undefined): string {
   return value?.trim() ? value : '-'
 }
@@ -93,6 +99,8 @@ export function SupplierModal({
     supplierToForm(supplier),
   )
   const [formError, setFormError] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const isReadOnly = currentMode === 'view'
@@ -102,6 +110,8 @@ export function SupplierModal({
     setCurrentMode(mode)
     setForm(supplierToForm(supplier))
     setFormError(null)
+    setDeleteError(null)
+    setDeleteConfirmationOpen(false)
     setIsSaving(false)
     setIsDeleting(false)
   }, [mode, supplier])
@@ -193,7 +203,7 @@ export function SupplierModal({
         id: supplierId,
         user_id: supplier?.user_id ?? '0',
         name: form.name.trim(),
-        siret: normalizeOptional(form.siret),
+        siret: normalizeBusinessIdentifier(form.siret),
         comment: normalizeOptional(form.comment) ?? '',
         contacts: form.contacts.map((contact) => ({
           id: contact.id,
@@ -221,19 +231,15 @@ export function SupplierModal({
 
   async function deleteSupplier() {
     if (!supplier || !onDelete) return
-    const confirmed = window.confirm(
-      `Supprimer le fournisseur "${supplier.name}" ?`,
-    )
-    if (!confirmed) return
 
     setIsDeleting(true)
-    setFormError(null)
+    setDeleteError(null)
 
     try {
       await onDelete(supplier)
       onClose()
     } catch (error) {
-      setFormError(
+      setDeleteError(
         error instanceof Error ? error.message : 'Suppression impossible.',
       )
     } finally {
@@ -242,273 +248,307 @@ export function SupplierModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-4"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xl">
-        <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
-          <div>
-            <h2 className="text-base font-semibold">
-              {currentMode === 'create'
-                ? 'Nouveau fournisseur'
-                : readValue(supplier?.name)}
-            </h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {currentMode === 'view'
-                ? 'Détail fournisseur'
-                : 'Fournisseur et contacts'}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {currentMode === 'view' ? (
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={isBusy}
-                onClick={() => setCurrentMode('edit')}
-              >
-                <Pencil aria-hidden />
-                Modifier
-              </Button>
-            ) : null}
-            {supplier && onDelete ? (
-              <Button
-                size="sm"
-                variant="destructive"
-                disabled={isBusy}
-                onClick={deleteSupplier}
-              >
-                <Trash2 aria-hidden />
-                {isDeleting ? 'Suppression...' : 'Supprimer'}
-              </Button>
-            ) : null}
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label="Fermer"
-              disabled={isBusy}
-              onClick={onClose}
-            >
-              <X aria-hidden />
-            </Button>
-          </div>
-        </div>
-
-        <div className="overflow-y-auto px-5 py-4 text-sm">
-          {isReadOnly ? (
-            <div className="space-y-4">
-              <section className="rounded-md border border-border p-4">
-                <h3 className="text-xs font-semibold uppercase text-muted-foreground">
-                  Entreprise
-                </h3>
-                <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Nom</dt>
-                    <dd className="font-medium">{readValue(supplier?.name)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">SIRET</dt>
-                    <dd>{readValue(supplier?.siret)}</dd>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <dt className="text-xs text-muted-foreground">
-                      Commentaire
-                    </dt>
-                    <dd>{readValue(supplier?.comment)}</dd>
-                  </div>
-                </dl>
-              </section>
-
-              <section className="rounded-md border border-border p-4">
-                <h3 className="text-xs font-semibold uppercase text-muted-foreground">
-                  Contacts
-                </h3>
-                <div className="mt-3 grid gap-2">
-                  {supplier?.contacts.map((contact) => (
-                    <div
-                      key={contact.id}
-                      className="grid gap-2 px-1 py-1 md:grid-cols-[minmax(11rem,1.1fr)_minmax(10rem,0.9fr)_minmax(16rem,1.4fr)_88px]"
-                    >
-                      <span className="font-medium">
-                        {readValue(contact.name)}
-                      </span>
-                      <span>{readValue(contact.phone_number)}</span>
-                      <span>{readValue(contact.email)}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {contact.is_primary ? 'Principal' : ''}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </section>
+    <>
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-4"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xl">
+          <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+            <div>
+              <h2 className="text-base font-semibold">
+                {currentMode === 'create'
+                  ? 'Nouveau fournisseur'
+                  : readValue(supplier?.name)}
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {currentMode === 'view'
+                  ? 'Détail fournisseur'
+                  : 'Fournisseur et contacts'}
+              </p>
             </div>
-          ) : (
-            <div className="space-y-4">
-              <section className="space-y-3 rounded-md border border-border p-4">
-                <h3 className="text-xs font-semibold uppercase text-muted-foreground">
-                  Entreprise
-                </h3>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label
-                      className="text-xs font-medium"
-                      htmlFor="supplier-name"
-                    >
-                      Fournisseur
-                    </label>
-                    <Input
-                      id="supplier-name"
-                      className="mt-1 h-9 text-sm"
-                      value={form.name}
-                      onChange={(event) =>
-                        setForm({ ...form, name: event.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label
-                      className="text-xs font-medium"
-                      htmlFor="supplier-siret"
-                    >
-                      SIRET
-                    </label>
-                    <Input
-                      id="supplier-siret"
-                      className="mt-1 h-9 text-sm"
-                      value={form.siret}
-                      onChange={(event) =>
-                        setForm({ ...form, siret: event.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label
-                    className="text-xs font-medium"
-                    htmlFor="supplier-comment"
-                  >
-                    Commentaire
-                  </label>
-                  <Input
-                    id="supplier-comment"
-                    className="mt-1 h-9 text-sm"
-                    value={form.comment}
-                    onChange={(event) =>
-                      setForm({ ...form, comment: event.target.value })
-                    }
-                  />
-                </div>
-              </section>
+            <div className="flex items-center gap-2">
+              {currentMode === 'view' ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={isBusy}
+                  onClick={() => setCurrentMode('edit')}
+                >
+                  <Pencil aria-hidden />
+                  Modifier
+                </Button>
+              ) : null}
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Fermer"
+                disabled={isBusy}
+                onClick={onClose}
+              >
+                <X aria-hidden />
+              </Button>
+            </div>
+          </div>
 
-              <section className="space-y-3 rounded-md border border-border p-4">
-                <div className="flex items-center justify-between gap-3">
+          <div className="overflow-y-auto px-5 py-4 text-sm">
+            {isReadOnly ? (
+              <div className="space-y-4">
+                <section className="rounded-md border border-border p-4">
+                  <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+                    Entreprise
+                  </h3>
+                  <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Nom</dt>
+                      <dd className="font-medium">
+                        {readValue(supplier?.name)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">
+                        SIRET / SIREN
+                      </dt>
+                      <dd>{readValue(supplier?.siret)}</dd>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <dt className="text-xs text-muted-foreground">
+                        Commentaire
+                      </dt>
+                      <dd>{readValue(supplier?.comment)}</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section className="rounded-md border border-border p-4">
                   <h3 className="text-xs font-semibold uppercase text-muted-foreground">
                     Contacts
                   </h3>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={isBusy}
-                    onClick={addContact}
-                  >
-                    <Plus aria-hidden />
-                    Ajouter un contact
-                  </Button>
-                </div>
-
-                <div className="grid gap-2">
-                  {form.contacts.map((contact) => (
-                    <div
-                      key={contact.id}
-                      className="grid gap-2 py-1 lg:grid-cols-[minmax(12rem,1.1fr)_minmax(10rem,0.9fr)_minmax(17rem,1.45fr)_92px_40px]"
+                  <div className="mt-3 grid gap-2">
+                    {supplier?.contacts.map((contact) => (
+                      <div
+                        key={contact.id}
+                        className="grid gap-2 px-1 py-1 md:grid-cols-[minmax(11rem,1.1fr)_minmax(10rem,0.9fr)_minmax(16rem,1.4fr)_88px]"
+                      >
+                        <span className="font-medium">
+                          {readValue(contact.name)}
+                        </span>
+                        <span>{readValue(contact.phone_number)}</span>
+                        <span>{readValue(contact.email)}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {contact.is_primary ? 'Principal' : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <section className="space-y-3 rounded-md border border-border p-4">
+                  <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+                    Entreprise
+                  </h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label
+                        className="text-xs font-medium"
+                        htmlFor="supplier-name"
+                      >
+                        Fournisseur
+                      </label>
+                      <Input
+                        id="supplier-name"
+                        className="mt-1 h-9 text-sm"
+                        value={form.name}
+                        onChange={(event) =>
+                          setForm({ ...form, name: event.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label
+                        className="text-xs font-medium"
+                        htmlFor="supplier-siret"
+                      >
+                        SIRET / SIREN
+                      </label>
+                      <Input
+                        id="supplier-siret"
+                        className="mt-1 h-9 text-sm"
+                        value={form.siret}
+                        onChange={(event) =>
+                          setForm({ ...form, siret: event.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label
+                      className="text-xs font-medium"
+                      htmlFor="supplier-comment"
                     >
-                      <Input
-                        className="h-9 text-sm"
-                        aria-label="Nom du contact"
-                        placeholder="Nom"
-                        value={contact.name}
-                        onChange={(event) =>
-                          updateContact(contact.id, {
-                            name: event.target.value,
-                          })
-                        }
-                      />
-                      <Input
-                        className="h-9 text-sm"
-                        aria-label="Téléphone du contact"
-                        placeholder="Téléphone"
-                        value={contact.phone_number}
-                        onChange={(event) =>
-                          updateContact(contact.id, {
-                            phone_number: event.target.value,
-                          })
-                        }
-                      />
-                      <Input
-                        className="h-9 text-sm"
-                        aria-label="Email du contact"
-                        placeholder="Email"
-                        value={contact.email}
-                        onChange={(event) =>
-                          updateContact(contact.id, {
-                            email: event.target.value,
-                          })
-                        }
-                      />
-                      <label className="flex items-center gap-2 text-xs">
-                        <Checkbox
-                          checked={
-                            contact.is_primary || form.contacts.length === 1
-                          }
-                          disabled={
-                            isBusy ||
-                            contact.is_primary ||
-                            form.contacts.length === 1
-                          }
+                      Commentaire
+                    </label>
+                    <Input
+                      id="supplier-comment"
+                      className="mt-1 h-9 text-sm"
+                      value={form.comment}
+                      onChange={(event) =>
+                        setForm({ ...form, comment: event.target.value })
+                      }
+                    />
+                  </div>
+                </section>
+
+                <section className="space-y-3 rounded-md border border-border p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+                      Contacts
+                    </h3>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isBusy}
+                      onClick={addContact}
+                    >
+                      <Plus aria-hidden />
+                      Ajouter un contact
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-2">
+                    {form.contacts.map((contact) => (
+                      <div
+                        key={contact.id}
+                        className="grid gap-2 py-1 lg:grid-cols-[minmax(12rem,1.1fr)_minmax(10rem,0.9fr)_minmax(17rem,1.45fr)_92px_40px]"
+                      >
+                        <Input
+                          className="h-9 text-sm"
+                          aria-label="Nom du contact"
+                          placeholder="Nom"
+                          value={contact.name}
                           onChange={(event) =>
                             updateContact(contact.id, {
-                              is_primary: event.target.checked,
+                              name: event.target.value,
                             })
                           }
                         />
-                        Principal
-                      </label>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        aria-label="Supprimer le contact"
-                        disabled={isBusy || form.contacts.length === 1}
-                        onClick={() => removeContact(contact.id)}
-                      >
-                        <Trash2 aria-hidden />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </section>
+                        <Input
+                          className="h-9 text-sm"
+                          aria-label="Téléphone du contact"
+                          placeholder="Téléphone"
+                          value={contact.phone_number}
+                          onChange={(event) =>
+                            updateContact(contact.id, {
+                              phone_number: event.target.value,
+                            })
+                          }
+                        />
+                        <Input
+                          className="h-9 text-sm"
+                          aria-label="Email du contact"
+                          placeholder="Email"
+                          value={contact.email}
+                          onChange={(event) =>
+                            updateContact(contact.id, {
+                              email: event.target.value,
+                            })
+                          }
+                        />
+                        <label className="flex items-center gap-2 text-xs">
+                          <Checkbox
+                            checked={
+                              contact.is_primary || form.contacts.length === 1
+                            }
+                            disabled={
+                              isBusy ||
+                              contact.is_primary ||
+                              form.contacts.length === 1
+                            }
+                            onChange={(event) =>
+                              updateContact(contact.id, {
+                                is_primary: event.target.checked,
+                              })
+                            }
+                          />
+                          Principal
+                        </label>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          aria-label="Supprimer le contact"
+                          disabled={isBusy || form.contacts.length === 1}
+                          onClick={() => removeContact(contact.id)}
+                        >
+                          <Trash2 aria-hidden />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </div>
+            )}
+
+            {formError ? (
+              <p className="mt-3 text-sm text-destructive">{formError}</p>
+            ) : null}
+          </div>
+
+          <div className="flex items-center justify-between gap-2 border-t border-border px-5 py-3">
+            <div>
+              {isReadOnly && supplier && onDelete ? (
+                <Button
+                  variant="ghost"
+                  disabled={isBusy}
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => {
+                    setDeleteError(null)
+                    setDeleteConfirmationOpen(true)
+                  }}
+                >
+                  <Trash2 aria-hidden />
+                  Supprimer
+                </Button>
+              ) : null}
             </div>
-          )}
-
-          {formError ? (
-            <p className="mt-3 text-sm text-destructive">{formError}</p>
-          ) : null}
-        </div>
-
-        <div className="flex justify-end gap-2 border-t border-border px-5 py-3">
-          <Button variant="ghost" disabled={isBusy} onClick={onClose}>
-            <X aria-hidden />
-            Fermer
-          </Button>
-          {!isReadOnly ? (
-            <Button variant="gold" disabled={isBusy} onClick={saveSupplier}>
-              <Check aria-hidden />
-              {isSaving ? 'Enregistrement...' : 'Enregistrer'}
-            </Button>
-          ) : null}
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" disabled={isBusy} onClick={onClose}>
+                <X aria-hidden />
+                Fermer
+              </Button>
+              {!isReadOnly ? (
+                <Button variant="gold" disabled={isBusy} onClick={saveSupplier}>
+                  <Check aria-hidden />
+                  {isSaving ? 'Enregistrement...' : 'Enregistrer'}
+                </Button>
+              ) : null}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+      {deleteConfirmationOpen && supplier ? (
+        <ConfirmationDialog
+          title="Supprimer ce fournisseur ?"
+          description="Ce fournisseur sera retiré de votre répertoire. Les transactions existantes ne seront pas supprimées."
+          error={deleteError}
+          isPending={isDeleting}
+          onCancel={() => {
+            if (isDeleting) return
+            setDeleteConfirmationOpen(false)
+            setDeleteError(null)
+          }}
+          onConfirm={deleteSupplier}
+        >
+          <p className="font-medium text-foreground">{supplier.name}</p>
+          <p className="mt-1 text-muted-foreground">
+            {supplier.siret
+              ? `SIRET / SIREN ${supplier.siret}`
+              : 'Sans SIRET / SIREN'}
+          </p>
+        </ConfirmationDialog>
+      ) : null}
+    </>
   )
 }

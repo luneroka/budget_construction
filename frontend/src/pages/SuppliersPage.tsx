@@ -68,6 +68,11 @@ function nullableText(value: string | null): string | null {
   return normalized === '' ? null : normalized
 }
 
+function nullableBusinessIdentifier(value: string | null): string | null {
+  const normalized = value?.replace(/\s+/g, '') ?? ''
+  return normalized === '' ? null : normalized
+}
+
 function contactsToCreatePayload(
   supplier: SupplierRowViewModel,
 ): SupplierCreate['contacts'] {
@@ -100,7 +105,7 @@ function supplierToCreatePayload(
 ): SupplierCreate {
   return {
     name: supplier.name,
-    siret: nullableText(supplier.siret),
+    siret: nullableBusinessIdentifier(supplier.siret),
     comment: nullableText(supplier.comment),
     contacts: contactsToCreatePayload(supplier),
   }
@@ -111,7 +116,7 @@ function supplierToUpdatePayload(
 ): SupplierUpdate {
   return {
     name: supplier.name,
-    siret: nullableText(supplier.siret),
+    siret: nullableBusinessIdentifier(supplier.siret),
     comment: nullableText(supplier.comment),
     contacts: contactsToUpdatePayload(supplier),
   }

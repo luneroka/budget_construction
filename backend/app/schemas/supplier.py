@@ -18,12 +18,12 @@ def normalize_siret(value: Any) -> str | None:
     if not isinstance(value, str):
         raise ValueError('siret must be a string')
 
-    siret = value.strip()
+    siret = ''.join(str(value).split())
     if siret == '':
         return None
 
-    if not (len(siret) == 14 and siret.isdigit()):
-        raise ValueError('siret must be exactly 14 digits')
+    if not (len(siret) in {9, 14} and siret.isdigit()):
+        raise ValueError('siret must be a 9-digit SIREN or 14-digit SIRET')
 
     return siret
 

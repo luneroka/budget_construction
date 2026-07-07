@@ -13,7 +13,7 @@ def primary_contact() -> SupplierContactCreate:
     return SupplierContactCreate(name='Primary Contact', is_primary=True)
 
 
-def test_supplier_create_accepts_null_empty_and_valid_siret() -> None:
+def test_supplier_create_accepts_null_empty_valid_siren_and_valid_siret() -> None:
     assert (
         SupplierCreate(name='Supplier', siret=None, contacts=[primary_contact()]).siret
         is None
@@ -34,11 +34,35 @@ def test_supplier_create_accepts_null_empty_and_valid_siret() -> None:
         ).siret
         == '12345678901234'
     )
+    assert (
+        SupplierCreate(
+            name='Supplier',
+            siret='123456789',
+            contacts=[primary_contact()],
+        ).siret
+        == '123456789'
+    )
+    assert (
+        SupplierCreate(
+            name='Supplier',
+            siret='123 456 789 01234',
+            contacts=[primary_contact()],
+        ).siret
+        == '12345678901234'
+    )
+    assert (
+        SupplierCreate(
+            name='Supplier',
+            siret=' 123 456 789 ',
+            contacts=[primary_contact()],
+        ).siret
+        == '123456789'
+    )
 
 
 @pytest.mark.parametrize(
     'siret',
-    ['1234567890123', '123456789012345', '1234567890123A'],
+    ['12345678', '1234567890', '1234567890123', '123456789012345', '12345678A'],
 )
 def test_supplier_create_rejects_invalid_siret(siret: str) -> None:
     with pytest.raises(ValidationError):
@@ -48,6 +72,8 @@ def test_supplier_create_rejects_invalid_siret(siret: str) -> None:
 def test_supplier_update_validates_siret() -> None:
     assert SupplierUpdate(siret='').siret is None
     assert SupplierUpdate(siret='12345678901234').siret == '12345678901234'
+    assert SupplierUpdate(siret='123456789').siret == '123456789'
+    assert SupplierUpdate(siret='123 456 789 01234').siret == '12345678901234'
 
     with pytest.raises(ValidationError):
         SupplierUpdate(siret='invalid')
