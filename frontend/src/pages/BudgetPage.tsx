@@ -4,6 +4,7 @@ import { getApiErrorMessage } from '@/api/client'
 import { useSuppliersQuery } from '@/api/suppliers'
 import { BudgetSummaryCards } from '@/components/budget/BudgetSummaryCards'
 import { BudgetTree } from '@/components/budget/BudgetTree'
+import { DeleteBudgetLineDialog } from '@/components/budget/DeleteBudgetLineDialog'
 import { DeleteTransactionDialog } from '@/components/budget/DeleteTransactionDialog'
 import { ProductStructureDialog } from '@/components/budget/ProductStructureDialog'
 import {
@@ -12,6 +13,7 @@ import {
 } from '@/components/budget/TransactionModal'
 import type {
   ActiveAction,
+  BudgetLineDeleteState,
   BreakdownAction,
   ProductStructureChoice,
   TransactionDeleteState,
@@ -45,6 +47,8 @@ export function BudgetPage() {
     useState<TransactionReviewState | null>(null)
   const [transactionDelete, setTransactionDelete] =
     useState<TransactionDeleteState | null>(null)
+  const [budgetLineDelete, setBudgetLineDelete] =
+    useState<BudgetLineDeleteState | null>(null)
   const [selectedStructureChoice, setSelectedStructureChoice] =
     useState<ProductStructureChoice>('single')
   const suppliers = useMemo(
@@ -179,6 +183,7 @@ export function BudgetPage() {
           setActiveAction({ kind: 'decompose-product', ...action })
         }
         onToggleBudgetSelection={toggleBudgetSelection}
+        onRequestDeleteBudgetLine={setBudgetLineDelete}
         onRequestDeleteTransaction={setTransactionDelete}
         onEditTransaction={(context) =>
           setTransactionReview({
@@ -236,6 +241,15 @@ export function BudgetPage() {
             )
           }
           onClose={() => setTransactionReview(null)}
+        />
+      ) : null}
+
+      {budgetLineDelete ? (
+        <DeleteBudgetLineDialog
+          context={budgetLineDelete}
+          projectId={projectId}
+          onCancel={() => setBudgetLineDelete(null)}
+          onConfirm={() => setBudgetLineDelete(null)}
         />
       ) : null}
 

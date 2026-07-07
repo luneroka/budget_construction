@@ -38,10 +38,7 @@ export function ProductStructureDialog({
   const createBudgetLineMutation = useCreateBudgetLineMutation()
   const convertProductLineMutation = useConvertProductLineToBreakdownMutation()
   const [breakdownName, setBreakdownName] = useState('')
-  const [existingLineName, setExistingLineName] = useState(
-    activeAction.product.product_name,
-  )
-  const [newBreakdownNames, setNewBreakdownNames] = useState('')
+  const [breakdownNames, setBreakdownNames] = useState('')
   const [error, setError] = useState<string | null>(null)
   const isMutating =
     createBudgetLineMutation.isPending || convertProductLineMutation.isPending
@@ -84,14 +81,17 @@ export function ProductStructureDialog({
     }
 
     try {
+      const [firstBreakdownName, ...newBreakdownNames] =
+        parseBreakdownNames(breakdownNames)
+
       setError(null)
       await convertProductLineMutation.mutateAsync({
         projectId,
         productId,
         conversion: {
           strategy: 'reuse_existing_as_breakdown',
-          existing_line_new_name: existingLineName,
-          new_breakdown_names: parseBreakdownNames(newBreakdownNames),
+          existing_line_new_name: firstBreakdownName,
+          new_breakdown_names: newBreakdownNames,
         },
       })
       invalidateBudgetWorkspaceQueries(queryClient, projectId)
@@ -135,7 +135,7 @@ export function ProductStructureDialog({
                         value: 'breakdown',
                         title: 'Plusieurs sous-produits',
                         description:
-                          'Recommandé si vous souhaitez suivre plusieurs éléments séparément (ex. baie vitrée, fenêtre cuisine, fenêtre chambre...).',
+                          'Recommandé si vous souhaitez décomposer un poste budgétaire en plusieurs éléments complémentaires.',
                       },
                     ] satisfies Array<{
                       value: ProductStructureChoice
@@ -170,29 +170,24 @@ export function ProductStructureDialog({
                   Convertissez le produit « {activeAction.product.product_name}{' '}
                   » en plusieurs sous-produits.
                 </p>
-                <div className="space-y-1.5">
-                  <Label htmlFor="existing-line-name">
-                    Nom du poste existant
-                  </Label>
-                  <Input
-                    id="existing-line-name"
-                    value={existingLineName}
-                    onChange={(event) =>
-                      setExistingLineName(event.target.value)
-                    }
-                  />
+                <div className="rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
+                  <p>
+                    Le poste de budget actuel sera remplacé par les
+                    sous-produits listés ci-dessous.
+                  </p>
+                  <p className="mt-1">
+                    Chaque ligne devient un sous-produit distinct. Les
+                    transactions existantes restent rattachées au premier
+                    sous-produit.
+                  </p>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="new-breakdown-names">
-                    Sous-produits à créer
-                  </Label>
+                  <Label htmlFor="breakdown-names">Sous-produits</Label>
                   <Textarea
-                    id="new-breakdown-names"
-                    value={newBreakdownNames}
-                    placeholder="Pose menuiserie&#10;Fourniture"
-                    onChange={(event) =>
-                      setNewBreakdownNames(event.target.value)
-                    }
+                    id="breakdown-names"
+                    value={breakdownNames}
+                    placeholder="Sous-produit A&#10;Sous-produit B"
+                    onChange={(event) => setBreakdownNames(event.target.value)}
                   />
                 </div>
               </div>

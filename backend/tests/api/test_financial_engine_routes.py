@@ -12,6 +12,8 @@ from app.models.category import Category
 from app.models.product import Product
 from app.models.project import Project
 from app.models.subcategory import Subcategory
+from app.models.template import Template
+from app.models.template_item import TemplateItem
 from app.models.transaction import (
     InvoiceStatus,
     InvoiceType,
@@ -267,3 +269,46 @@ async def test_project_financial_summary_breaks_down_by_product(
     assert windows['selected_diy_budget_amount_ttc'] == '300.00'
     assert windows['actual_cost_amount_ttc'] == '25.00'
     assert windows['invoice_count'] == 1
+
+
+async def test_project_financial_summary_includes_empty_template_product(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    user = User(
+        name='Empty Template Product User',
+        email='empty-template-product-user@example.com',
+        hashed_password='hashed-password',
+    )
+    category = Category(name='Empty Product Category')
+    subcategory = Subcategory(category=category, name='Empty Product Subcategory')
+    product = Product(subcategory=subcategory, name='Template-only product')
+    template = Template(name='Empty Product Template')
+    TemplateItem(
+        template=template,
+        product=product,
+        default_name='Template-only budget',
+        sort_order=10,
+    )
+    project = Project(user=user, template=template, name='Empty Product Project')
+
+    db_session.add_all([user, category, subcategory, product, template, project])
+    await db_session.commit()
+    await db_session.refresh(user)
+    await db_session.refresh(project)
+    await db_session.refresh(product)
+
+    response = await client.get(
+        f'/projects/{project.id}/financial-summary',
+        headers=auth_headers(create_access_token(subject=str(user.id))),
+    )
+
+    assert response.status_code == 200
+    summary = cast(dict[str, object], response.json())
+    products = cast(list[dict[str, object]], summary['products'])
+    assert len(products) == 1
+    assert products[0]['product_id'] == product.id
+    assert products[0]['product_name'] == 'Template-only product'
+    assert products[0]['selected_budget_amount_ttc'] == '0.00'
+    assert products[0]['actual_cost_amount_ttc'] == '0.00'
+    assert products[0]['budget_lines'] == []

@@ -12,6 +12,7 @@ import {
 } from '@/components/budget/BudgetTreeRows'
 import { TransactionsPanel } from '@/components/budget/TransactionsPanel'
 import type {
+  BudgetLineDeleteState,
   BreakdownAction,
   TransactionAction,
 } from '@/components/budget/types'
@@ -47,6 +48,7 @@ type BudgetTreeProps = {
     line: BudgetLineSummaryViewModel,
     transaction: TransactionViewModel,
   ) => void
+  onRequestDeleteBudgetLine: (context: BudgetLineDeleteState) => void
   onRequestDeleteTransaction: (context: ViewedTransactionContext) => void
   onEditTransaction: (context: ViewedTransactionContext) => void
   onViewTransaction: (context: ViewedTransactionContext) => void
@@ -63,6 +65,7 @@ export function BudgetTree({
   onAddTransaction,
   onDecomposeProduct,
   onToggleBudgetSelection,
+  onRequestDeleteBudgetLine,
   onRequestDeleteTransaction,
   onEditTransaction,
   onViewTransaction,
@@ -193,7 +196,12 @@ export function BudgetTree({
                                               >
                                                 <BudgetLineRow
                                                   line={selectedLine}
+                                                  product={product}
                                                   isOpen={isLineOpen}
+                                                  readOnly={readOnly}
+                                                  onRequestDelete={
+                                                    onRequestDeleteBudgetLine
+                                                  }
                                                   onToggle={() =>
                                                     toggleBudgetLine(
                                                       line.budget_line_id,

@@ -9,9 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload, with_loader_criteria
 
 from app.models.budget_line import BudgetLine
+from app.models.category import Category
 from app.models.product import Product
 from app.models.project import Project
 from app.models.subcategory import Subcategory
+from app.models.template_item import TemplateItem
 from app.models.transaction import (
     InvoiceStatus,
     QuoteStatus,
@@ -173,12 +175,13 @@ class FinancialEngine:
         project_id: int,
         user_id: int,
     ) -> ProjectFinancials | None:
-        if not await self._active_project_exists(db, project_id, user_id):
+        project = await self._get_active_project(db, project_id, user_id)
+        if project is None:
             return None
 
         budget_lines = await self._get_budget_lines(db, project_id)
         project_totals = FinancialTotals()
-        products: dict[int, ProductFinancials] = {}
+        products = await self._get_template_product_financials(db, project)
 
         for budget_line in budget_lines:
             line_totals = self._calculate_budget_line_totals(budget_line)
@@ -203,22 +206,52 @@ class FinancialEngine:
             products=list(products.values()),
         )
 
-    async def _active_project_exists(
+    async def _get_active_project(
         self,
         db: AsyncSession,
         project_id: int,
         user_id: int,
-    ) -> bool:
+    ) -> Project | None:
         result = await db.execute(
-            select(Project.id)
-            .where(
+            select(Project).where(
                 Project.id == project_id,
                 Project.user_id == user_id,
                 Project.deleted_at.is_(None),
             )
-            .limit(1)
         )
-        return result.scalar_one_or_none() is not None
+        return result.scalar_one_or_none()
+
+    async def _get_template_product_financials(
+        self,
+        db: AsyncSession,
+        project: Project,
+    ) -> dict[int, ProductFinancials]:
+        if project.template_id is None:
+            return {}
+
+        result = await db.execute(
+            select(TemplateItem)
+            .join(Product, TemplateItem.product_id == Product.id)
+            .join(Subcategory, Product.subcategory_id == Subcategory.id)
+            .join(Category, Subcategory.category_id == Category.id)
+            .options(
+                joinedload(TemplateItem.product)
+                .joinedload(Product.subcategory)
+                .joinedload(Subcategory.category)
+            )
+            .where(
+                TemplateItem.template_id == project.template_id,
+                Product.is_active.is_(True),
+                Subcategory.is_active.is_(True),
+                Category.is_active.is_(True),
+            )
+            .order_by(TemplateItem.sort_order, TemplateItem.id)
+        )
+
+        return {
+            template_item.product_id: ProductFinancials(product=template_item.product)
+            for template_item in result.scalars().all()
+        }
 
     async def _get_budget_lines(
         self,

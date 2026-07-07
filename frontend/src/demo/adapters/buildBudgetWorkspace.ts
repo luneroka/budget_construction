@@ -154,6 +154,12 @@ function buildBudgetLine(
     unpaid_invoice_amount_ttc: sumInvoicesByStatus(transactions, 'unpaid'),
     on_hold_invoice_amount_ttc: sumInvoicesByStatus(transactions, 'on_hold'),
     selected_budget_variance_ttc: selectedBudgetAmount - actualCostAmount,
+    quote_count: quotes.length,
+    validated_quote_count: validatedQuotes.length,
+    diy_estimate_count: diyEstimates.length,
+    invoice_count: transactions.filter(
+      (transaction) => transaction.transaction_type === 'invoice',
+    ).length,
     transactions,
   }
 }

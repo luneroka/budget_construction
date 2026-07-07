@@ -9,6 +9,7 @@ import {
   PaintRoller,
   Plus,
   Shovel,
+  Trash2,
   Trees,
   type LucideIcon,
 } from 'lucide-react'
@@ -16,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { TableCell, TableRow } from '@/components/ui/table'
 import type {
+  BudgetLineDeleteState,
   BreakdownAction,
   TransactionAction,
 } from '@/components/budget/types'
@@ -366,37 +368,55 @@ export function ProductRow({
 
 export function BudgetLineRow({
   line,
+  product,
   isOpen,
+  readOnly,
+  onRequestDelete,
   onToggle,
 }: {
   line: BudgetLineSummaryViewModel
+  product: ProductSummaryViewModel
   isOpen: boolean
+  readOnly?: boolean
+  onRequestDelete: (context: BudgetLineDeleteState) => void
   onToggle: () => void
 }) {
   return (
     <TableRow className="bg-muted/25 hover:bg-muted/50">
       <TableCell colSpan={7} className="px-4 py-2 pl-12">
-        <button
-          type="button"
-          className="grid w-full grid-cols-1 gap-y-3 text-left sm:grid-cols-[minmax(18rem,1fr)_7.25rem_7.25rem_7.25rem] sm:items-center sm:gap-x-1"
-          onClick={onToggle}
-          aria-expanded={isOpen}
-        >
-          <span className="flex min-w-0 items-center gap-3">
-            <span
-              className="h-7 w-1.5 rounded-full bg-gold/75"
-              aria-hidden="true"
-            />
-            <span>
-              <span className="block font-medium text-foreground">
-                {line.name}
+        <div className="grid w-full grid-cols-1 gap-y-3 text-left sm:grid-cols-[minmax(18rem,1fr)_7.25rem_7.25rem_7.25rem] sm:items-center sm:gap-x-1">
+          <span className="flex min-w-0 items-center justify-between gap-2">
+            <button
+              type="button"
+              className="flex min-w-0 flex-1 items-center gap-3 text-left"
+              onClick={onToggle}
+              aria-expanded={isOpen}
+            >
+              <span
+                className="h-7 w-1.5 rounded-full bg-gold/75"
+                aria-hidden="true"
+              />
+              <span className="min-w-0">
+                <span className="block truncate font-medium text-foreground">
+                  {line.name}
+                </span>
+                <span className="hidden mt-1 text-xs text-muted-foreground">
+                  Budget sélectionné:{' '}
+                  {formatCurrency(line.selected_budget_amount_ttc)} (
+                  {formatSelectedBudgetSource(line)})
+                </span>
               </span>
-              <span className="hidden mt-1 text-xs text-muted-foreground">
-                Budget sélectionné:{' '}
-                {formatCurrency(line.selected_budget_amount_ttc)} (
-                {formatSelectedBudgetSource(line)})
-              </span>
-            </span>
+            </button>
+            {readOnly || line.item_type !== 'breakdown' ? null : (
+              <button
+                type="button"
+                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => onRequestDelete({ line, product })}
+                aria-label={`Supprimer le sous-produit ${line.name}`}
+              >
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+              </button>
+            )}
           </span>
           <span className="hidden text-right text-xs">
             <span className="block text-muted-foreground">Budget</span>
@@ -421,7 +441,7 @@ export function BudgetLineRow({
               {formatCurrency(line.selected_budget_variance_ttc)}
             </span>
           </span>
-        </button>
+        </div>
       </TableCell>
     </TableRow>
   )

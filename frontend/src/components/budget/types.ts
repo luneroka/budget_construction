@@ -28,3 +28,8 @@ export type TransactionReviewState = {
 }
 
 export type TransactionDeleteState = ViewedTransactionContext
+
+export type BudgetLineDeleteState = {
+  line: BudgetLineSummaryViewModel
+  product: ProductSummaryViewModel
+}

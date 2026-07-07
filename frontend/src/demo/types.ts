@@ -165,6 +165,10 @@ export type BudgetLineSummaryViewModel = {
   unpaid_invoice_amount_ttc: number
   on_hold_invoice_amount_ttc: number
   selected_budget_variance_ttc: number
+  quote_count: number
+  validated_quote_count: number
+  diy_estimate_count: number
+  invoice_count: number
   transactions: TransactionViewModel[]
 }
 
