@@ -1,13 +1,15 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { apiConfig } from './config'
-import { apiGet } from './client'
+import { apiDelete, apiGet, apiPost } from './client'
 import type { DocumentDownloadUrl, DocumentRead } from './types'
 
 export const documentQueryKeys = {
   all: ['documents'] as const,
   byTransaction: (transactionId: number) =>
     [...documentQueryKeys.all, 'transaction', transactionId] as const,
+  detail: (documentId: number) =>
+    [...documentQueryKeys.all, documentId, 'detail'] as const,
   downloadUrl: (documentId: number) =>
     [...documentQueryKeys.all, documentId, 'download-url'] as const,
 }
@@ -18,10 +20,31 @@ export function getTransactionDocuments(
   return apiGet<DocumentRead[]>(`/transactions/${transactionId}/documents`)
 }
 
+export function uploadTransactionDocument(
+  transactionId: number,
+  file: File,
+): Promise<DocumentRead> {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  return apiPost<DocumentRead, FormData>(
+    `/transactions/${transactionId}/documents`,
+    formData,
+  )
+}
+
+export function getDocument(documentId: number): Promise<DocumentRead> {
+  return apiGet<DocumentRead>(`/documents/${documentId}`)
+}
+
 export function getDocumentDownloadUrl(
   documentId: number,
 ): Promise<DocumentDownloadUrl> {
   return apiGet<DocumentDownloadUrl>(`/documents/${documentId}/download-url`)
+}
+
+export function deleteDocument(documentId: number): Promise<void> {
+  return apiDelete<void>(`/documents/${documentId}`)
 }
 
 export function useTransactionDocumentsQuery(
@@ -45,6 +68,27 @@ export function useTransactionDocumentsQuery(
   })
 }
 
+export function useDocumentQuery(
+  documentId: number | null,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey:
+      documentId === null
+        ? [...documentQueryKeys.all, 'missing-document', 'detail']
+        : documentQueryKeys.detail(documentId),
+    queryFn: () => {
+      if (documentId === null) {
+        throw new Error('Document id is required')
+      }
+
+      return getDocument(documentId)
+    },
+    enabled:
+      documentId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
+  })
+}
+
 export function useDocumentDownloadUrlQuery(
   documentId: number | null,
   options?: { enabled?: boolean },
@@ -63,5 +107,24 @@ export function useDocumentDownloadUrlQuery(
     },
     enabled:
       documentId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
+  })
+}
+
+export function useUploadTransactionDocumentMutation() {
+  return useMutation({
+    mutationFn: ({
+      transactionId,
+      file,
+    }: {
+      transactionId: number
+      file: File
+    }) => uploadTransactionDocument(transactionId, file),
+  })
+}
+
+export function useDeleteDocumentMutation() {
+  return useMutation({
+    mutationFn: ({ documentId }: { documentId: number }) =>
+      deleteDocument(documentId),
   })
 }

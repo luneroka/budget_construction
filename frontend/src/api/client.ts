@@ -60,6 +60,23 @@ export async function apiPost<TResponse, TBody = unknown>(
   return response.data
 }
 
+export async function apiPatch<TResponse, TBody = unknown>(
+  url: string,
+  body: TBody,
+  config?: AxiosRequestConfig,
+): Promise<TResponse> {
+  const response = await apiClient.patch<TResponse>(url, body, config)
+  return response.data
+}
+
+export async function apiDelete<TResponse = void>(
+  url: string,
+  config?: AxiosRequestConfig,
+): Promise<TResponse> {
+  const response = await apiClient.delete<TResponse>(url, config)
+  return response.data
+}
+
 export function getApiErrorMessage(error: unknown): string {
   if (!axios.isAxiosError<ApiErrorBody>(error)) {
     return 'Unexpected API error'
