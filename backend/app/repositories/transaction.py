@@ -4,6 +4,7 @@ from typing import cast
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.document import Document
 from app.models.project import Project
@@ -460,6 +461,7 @@ async def get_transaction_by_id(
 ) -> Transaction | None:
     result = await db.execute(
         select(Transaction)
+        .options(selectinload(Transaction.documents))
         .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
         .join(Project, BudgetLine.project_id == Project.id)
         .where(
@@ -487,6 +489,7 @@ async def get_transactions_by_budget_line(
 
     result = await db.execute(
         select(Transaction)
+        .options(selectinload(Transaction.documents))
         .where(
             Transaction.budget_line_id == budget_line_id,
             Transaction.deleted_at.is_(None),
@@ -651,6 +654,7 @@ async def get_transaction_by_id_for_user(
 ) -> Transaction | None:
     result = await db.execute(
         select(Transaction)
+        .options(selectinload(Transaction.documents))
         .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
         .join(Project, BudgetLine.project_id == Project.id)
         .where(

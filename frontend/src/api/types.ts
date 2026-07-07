@@ -259,6 +259,7 @@ export type TransactionUpdate = {
 export type TransactionRead = {
   id: number
   budget_line_id: number
+  has_documents: boolean
   supplier_id: number | null
   transaction_type: TransactionType
   amount_ht: ApiDecimal

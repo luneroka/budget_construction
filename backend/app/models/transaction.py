@@ -164,6 +164,11 @@ class Transaction(Base):
         back_populates='transaction',
         cascade='all, delete-orphan',
     )
+
+    @property
+    def has_documents(self) -> bool:
+        return any(document.deleted_at is None for document in self.documents)
+
     supplier: Mapped[Supplier | None] = relationship(
         'Supplier', back_populates='transactions'
     )

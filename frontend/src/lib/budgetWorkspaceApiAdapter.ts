@@ -27,7 +27,9 @@ import type {
 } from '@/demo/types'
 import { verifyProjectFinancialSummary } from '@/lib/budgetWorkspaceVerification'
 
-function decimalToNumber(value: ApiDecimal | number | null | undefined): number {
+function decimalToNumber(
+  value: ApiDecimal | number | null | undefined,
+): number {
   if (value == null) return 0
   return typeof value === 'number' ? value : Number(value)
 }
@@ -163,7 +165,10 @@ export function buildBudgetWorkspaceFromApi(
   if (import.meta.env.DEV) {
     const verificationIssues = verifyProjectFinancialSummary(summary)
     if (verificationIssues.length > 0) {
-      console.warn('Budget financial summary verification failed', verificationIssues)
+      console.warn(
+        'Budget financial summary verification failed',
+        verificationIssues,
+      )
     }
   }
 
@@ -222,7 +227,7 @@ export function transactionToViewModel(
     select_as_budget:
       transactionId === budgetLine.selected_quote_transaction_id ||
       transactionId === budgetLine.selected_diy_estimate_transaction_id,
-    document_state: 'missing',
+    document_state: transaction.has_documents ? 'attached' : 'missing',
   }
 }
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from urllib.parse import quote
 from typing import TYPE_CHECKING, BinaryIO
 
 import boto3
@@ -50,16 +51,25 @@ def upload_file_to_r2(
 
 def generate_download_url(
     object_key: str,
+    filename: str | None = None,
     expires_in: int = 300,
 ) -> str:
     client = get_r2_client()
 
+    params = {
+        'Bucket': _required_setting('R2_BUCKET_NAME', settings.r2_bucket_name),
+        'Key': object_key,
+    }
+    if filename:
+        safe_filename = filename.replace('"', '').replace('\r', '').replace('\n', '')
+        params['ResponseContentDisposition'] = (
+            f'attachment; filename="{safe_filename}"; '
+            f"filename*=UTF-8''{quote(filename, safe='')}"
+        )
+
     return client.generate_presigned_url(
         ClientMethod='get_object',
-        Params={
-            'Bucket': _required_setting('R2_BUCKET_NAME', settings.r2_bucket_name),
-            'Key': object_key,
-        },
+        Params=params,
         ExpiresIn=expires_in,
     )
 

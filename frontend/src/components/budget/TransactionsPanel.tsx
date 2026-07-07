@@ -94,7 +94,8 @@ function TransactionRows({
   if (transactions.length === 0) return <EmptyTransactionRows />
 
   return transactions.map((transaction) => {
-    const financialStatus = transaction.quote_status ?? transaction.invoice_status
+    const financialStatus =
+      transaction.quote_status ?? transaction.invoice_status
     const isSelectedBudget = isSelectedBudgetTransaction(
       transaction,
       budgetSelection,
@@ -214,10 +215,20 @@ function TransactionRows({
         </div>
         <div className="px-1 py-2 text-center whitespace-nowrap">
           {transaction.document_state === 'attached' ? (
-            <Paperclip
-              className="mx-auto h-4 w-4 text-muted-foreground"
-              aria-label="Document joint"
-            />
+            <button
+              type="button"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
+              onClick={() =>
+                onViewTransaction({
+                  budgetLine,
+                  product,
+                  transaction,
+                })
+              }
+              aria-label="Voir les documents de la transaction"
+            >
+              <Paperclip className="h-4 w-4" aria-hidden="true" />
+            </button>
           ) : null}
         </div>
       </div>

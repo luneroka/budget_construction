@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Download, Eye, Trash2 } from 'lucide-react'
 
+import { invalidateDocumentQueries } from '@/api/budget-workspace-cache'
 import { getApiErrorMessage } from '@/api/client'
 import {
   documentQueryKeys,
@@ -27,6 +28,20 @@ import { formatDate, formatFileSize } from '@/lib/format'
 
 type DocumentAction = 'view' | 'download'
 
+const documentTransactionTypeLabels: Record<
+  DocumentListRead['transaction_type'],
+  string
+> = {
+  quote: 'Devis',
+  diy_estimate: 'Estimation DIY',
+  invoice: 'Facture',
+}
+
+function filenameExtension(filename: string): string {
+  const extension = filename.split('.').pop()
+  return extension && extension !== filename ? `.${extension}` : ''
+}
+
 function formatTransactionTitle(description: string | null): string {
   if (!description) return '-'
 
@@ -36,6 +51,28 @@ function formatTransactionTitle(description: string | null): string {
   if (!subject) return description
 
   return `${subject} - ${documentLabel}`
+}
+
+function formatDocumentDisplayName(document: DocumentListRead): string {
+  const transactionTitle = formatTransactionTitle(
+    document.transaction_description,
+  )
+  const baseName =
+    transactionTitle === '-'
+      ? documentTransactionTypeLabels[document.transaction_type]
+      : transactionTitle
+
+  return `${baseName}${filenameExtension(document.original_filename)}`
+}
+
+function triggerDocumentDownload(url: string, filename: string) {
+  const link = window.document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.rel = 'noopener noreferrer'
+  window.document.body.appendChild(link)
+  link.click()
+  link.remove()
 }
 
 function sortDocuments(documents: DocumentListRead[]): DocumentListRead[] {
@@ -66,6 +103,7 @@ export function DocumentsPage() {
     return documents.filter((document) =>
       [
         document.original_filename,
+        formatDocumentDisplayName(document),
         document.transaction_type,
         document.transaction_description,
         String(document.transaction_id),
@@ -97,7 +135,7 @@ export function DocumentsPage() {
       if (action === 'view') {
         window.open(url, '_blank', 'noopener,noreferrer')
       } else {
-        window.location.assign(url)
+        triggerDocumentDownload(url, formatDocumentDisplayName(document))
       }
     } catch (error) {
       setActionError(getApiErrorMessage(error))
@@ -117,12 +155,7 @@ export function DocumentsPage() {
         (current) =>
           current?.filter((candidate) => candidate.id !== document.id) ?? [],
       )
-      void queryClient.invalidateQueries({
-        queryKey: documentQueryKeys.list(false),
-      })
-      void queryClient.invalidateQueries({
-        queryKey: documentQueryKeys.byTransaction(document.transaction_id),
-      })
+      invalidateDocumentQueries(queryClient, document.transaction_id)
       setDocumentPendingDeletion(null)
     } catch (error) {
       setActionError(getApiErrorMessage(error))
@@ -165,11 +198,17 @@ export function DocumentsPage() {
 
     return filteredDocuments.map((document) => {
       const isBusy = activeDocumentId === document.id
+      const displayName = formatDocumentDisplayName(document)
 
       return (
         <TableRow key={document.id}>
-          <TableCell className="font-medium">
-            {document.original_filename}
+          <TableCell>
+            <p className="font-medium text-foreground">{displayName}</p>
+            {displayName !== document.original_filename ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Fichier original : {document.original_filename}
+              </p>
+            ) : null}
           </TableCell>
           <TableCell className="min-w-32 whitespace-nowrap">
             <StatusBadge status={document.transaction_type} />
@@ -290,7 +329,7 @@ export function DocumentsPage() {
           onConfirm={() => deleteDocument(documentPendingDeletion)}
         >
           <p className="font-medium text-foreground">
-            {documentPendingDeletion.original_filename}
+            {formatDocumentDisplayName(documentPendingDeletion)}
           </p>
           <p className="mt-1 text-muted-foreground">
             {formatTransactionTitle(

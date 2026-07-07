@@ -159,6 +159,7 @@ class TransactionReadBase(BaseModel):
 class TransactionRead(TransactionReadBase):
     id: int
     budget_line_id: int
+    has_documents: bool = False
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = None

@@ -41,4 +41,7 @@ export function invalidateDocumentQueries(
   void queryClient.invalidateQueries({
     queryKey: documentQueryKeys.byTransaction(transactionId),
   })
+  void queryClient.invalidateQueries({
+    queryKey: transactionQueryKeys.all,
+  })
 }

@@ -284,7 +284,10 @@ async def get_document_download_url(
             detail='Document not found',
         )
 
-    url = generate_download_url(document.file_path)
+    url = generate_download_url(
+        document.file_path,
+        filename=document.original_filename,
+    )
 
     return DocumentDownloadUrl(url=url)
 
