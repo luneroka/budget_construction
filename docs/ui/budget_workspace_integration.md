@@ -103,7 +103,7 @@ summaries - Derived values
 
 If backend already computes a value: Use backend value.
 
-Status: - \[ \] Not Started - \[ \] In Progress - \[ \] Completed
+Status: - \[ \] Not Started - \[ \] In Progress - \[x\] Completed
 
 ------------------------------------------------------------------------
 
@@ -318,6 +318,42 @@ Validation:
 
 No backend files were changed.
 
+## Chunk 5 Calculations Verification Summary
+
+Status: Completed.
+
+Scope:
+
+-   Added `frontend/src/lib/budgetWorkspaceVerification.ts` to verify that the
+    backend financial summary is internally consistent.
+-   Verification checks project/product/budget-line rollups for totals, counts,
+    selected budget amount, selected budget variance, and selected quote budget
+    variance.
+-   Verification runs only in development and reports warnings; display values
+    continue to use backend-provided financial fields.
+-   Confirmed remaining Budget Workspace calculations are presentation-only
+    groupings, such as category and subcategory aggregation.
+-   Fixed selected-budget CRUD from the Budget page transaction table by
+    wiring table clicks to the backend select/unselect endpoints.
+-   Adjusted the transaction modal selected-budget toggle so it no longer
+    closes the modal after selection and does not force the user out of the
+    edit flow before clicking `Enregistrer`.
+-   Updated create/edit transaction modals so `Montant HT`, `Montant TVA`, and
+    `Montant TTC` are calculated dynamically from the user-entered TVA rate.
+    Users can enter HT to generate TVA/TTC or enter TTC to generate TVA/HT;
+    `Montant TVA` is read-only.
+-   Refined the edit modal selected-budget flow: changing a quote status to
+    `Validé` immediately enables `Sélectionné pour budget`, and selecting it
+    persists the quote status before calling the backend selection endpoint.
+
+Validation:
+
+-   `pnpm build` completed successfully from `frontend/`.
+-   Local smoke check returned `200 OK` for `/budget`.
+-   The existing Vite chunk-size warning remains.
+
+No backend files were changed.
+
 ------------------------------------------------------------------------
 
 # Component Mapping
@@ -357,15 +393,20 @@ No backend files were changed.
 -   Chunk 4 editing and mutations.
 -   Transaction create/update/delete, selected-budget toggles, budget-line
     creation, and product conversion are wired to backend endpoints.
+-   Chunk 5 calculations verification.
+-   Dev-only verification now checks backend financial summary consistency.
+-   Selected-budget CRUD works from the transaction table and no longer closes
+    the modal on toggle.
 
 ## Current Task
 
--   Chunk 4 complete. Budget Workspace editing uses backend mutations.
+-   Chunk 5 complete. Budget Workspace calculations are verified against the
+    backend financial summary contract.
 
 ## Next Task
 
--   Chunk 5: verify frontend display values against backend financial
-    calculations and remove any remaining duplicated calculation behavior.
+-   Chunk 6: cleanup mock-only Budget Workspace paths and remove temporary
+    adapters once equivalent backend functionality is verified.
 
 ## Blocking Issues
 

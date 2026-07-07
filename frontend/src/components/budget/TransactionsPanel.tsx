@@ -1,8 +1,14 @@
 import { Edit3, Eye, Paperclip, Trash2 } from 'lucide-react'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 
+import { invalidateBudgetWorkspaceQueries } from '@/api/budget-workspace-cache'
 import { getApiErrorMessage } from '@/api/client'
-import { useBudgetLineTransactionsQuery } from '@/api/transactions'
+import {
+  useBudgetLineTransactionsQuery,
+  useSelectBudgetCandidateMutation,
+  useUnselectBudgetCandidateMutation,
+} from '@/api/transactions'
 import { useSuppliersQuery } from '@/api/suppliers'
 import type { ViewedTransactionContext } from '@/components/budget/TransactionModal'
 import { StatusBadge } from '@/components/shared/StatusBadge'
@@ -220,6 +226,10 @@ function TransactionRows({
 }
 
 export function TransactionsPanel(props: TransactionsPanelProps) {
+  const queryClient = useQueryClient()
+  const selectBudgetCandidateMutation = useSelectBudgetCandidateMutation()
+  const unselectBudgetCandidateMutation = useUnselectBudgetCandidateMutation()
+  const [selectionError, setSelectionError] = useState<string | null>(null)
   const budgetLineId = Number(props.budgetLine.budget_line_id)
   const shouldUseApi =
     props.projectId !== undefined && Number.isInteger(budgetLineId)
@@ -259,6 +269,49 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
       suppliersQuery.isLoading ||
       suppliersQuery.isFetching)
   const apiError = transactionsQuery.error ?? suppliersQuery.error ?? null
+  const isSelectionMutating =
+    selectBudgetCandidateMutation.isPending ||
+    unselectBudgetCandidateMutation.isPending
+
+  async function handleToggleBudgetSelection(
+    budgetLine: BudgetLineSummaryViewModel,
+    transaction: TransactionViewModel,
+  ) {
+    if (!shouldUseApi || props.projectId === undefined) {
+      props.onToggleBudgetSelection(budgetLine, transaction)
+      return
+    }
+
+    const transactionId = Number(transaction.id)
+    if (!Number.isInteger(transactionId)) {
+      setSelectionError('Identifiant de transaction invalide.')
+      return
+    }
+
+    try {
+      setSelectionError(null)
+      if (isSelectedBudgetTransaction(transaction, props.budgetSelection)) {
+        await unselectBudgetCandidateMutation.mutateAsync({
+          projectId: props.projectId,
+          budgetLineId,
+          transactionId,
+        })
+      } else {
+        await selectBudgetCandidateMutation.mutateAsync({
+          projectId: props.projectId,
+          budgetLineId,
+          transactionId,
+        })
+      }
+      invalidateBudgetWorkspaceQueries(
+        queryClient,
+        props.projectId,
+        budgetLineId,
+      )
+    } catch (error) {
+      setSelectionError(getApiErrorMessage(error))
+    }
+  }
 
   return (
     <TableRow className="border-t-0 bg-muted/10 hover:bg-muted/10!">
@@ -302,12 +355,20 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
             </div>
 
             <TransactionSectionDivider label="Candidats budget" />
+            {selectionError ? (
+              <TransactionPanelMessage message={selectionError} />
+            ) : null}
             {isLoadingApiRows ? (
               <TransactionPanelMessage message="Chargement des transactions" />
             ) : apiError ? (
               <TransactionPanelMessage message={getApiErrorMessage(apiError)} />
             ) : (
-              <TransactionRows {...props} transactions={budgetCandidates} />
+              <TransactionRows
+                {...props}
+                readOnly={props.readOnly || isSelectionMutating}
+                transactions={budgetCandidates}
+                onToggleBudgetSelection={handleToggleBudgetSelection}
+              />
             )}
 
             <TransactionSectionDivider label="Dépenses réelles" />
@@ -316,7 +377,12 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
             ) : apiError ? (
               <TransactionPanelMessage message={getApiErrorMessage(apiError)} />
             ) : (
-              <TransactionRows {...props} transactions={invoices} />
+              <TransactionRows
+                {...props}
+                readOnly={props.readOnly || isSelectionMutating}
+                transactions={invoices}
+                onToggleBudgetSelection={handleToggleBudgetSelection}
+              />
             )}
           </div>
         </div>

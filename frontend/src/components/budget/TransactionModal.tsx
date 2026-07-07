@@ -41,6 +41,14 @@ import { cn } from '@/lib/utils'
 
 type ProductStructureChoice = 'single' | 'breakdown'
 type BudgetConcern = 'entire_product' | 'specific_element'
+type AmountSource = 'ht' | 'ttc'
+
+type AmountFields = {
+  amount_ht: string
+  vat_rate: string
+  amount_vat: string
+  amount_ttc: string
+}
 
 type TransactionFormState = {
   transaction_type: TransactionType
@@ -164,6 +172,58 @@ function requiredId(value: string, label: string) {
 
 function formatNumberInput(value: number | null | undefined) {
   return value == null ? '' : String(value)
+}
+
+function parseAmountInput(value: string) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function formatCalculatedAmount(value: number) {
+  return (Math.round(value * 100) / 100).toFixed(2)
+}
+
+function recalculateAmounts<T extends AmountFields>(
+  values: T,
+  source: AmountSource,
+): T {
+  const vatRate = parseAmountInput(values.vat_rate)
+  if (vatRate === null || vatRate < 0) {
+    return { ...values, amount_vat: '' }
+  }
+
+  if (source === 'ttc') {
+    const amountTtc = parseAmountInput(values.amount_ttc)
+    if (amountTtc === null) {
+      return { ...values, amount_ht: '', amount_vat: '' }
+    }
+
+    const divisor = 1 + vatRate / 100
+    const amountHt = divisor === 0 ? amountTtc : amountTtc / divisor
+    const amountVat = amountTtc - amountHt
+
+    return {
+      ...values,
+      amount_ht: formatCalculatedAmount(amountHt),
+      amount_vat: formatCalculatedAmount(amountVat),
+      amount_ttc: values.amount_ttc,
+    }
+  }
+
+  const amountHt = parseAmountInput(values.amount_ht)
+  if (amountHt === null) {
+    return { ...values, amount_vat: '', amount_ttc: '' }
+  }
+
+  const amountVat = amountHt * (vatRate / 100)
+  const amountTtc = amountHt + amountVat
+
+  return {
+    ...values,
+    amount_ht: values.amount_ht,
+    amount_vat: formatCalculatedAmount(amountVat),
+    amount_ttc: formatCalculatedAmount(amountTtc),
+  }
 }
 
 function createInitialFormState(
@@ -430,6 +490,7 @@ export function TransactionModal({
   const [form, setForm] = useState<TransactionFormState>(() =>
     createInitialFormState(initialStructure),
   )
+  const [amountSource, setAmountSource] = useState<AmountSource>('ht')
   const [mutationError, setMutationError] = useState<string | null>(null)
   const isProductScoped = !budgetLine
   const canTargetBudgetLine = form.transaction_type !== 'invoice'
@@ -449,7 +510,20 @@ export function TransactionModal({
     key: K,
     value: TransactionFormState[K],
   ) {
-    setForm((current) => ({ ...current, [key]: value }))
+    const nextAmountSource =
+      key === 'amount_ttc' ? 'ttc' : key === 'amount_ht' ? 'ht' : amountSource
+    if (key === 'amount_ttc' || key === 'amount_ht') {
+      setAmountSource(nextAmountSource)
+    }
+
+    setForm((current) => {
+      const next = { ...current, [key]: value }
+      if (key === 'amount_ht' || key === 'amount_ttc' || key === 'vat_rate') {
+        return recalculateAmounts(next, nextAmountSource)
+      }
+
+      return next
+    })
     setMutationError(null)
   }
 
@@ -652,9 +726,8 @@ export function TransactionModal({
                   min="0"
                   step="0.01"
                   value={form.amount_vat}
-                  onChange={(event) =>
-                    updateField('amount_vat', event.target.value)
-                  }
+                  disabled
+                  readOnly
                 />
               </Field>
               <Field label="Montant TTC" htmlFor="transaction-amount-ttc">
@@ -937,7 +1010,10 @@ export function TransactionReviewModal({
   const [form, setForm] = useState<TransactionUpdateFormState>(() =>
     createInitialUpdateFormState(transaction),
   )
+  const [amountSource, setAmountSource] = useState<AmountSource>('ht')
   const [mutationError, setMutationError] = useState<string | null>(null)
+  const [localIsBudgetSelected, setLocalIsBudgetSelected] =
+    useState(isBudgetSelected)
   const isMutating =
     updateTransactionMutation.isPending ||
     selectBudgetCandidateMutation.isPending ||
@@ -947,6 +1023,10 @@ export function TransactionReviewModal({
     'Aucun fournisseur'
   const isQuote = transaction.transaction_type === 'quote'
   const isInvoice = transaction.transaction_type === 'invoice'
+  const canToggleBudgetSelectionFromForm =
+    localIsBudgetSelected ||
+    canToggleBudgetSelection ||
+    (isEditing && isQuote && form.quote_status === 'validated')
   const breadcrumbParts = [
     product.category_name,
     product.subcategory_name,
@@ -958,7 +1038,20 @@ export function TransactionReviewModal({
     key: K,
     value: TransactionUpdateFormState[K],
   ) {
-    setForm((current) => ({ ...current, [key]: value }))
+    const nextAmountSource =
+      key === 'amount_ttc' ? 'ttc' : key === 'amount_ht' ? 'ht' : amountSource
+    if (key === 'amount_ttc' || key === 'amount_ht') {
+      setAmountSource(nextAmountSource)
+    }
+
+    setForm((current) => {
+      const next = { ...current, [key]: value }
+      if (key === 'amount_ht' || key === 'amount_ttc' || key === 'vat_rate') {
+        return recalculateAmounts(next, nextAmountSource)
+      }
+
+      return next
+    })
     setMutationError(null)
   }
 
@@ -973,6 +1066,7 @@ export function TransactionReviewModal({
 
   function resetEditMode() {
     setForm(createInitialUpdateFormState(transaction))
+    setAmountSource('ht')
     setMutationError(null)
     setIsEditing(false)
   }
@@ -1006,7 +1100,7 @@ export function TransactionReviewModal({
   }
 
   async function handleBudgetSelectionToggle() {
-    if (readOnly || !canToggleBudgetSelection) return
+    if (readOnly || !canToggleBudgetSelectionFromForm) return
     setMutationError(null)
 
     try {
@@ -1017,13 +1111,26 @@ export function TransactionReviewModal({
       )
       const transactionId = requiredId(transaction.id, 'Transaction')
 
-      if (isBudgetSelected) {
+      if (localIsBudgetSelected) {
         await unselectBudgetCandidateMutation.mutateAsync({
           projectId,
           budgetLineId,
           transactionId,
         })
       } else {
+        if (
+          isQuote &&
+          form.quote_status === 'validated' &&
+          transaction.quote_status !== 'validated'
+        ) {
+          await updateTransactionMutation.mutateAsync({
+            projectId,
+            budgetLineId,
+            transactionId,
+            transaction: { quote_status: 'validated' },
+          })
+        }
+
         await selectBudgetCandidateMutation.mutateAsync({
           projectId,
           budgetLineId,
@@ -1031,8 +1138,8 @@ export function TransactionReviewModal({
         })
       }
       invalidateBudgetWorkspaceQueries(queryClient, projectId, budgetLineId)
+      setLocalIsBudgetSelected((current) => !current)
       onToggleBudgetSelection()
-      onClose()
     } catch (error) {
       setMutationError(getApiErrorMessage(error))
     }
@@ -1337,8 +1444,10 @@ export function TransactionReviewModal({
             </Field>
             <label className="flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm">
               <Checkbox
-                checked={isBudgetSelected}
-                disabled={readOnly || !canToggleBudgetSelection}
+                checked={localIsBudgetSelected}
+                disabled={
+                  readOnly || !canToggleBudgetSelectionFromForm || isMutating
+                }
                 onChange={handleBudgetSelectionToggle}
               />
               Sélectionné pour budget

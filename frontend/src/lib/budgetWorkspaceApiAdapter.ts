@@ -25,6 +25,7 @@ import type {
   SupplierRowViewModel,
   TransactionViewModel,
 } from '@/demo/types'
+import { verifyProjectFinancialSummary } from '@/lib/budgetWorkspaceVerification'
 
 function decimalToNumber(value: ApiDecimal | number | null | undefined): number {
   if (value == null) return 0
@@ -159,6 +160,13 @@ export function buildBudgetWorkspaceFromApi(
   summary: ProjectFinancialSummaryRead,
   budgetLines: BudgetLineRead[],
 ): BudgetWorkspaceViewModel {
+  if (import.meta.env.DEV) {
+    const verificationIssues = verifyProjectFinancialSummary(summary)
+    if (verificationIssues.length > 0) {
+      console.warn('Budget financial summary verification failed', verificationIssues)
+    }
+  }
+
   const products = summary.products.map(productToViewModel)
   const financialSummary: FinancialSummaryViewModel = {
     ...totalsToNumbers(summary),
