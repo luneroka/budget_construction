@@ -4,6 +4,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.models.transaction import TransactionType
+
 
 class DocumentRead(BaseModel):
     id: int
@@ -19,6 +21,11 @@ class DocumentRead(BaseModel):
     deleted_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class DocumentListRead(DocumentRead):
+    transaction_type: TransactionType
+    transaction_description: str | None = None
 
 
 class DocumentDownloadUrl(BaseModel):

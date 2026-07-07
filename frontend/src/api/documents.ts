@@ -2,16 +2,31 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { apiConfig } from './config'
 import { apiDelete, apiGet, apiPost } from './client'
-import type { DocumentDownloadUrl, DocumentRead } from './types'
+import type {
+  DocumentDownloadUrl,
+  DocumentListRead,
+  DocumentRead,
+} from './types'
 
 export const documentQueryKeys = {
   all: ['documents'] as const,
+  lists: () => [...documentQueryKeys.all, 'list'] as const,
+  list: (includeDeleted = false) =>
+    [...documentQueryKeys.lists(), { includeDeleted }] as const,
   byTransaction: (transactionId: number) =>
     [...documentQueryKeys.all, 'transaction', transactionId] as const,
   detail: (documentId: number) =>
     [...documentQueryKeys.all, documentId, 'detail'] as const,
   downloadUrl: (documentId: number) =>
     [...documentQueryKeys.all, documentId, 'download-url'] as const,
+}
+
+export function getDocuments(
+  includeDeleted = false,
+): Promise<DocumentListRead[]> {
+  return apiGet<DocumentListRead[]>('/documents/', {
+    params: { include_deleted: includeDeleted },
+  })
 }
 
 export function getTransactionDocuments(
@@ -47,6 +62,14 @@ export function deleteDocument(documentId: number): Promise<void> {
   return apiDelete<void>(`/documents/${documentId}`)
 }
 
+export function useDocumentsQuery(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: documentQueryKeys.list(false),
+    queryFn: () => getDocuments(false),
+    enabled: options?.enabled ?? apiConfig.enableReadQueries,
+  })
+}
+
 export function useTransactionDocumentsQuery(
   transactionId: number | null,
   options?: { enabled?: boolean },
@@ -64,7 +87,8 @@ export function useTransactionDocumentsQuery(
       return getTransactionDocuments(transactionId)
     },
     enabled:
-      transactionId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
+      transactionId !== null &&
+      (options?.enabled ?? apiConfig.enableReadQueries),
   })
 }
 

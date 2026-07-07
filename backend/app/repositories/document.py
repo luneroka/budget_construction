@@ -2,11 +2,14 @@ from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.engine import Row
 
 from app.models.document import Document
 from app.models.project import Project
 from app.models.budget_line import BudgetLine
-from app.models.transaction import Transaction
+from app.models.transaction import Transaction, TransactionType
+
+DocumentListRow = Row[tuple[Document, TransactionType, str | None]]
 
 
 async def create_document(
@@ -58,6 +61,30 @@ async def get_documents(
 
     result = await db.execute(query)
     return list(result.scalars().all())
+
+
+async def get_document_list(
+    db: AsyncSession, user_id: int, include_deleted: bool = False
+) -> list[DocumentListRow]:
+    query = (
+        select(Document, Transaction.transaction_type, Transaction.description)
+        .join(Transaction, Document.transaction_id == Transaction.id)
+        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
+        .join(Project, BudgetLine.project_id == Project.id)
+        .where(Document.user_id == user_id)
+        .order_by(Document.created_at.desc())
+    )
+
+    if not include_deleted:
+        query = query.where(
+            Document.deleted_at.is_(None),
+            Transaction.deleted_at.is_(None),
+            BudgetLine.deleted_at.is_(None),
+            Project.deleted_at.is_(None),
+        )
+
+    result = await db.execute(query)
+    return list(result.all())
 
 
 async def get_document_by_id(

@@ -9,7 +9,7 @@ from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.repositories import document as document_repository
 from app.repositories import transaction as transaction_repository
-from app.schemas.document import DocumentRead, DocumentDownloadUrl
+from app.schemas.document import DocumentListRead, DocumentRead, DocumentDownloadUrl
 from app.services.storage import (
     upload_file_to_r2,
     generate_download_url,
@@ -107,6 +107,19 @@ def _cleanup_uploaded_file(object_key: str) -> None:
         delete_file_from_r2(object_key)
     except Exception:
         logger.exception('Failed to clean up uploaded document from R2')
+
+
+def _document_list_read(
+    row: document_repository.DocumentListRow,
+) -> DocumentListRead:
+    document, transaction_type, transaction_description = row
+    return DocumentListRead.model_validate(
+        {
+            **document.__dict__,
+            'transaction_type': transaction_type,
+            'transaction_description': transaction_description,
+        }
+    )
 
 
 # API ENDPOINT TO ADD NEW DOCUMENT
@@ -207,6 +220,23 @@ async def get_documents_by_transaction(
         transaction_id=transaction_id,
         user_id=current_user.id,
     )
+
+
+@document_router.get(
+    '/',
+    response_model=list[DocumentListRead],
+)
+async def get_documents(
+    include_deleted: bool = False,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    rows = await document_repository.get_document_list(
+        db=db,
+        user_id=current_user.id,
+        include_deleted=include_deleted,
+    )
+    return [_document_list_read(row) for row in rows]
 
 
 @document_router.get(

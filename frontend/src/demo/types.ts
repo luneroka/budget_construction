@@ -218,27 +218,6 @@ export type BudgetWorkspaceViewModel = {
   transactions: TransactionViewModel[]
 }
 
-export type DocumentRowViewModel = {
-  id: string
-  transaction_id: string
-  user_id: string
-  original_filename: string
-  stored_filename: string
-  file_path: string | null
-  mime_type: string
-  file_size: number
-  created_at: string
-  updated_at: string
-  deleted_at: string | null
-  state: DocumentDisplayState
-  transaction_type: TransactionType
-  transaction_description: string
-}
-
-export type DocumentsViewModel = {
-  documents: DocumentRowViewModel[]
-}
-
 export type DashboardViewModel = {
   project: ProjectViewModel
   financialSummary: FinancialSummaryViewModel

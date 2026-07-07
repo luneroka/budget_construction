@@ -317,6 +317,11 @@ export type DocumentRead = {
   deleted_at: ApiDateTime | null
 }
 
+export type DocumentListRead = DocumentRead & {
+  transaction_type: TransactionType
+  transaction_description: string | null
+}
+
 export type DocumentDownloadUrl = {
   url: string
 }
