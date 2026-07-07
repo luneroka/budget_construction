@@ -1,6 +1,17 @@
+import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { FilePlus2 } from 'lucide-react'
 
+import { invalidateBudgetWorkspaceQueries } from '@/api/budget-workspace-cache'
+import { getApiErrorMessage } from '@/api/client'
+import {
+  useConvertProductLineToBreakdownMutation,
+  useCreateBudgetLineMutation,
+} from '@/api/budget-lines'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import type {
   ActiveAction,
   BreakdownAction,
@@ -10,17 +21,86 @@ import { cn } from '@/lib/utils'
 
 export function ProductStructureDialog({
   activeAction,
+  projectId,
   selectedStructureChoice,
   onSelectStructureChoice,
   onContinue,
   onClose,
 }: {
   activeAction: Exclude<ActiveAction, { kind: 'transaction' }>
+  projectId: number
   selectedStructureChoice: ProductStructureChoice
   onSelectStructureChoice: (choice: ProductStructureChoice) => void
   onContinue: (action: BreakdownAction) => void
   onClose: () => void
 }) {
+  const queryClient = useQueryClient()
+  const createBudgetLineMutation = useCreateBudgetLineMutation()
+  const convertProductLineMutation = useConvertProductLineToBreakdownMutation()
+  const [breakdownName, setBreakdownName] = useState('')
+  const [existingLineName, setExistingLineName] = useState(
+    activeAction.product.product_name,
+  )
+  const [newBreakdownNames, setNewBreakdownNames] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const isMutating =
+    createBudgetLineMutation.isPending || convertProductLineMutation.isPending
+  const productId = Number(activeAction.product.product_id)
+
+  function parseBreakdownNames(value: string) {
+    return value
+      .split(/\n|,/)
+      .map((name) => name.trim())
+      .filter(Boolean)
+  }
+
+  async function submitAddBreakdown() {
+    if (!Number.isInteger(productId)) {
+      setError('Identifiant produit invalide.')
+      return
+    }
+
+    try {
+      setError(null)
+      await createBudgetLineMutation.mutateAsync({
+        projectId,
+        budgetLine: {
+          product_id: productId,
+          item_type: 'breakdown',
+          name: breakdownName,
+        },
+      })
+      invalidateBudgetWorkspaceQueries(queryClient, projectId)
+      onClose()
+    } catch (mutationError) {
+      setError(getApiErrorMessage(mutationError))
+    }
+  }
+
+  async function submitConvertProduct() {
+    if (!Number.isInteger(productId)) {
+      setError('Identifiant produit invalide.')
+      return
+    }
+
+    try {
+      setError(null)
+      await convertProductLineMutation.mutateAsync({
+        projectId,
+        productId,
+        conversion: {
+          strategy: 'reuse_existing_as_breakdown',
+          existing_line_new_name: existingLineName,
+          new_breakdown_names: parseBreakdownNames(newBreakdownNames),
+        },
+      })
+      invalidateBudgetWorkspaceQueries(queryClient, projectId)
+      onClose()
+    } catch (mutationError) {
+      setError(getApiErrorMessage(mutationError))
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 px-4">
       <div className="w-full max-w-lg rounded-lg border border-border bg-card p-6 text-foreground shadow-lg">
@@ -85,28 +165,75 @@ export function ProductStructureDialog({
                 </div>
               </>
             ) : activeAction.kind === 'decompose-product' ? (
-              <p className="mt-2 text-sm text-muted-foreground">
-                Action de démonstration pour convertir le produit «{' '}
-                {activeAction.product.product_name} » en plusieurs
-                sous-produits. Cette conversion est déjà prévue dans le modèle
-                de budget.
-              </p>
+              <div className="mt-4 space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Convertissez le produit « {activeAction.product.product_name}{' '}
+                  » en plusieurs sous-produits.
+                </p>
+                <div className="space-y-1.5">
+                  <Label htmlFor="existing-line-name">
+                    Nom du poste existant
+                  </Label>
+                  <Input
+                    id="existing-line-name"
+                    value={existingLineName}
+                    onChange={(event) =>
+                      setExistingLineName(event.target.value)
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="new-breakdown-names">
+                    Sous-produits à créer
+                  </Label>
+                  <Textarea
+                    id="new-breakdown-names"
+                    value={newBreakdownNames}
+                    placeholder="Pose menuiserie&#10;Fourniture"
+                    onChange={(event) =>
+                      setNewBreakdownNames(event.target.value)
+                    }
+                  />
+                </div>
+              </div>
             ) : (
-              <p className="mt-2 text-sm text-muted-foreground">
-                Action de démonstration pour ajouter un sous-produit au produit
-                « {activeAction.product.product_name} ». Le formulaire complet
-                sera raccordé ultérieurement.
-              </p>
+              <div className="mt-4 space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Ajoutez un sous-produit au produit «{' '}
+                  {activeAction.product.product_name} ».
+                </p>
+                <div className="space-y-1.5">
+                  <Label htmlFor="breakdown-name">Nom du sous-produit</Label>
+                  <Input
+                    id="breakdown-name"
+                    value={breakdownName}
+                    onChange={(event) => setBreakdownName(event.target.value)}
+                  />
+                </div>
+              </div>
             )}
+            {error ? (
+              <p className="mt-4 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                {error}
+              </p>
+            ) : null}
           </div>
         </div>
         <div className="mt-6 flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={isMutating}>
             Fermer
           </Button>
           {activeAction.kind === 'structure-choice' ? (
             <Button onClick={() => onContinue(activeAction)}>Continuer</Button>
-          ) : null}
+          ) : activeAction.kind === 'decompose-product' ? (
+            <Button onClick={submitConvertProduct} disabled={isMutating}>
+              {isMutating ? 'Conversion...' : 'Convertir'}
+            </Button>
+          ) : (
+            <Button onClick={submitAddBreakdown} disabled={isMutating}>
+              {isMutating ? 'Ajout...' : 'Ajouter'}
+            </Button>
+          )}
         </div>
       </div>
     </div>

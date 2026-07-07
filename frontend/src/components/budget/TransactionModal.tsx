@@ -1,6 +1,21 @@
 import { type ReactNode, type SyntheticEvent, useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { ClipboardList, Download, Edit3, Eye, FilePlus2 } from 'lucide-react'
 
+import { invalidateBudgetWorkspaceQueries } from '@/api/budget-workspace-cache'
+import { getApiErrorMessage } from '@/api/client'
+import {
+  useCreateBudgetLineTransactionMutation,
+  useCreateProductTransactionMutation,
+  useSelectBudgetCandidateMutation,
+  useUnselectBudgetCandidateMutation,
+  useUpdateBudgetLineTransactionMutation,
+} from '@/api/transactions'
+import type {
+  TransactionCreate,
+  TransactionCreateForProduct,
+  TransactionUpdate,
+} from '@/api/types'
 import { SectionCard } from '@/components/shared/SectionCard'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Button } from '@/components/ui/button'
@@ -45,18 +60,6 @@ type TransactionFormState = {
   select_as_budget: boolean
   budget_concern: BudgetConcern
   budget_line_name: string
-}
-
-type MockSubmission = {
-  method: 'POST'
-  route: string
-  payload: Record<string, string | boolean | null>
-}
-
-type MockUpdateSubmission = {
-  method: 'PATCH' | 'POST' | 'DELETE'
-  route: string
-  payload: Record<string, string | null>
 }
 
 type TransactionUpdateFormState = {
@@ -139,6 +142,24 @@ function todayAsInputValue() {
 
 function emptyToNull(value: string) {
   return value.trim() === '' ? null : value
+}
+
+function optionalDecimal(value: string) {
+  return emptyToNull(value)
+}
+
+function optionalId(value: string) {
+  const parsed = Number(value)
+  return Number.isInteger(parsed) ? parsed : null
+}
+
+function requiredId(value: string, label: string) {
+  const parsed = Number(value)
+  if (!Number.isInteger(parsed)) {
+    throw new Error(`${label} invalide`)
+  }
+
+  return parsed
 }
 
 function formatNumberInput(value: number | null | undefined) {
@@ -235,22 +256,15 @@ function canSelectCreatedTransactionAsBudget(form: TransactionFormState) {
   return form.transaction_type === 'quote' && form.quote_status === 'validated'
 }
 
-function buildMockUpdateSubmission({
-  project,
-  budgetLine,
-  transaction,
-  form,
-}: {
-  project: ProjectViewModel
-  budgetLine: BudgetLineSummaryViewModel
-  transaction: TransactionViewModel
-  form: TransactionUpdateFormState
-}): MockUpdateSubmission {
-  const payload: MockUpdateSubmission['payload'] = {
-    supplier_id: emptyToNull(form.supplier_id),
+function buildTransactionUpdate(
+  transaction: TransactionViewModel,
+  form: TransactionUpdateFormState,
+): TransactionUpdate {
+  const payload: TransactionUpdate = {
+    supplier_id: optionalId(form.supplier_id),
     amount_ht: form.amount_ht,
-    vat_rate: emptyToNull(form.vat_rate),
-    amount_ttc: emptyToNull(form.amount_ttc),
+    vat_rate: optionalDecimal(form.vat_rate),
+    amount_ttc: optionalDecimal(form.amount_ttc),
     issued_date: form.issued_date,
     description: emptyToNull(form.description),
   }
@@ -269,34 +283,21 @@ function buildMockUpdateSubmission({
       form.invoice_status === 'paid' ? emptyToNull(form.payment_date) : null
   }
 
-  return {
-    method: 'PATCH',
-    route: `/projects/${project.id}/budget-lines/${budgetLine.budget_line_id}/transactions/${transaction.id}`,
-    payload,
-  }
+  return payload
 }
 
-function buildMockSubmission({
-  project,
-  product,
-  budgetLine,
+function buildTransactionCreate({
   form,
 }: {
-  project: ProjectViewModel
-  product: ProductSummaryViewModel
-  budgetLine?: BudgetLineSummaryViewModel
   form: TransactionFormState
-}): MockSubmission {
-  const route = budgetLine
-    ? `/projects/${project.id}/budget-lines/${budgetLine.budget_line_id}/transactions/`
-    : `/projects/${project.id}/products/${product.product_id}/transactions/`
-  const payload: MockSubmission['payload'] = {
-    supplier_id: emptyToNull(form.supplier_id),
+}): TransactionCreate {
+  const payload: TransactionCreate = {
+    supplier_id: optionalId(form.supplier_id),
     transaction_type: form.transaction_type,
     amount_ht: form.amount_ht,
-    vat_rate: emptyToNull(form.vat_rate),
-    amount_vat: emptyToNull(form.amount_vat),
-    amount_ttc: emptyToNull(form.amount_ttc),
+    vat_rate: optionalDecimal(form.vat_rate),
+    amount_vat: optionalDecimal(form.amount_vat),
+    amount_ttc: optionalDecimal(form.amount_ttc),
     issued_date: form.issued_date,
     description: emptyToNull(form.description),
     select_as_budget: canSelectCreatedTransactionAsBudget(form)
@@ -317,18 +318,22 @@ function buildMockSubmission({
     payload.payment_date = emptyToNull(form.payment_date)
   }
 
-  if (!budgetLine && form.transaction_type !== 'invoice') {
+  return payload
+}
+
+function buildProductTransactionCreate(
+  form: TransactionFormState,
+): TransactionCreateForProduct {
+  const payload: TransactionCreateForProduct = buildTransactionCreate({ form })
+
+  if (form.transaction_type !== 'invoice') {
     payload.budget_concern = form.budget_concern
     if (form.budget_concern === 'specific_element') {
       payload.budget_line_name = emptyToNull(form.budget_line_name)
     }
   }
 
-  return {
-    method: 'POST',
-    route,
-    payload,
-  }
+  return payload
 }
 
 function Field({
@@ -418,13 +423,20 @@ export function TransactionModal({
   suppliers,
   onClose,
 }: TransactionModalProps) {
+  const queryClient = useQueryClient()
+  const createBudgetLineTransactionMutation =
+    useCreateBudgetLineTransactionMutation()
+  const createProductTransactionMutation = useCreateProductTransactionMutation()
   const [form, setForm] = useState<TransactionFormState>(() =>
     createInitialFormState(initialStructure),
   )
-  const [submission, setSubmission] = useState<MockSubmission | null>(null)
+  const [mutationError, setMutationError] = useState<string | null>(null)
   const isProductScoped = !budgetLine
   const canTargetBudgetLine = form.transaction_type !== 'invoice'
   const canSelectAsBudget = canSelectCreatedTransactionAsBudget(form)
+  const isSubmitting =
+    createBudgetLineTransactionMutation.isPending ||
+    createProductTransactionMutation.isPending
 
   const selectedSupplierName = useMemo(
     () =>
@@ -438,7 +450,7 @@ export function TransactionModal({
     value: TransactionFormState[K],
   ) {
     setForm((current) => ({ ...current, [key]: value }))
-    setSubmission(null)
+    setMutationError(null)
   }
 
   function updateQuoteStatus(quoteStatus: QuoteStatus) {
@@ -447,7 +459,7 @@ export function TransactionModal({
       quote_status: quoteStatus,
       select_as_budget: quoteStatus === 'validated',
     }))
-    setSubmission(null)
+    setMutationError(null)
   }
 
   function getSelectAsBudgetHint() {
@@ -460,9 +472,45 @@ export function TransactionModal({
     return 'Le montant contribuera au budget sélectionné de ce poste.'
   }
 
-  function handleSubmit(event: SyntheticEvent<HTMLFormElement, SubmitEvent>) {
+  async function handleSubmit(
+    event: SyntheticEvent<HTMLFormElement, SubmitEvent>,
+  ) {
     event.preventDefault()
-    setSubmission(buildMockSubmission({ project, product, budgetLine, form }))
+    setMutationError(null)
+
+    try {
+      const projectId = requiredId(project.id, 'Projet')
+
+      if (budgetLine) {
+        const budgetLineId = requiredId(
+          budgetLine.budget_line_id,
+          'Ligne de budget',
+        )
+        await createBudgetLineTransactionMutation.mutateAsync({
+          projectId,
+          budgetLineId,
+          transaction: buildTransactionCreate({ form }),
+        })
+        invalidateBudgetWorkspaceQueries(queryClient, projectId, budgetLineId)
+      } else {
+        const productId = requiredId(product.product_id, 'Produit')
+        const createdTransaction =
+          await createProductTransactionMutation.mutateAsync({
+            projectId,
+            productId,
+            transaction: buildProductTransactionCreate(form),
+          })
+        invalidateBudgetWorkspaceQueries(
+          queryClient,
+          projectId,
+          createdTransaction.budget_line_id,
+        )
+      }
+
+      onClose()
+    } catch (error) {
+      setMutationError(getApiErrorMessage(error))
+    }
   }
 
   return (
@@ -515,7 +563,7 @@ export function TransactionModal({
             </dl>
           </SectionCard>
 
-          <SectionCard title="Route mock" icon={FilePlus2}>
+          <SectionCard title="Route API" icon={FilePlus2}>
             <div className="rounded-md border border-border bg-muted/30 p-3 text-xs">
               <p className="font-semibold text-foreground">POST</p>
               <p className="mt-1 wrap-break-words text-muted-foreground">
@@ -847,24 +895,19 @@ export function TransactionModal({
             </div>
           </SectionCard>
 
-          {submission ? (
-            <SectionCard title="Payload mock" icon={ClipboardList}>
-              <div className="rounded-md border border-border bg-muted/30 p-3">
-                <p className="text-xs font-semibold text-foreground">
-                  {submission.method} {submission.route}
-                </p>
-                <pre className="mt-3 max-h-60 overflow-auto text-xs text-muted-foreground">
-                  {JSON.stringify(submission.payload, null, 2)}
-                </pre>
-              </div>
-            </SectionCard>
+          {mutationError ? (
+            <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+              {mutationError}
+            </div>
           ) : null}
 
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
               Annuler
             </Button>
-            <Button type="submit">Créer en mock</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Création...' : 'Créer'}
+            </Button>
           </div>
         </div>
       </form>
@@ -883,6 +926,10 @@ export function TransactionReviewModal({
   onToggleBudgetSelection,
   onClose,
 }: TransactionReviewModalProps) {
+  const queryClient = useQueryClient()
+  const updateTransactionMutation = useUpdateBudgetLineTransactionMutation()
+  const selectBudgetCandidateMutation = useSelectBudgetCandidateMutation()
+  const unselectBudgetCandidateMutation = useUnselectBudgetCandidateMutation()
   const { budgetLine, product, transaction } = context
   const [isEditing, setIsEditing] = useState(
     !readOnly && initialMode === 'edit',
@@ -890,7 +937,11 @@ export function TransactionReviewModal({
   const [form, setForm] = useState<TransactionUpdateFormState>(() =>
     createInitialUpdateFormState(transaction),
   )
-  const [submission, setSubmission] = useState<MockUpdateSubmission | null>(null)
+  const [mutationError, setMutationError] = useState<string | null>(null)
+  const isMutating =
+    updateTransactionMutation.isPending ||
+    selectBudgetCandidateMutation.isPending ||
+    unselectBudgetCandidateMutation.isPending
   const selectedSupplierName =
     suppliers.find((supplier) => supplier.id === form.supplier_id)?.name ??
     'Aucun fournisseur'
@@ -908,7 +959,7 @@ export function TransactionReviewModal({
     value: TransactionUpdateFormState[K],
   ) {
     setForm((current) => ({ ...current, [key]: value }))
-    setSubmission(null)
+    setMutationError(null)
   }
 
   function updateInvoiceStatus(invoiceStatus: InvoiceStatus) {
@@ -917,32 +968,74 @@ export function TransactionReviewModal({
       invoice_status: invoiceStatus,
       payment_date: invoiceStatus === 'paid' ? current.payment_date : '',
     }))
-    setSubmission(null)
+    setMutationError(null)
   }
 
   function resetEditMode() {
     setForm(createInitialUpdateFormState(transaction))
-    setSubmission(null)
+    setMutationError(null)
     setIsEditing(false)
   }
 
-  function handleSubmit(event: SyntheticEvent<HTMLFormElement, SubmitEvent>) {
+  async function handleSubmit(
+    event: SyntheticEvent<HTMLFormElement, SubmitEvent>,
+  ) {
     event.preventDefault()
     if (readOnly || !isEditing) return
-    setSubmission(
-      buildMockUpdateSubmission({ project, budgetLine, transaction, form }),
-    )
+    setMutationError(null)
+
+    try {
+      const projectId = requiredId(project.id, 'Projet')
+      const budgetLineId = requiredId(
+        budgetLine.budget_line_id,
+        'Ligne de budget',
+      )
+      const transactionId = requiredId(transaction.id, 'Transaction')
+
+      await updateTransactionMutation.mutateAsync({
+        projectId,
+        budgetLineId,
+        transactionId,
+        transaction: buildTransactionUpdate(transaction, form),
+      })
+      invalidateBudgetWorkspaceQueries(queryClient, projectId, budgetLineId)
+      onClose()
+    } catch (error) {
+      setMutationError(getApiErrorMessage(error))
+    }
   }
 
-  function handleBudgetSelectionToggle() {
+  async function handleBudgetSelectionToggle() {
     if (readOnly || !canToggleBudgetSelection) return
+    setMutationError(null)
 
-    onToggleBudgetSelection()
-    setSubmission({
-      method: isBudgetSelected ? 'DELETE' : 'POST',
-      route: `/projects/${project.id}/budget-lines/${budgetLine.budget_line_id}/transactions/${transaction.id}/select-budget`,
-      payload: {},
-    })
+    try {
+      const projectId = requiredId(project.id, 'Projet')
+      const budgetLineId = requiredId(
+        budgetLine.budget_line_id,
+        'Ligne de budget',
+      )
+      const transactionId = requiredId(transaction.id, 'Transaction')
+
+      if (isBudgetSelected) {
+        await unselectBudgetCandidateMutation.mutateAsync({
+          projectId,
+          budgetLineId,
+          transactionId,
+        })
+      } else {
+        await selectBudgetCandidateMutation.mutateAsync({
+          projectId,
+          budgetLineId,
+          transactionId,
+        })
+      }
+      invalidateBudgetWorkspaceQueries(queryClient, projectId, budgetLineId)
+      onToggleBudgetSelection()
+      onClose()
+    } catch (error) {
+      setMutationError(getApiErrorMessage(error))
+    }
   }
 
   return (
@@ -1272,25 +1365,25 @@ export function TransactionReviewModal({
           </div>
         </CompactSection>
 
-        {submission ? (
-          <CompactSection title="Payload mock">
-            <div className="rounded-md border border-border bg-muted/30 p-3">
-              <p className="text-xs font-semibold text-foreground">
-                {submission.method} {submission.route}
-              </p>
-              <pre className="mt-3 max-h-60 overflow-auto text-xs text-muted-foreground">
-                {JSON.stringify(submission.payload, null, 2)}
-              </pre>
-            </div>
-          </CompactSection>
+        {mutationError ? (
+          <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+            {mutationError}
+          </div>
         ) : null}
 
         {isEditing ? (
           <div className="flex justify-end gap-2">
-            <Button variant="outline" type="button" onClick={resetEditMode}>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={resetEditMode}
+              disabled={isMutating}
+            >
               Annuler
             </Button>
-            <Button type="submit">Enregistrer en mock</Button>
+            <Button type="submit" disabled={isMutating}>
+              {isMutating ? 'Enregistrement...' : 'Enregistrer'}
+            </Button>
           </div>
         ) : null}
       </form>

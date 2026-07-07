@@ -90,7 +90,7 @@ quantities - Update prices - Update notes
 Rules: - One mutation at a time. - Verify cache updates. - Avoid
 unnecessary invalidations.
 
-Status: - \[ \] Not Started - \[ \] In Progress - \[ \] Completed
+Status: - \[ \] Not Started - \[ \] In Progress - \[x\] Completed
 
 ------------------------------------------------------------------------
 
@@ -289,6 +289,35 @@ Validation:
 
 No backend files were changed.
 
+## Chunk 4 Editing And Mutations Summary
+
+Status: Completed.
+
+Scope:
+
+-   Replaced transaction creation mock payloads with real API calls:
+    `POST /projects/{project_id}/budget-lines/{budget_line_id}/transactions/`
+    and `POST /projects/{project_id}/products/{product_id}/transactions/`.
+-   Replaced transaction edit mock payloads with real
+    `PATCH /projects/{project_id}/budget-lines/{budget_line_id}/transactions/{transaction_id}`.
+-   Wired transaction soft-delete to
+    `DELETE /projects/{project_id}/budget-lines/{budget_line_id}/transactions/{transaction_id}`.
+-   Wired selected-budget toggling to the backend select/unselect endpoints.
+-   Replaced product-structure demonstration actions with real budget-line
+    creation and product-line conversion mutations.
+-   Added shared Budget Workspace cache invalidation for project metadata,
+    financial summary, budget lines, and transaction rows after mutations.
+-   Kept backend validation as the source of truth and surfaced API errors in
+    dialogs.
+
+Validation:
+
+-   `pnpm build` completed successfully from `frontend/`.
+-   Local smoke check returned `200 OK` for `/budget`.
+-   The existing Vite chunk-size warning remains.
+
+No backend files were changed.
+
 ------------------------------------------------------------------------
 
 # Component Mapping
@@ -325,15 +354,18 @@ No backend files were changed.
 -   Chunk 3 read-only Budget Workspace integration.
 -   Real project metadata, backend financial summary, budget-line hierarchy,
     and lazy real transaction rows are displayed in the Budget page.
+-   Chunk 4 editing and mutations.
+-   Transaction create/update/delete, selected-budget toggles, budget-line
+    creation, and product conversion are wired to backend endpoints.
 
 ## Current Task
 
--   Chunk 3 complete. Budget page read-only data now comes from the backend.
+-   Chunk 4 complete. Budget Workspace editing uses backend mutations.
 
 ## Next Task
 
--   Chunk 4: wire editing and mutations for budget selection, transaction CRUD,
-    budget-line creation/conversion, and cache updates.
+-   Chunk 5: verify frontend display values against backend financial
+    calculations and remove any remaining duplicated calculation behavior.
 
 ## Blocking Issues
 

@@ -1,19 +1,55 @@
+import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Trash2 } from 'lucide-react'
 
+import { invalidateBudgetWorkspaceQueries } from '@/api/budget-workspace-cache'
+import { getApiErrorMessage } from '@/api/client'
+import { useDeleteBudgetLineTransactionMutation } from '@/api/transactions'
 import { Button } from '@/components/ui/button'
 import type { TransactionDeleteState } from '@/components/budget/types'
 import { formatCurrency, formatDate } from '@/lib/format'
 
 export function DeleteTransactionDialog({
   context,
+  projectId,
   onCancel,
   onConfirm,
 }: {
   context: TransactionDeleteState
+  projectId: number
   onCancel: () => void
   onConfirm: () => void
 }) {
+  const queryClient = useQueryClient()
+  const deleteTransactionMutation = useDeleteBudgetLineTransactionMutation()
+  const [error, setError] = useState<string | null>(null)
   const { budgetLine, product, transaction } = context
+  const budgetLineId = Number(budgetLine.budget_line_id)
+  const transactionId = Number(transaction.id)
+  const canDelete =
+    Number.isInteger(projectId) &&
+    Number.isInteger(budgetLineId) &&
+    Number.isInteger(transactionId)
+
+  async function handleConfirm() {
+    if (!canDelete) {
+      setError('Identifiant de transaction invalide.')
+      return
+    }
+
+    try {
+      setError(null)
+      await deleteTransactionMutation.mutateAsync({
+        projectId,
+        budgetLineId,
+        transactionId,
+      })
+      invalidateBudgetWorkspaceQueries(queryClient, projectId, budgetLineId)
+      onConfirm()
+    } catch (deleteError) {
+      setError(getApiErrorMessage(deleteError))
+    }
+  }
 
   return (
     <div
@@ -35,8 +71,8 @@ export function DeleteTransactionDialog({
               Supprimer cette transaction ?
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Cette action demandera confirmation avant suppression. Le
-              raccordement à l'API sera ajouté ultérieurement.
+              Cette transaction sera supprimée du budget. Les totaux du projet
+              seront recalculés depuis le backend.
             </p>
             <div className="mt-4 rounded-md border border-border bg-background px-3 py-2 text-sm">
               <p className="font-medium text-foreground">
@@ -50,14 +86,29 @@ export function DeleteTransactionDialog({
                 {formatCurrency(transaction.amount_ttc)}
               </p>
             </div>
+            {error ? (
+              <p className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                {error}
+              </p>
+            ) : null}
           </div>
         </div>
         <div className="mt-6 flex justify-end gap-2">
-          <Button variant="outline" onClick={onCancel}>
+          <Button
+            variant="outline"
+            onClick={onCancel}
+            disabled={deleteTransactionMutation.isPending}
+          >
             Annuler
           </Button>
-          <Button variant="destructive" onClick={onConfirm}>
-            Supprimer
+          <Button
+            variant="destructive"
+            onClick={handleConfirm}
+            disabled={deleteTransactionMutation.isPending}
+          >
+            {deleteTransactionMutation.isPending
+              ? 'Suppression...'
+              : 'Supprimer'}
           </Button>
         </div>
       </div>

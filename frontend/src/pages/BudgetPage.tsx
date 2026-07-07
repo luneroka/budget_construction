@@ -170,7 +170,6 @@ export function BudgetPage() {
         getBudgetSelection={getBudgetSelection}
         getLineWithBudgetSelection={getLineWithBudgetSelection}
         projectId={projectId}
-        readOnly
         onAddBreakdown={(action) =>
           setActiveAction({ kind: 'breakdown', ...action })
         }
@@ -209,6 +208,7 @@ export function BudgetPage() {
       {activeAction && activeAction.kind !== 'transaction' ? (
         <ProductStructureDialog
           activeAction={activeAction}
+          projectId={projectId}
           selectedStructureChoice={selectedStructureChoice}
           onSelectStructureChoice={setSelectedStructureChoice}
           onContinue={continueFromStructureChoice}
@@ -221,7 +221,6 @@ export function BudgetPage() {
           project={project}
           context={transactionReview.context}
           initialMode={transactionReview.initialMode}
-          readOnly
           suppliers={suppliers}
           isBudgetSelected={isSelectedBudgetTransaction(
             transactionReview.context.transaction,
@@ -243,6 +242,7 @@ export function BudgetPage() {
       {transactionDelete ? (
         <DeleteTransactionDialog
           context={transactionDelete}
+          projectId={projectId}
           onCancel={() => setTransactionDelete(null)}
           onConfirm={() => setTransactionDelete(null)}
         />
