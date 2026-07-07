@@ -20,7 +20,10 @@ export const transactionQueryKeys = {
       budgetLineId,
     ] as const,
   budgetLineList: (projectId: number, budgetLineId: number) =>
-    [...transactionQueryKeys.budgetLine(projectId, budgetLineId), 'list'] as const,
+    [
+      ...transactionQueryKeys.budgetLine(projectId, budgetLineId),
+      'list',
+    ] as const,
   detail: (projectId: number, budgetLineId: number, transactionId: number) =>
     [
       ...transactionQueryKeys.budgetLine(projectId, budgetLineId),
@@ -125,7 +128,7 @@ export function useBudgetLineTransactionsQuery(
         : transactionQueryKeys.budgetLineList(projectId, budgetLineId),
     queryFn: () => {
       if (projectId === null || budgetLineId === null) {
-        throw new Error('Project id and budget line id are required')
+        throw new Error('Identifiant projet ou poste de budget manquant.')
       }
 
       return getBudgetLineTransactions(projectId, budgetLineId)
@@ -155,7 +158,7 @@ export function useBudgetLineTransactionQuery(
         transactionId === null
       ) {
         throw new Error(
-          'Project id, budget line id, and transaction id are required',
+          'Identifiant projet, poste de budget ou transaction manquant.',
         )
       }
 

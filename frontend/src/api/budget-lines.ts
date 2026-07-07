@@ -16,7 +16,11 @@ export const budgetLineQueryKeys = {
   projectList: (projectId: number) =>
     [...budgetLineQueryKeys.project(projectId), 'list'] as const,
   detail: (projectId: number, budgetLineId: number) =>
-    [...budgetLineQueryKeys.project(projectId), budgetLineId, 'detail'] as const,
+    [
+      ...budgetLineQueryKeys.project(projectId),
+      budgetLineId,
+      'detail',
+    ] as const,
 }
 
 export function getBudgetLines(projectId: number): Promise<BudgetLineRead[]> {
@@ -94,7 +98,7 @@ export function useBudgetLinesQuery(
         : budgetLineQueryKeys.projectList(projectId),
     queryFn: () => {
       if (projectId === null) {
-        throw new Error('Project id is required')
+        throw new Error('Identifiant projet manquant.')
       }
 
       return getBudgetLines(projectId)
@@ -116,7 +120,7 @@ export function useBudgetLineQuery(
         : budgetLineQueryKeys.detail(projectId, budgetLineId),
     queryFn: () => {
       if (projectId === null || budgetLineId === null) {
-        throw new Error('Project id and budget line id are required')
+        throw new Error('Identifiant projet ou poste de budget manquant.')
       }
 
       return getBudgetLine(projectId, budgetLineId)

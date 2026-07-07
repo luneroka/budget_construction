@@ -81,7 +81,7 @@ export function useTransactionDocumentsQuery(
         : documentQueryKeys.byTransaction(transactionId),
     queryFn: () => {
       if (transactionId === null) {
-        throw new Error('Transaction id is required')
+        throw new Error('Identifiant transaction manquant.')
       }
 
       return getTransactionDocuments(transactionId)
@@ -103,7 +103,7 @@ export function useDocumentQuery(
         : documentQueryKeys.detail(documentId),
     queryFn: () => {
       if (documentId === null) {
-        throw new Error('Document id is required')
+        throw new Error('Identifiant document manquant.')
       }
 
       return getDocument(documentId)
@@ -124,7 +124,7 @@ export function useDocumentDownloadUrlQuery(
         : documentQueryKeys.downloadUrl(documentId),
     queryFn: () => {
       if (documentId === null) {
-        throw new Error('Document id is required')
+        throw new Error('Identifiant document manquant.')
       }
 
       return getDocumentDownloadUrl(documentId)

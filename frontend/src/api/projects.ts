@@ -79,7 +79,7 @@ export function useProjectQuery(
         : projectQueryKeys.detail(projectId, options?.includeDeleted ?? false),
     queryFn: () => {
       if (projectId === null) {
-        throw new Error('Project id is required')
+        throw new Error('Identifiant projet manquant.')
       }
 
       return getProject(projectId, options?.includeDeleted ?? false)
@@ -100,7 +100,7 @@ export function useProjectFinancialSummaryQuery(
         : projectQueryKeys.financialSummary(projectId),
     queryFn: () => {
       if (projectId === null) {
-        throw new Error('Project id is required')
+        throw new Error('Identifiant projet manquant.')
       }
 
       return getProjectFinancialSummary(projectId)
