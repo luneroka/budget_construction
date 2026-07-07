@@ -75,7 +75,7 @@ Suggested order:
 Rules: - Replace one dataset at a time. - Validate. - Commit. -
 Continue.
 
-Status: - \[ \] Not Started - \[ \] In Progress - \[ \] Completed
+Status: - \[ \] Not Started - \[ \] In Progress - \[x\] Completed
 
 ------------------------------------------------------------------------
 
@@ -217,7 +217,8 @@ Existing frontend API coverage:
 -   Preserving the current display of empty catalog products requires joining
     `GET /catalog/tree` with project budget lines and financial summary.
     The backend financial summary alone cannot show products with no budget
-    lines.
+    lines. Chunk 3 uses persisted project budget lines only; synthetic empty
+    catalog products are not displayed in the real read-only workspace.
 -   The current mock view model embeds transactions under financial summary
     rows, but the backend summary intentionally omits transactions. Chunk 2
     decided to fetch transactions lazily per budget line through
@@ -257,6 +258,37 @@ Validation:
 No Budget Workspace UI data source was changed in this chunk. The current mock
 workspace remains intact until Chunk 3.
 
+## Chunk 3 Read-only Workspace Summary
+
+Status: Completed.
+
+Scope:
+
+-   Added a backend-to-Budget Workspace adapter in
+    `frontend/src/lib/budgetWorkspaceApiAdapter.ts`.
+-   Replaced `BudgetPage`'s direct mock workspace import with real selected
+    project data from `GET /projects/{project_id}`,
+    `GET /projects/{project_id}/financial-summary`, and
+    `GET /projects/{project_id}/budget-lines/`.
+-   Kept backend-computed totals as the source of truth. The frontend only
+    groups products into category sections for presentation.
+-   Added loading, error, no-project, and empty-budget states for the Budget
+    page.
+-   Wired expanded transaction panels to fetch
+    `GET /projects/{project_id}/budget-lines/{budget_line_id}/transactions/`
+    lazily, plus suppliers for supplier names.
+-   Set the real workspace path to read-only: add/decompose/edit/delete/select
+    controls are hidden or disabled until Chunk 4 mutations.
+-   Left the demo adapter files in place for non-Budget pages and later
+    cleanup.
+
+Validation:
+
+-   `pnpm build` completed successfully from `frontend/`.
+-   The existing Vite chunk-size warning remains.
+
+No backend files were changed.
+
 ------------------------------------------------------------------------
 
 # Component Mapping
@@ -290,22 +322,23 @@ workspace remains intact until Chunk 3.
 -   Strict frontend API types for the Budget Workspace backend contract.
 -   React Query hooks for catalog, budget lines, transactions, document
     mutations, project detail/update, and existing summary resources.
+-   Chunk 3 read-only Budget Workspace integration.
+-   Real project metadata, backend financial summary, budget-line hierarchy,
+    and lazy real transaction rows are displayed in the Budget page.
 
 ## Current Task
 
--   Chunk 2 complete. Mock Budget Workspace UI remains unchanged.
+-   Chunk 3 complete. Budget page read-only data now comes from the backend.
 
 ## Next Task
 
--   Chunk 3: progressively replace read-only Budget Workspace mock datasets
-    with real backend data, starting with project metadata and financial
-    summary.
+-   Chunk 4: wire editing and mutations for budget selection, transaction CRUD,
+    budget-line creation/conversion, and cache updates.
 
 ## Blocking Issues
 
--   Decide in Chunk 3 whether the read-only workspace must preserve empty
-    catalog products. If yes, compose `GET /catalog/tree` with the project
-    financial summary and budget lines.
+-   Empty catalog products are intentionally not shown in Chunk 3. Revisit only
+    if the product-management workflow requires a catalog/template browser.
 -   Transactions will be fetched lazily per budget line unless Chunk 3 exposes
     a concrete UX requirement for eager transaction loading.
 

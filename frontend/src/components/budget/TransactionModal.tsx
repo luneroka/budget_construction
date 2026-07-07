@@ -94,6 +94,7 @@ type TransactionReviewModalProps = {
   project: ProjectViewModel
   context: ViewedTransactionContext
   initialMode?: 'view' | 'edit'
+  readOnly?: boolean
   suppliers: SupplierRowViewModel[]
   isBudgetSelected: boolean
   canToggleBudgetSelection: boolean
@@ -875,6 +876,7 @@ export function TransactionReviewModal({
   project,
   context,
   initialMode = 'view',
+  readOnly,
   suppliers,
   isBudgetSelected,
   canToggleBudgetSelection,
@@ -882,7 +884,9 @@ export function TransactionReviewModal({
   onClose,
 }: TransactionReviewModalProps) {
   const { budgetLine, product, transaction } = context
-  const [isEditing, setIsEditing] = useState(initialMode === 'edit')
+  const [isEditing, setIsEditing] = useState(
+    !readOnly && initialMode === 'edit',
+  )
   const [form, setForm] = useState<TransactionUpdateFormState>(() =>
     createInitialUpdateFormState(transaction),
   )
@@ -924,14 +928,14 @@ export function TransactionReviewModal({
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement, SubmitEvent>) {
     event.preventDefault()
-    if (!isEditing) return
+    if (readOnly || !isEditing) return
     setSubmission(
       buildMockUpdateSubmission({ project, budgetLine, transaction, form }),
     )
   }
 
   function handleBudgetSelectionToggle() {
-    if (!canToggleBudgetSelection) return
+    if (readOnly || !canToggleBudgetSelection) return
 
     onToggleBudgetSelection()
     setSubmission({
@@ -964,7 +968,7 @@ export function TransactionReviewModal({
             <Button size="sm" variant="outline" type="button" onClick={resetEditMode}>
               Annuler
             </Button>
-          ) : (
+          ) : readOnly ? null : (
             <Button
               size="sm"
               variant="outline"
@@ -1241,7 +1245,7 @@ export function TransactionReviewModal({
             <label className="flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm">
               <Checkbox
                 checked={isBudgetSelected}
-                disabled={!canToggleBudgetSelection}
+                disabled={readOnly || !canToggleBudgetSelection}
                 onChange={handleBudgetSelectionToggle}
               />
               Sélectionné pour budget

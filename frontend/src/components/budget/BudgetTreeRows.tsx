@@ -113,12 +113,14 @@ export function CategoryHeader({
 export function ProductContextRows({
   product,
   line,
+  readOnly,
   onAddBreakdown,
   onAddTransaction,
   onDecomposeProduct,
 }: {
   product: ProductSummaryViewModel
   line: BudgetLineSummaryViewModel | null
+  readOnly?: boolean
   onAddBreakdown: (action: BreakdownAction) => void
   onAddTransaction: (action: TransactionAction) => void
   onDecomposeProduct: (action: BreakdownAction) => void
@@ -134,42 +136,44 @@ export function ProductContextRows({
               ? 'Produit décomposé en sous-produits'
               : 'Transactions rattachées directement au produit'}
           </span>
-          <div className="flex items-center justify-end gap-1">
-            {supportsBreakdowns ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
-                onClick={() => onAddBreakdown({ product })}
-              >
-                <Layers3 aria-hidden="true" />
-                Ajouter un sous-produit
-              </Button>
-            ) : line ? (
-              <>
+          {readOnly ? null : (
+            <div className="flex items-center justify-end gap-1">
+              {supportsBreakdowns ? (
                 <Button
                   size="sm"
                   variant="ghost"
                   className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
-                  onClick={() => onDecomposeProduct({ product })}
+                  onClick={() => onAddBreakdown({ product })}
                 >
                   <Layers3 aria-hidden="true" />
-                  Décomposer le produit
+                  Ajouter un sous-produit
                 </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
-                  onClick={() =>
-                    onAddTransaction({ budgetLine: line, product })
-                  }
-                >
-                  <Plus aria-hidden="true" />
-                  Ajouter une transaction
-                </Button>
-              </>
-            ) : null}
-          </div>
+              ) : line ? (
+                <>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
+                    onClick={() => onDecomposeProduct({ product })}
+                  >
+                    <Layers3 aria-hidden="true" />
+                    Décomposer le produit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
+                    onClick={() =>
+                      onAddTransaction({ budgetLine: line, product })
+                    }
+                  >
+                    <Plus aria-hidden="true" />
+                    Ajouter une transaction
+                  </Button>
+                </>
+              ) : null}
+            </div>
+          )}
         </div>
       </TableCell>
     </TableRow>
@@ -178,9 +182,11 @@ export function ProductContextRows({
 
 export function EmptyProductRow({
   product,
+  readOnly,
   onAddFirstTransaction,
 }: {
   product: ProductSummaryViewModel
+  readOnly?: boolean
   onAddFirstTransaction: (action: BreakdownAction) => void
 }) {
   return (
@@ -192,17 +198,21 @@ export function EmptyProductRow({
               Aucune transaction
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Commencez par ajouter une première transaction pour ce produit.
+              {readOnly
+                ? 'Ce produit ne contient pas encore de transaction.'
+                : 'Commencez par ajouter une première transaction pour ce produit.'}
             </p>
           </div>
-          <Button
-            size="sm"
-            variant="gold"
-            onClick={() => onAddFirstTransaction({ product })}
-          >
-            <Plus aria-hidden="true" />
-            Ajouter une première transaction
-          </Button>
+          {readOnly ? null : (
+            <Button
+              size="sm"
+              variant="gold"
+              onClick={() => onAddFirstTransaction({ product })}
+            >
+              <Plus aria-hidden="true" />
+              Ajouter une première transaction
+            </Button>
+          )}
         </div>
       </TableCell>
     </TableRow>
@@ -212,10 +222,12 @@ export function EmptyProductRow({
 export function BudgetLineContextRow({
   line,
   product,
+  readOnly,
   onAddTransaction,
 }: {
   line: BudgetLineSummaryViewModel
   product: ProductSummaryViewModel
+  readOnly?: boolean
   onAddTransaction: (action: TransactionAction) => void
 }) {
   return (
@@ -225,15 +237,17 @@ export function BudgetLineContextRow({
           <span className="text-xs text-muted-foreground">
             Transactions pour ce sous-produit
           </span>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
-            onClick={() => onAddTransaction({ budgetLine: line, product })}
-          >
-            <Plus aria-hidden="true" />
-            Ajouter une transaction
-          </Button>
+          {readOnly ? null : (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
+              onClick={() => onAddTransaction({ budgetLine: line, product })}
+            >
+              <Plus aria-hidden="true" />
+              Ajouter une transaction
+            </Button>
+          )}
         </div>
       </TableCell>
     </TableRow>

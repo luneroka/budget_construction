@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 
+import { getApiErrorMessage } from '@/api/client'
+import { useSuppliersQuery } from '@/api/suppliers'
 import { BudgetSummaryCards } from '@/components/budget/BudgetSummaryCards'
 import { BudgetTree } from '@/components/budget/BudgetTree'
 import { DeleteTransactionDialog } from '@/components/budget/DeleteTransactionDialog'
@@ -17,19 +19,27 @@ import type {
   TransactionAction,
 } from '@/components/budget/types'
 import { PageHeader } from '@/components/shared/PageHeader'
+import type { BudgetLineSummaryViewModel } from '@/demo/types'
 import {
-  budgetWorkspaceViewModel,
-  supplierTableViewModel,
-} from '@/demo/demo-data'
-import { useBudgetSelections } from '@/hooks/useBudgetSelections'
-import {
+  type BudgetSelectionState,
   canToggleBudgetSelection,
   isSelectedBudgetTransaction,
 } from '@/lib/budgetViewModel'
+import {
+  suppliersToViewModel,
+  useBudgetWorkspaceQuery,
+} from '@/lib/budgetWorkspaceApiAdapter'
+import { useAppState } from '@/state/appState'
 
 export function BudgetPage() {
-  const { categories, financialSummary, project, transactions } =
-    budgetWorkspaceViewModel
+  const { selectedProjectId } = useAppState()
+  const selectedProjectNumericId = Number(selectedProjectId)
+  const projectId = Number.isInteger(selectedProjectNumericId)
+    ? selectedProjectNumericId
+    : null
+  const workspaceQuery = useBudgetWorkspaceQuery(projectId)
+  const suppliersQuery = useSuppliersQuery({ enabled: projectId !== null })
+  const workspace = workspaceQuery.workspace
   const [activeAction, setActiveAction] = useState<ActiveAction | null>(null)
   const [transactionReview, setTransactionReview] =
     useState<TransactionReviewState | null>(null)
@@ -37,20 +47,98 @@ export function BudgetPage() {
     useState<TransactionDeleteState | null>(null)
   const [selectedStructureChoice, setSelectedStructureChoice] =
     useState<ProductStructureChoice>('single')
-  const {
-    getBudgetSelection,
-    getLineWithBudgetSelection,
-    toggleBudgetSelection,
-  } = useBudgetSelections(financialSummary.products)
-
-  const visibleCounts = useMemo(
-    () => ({
-      categories: categories.length,
-      products: financialSummary.products.length,
-      transactions: transactions.length,
-    }),
-    [categories.length, financialSummary.products.length, transactions.length],
+  const suppliers = useMemo(
+    () => suppliersToViewModel(suppliersQuery.data),
+    [suppliersQuery.data],
   )
+  const visibleCounts = useMemo(() => {
+    if (!workspace) {
+      return {
+        categories: 0,
+        products: 0,
+        transactions: 0,
+      }
+    }
+
+    return {
+      categories: workspace.categories.length,
+      products: workspace.financialSummary.products.length,
+      transactions:
+        workspace.financialSummary.quote_count +
+        workspace.financialSummary.diy_estimate_count +
+        workspace.financialSummary.invoice_count,
+    }
+  }, [workspace])
+
+  function getBudgetSelection(line: BudgetLineSummaryViewModel): BudgetSelectionState {
+    return {
+      selected_quote_transaction_id: line.selected_quote_transaction_id,
+      selected_diy_estimate_transaction_id:
+        line.selected_diy_estimate_transaction_id,
+    }
+  }
+
+  function getLineWithBudgetSelection(
+    line: BudgetLineSummaryViewModel,
+  ): BudgetLineSummaryViewModel {
+    return line
+  }
+
+  function toggleBudgetSelection(
+    _line?: BudgetLineSummaryViewModel,
+    _transaction?: Parameters<typeof isSelectedBudgetTransaction>[0],
+  ) {
+    // Budget selection is backend-owned. Chunk 4 will wire mutations.
+  }
+
+  if (!projectId) {
+    return (
+      <section>
+        <PageHeader
+          title="Budget"
+          description="Sélectionnez un projet pour consulter son budget."
+        />
+        <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+          Aucun projet actif.
+        </div>
+      </section>
+    )
+  }
+
+  if (workspaceQuery.isLoading) {
+    return (
+      <section>
+        <PageHeader
+          title="Budget"
+          description="Chargement du budget projet."
+        />
+        <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+          Chargement du budget
+        </div>
+      </section>
+    )
+  }
+
+  if (workspaceQuery.isError || !workspace) {
+    return (
+      <section>
+        <PageHeader
+          title="Budget"
+          description="Le budget projet n'a pas pu être chargé."
+        />
+        <div className="rounded-lg border border-destructive/30 bg-card p-4 text-sm">
+          <p className="font-medium text-destructive">Budget indisponible</p>
+          <p className="mt-1 text-muted-foreground">
+            {workspaceQuery.error
+              ? getApiErrorMessage(workspaceQuery.error)
+              : 'Aucune donnée budget reçue.'}
+          </p>
+        </div>
+      </section>
+    )
+  }
+
+  const { categories, financialSummary, project } = workspace
 
   function openTransactionAction(action: TransactionAction) {
     setActiveAction({ kind: 'transaction', ...action })
@@ -81,6 +169,8 @@ export function BudgetPage() {
         categories={categories}
         getBudgetSelection={getBudgetSelection}
         getLineWithBudgetSelection={getLineWithBudgetSelection}
+        projectId={projectId}
+        readOnly
         onAddBreakdown={(action) =>
           setActiveAction({ kind: 'breakdown', ...action })
         }
@@ -106,14 +196,14 @@ export function BudgetPage() {
       />
 
       {activeAction?.kind === 'transaction' ? (
-        <TransactionModal
-          project={project}
-          product={activeAction.product}
-          budgetLine={activeAction.budgetLine}
-          initialStructure={activeAction.initialStructure}
-          suppliers={supplierTableViewModel.suppliers}
-          onClose={() => setActiveAction(null)}
-        />
+          <TransactionModal
+            project={project}
+            product={activeAction.product}
+            budgetLine={activeAction.budgetLine}
+            initialStructure={activeAction.initialStructure}
+            suppliers={suppliers}
+            onClose={() => setActiveAction(null)}
+          />
       ) : null}
 
       {activeAction && activeAction.kind !== 'transaction' ? (
@@ -131,7 +221,8 @@ export function BudgetPage() {
           project={project}
           context={transactionReview.context}
           initialMode={transactionReview.initialMode}
-          suppliers={supplierTableViewModel.suppliers}
+          readOnly
+          suppliers={suppliers}
           isBudgetSelected={isSelectedBudgetTransaction(
             transactionReview.context.transaction,
             getBudgetSelection(transactionReview.context.budgetLine),
@@ -155,6 +246,12 @@ export function BudgetPage() {
           onCancel={() => setTransactionDelete(null)}
           onConfirm={() => setTransactionDelete(null)}
         />
+      ) : null}
+
+      {categories.length === 0 ? (
+        <div className="mt-6 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+          Aucun poste budgeté pour ce projet.
+        </div>
       ) : null}
     </section>
   )

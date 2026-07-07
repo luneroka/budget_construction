@@ -1,5 +1,9 @@
 import { Edit3, Eye, Paperclip, Trash2 } from 'lucide-react'
+import { useMemo } from 'react'
 
+import { getApiErrorMessage } from '@/api/client'
+import { useBudgetLineTransactionsQuery } from '@/api/transactions'
+import { useSuppliersQuery } from '@/api/suppliers'
 import type { ViewedTransactionContext } from '@/components/budget/TransactionModal'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Badge } from '@/components/ui/badge'
@@ -10,6 +14,7 @@ import type {
   TransactionViewModel,
 } from '@/demo/types'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { transactionToViewModel } from '@/lib/budgetWorkspaceApiAdapter'
 import {
   canToggleBudgetSelection,
   formatSelectedBudgetSource,
@@ -25,7 +30,9 @@ type TransactionsPanelProps = {
   transactions: TransactionViewModel[]
   budgetLine: BudgetLineSummaryViewModel
   budgetSelection: BudgetSelectionState
+  projectId?: number
   product: ProductSummaryViewModel
+  readOnly?: boolean
   onToggleBudgetSelection: (
     budgetLine: BudgetLineSummaryViewModel,
     transaction: TransactionViewModel,
@@ -57,11 +64,22 @@ function EmptyTransactionRows() {
   )
 }
 
+function TransactionPanelMessage({ message }: { message: string }) {
+  return (
+    <div className={cn(transactionGridClass, 'border-t border-border/40')}>
+      <div className="col-span-8 px-2 py-2 text-muted-foreground">
+        {message}
+      </div>
+    </div>
+  )
+}
+
 function TransactionRows({
   transactions,
   budgetLine,
   budgetSelection,
   product,
+  readOnly,
   onToggleBudgetSelection,
   onRequestDeleteTransaction,
   onEditTransaction,
@@ -109,24 +127,28 @@ function TransactionRows({
           {transaction.transaction_type === 'invoice' ? (
             <span className="text-muted-foreground">-</span>
           ) : isSelectedBudget ? (
-            <button
-              type="button"
-              className="inline-flex"
-              onClick={() => onToggleBudgetSelection(budgetLine, transaction)}
-              aria-label="Retirer cette transaction du budget sélectionné"
-            >
+            readOnly ? (
               <Badge variant="gold">Sélectionné</Badge>
-            </button>
+            ) : (
+              <button
+                type="button"
+                className="inline-flex"
+                onClick={() => onToggleBudgetSelection(budgetLine, transaction)}
+                aria-label="Retirer cette transaction du budget sélectionné"
+              >
+                <Badge variant="gold">Sélectionné</Badge>
+              </button>
+            )
           ) : (
             <button
               type="button"
               className={cn(
                 'inline-flex',
-                canToggleSelection
+                canToggleSelection && !readOnly
                   ? 'cursor-pointer'
                   : 'cursor-not-allowed opacity-75',
               )}
-              disabled={!canToggleSelection}
+              disabled={!canToggleSelection || readOnly}
               onClick={() => onToggleBudgetSelection(budgetLine, transaction)}
               aria-label="Sélectionner cette transaction pour le budget"
             >
@@ -150,34 +172,38 @@ function TransactionRows({
             >
               <Eye className="h-4 w-4" aria-hidden="true" />
             </button>
-            <button
-              type="button"
-              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
-              onClick={() =>
-                onEditTransaction({
-                  budgetLine,
-                  product,
-                  transaction,
-                })
-              }
-              aria-label="Modifier la transaction"
-            >
-              <Edit3 className="h-4 w-4" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-              onClick={() =>
-                onRequestDeleteTransaction({
-                  budgetLine,
-                  product,
-                  transaction,
-                })
-              }
-              aria-label="Supprimer la transaction"
-            >
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-            </button>
+            {readOnly ? null : (
+              <>
+                <button
+                  type="button"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
+                  onClick={() =>
+                    onEditTransaction({
+                      budgetLine,
+                      product,
+                      transaction,
+                    })
+                  }
+                  aria-label="Modifier la transaction"
+                >
+                  <Edit3 className="h-4 w-4" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() =>
+                    onRequestDeleteTransaction({
+                      budgetLine,
+                      product,
+                      transaction,
+                    })
+                  }
+                  aria-label="Supprimer la transaction"
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </>
+            )}
           </div>
         </div>
         <div className="px-1 py-2 text-center whitespace-nowrap">
@@ -194,12 +220,45 @@ function TransactionRows({
 }
 
 export function TransactionsPanel(props: TransactionsPanelProps) {
-  const budgetCandidates = props.transactions.filter((transaction) =>
+  const budgetLineId = Number(props.budgetLine.budget_line_id)
+  const shouldUseApi =
+    props.projectId !== undefined && Number.isInteger(budgetLineId)
+  const transactionsQuery = useBudgetLineTransactionsQuery(
+    props.projectId ?? null,
+    shouldUseApi ? budgetLineId : null,
+    { enabled: shouldUseApi },
+  )
+  const suppliersQuery = useSuppliersQuery({ enabled: shouldUseApi })
+  const transactions = useMemo(() => {
+    if (!shouldUseApi) return props.transactions
+
+    return (transactionsQuery.data ?? []).map((transaction) =>
+      transactionToViewModel(
+        transaction,
+        props.budgetLine,
+        suppliersQuery.data ?? [],
+      ),
+    )
+  }, [
+    props.budgetLine,
+    props.transactions,
+    shouldUseApi,
+    suppliersQuery.data,
+    transactionsQuery.data,
+  ])
+  const budgetCandidates = transactions.filter((transaction) =>
     ['quote', 'diy_estimate'].includes(transaction.transaction_type),
   )
-  const invoices = props.transactions.filter(
+  const invoices = transactions.filter(
     (transaction) => transaction.transaction_type === 'invoice',
   )
+  const isLoadingApiRows =
+    shouldUseApi &&
+    (transactionsQuery.isLoading ||
+      transactionsQuery.isFetching ||
+      suppliersQuery.isLoading ||
+      suppliersQuery.isFetching)
+  const apiError = transactionsQuery.error ?? suppliersQuery.error ?? null
 
   return (
     <TableRow className="border-t-0 bg-muted/10 hover:bg-muted/10!">
@@ -243,10 +302,22 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
             </div>
 
             <TransactionSectionDivider label="Candidats budget" />
-            <TransactionRows {...props} transactions={budgetCandidates} />
+            {isLoadingApiRows ? (
+              <TransactionPanelMessage message="Chargement des transactions" />
+            ) : apiError ? (
+              <TransactionPanelMessage message={getApiErrorMessage(apiError)} />
+            ) : (
+              <TransactionRows {...props} transactions={budgetCandidates} />
+            )}
 
             <TransactionSectionDivider label="Dépenses réelles" />
-            <TransactionRows {...props} transactions={invoices} />
+            {isLoadingApiRows ? (
+              <TransactionPanelMessage message="Chargement des transactions" />
+            ) : apiError ? (
+              <TransactionPanelMessage message={getApiErrorMessage(apiError)} />
+            ) : (
+              <TransactionRows {...props} transactions={invoices} />
+            )}
           </div>
         </div>
       </TableCell>

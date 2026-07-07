@@ -37,6 +37,8 @@ type BudgetTreeProps = {
   getLineWithBudgetSelection: (
     line: BudgetLineSummaryViewModel,
   ) => BudgetLineSummaryViewModel
+  projectId?: number
+  readOnly?: boolean
   onAddBreakdown: (action: BreakdownAction) => void
   onAddFirstTransaction: (action: BreakdownAction) => void
   onAddTransaction: (action: TransactionAction) => void
@@ -54,6 +56,8 @@ export function BudgetTree({
   categories,
   getBudgetSelection,
   getLineWithBudgetSelection,
+  projectId,
+  readOnly,
   onAddBreakdown,
   onAddFirstTransaction,
   onAddTransaction,
@@ -130,6 +134,7 @@ export function BudgetTree({
                                     isEmptyProduct ? (
                                       <EmptyProductRow
                                         product={product}
+                                        readOnly={readOnly}
                                         onAddFirstTransaction={
                                           onAddFirstTransaction
                                         }
@@ -139,6 +144,7 @@ export function BudgetTree({
                                         <ProductContextRows
                                           product={product}
                                           line={selectedWholeProductLine}
+                                          readOnly={readOnly}
                                           onAddBreakdown={onAddBreakdown}
                                           onAddTransaction={onAddTransaction}
                                           onDecomposeProduct={
@@ -156,7 +162,9 @@ export function BudgetTree({
                                             budgetSelection={getBudgetSelection(
                                               selectedWholeProductLine,
                                             )}
+                                            projectId={projectId}
                                             product={product}
+                                            readOnly={readOnly}
                                             onToggleBudgetSelection={
                                               onToggleBudgetSelection
                                             }
@@ -197,6 +205,7 @@ export function BudgetTree({
                                                     <BudgetLineContextRow
                                                       line={selectedLine}
                                                       product={product}
+                                                      readOnly={readOnly}
                                                       onAddTransaction={
                                                         onAddTransaction
                                                       }
@@ -209,7 +218,9 @@ export function BudgetTree({
                                                       budgetSelection={getBudgetSelection(
                                                         selectedLine,
                                                       )}
+                                                      projectId={projectId}
                                                       product={product}
+                                                      readOnly={readOnly}
                                                       onToggleBudgetSelection={
                                                         onToggleBudgetSelection
                                                       }
