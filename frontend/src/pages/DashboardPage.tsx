@@ -79,7 +79,9 @@ export function DashboardPage() {
     transactionCounts,
     varianceProducts,
   } = dashboardViewModel
-  const invoicePieData = invoiceStatusTotals.filter((item) => item.amount_ttc > 0)
+  const invoicePieData = invoiceStatusTotals.filter(
+    (item) => item.amount_ttc > 0,
+  )
   const monthlyData = monthlyInvoiceActivity.map((item) => ({
     ...item,
     label: formatMonth(item.month),
@@ -93,7 +95,7 @@ export function DashboardPage() {
     <section>
       <PageHeader
         title="Tableau de bord"
-        description={`Aperçu financier pour ${dashboardViewModel.project.name}. Données dérivées des seeds backend.`}
+        description={`Aperçu financier pour ${dashboardViewModel.project.name}.`}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -149,7 +151,10 @@ export function DashboardPage() {
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={categoryBudgetActual}>
-                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.border} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke={chartColors.border}
+                />
                 <XAxis
                   dataKey="category_name"
                   tick={{ fontSize: 11, fill: chartColors.mutedForeground }}
@@ -160,7 +165,9 @@ export function DashboardPage() {
                 />
                 <YAxis
                   tick={{ fontSize: 12, fill: chartColors.mutedForeground }}
-                  tickFormatter={(value) => `${Math.round(Number(value) / 1000)} k€`}
+                  tickFormatter={(value) =>
+                    `${Math.round(Number(value) / 1000)} k€`
+                  }
                 />
                 <Tooltip formatter={currencyTooltip} />
                 <Legend />
@@ -233,14 +240,19 @@ export function DashboardPage() {
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.border} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke={chartColors.border}
+                />
                 <XAxis
                   dataKey="label"
                   tick={{ fontSize: 12, fill: chartColors.mutedForeground }}
                 />
                 <YAxis
                   tick={{ fontSize: 12, fill: chartColors.mutedForeground }}
-                  tickFormatter={(value) => `${Math.round(Number(value) / 1000)} k€`}
+                  tickFormatter={(value) =>
+                    `${Math.round(Number(value) / 1000)} k€`
+                  }
                 />
                 <Tooltip formatter={currencyTooltip} />
                 <Line
@@ -263,7 +275,10 @@ export function DashboardPage() {
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={transactionCountData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.border} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke={chartColors.border}
+                />
                 <XAxis
                   dataKey="label"
                   tick={{ fontSize: 12, fill: chartColors.mutedForeground }}

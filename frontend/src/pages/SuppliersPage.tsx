@@ -316,7 +316,7 @@ export function SuppliersPage() {
     <section>
       <PageHeader
         title="Fournisseurs"
-        description="Répertoire des entreprises fournisseurs et de leurs contacts."
+        description="Répertoire des artisans et fournisseurs."
         actions={
           <Button variant="gold" onClick={openCreateModal}>
             <Plus aria-hidden />

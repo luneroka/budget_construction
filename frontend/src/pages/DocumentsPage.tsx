@@ -283,7 +283,7 @@ export function DocumentsPage() {
     <section>
       <PageHeader
         title="Documents"
-        description="Fichiers rattachés aux transactions, avec métadonnées backend et état d'affichage dérivé."
+        description="Fichiers rattachés aux transactions."
         actions={
           <Button variant="gold" onClick={openUploadDialog}>
             <Upload aria-hidden />
