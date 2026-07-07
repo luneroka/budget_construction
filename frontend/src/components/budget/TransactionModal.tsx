@@ -16,7 +16,6 @@ import {
 } from '@/api/budget-workspace-cache'
 import { getApiErrorMessage } from '@/api/client'
 import {
-  documentQueryKeys,
   getDocumentDownloadUrl,
   useDeleteDocumentMutation,
   useTransactionDocumentsQuery,
@@ -573,9 +572,6 @@ function TransactionDocumentsPanel({
       setDocumentError(null)
       await uploadDocumentMutation.mutateAsync({ transactionId, file })
       invalidateDocumentQueries(queryClient, transactionId)
-      void queryClient.invalidateQueries({
-        queryKey: documentQueryKeys.lists(),
-      })
     } catch (error) {
       setDocumentError(getApiErrorMessage(error))
     }
@@ -596,9 +592,6 @@ function TransactionDocumentsPanel({
       setDocumentError(null)
       await deleteDocumentMutation.mutateAsync({ documentId: document.id })
       invalidateDocumentQueries(queryClient, transactionId)
-      void queryClient.invalidateQueries({
-        queryKey: documentQueryKeys.lists(),
-      })
     } catch (error) {
       setDocumentError(getApiErrorMessage(error))
     }
@@ -869,9 +862,6 @@ export function TransactionModal({
           file: documentFile,
         })
         invalidateDocumentQueries(queryClient, createdTransaction.id)
-        void queryClient.invalidateQueries({
-          queryKey: documentQueryKeys.lists(),
-        })
         invalidateBudgetWorkspaceQueries(
           queryClient,
           projectId,

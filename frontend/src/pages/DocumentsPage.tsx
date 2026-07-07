@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Download, Eye, Trash2, Upload, X } from 'lucide-react'
+import { Download, Eye, Trash2 } from 'lucide-react'
 
 import { getApiErrorMessage } from '@/api/client'
 import {
@@ -8,7 +8,6 @@ import {
   getDocumentDownloadUrl,
   useDeleteDocumentMutation,
   useDocumentsQuery,
-  useUploadTransactionDocumentMutation,
 } from '@/api/documents'
 import type { DocumentListRead } from '@/api/types'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -16,7 +15,6 @@ import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { TableToolbar } from '@/components/shared/TableToolbar'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -50,18 +48,12 @@ function sortDocuments(documents: DocumentListRead[]): DocumentListRead[] {
 
 export function DocumentsPage() {
   const queryClient = useQueryClient()
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [search, setSearch] = useState('')
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
-  const [uploadTransactionId, setUploadTransactionId] = useState('')
-  const [uploadFile, setUploadFile] = useState<File | null>(null)
-  const [uploadError, setUploadError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [activeDocumentId, setActiveDocumentId] = useState<number | null>(null)
   const [documentPendingDeletion, setDocumentPendingDeletion] =
     useState<DocumentListRead | null>(null)
   const documentsQuery = useDocumentsQuery({ enabled: true })
-  const uploadDocumentMutation = useUploadTransactionDocumentMutation()
   const deleteDocumentMutation = useDeleteDocumentMutation()
   const documents = useMemo(
     () => sortDocuments(documentsQuery.data ?? []),
@@ -92,55 +84,6 @@ export function DocumentsPage() {
     documentsQuery.isFetching && !isLoadingDocuments && !documentsError
   const showEmptyState =
     !isLoadingDocuments && !documentsError && filteredDocuments.length === 0
-
-  function openUploadDialog() {
-    setUploadDialogOpen(true)
-    setUploadError(null)
-  }
-
-  function closeUploadDialog() {
-    if (uploadDocumentMutation.isPending) return
-
-    setUploadDialogOpen(false)
-    setUploadTransactionId('')
-    setUploadFile(null)
-    setUploadError(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
-  }
-
-  async function submitUpload() {
-    const transactionId = Number(uploadTransactionId)
-
-    if (!Number.isInteger(transactionId) || transactionId <= 0) {
-      setUploadError('Identifiant de transaction invalide.')
-      return
-    }
-
-    if (!uploadFile) {
-      setUploadError('Sélectionnez un fichier.')
-      return
-    }
-
-    setUploadError(null)
-
-    try {
-      await uploadDocumentMutation.mutateAsync({
-        transactionId,
-        file: uploadFile,
-      })
-      void queryClient.invalidateQueries({
-        queryKey: documentQueryKeys.list(false),
-      })
-      void queryClient.invalidateQueries({
-        queryKey: documentQueryKeys.byTransaction(transactionId),
-      })
-      closeUploadDialog()
-    } catch (error) {
-      setUploadError(getApiErrorMessage(error))
-    }
-  }
 
   async function openDocumentAction(
     action: DocumentAction,
@@ -284,12 +227,6 @@ export function DocumentsPage() {
       <PageHeader
         title="Documents"
         description="Fichiers rattachés aux transactions."
-        actions={
-          <Button variant="gold" onClick={openUploadDialog}>
-            <Upload aria-hidden />
-            Téléverser
-          </Button>
-        }
       />
 
       {documentsError || actionError ? (
@@ -338,93 +275,6 @@ export function DocumentsPage() {
           </div>
         ) : null}
       </div>
-
-      {uploadDialogOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-base font-semibold">Téléverser</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Associer un fichier à une transaction.
-                </p>
-              </div>
-              <Button
-                size="icon"
-                variant="ghost"
-                aria-label="Fermer"
-                disabled={uploadDocumentMutation.isPending}
-                onClick={closeUploadDialog}
-              >
-                <X aria-hidden />
-              </Button>
-            </div>
-
-            <div className="mt-4 grid gap-3">
-              <div>
-                <label className="text-xs font-medium" htmlFor="transaction-id">
-                  Transaction
-                </label>
-                <Input
-                  id="transaction-id"
-                  className="mt-1"
-                  inputMode="numeric"
-                  placeholder="ID transaction"
-                  value={uploadTransactionId}
-                  disabled={uploadDocumentMutation.isPending}
-                  onChange={(event) =>
-                    setUploadTransactionId(event.target.value)
-                  }
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium" htmlFor="document-file">
-                  Fichier
-                </label>
-                <Input
-                  ref={fileInputRef}
-                  id="document-file"
-                  className="mt-1"
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png,.heic,application/pdf,image/jpeg,image/png,image/heic"
-                  disabled={uploadDocumentMutation.isPending}
-                  onChange={(event) =>
-                    setUploadFile(event.target.files?.[0] ?? null)
-                  }
-                />
-              </div>
-            </div>
-
-            {uploadError ? (
-              <p className="mt-3 text-sm text-destructive">{uploadError}</p>
-            ) : null}
-
-            <div className="mt-5 flex justify-end gap-2">
-              <Button
-                variant="ghost"
-                disabled={uploadDocumentMutation.isPending}
-                onClick={closeUploadDialog}
-              >
-                Fermer
-              </Button>
-              <Button
-                variant="gold"
-                disabled={uploadDocumentMutation.isPending}
-                onClick={submitUpload}
-              >
-                <Upload aria-hidden />
-                {uploadDocumentMutation.isPending
-                  ? 'Téléversement...'
-                  : 'Téléverser'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {documentPendingDeletion ? (
         <ConfirmationDialog

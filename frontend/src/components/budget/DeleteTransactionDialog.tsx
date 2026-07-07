@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
-import { invalidateBudgetWorkspaceQueries } from '@/api/budget-workspace-cache'
+import {
+  invalidateBudgetWorkspaceQueries,
+  invalidateDocumentQueries,
+} from '@/api/budget-workspace-cache'
 import { getApiErrorMessage } from '@/api/client'
 import { useDeleteBudgetLineTransactionMutation } from '@/api/transactions'
 import type { TransactionDeleteState } from '@/components/budget/types'
@@ -25,6 +28,16 @@ export function DeleteTransactionDialog({
   const { budgetLine, product, transaction } = context
   const budgetLineId = Number(budgetLine.budget_line_id)
   const transactionId = Number(transaction.id)
+  const productName = product.product_name.trim()
+  const budgetLineName = budgetLine.name.trim()
+  const budgetContextLabel =
+    productName.toLocaleLowerCase() === budgetLineName.toLocaleLowerCase()
+      ? product.product_name
+      : `${product.product_name} · ${budgetLine.name}`
+  const hasAttachedDocument = transaction.document_state === 'attached'
+  const deleteDescription = hasAttachedDocument
+    ? 'Cette transaction sera supprimée définitivement. Les documents joints seront aussi supprimés.'
+    : 'Cette transaction sera supprimée définitivement.'
   const canDelete =
     Number.isInteger(projectId) &&
     Number.isInteger(budgetLineId) &&
@@ -44,6 +57,7 @@ export function DeleteTransactionDialog({
         transactionId,
       })
       invalidateBudgetWorkspaceQueries(queryClient, projectId, budgetLineId)
+      invalidateDocumentQueries(queryClient, transactionId)
       onConfirm()
     } catch (deleteError) {
       setError(getApiErrorMessage(deleteError))
@@ -53,7 +67,7 @@ export function DeleteTransactionDialog({
   return (
     <ConfirmationDialog
       title="Supprimer cette transaction ?"
-      description="Cette transaction sera supprimée du budget. Les totaux du projet seront recalculés depuis le backend."
+      description={deleteDescription}
       error={error}
       isPending={deleteTransactionMutation.isPending}
       onCancel={onCancel}
@@ -62,9 +76,7 @@ export function DeleteTransactionDialog({
       <p className="font-medium text-foreground">
         {transaction.supplier_name ?? 'Autoconstruction'}
       </p>
-      <p className="mt-1 text-muted-foreground">
-        {product.product_name} · {budgetLine.name}
-      </p>
+      <p className="mt-1 text-muted-foreground">{budgetContextLabel}</p>
       <p className="mt-1 text-muted-foreground">
         {formatDate(transaction.issued_date)} ·{' '}
         {formatCurrency(transaction.amount_ttc)}

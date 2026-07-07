@@ -502,7 +502,7 @@ export function SupplierModal({
                 <Button
                   variant="ghost"
                   disabled={isBusy}
-                  className="text-destructive hover:text-destructive"
+                  className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
                   onClick={() => {
                     setDeleteError(null)
                     setDeleteConfirmationOpen(true)
