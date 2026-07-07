@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 
 import { RedirectAuthenticated } from '@/auth/RedirectAuthenticated'
 import { RequireAuth } from '@/auth/RequireAuth'
@@ -14,6 +15,33 @@ import { SuppliersPage } from '@/pages/SuppliersPage'
 export default function App() {
   return (
     <BrowserRouter>
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: 'hsl(var(--card))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: 'var(--radius)',
+            color: 'hsl(var(--card-foreground))',
+            boxShadow:
+              '0 10px 15px -3px rgb(15 23 42 / 0.12), 0 4px 6px -4px rgb(15 23 42 / 0.12)',
+            fontSize: '0.875rem',
+          },
+          success: {
+            iconTheme: {
+              primary: 'hsl(var(--success))',
+              secondary: 'hsl(var(--success-foreground))',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: 'hsl(var(--destructive))',
+              secondary: 'hsl(var(--destructive-foreground))',
+            },
+          },
+        }}
+      />
       <Routes>
         <Route element={<RedirectAuthenticated />}>
           <Route path="login" element={<LoginPage />} />

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Eye, Plus } from 'lucide-react'
+import { Copy, Mail, Plus } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 import { getApiErrorMessage } from '@/api/client'
 import {
@@ -152,6 +153,19 @@ function primaryContact(
   )
 }
 
+async function copyEmailToClipboard(email: string) {
+  try {
+    await navigator.clipboard.writeText(email)
+    toast.success('Email copié dans le presse-papiers.')
+  } catch {
+    toast.error("Impossible de copier l'email.")
+  }
+}
+
+function phoneHref(phoneNumber: string) {
+  return `tel:${phoneNumber.replace(/[^\d+]/g, '')}`
+}
+
 export function SuppliersPage() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
@@ -286,27 +300,70 @@ export function SuppliersPage() {
 
     return filteredSuppliers.map((supplier) => {
       const contact = primaryContact(supplier)
+      const contactEmail = contact?.email?.trim() ?? ''
+      const hasEmail = contactEmail !== ''
 
       return (
         <TableRow key={supplier.id}>
-          <TableCell className="font-medium">
-            <div className="flex items-center justify-between gap-3">
-              <span>{supplier.name}</span>
-              <Button
-                size="icon"
-                variant="ghost"
-                aria-label={`Voir ${supplier.name}`}
-                onClick={() => openDetailModal(supplier)}
-              >
-                <Eye aria-hidden />
-              </Button>
-            </div>
+          <TableCell>
+            <button
+              type="button"
+              className="-mx-3 -my-2 inline-flex min-w-48 max-w-full rounded-md px-3 py-2 text-left font-medium text-foreground transition-colors hover:bg-gold/15 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              onClick={() => openDetailModal(supplier)}
+            >
+              <span className="truncate">{supplier.name}</span>
+            </button>
           </TableCell>
           <TableCell>{contact?.name ?? '-'}</TableCell>
           <TableCell className="whitespace-nowrap">
-            {contact?.phone_number ?? '-'}
+            {contact?.phone_number ? (
+              <a
+                className="-mx-2 -my-1 inline-flex rounded-md px-2 py-1 text-gold underline underline-offset-4 transition-colors hover:bg-gold/15 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                href={phoneHref(contact.phone_number)}
+              >
+                {contact.phone_number}
+              </a>
+            ) : (
+              '-'
+            )}
           </TableCell>
-          <TableCell>{contact?.email ?? '-'}</TableCell>
+          <TableCell>
+            <div className="flex min-w-0 items-center justify-between gap-3">
+              <span className="min-w-0 truncate">{contact?.email ?? '-'}</span>
+              <span className="inline-flex shrink-0 justify-center gap-1">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="text-muted-foreground hover:bg-gold/15 hover:text-gold"
+                  aria-label={
+                    hasEmail
+                      ? `Copier l'email de ${supplier.name}`
+                      : `Aucun email à copier pour ${supplier.name}`
+                  }
+                  disabled={!hasEmail}
+                  onClick={() => void copyEmailToClipboard(contactEmail)}
+                >
+                  <Copy aria-hidden />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="text-muted-foreground hover:bg-gold/15 hover:text-gold"
+                  aria-label={
+                    hasEmail
+                      ? `Envoyer un email à ${supplier.name}`
+                      : `Aucun email pour ${supplier.name}`
+                  }
+                  disabled={!hasEmail}
+                  onClick={() => {
+                    window.location.href = `mailto:${encodeURIComponent(contactEmail)}`
+                  }}
+                >
+                  <Mail aria-hidden />
+                </Button>
+              </span>
+            </div>
+          </TableCell>
         </TableRow>
       )
     })
