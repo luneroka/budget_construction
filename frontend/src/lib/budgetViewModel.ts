@@ -68,34 +68,6 @@ export function isSelectedBudgetTransaction(
   )
 }
 
-export function applyBudgetSelection(
-  line: BudgetLineSummaryViewModel,
-  selection: BudgetSelectionState,
-): BudgetLineSummaryViewModel {
-  return {
-    ...line,
-    selected_quote_transaction_id: selection.selected_quote_transaction_id,
-    selected_diy_estimate_transaction_id:
-      selection.selected_diy_estimate_transaction_id,
-  }
-}
-
-export function createBudgetSelections(
-  products: ProductSummaryViewModel[],
-): Record<string, BudgetSelectionState> {
-  const selections: Record<string, BudgetSelectionState> = {}
-  products.forEach((product) => {
-    product.budget_lines.forEach((line) => {
-      selections[line.budget_line_id] = {
-        selected_quote_transaction_id: line.selected_quote_transaction_id,
-        selected_diy_estimate_transaction_id:
-          line.selected_diy_estimate_transaction_id,
-      }
-    })
-  })
-  return selections
-}
-
 export function groupProductsBySubcategory(
   products: ProductSummaryViewModel[],
 ): SubcategoryGroup[] {

@@ -113,7 +113,7 @@ Tasks: - Remove mock services - Remove fake data - Remove temporary
 adapters - Remove compatibility hacks - Simplify React Query - Final
 regression tests
 
-Status: - \[ \] Not Started - \[ \] In Progress - \[ \] Completed
+Status: - \[ \] Not Started - \[ \] In Progress - \[x\] Completed
 
 ------------------------------------------------------------------------
 
@@ -354,6 +354,31 @@ Validation:
 
 No backend files were changed.
 
+## Chunk 6 Cleanup Summary
+
+Status: Completed.
+
+Scope:
+
+-   Removed the unused `useBudgetSelections` hook that kept selected-budget
+    state locally.
+-   Removed the local selection helper functions from `budgetViewModel`.
+-   Stopped exporting the old `budgetWorkspaceViewModel`,
+    `projectViewModels`, and `templateViewModels` demo fixtures.
+-   Removed the Budget-only demo scenario files for synthetic breakdown and
+    empty-product states.
+-   Kept shared demo adapters/data that are still used by Dashboard,
+    Suppliers, and Documents pages. Those pages are outside this Budget
+    Workspace integration chunk.
+
+Validation:
+
+-   `pnpm build` completed successfully from `frontend/`.
+-   Local smoke check returned `200 OK` for `/budget`.
+-   The existing Vite chunk-size warning remains.
+
+No backend files were changed.
+
 ------------------------------------------------------------------------
 
 # Component Mapping
@@ -397,16 +422,19 @@ No backend files were changed.
 -   Dev-only verification now checks backend financial summary consistency.
 -   Selected-budget CRUD works from the transaction table and no longer closes
     the modal on toggle.
+-   Chunk 6 cleanup.
+-   Removed Budget Workspace mock-only selected-budget state and synthetic
+    Budget page scenario fixtures.
 
 ## Current Task
 
--   Chunk 5 complete. Budget Workspace calculations are verified against the
-    backend financial summary contract.
+-   Chunk 6 complete. Budget Workspace integration is production-ready within
+    the current backend contract.
 
 ## Next Task
 
--   Chunk 6: cleanup mock-only Budget Workspace paths and remove temporary
-    adapters once equivalent backend functionality is verified.
+-   Optional follow-up: integrate Dashboard, Suppliers, and Documents pages
+    with real backend data and then remove the remaining shared demo adapters.
 
 ## Blocking Issues
 
