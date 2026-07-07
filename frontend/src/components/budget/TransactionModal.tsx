@@ -1,9 +1,27 @@
-import { type ReactNode, type SyntheticEvent, useMemo, useState } from 'react'
+import { type ReactNode, type SyntheticEvent, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { ClipboardList, Download, Edit3, Eye, FilePlus2 } from 'lucide-react'
+import {
+  Download,
+  Edit3,
+  Eye,
+  FilePlus2,
+  Paperclip,
+  Trash2,
+  X,
+} from 'lucide-react'
 
-import { invalidateBudgetWorkspaceQueries } from '@/api/budget-workspace-cache'
+import {
+  invalidateBudgetWorkspaceQueries,
+  invalidateDocumentQueries,
+} from '@/api/budget-workspace-cache'
 import { getApiErrorMessage } from '@/api/client'
+import {
+  documentQueryKeys,
+  getDocumentDownloadUrl,
+  useDeleteDocumentMutation,
+  useTransactionDocumentsQuery,
+  useUploadTransactionDocumentMutation,
+} from '@/api/documents'
 import {
   useCreateBudgetLineTransactionMutation,
   useCreateProductTransactionMutation,
@@ -12,18 +30,18 @@ import {
   useUpdateBudgetLineTransactionMutation,
 } from '@/api/transactions'
 import type {
+  DocumentRead,
   TransactionCreate,
   TransactionCreateForProduct,
+  TransactionRead,
   TransactionUpdate,
 } from '@/api/types'
-import { SectionCard } from '@/components/shared/SectionCard'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import type {
   BudgetLineSummaryViewModel,
   InvoiceStatus,
@@ -86,6 +104,11 @@ type TransactionUpdateFormState = {
   payment_method: PaymentMethod
 }
 
+type CreatedTransactionForDocument = {
+  transactionId: number
+  budgetLineId: number
+}
+
 export type ViewedTransactionContext = {
   transaction: TransactionViewModel
   product: ProductSummaryViewModel
@@ -144,6 +167,9 @@ const paymentMethodLabels: Record<PaymentMethod, string> = {
   wire: 'Virement',
 }
 
+const documentInputAccept =
+  'application/pdf,image/jpeg,image/png,image/heic,.pdf,.jpg,.jpeg,.png,.heic'
+
 function todayAsInputValue() {
   return new Date().toISOString().slice(0, 10)
 }
@@ -181,6 +207,16 @@ function parseAmountInput(value: string) {
 
 function formatCalculatedAmount(value: number) {
   return (Math.round(value * 100) / 100).toFixed(2)
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} o`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} Ko`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
+}
+
+function getSelectedFile(event: SyntheticEvent<HTMLInputElement>) {
+  return event.currentTarget.files?.[0] ?? null
 }
 
 function recalculateAmounts<T extends AmountFields>(
@@ -430,29 +466,253 @@ function CompactSection({
   )
 }
 
+function TransactionContextSummary({
+  project,
+  product,
+  budgetLine,
+}: {
+  project: ProjectViewModel
+  product: ProductSummaryViewModel
+  budgetLine?: BudgetLineSummaryViewModel
+}) {
+  const breadcrumbParts = [
+    product.category_name,
+    product.subcategory_name,
+    product.product_name,
+    budgetLine?.item_type === 'breakdown' ? budgetLine.name : null,
+  ].filter(Boolean)
+
+  return (
+    <div className="grid gap-3 rounded-md border border-border bg-muted/25 px-4 py-3 text-sm md:grid-cols-2">
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">Projet</p>
+        <p className="truncate font-medium text-foreground">{project.name}</p>
+      </div>
+      <div className="min-w-0 md:text-right">
+        <p className="text-xs text-muted-foreground">Budget</p>
+        <p className="truncate font-medium text-foreground">
+          {breadcrumbParts.join(' > ')}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function SelectedDocumentPreview({
+  file,
+  onClear,
+}: {
+  file: File
+  onClear: () => void
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2 text-sm">
+      <span className="min-w-0">
+        <span className="block truncate font-medium text-foreground">
+          {file.name}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {formatFileSize(file.size)}
+        </span>
+      </span>
+      <Button size="sm" variant="ghost" type="button" onClick={onClear}>
+        Retirer
+      </Button>
+    </div>
+  )
+}
+
+function NewTransactionDocumentField({
+  file,
+  disabled,
+  onFileChange,
+  onClear,
+}: {
+  file: File | null
+  disabled?: boolean
+  onFileChange: (file: File | null) => void
+  onClear: () => void
+}) {
+  return (
+    <div className="space-y-2 rounded-md border border-border bg-background p-3">
+      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+        <Paperclip className="h-4 w-4 text-muted-foreground" aria-hidden />
+        Document
+      </div>
+      <Input
+        key={file ? 'document-selected' : 'document-empty'}
+        type="file"
+        accept={documentInputAccept}
+        disabled={disabled}
+        onChange={(event) => onFileChange(getSelectedFile(event))}
+      />
+      {file ? <SelectedDocumentPreview file={file} onClear={onClear} /> : null}
+    </div>
+  )
+}
+
+function TransactionDocumentsPanel({
+  transactionId,
+  readOnly,
+}: {
+  transactionId: number
+  readOnly?: boolean
+}) {
+  const queryClient = useQueryClient()
+  const documentsQuery = useTransactionDocumentsQuery(transactionId)
+  const uploadDocumentMutation = useUploadTransactionDocumentMutation()
+  const deleteDocumentMutation = useDeleteDocumentMutation()
+  const [documentError, setDocumentError] = useState<string | null>(null)
+  const isMutating =
+    uploadDocumentMutation.isPending || deleteDocumentMutation.isPending
+
+  async function handleUpload(file: File | null) {
+    if (!file) return
+
+    try {
+      setDocumentError(null)
+      await uploadDocumentMutation.mutateAsync({ transactionId, file })
+      invalidateDocumentQueries(queryClient, transactionId)
+      void queryClient.invalidateQueries({
+        queryKey: documentQueryKeys.lists(),
+      })
+    } catch (error) {
+      setDocumentError(getApiErrorMessage(error))
+    }
+  }
+
+  async function handleDownload(document: DocumentRead) {
+    try {
+      setDocumentError(null)
+      const { url } = await getDocumentDownloadUrl(document.id)
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } catch (error) {
+      setDocumentError(getApiErrorMessage(error))
+    }
+  }
+
+  async function handleDelete(document: DocumentRead) {
+    try {
+      setDocumentError(null)
+      await deleteDocumentMutation.mutateAsync({ documentId: document.id })
+      invalidateDocumentQueries(queryClient, transactionId)
+      void queryClient.invalidateQueries({
+        queryKey: documentQueryKeys.lists(),
+      })
+    } catch (error) {
+      setDocumentError(getApiErrorMessage(error))
+    }
+  }
+
+  const documents = documentsQuery.data ?? []
+
+  return (
+    <div className="space-y-3 rounded-md border border-border p-4">
+      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+        <Paperclip className="h-4 w-4 text-muted-foreground" aria-hidden />
+        Documents
+      </div>
+
+      {readOnly ? null : (
+        <Input
+          type="file"
+          accept={documentInputAccept}
+          disabled={isMutating}
+          onChange={(event) => {
+            const file = getSelectedFile(event)
+            event.currentTarget.value = ''
+            void handleUpload(file)
+          }}
+        />
+      )}
+
+      {documentsQuery.isLoading ? (
+        <p className="text-sm text-muted-foreground">
+          Chargement des documents
+        </p>
+      ) : documentsQuery.isError ? (
+        <p className="text-sm text-destructive">
+          {getApiErrorMessage(documentsQuery.error)}
+        </p>
+      ) : documents.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Aucun document joint.</p>
+      ) : (
+        <div className="space-y-2">
+          {documents.map((document) => (
+            <div
+              key={document.id}
+              className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2 text-sm"
+            >
+              <span className="min-w-0">
+                <span className="block truncate font-medium text-foreground">
+                  {document.original_filename}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {formatFileSize(document.file_size)}
+                </span>
+              </span>
+              <span className="flex shrink-0 items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  type="button"
+                  onClick={() => void handleDownload(document)}
+                >
+                  <Download aria-hidden />
+                  Télécharger
+                </Button>
+                {readOnly ? null : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    type="button"
+                    disabled={isMutating}
+                    onClick={() => void handleDelete(document)}
+                  >
+                    <Trash2 aria-hidden />
+                    Supprimer
+                  </Button>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {documentError ? (
+        <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          {documentError}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
 function ModalShell({
   title,
   icon,
+  headerActions,
   children,
   size = 'wide',
   onClose,
 }: {
   title: string
   icon: ReactNode
+  headerActions?: ReactNode
   children: ReactNode
   size?: 'compact' | 'wide'
   onClose: () => void
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 px-4 py-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-4"
       role="dialog"
       aria-modal="true"
       aria-label={title}
     >
       <div
         className={cn(
-          'flex max-h-[92vh] w-full flex-col overflow-hidden rounded-lg border border-border bg-background text-foreground shadow-lg',
+          'flex max-h-[92vh] w-full flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-xl',
           size === 'compact' ? 'max-w-4xl' : 'max-w-5xl',
         )}
       >
@@ -465,11 +725,19 @@ function ModalShell({
               <p className="text-base font-semibold">{title}</p>
             </div>
           </div>
-          <Button size="sm" variant="outline" onClick={onClose}>
-            Fermer
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            {headerActions}
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label="Fermer"
+              onClick={onClose}
+            >
+              <X aria-hidden />
+            </Button>
+          </div>
         </div>
-        <div className="overflow-y-auto px-5 py-4">{children}</div>
+        <div className="overflow-y-auto px-5 py-4 text-sm">{children}</div>
       </div>
     </div>
   )
@@ -491,20 +759,18 @@ export function TransactionModal({
     createInitialFormState(initialStructure),
   )
   const [amountSource, setAmountSource] = useState<AmountSource>('ht')
+  const [documentFile, setDocumentFile] = useState<File | null>(null)
+  const [createdTransactionForDocument, setCreatedTransactionForDocument] =
+    useState<CreatedTransactionForDocument | null>(null)
   const [mutationError, setMutationError] = useState<string | null>(null)
+  const uploadDocumentMutation = useUploadTransactionDocumentMutation()
   const isProductScoped = !budgetLine
   const canTargetBudgetLine = form.transaction_type !== 'invoice'
   const canSelectAsBudget = canSelectCreatedTransactionAsBudget(form)
   const isSubmitting =
     createBudgetLineTransactionMutation.isPending ||
-    createProductTransactionMutation.isPending
-
-  const selectedSupplierName = useMemo(
-    () =>
-      suppliers.find((supplier) => supplier.id === form.supplier_id)?.name ??
-      'Aucun fournisseur',
-    [form.supplier_id, suppliers],
-  )
+    createProductTransactionMutation.isPending ||
+    uploadDocumentMutation.isPending
 
   function updateField<K extends keyof TransactionFormState>(
     key: K,
@@ -537,10 +803,10 @@ export function TransactionModal({
   }
 
   function getSelectAsBudgetHint() {
-    if (form.transaction_type === 'invoice') {
-      return 'Les factures alimentent le réalisé et ne peuvent pas devenir budget sélectionné.'
-    }
-    if (form.transaction_type === 'quote' && form.quote_status !== 'validated') {
+    if (
+      form.transaction_type === 'quote' &&
+      form.quote_status !== 'validated'
+    ) {
       return 'Validez le devis pour pouvoir le sélectionner comme budget.'
     }
     return 'Le montant contribuera au budget sélectionné de ce poste.'
@@ -554,30 +820,62 @@ export function TransactionModal({
 
     try {
       const projectId = requiredId(project.id, 'Projet')
+      let createdTransaction: TransactionRead
+      let targetBudgetLineId: number
 
-      if (budgetLine) {
+      if (createdTransactionForDocument) {
+        createdTransaction = {
+          id: createdTransactionForDocument.transactionId,
+          budget_line_id: createdTransactionForDocument.budgetLineId,
+        } as TransactionRead
+        targetBudgetLineId = createdTransactionForDocument.budgetLineId
+      } else if (budgetLine) {
         const budgetLineId = requiredId(
           budgetLine.budget_line_id,
           'Ligne de budget',
         )
-        await createBudgetLineTransactionMutation.mutateAsync({
-          projectId,
-          budgetLineId,
-          transaction: buildTransactionCreate({ form }),
-        })
+        createdTransaction =
+          await createBudgetLineTransactionMutation.mutateAsync({
+            projectId,
+            budgetLineId,
+            transaction: buildTransactionCreate({ form }),
+          })
+        targetBudgetLineId = budgetLineId
         invalidateBudgetWorkspaceQueries(queryClient, projectId, budgetLineId)
       } else {
         const productId = requiredId(product.product_id, 'Produit')
-        const createdTransaction =
-          await createProductTransactionMutation.mutateAsync({
+        createdTransaction = await createProductTransactionMutation.mutateAsync(
+          {
             projectId,
             productId,
             transaction: buildProductTransactionCreate(form),
-          })
+          },
+        )
+        targetBudgetLineId = createdTransaction.budget_line_id
         invalidateBudgetWorkspaceQueries(
           queryClient,
           projectId,
           createdTransaction.budget_line_id,
+        )
+      }
+
+      if (documentFile) {
+        setCreatedTransactionForDocument({
+          transactionId: createdTransaction.id,
+          budgetLineId: targetBudgetLineId,
+        })
+        await uploadDocumentMutation.mutateAsync({
+          transactionId: createdTransaction.id,
+          file: documentFile,
+        })
+        invalidateDocumentQueries(queryClient, createdTransaction.id)
+        void queryClient.invalidateQueries({
+          queryKey: documentQueryKeys.lists(),
+        })
+        invalidateBudgetWorkspaceQueries(
+          queryClient,
+          projectId,
+          targetBudgetLineId,
         )
       }
 
@@ -593,342 +891,278 @@ export function TransactionModal({
       icon={<FilePlus2 className="h-5 w-5" aria-hidden="true" />}
       onClose={onClose}
     >
-      <form
-        className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]"
-        onSubmit={handleSubmit}
-      >
-        <div className="space-y-4">
-          <SectionCard
-            title="Contexte"
-            description="Portée utilisée pour construire la route de création."
-            icon={ClipboardList}
-          >
-            <dl className="space-y-3 text-sm">
-              <div>
-                <dt className="text-xs font-medium text-muted-foreground uppercase">
-                  Projet
-                </dt>
-                <dd className="mt-1 font-medium text-foreground">
-                  {project.name}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium text-muted-foreground uppercase">
-                  Produit
-                </dt>
-                <dd className="mt-1 font-medium text-foreground">
-                  {product.product_name}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium text-muted-foreground uppercase">
-                  Ligne de budget
-                </dt>
-                <dd className="mt-1 font-medium text-foreground">
-                  {budgetLine?.name ?? 'Première transaction du produit'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium text-muted-foreground uppercase">
-                  Fournisseur
-                </dt>
-                <dd className="mt-1 text-foreground">{selectedSupplierName}</dd>
-              </div>
-            </dl>
-          </SectionCard>
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <TransactionContextSummary
+          project={project}
+          product={product}
+          budgetLine={budgetLine}
+        />
 
-          <SectionCard title="Route API" icon={FilePlus2}>
-            <div className="rounded-md border border-border bg-muted/30 p-3 text-xs">
-              <p className="font-semibold text-foreground">POST</p>
-              <p className="mt-1 wrap-break-words text-muted-foreground">
-                {budgetLine
-                  ? `/projects/${project.id}/budget-lines/${budgetLine.budget_line_id}/transactions/`
-                  : `/projects/${project.id}/products/${product.product_id}/transactions/`}
-              </p>
-            </div>
-          </SectionCard>
-        </div>
+        <div className="space-y-3 rounded-md border border-border p-4">
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+            Transaction
+          </h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Type" htmlFor="transaction-type">
+              <Select
+                id="transaction-type"
+                value={form.transaction_type}
+                onChange={(event) =>
+                  setForm((current) =>
+                    normalizeForType(
+                      current,
+                      event.target.value as TransactionType,
+                    ),
+                  )
+                }
+              >
+                {Object.entries(transactionTypeLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Fournisseur" htmlFor="transaction-supplier">
+              <Select
+                id="transaction-supplier"
+                value={form.supplier_id}
+                onChange={(event) =>
+                  updateField('supplier_id', event.target.value)
+                }
+              >
+                <option value="">Aucun fournisseur</option>
+                {suppliers.map((supplier) => (
+                  <option key={supplier.id} value={supplier.id}>
+                    {supplier.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Montant HT" htmlFor="transaction-amount-ht">
+              <Input
+                id="transaction-amount-ht"
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.amount_ht}
+                onChange={(event) =>
+                  updateField('amount_ht', event.target.value)
+                }
+                required
+              />
+            </Field>
+            <Field label="TVA (%)" htmlFor="transaction-vat-rate">
+              <Input
+                id="transaction-vat-rate"
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.vat_rate}
+                onChange={(event) =>
+                  updateField('vat_rate', event.target.value)
+                }
+              />
+            </Field>
+            <Field label="Montant TVA" htmlFor="transaction-amount-vat">
+              <Input
+                id="transaction-amount-vat"
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.amount_vat}
+                disabled
+                readOnly
+              />
+            </Field>
+            <Field label="Montant TTC" htmlFor="transaction-amount-ttc">
+              <Input
+                id="transaction-amount-ttc"
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.amount_ttc}
+                onChange={(event) =>
+                  updateField('amount_ttc', event.target.value)
+                }
+                required
+              />
+            </Field>
+            <Field label="Date" htmlFor="transaction-issued-date">
+              <Input
+                id="transaction-issued-date"
+                type="date"
+                value={form.issued_date}
+                onChange={(event) =>
+                  updateField('issued_date', event.target.value)
+                }
+                required
+              />
+            </Field>
 
-        <div className="space-y-4">
-          <SectionCard
-            title="Transaction"
-            description="Les champs affichés suivent les contraintes du backend."
-            icon={FilePlus2}
-          >
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Type" htmlFor="transaction-type">
-                <Select
-                  id="transaction-type"
-                  value={form.transaction_type}
-                  onChange={(event) =>
-                    setForm((current) =>
-                      normalizeForType(
-                        current,
-                        event.target.value as TransactionType,
-                      ),
-                    )
-                  }
-                >
-                  {Object.entries(transactionTypeLabels).map(
-                    ([value, label]) => (
+            {form.transaction_type === 'quote' ? (
+              <>
+                <Field label="Statut devis" htmlFor="transaction-quote-status">
+                  <Select
+                    id="transaction-quote-status"
+                    value={form.quote_status}
+                    onChange={(event) =>
+                      updateQuoteStatus(event.target.value as QuoteStatus)
+                    }
+                  >
+                    {Object.entries(quoteStatusLabels).map(([value, label]) => (
                       <option key={value} value={value}>
                         {label}
                       </option>
-                    ),
-                  )}
-                </Select>
-              </Field>
-              <Field label="Fournisseur" htmlFor="transaction-supplier">
-                <Select
-                  id="transaction-supplier"
-                  value={form.supplier_id}
-                  onChange={(event) =>
-                    updateField('supplier_id', event.target.value)
-                  }
+                    ))}
+                  </Select>
+                </Field>
+                <Field label="Date d'échéance" htmlFor="transaction-due-date">
+                  <Input
+                    id="transaction-due-date"
+                    type="date"
+                    value={form.due_date}
+                    onChange={(event) =>
+                      updateField('due_date', event.target.value)
+                    }
+                  />
+                </Field>
+              </>
+            ) : null}
+
+            {form.transaction_type === 'invoice' ? (
+              <>
+                <Field
+                  label="Statut facture"
+                  htmlFor="transaction-invoice-status"
                 >
-                  <option value="">Aucun fournisseur</option>
-                  {suppliers.map((supplier) => (
-                    <option key={supplier.id} value={supplier.id}>
-                      {supplier.name}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Montant HT" htmlFor="transaction-amount-ht">
-                <Input
-                  id="transaction-amount-ht"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.amount_ht}
-                  onChange={(event) =>
-                    updateField('amount_ht', event.target.value)
-                  }
-                  required
-                />
-              </Field>
-              <Field label="TVA (%)" htmlFor="transaction-vat-rate">
-                <Input
-                  id="transaction-vat-rate"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.vat_rate}
-                  onChange={(event) =>
-                    updateField('vat_rate', event.target.value)
-                  }
-                />
-              </Field>
-              <Field label="Montant TVA" htmlFor="transaction-amount-vat">
-                <Input
-                  id="transaction-amount-vat"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.amount_vat}
-                  disabled
-                  readOnly
-                />
-              </Field>
-              <Field label="Montant TTC" htmlFor="transaction-amount-ttc">
-                <Input
-                  id="transaction-amount-ttc"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.amount_ttc}
-                  onChange={(event) =>
-                    updateField('amount_ttc', event.target.value)
-                  }
-                  required
-                />
-              </Field>
-              <Field label="Date" htmlFor="transaction-issued-date">
-                <Input
-                  id="transaction-issued-date"
-                  type="date"
-                  value={form.issued_date}
-                  onChange={(event) =>
-                    updateField('issued_date', event.target.value)
-                  }
-                  required
-                />
-              </Field>
+                  <Select
+                    id="transaction-invoice-status"
+                    value={form.invoice_status}
+                    onChange={(event) =>
+                      updateField(
+                        'invoice_status',
+                        event.target.value as InvoiceStatus,
+                      )
+                    }
+                  >
+                    {Object.entries(invoiceStatusLabels).map(
+                      ([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ),
+                    )}
+                  </Select>
+                </Field>
+                <Field label="Type facture" htmlFor="transaction-invoice-type">
+                  <Select
+                    id="transaction-invoice-type"
+                    value={form.invoice_type}
+                    onChange={(event) =>
+                      updateField(
+                        'invoice_type',
+                        event.target.value as InvoiceType,
+                      )
+                    }
+                  >
+                    {Object.entries(invoiceTypeLabels).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field
+                  label="Moyen de paiement"
+                  htmlFor="transaction-payment-method"
+                >
+                  <Select
+                    id="transaction-payment-method"
+                    value={form.payment_method}
+                    onChange={(event) =>
+                      updateField(
+                        'payment_method',
+                        event.target.value as PaymentMethod,
+                      )
+                    }
+                  >
+                    {Object.entries(paymentMethodLabels).map(
+                      ([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ),
+                    )}
+                  </Select>
+                </Field>
+                <Field label="Date d'échéance" htmlFor="transaction-due-date">
+                  <Input
+                    id="transaction-due-date"
+                    type="date"
+                    value={form.due_date}
+                    onChange={(event) =>
+                      updateField('due_date', event.target.value)
+                    }
+                  />
+                </Field>
+                <Field
+                  label="Date de paiement"
+                  htmlFor="transaction-payment-date"
+                >
+                  <Input
+                    id="transaction-payment-date"
+                    type="date"
+                    value={form.payment_date}
+                    onChange={(event) =>
+                      updateField('payment_date', event.target.value)
+                    }
+                  />
+                </Field>
+              </>
+            ) : null}
+          </div>
 
-              {form.transaction_type === 'quote' ? (
-                <>
-                  <Field
-                    label="Statut devis"
-                    htmlFor="transaction-quote-status"
+          <div className="mt-4 space-y-4">
+            {isProductScoped && canTargetBudgetLine ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field
+                  label="Portée budget"
+                  htmlFor="transaction-budget-concern"
+                >
+                  <Select
+                    id="transaction-budget-concern"
+                    value={form.budget_concern}
+                    onChange={(event) =>
+                      updateField(
+                        'budget_concern',
+                        event.target.value as BudgetConcern,
+                      )
+                    }
                   >
-                    <Select
-                      id="transaction-quote-status"
-                      value={form.quote_status}
-                      onChange={(event) =>
-                        updateQuoteStatus(
-                          event.target.value as QuoteStatus,
-                        )
-                      }
-                    >
-                      {Object.entries(quoteStatusLabels).map(
-                        ([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ),
-                      )}
-                    </Select>
-                  </Field>
-                  <Field label="Date d'échéance" htmlFor="transaction-due-date">
-                    <Input
-                      id="transaction-due-date"
-                      type="date"
-                      value={form.due_date}
-                      onChange={(event) =>
-                        updateField('due_date', event.target.value)
-                      }
-                    />
-                  </Field>
-                </>
-              ) : null}
-
-              {form.transaction_type === 'invoice' ? (
-                <>
+                    <option value="entire_product">Produit entier</option>
+                    <option value="specific_element">Sous-produit</option>
+                  </Select>
+                </Field>
+                {form.budget_concern === 'specific_element' ? (
                   <Field
-                    label="Statut facture"
-                    htmlFor="transaction-invoice-status"
-                  >
-                    <Select
-                      id="transaction-invoice-status"
-                      value={form.invoice_status}
-                      onChange={(event) =>
-                        updateField(
-                          'invoice_status',
-                          event.target.value as InvoiceStatus,
-                        )
-                      }
-                    >
-                      {Object.entries(invoiceStatusLabels).map(
-                        ([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ),
-                      )}
-                    </Select>
-                  </Field>
-                  <Field
-                    label="Type facture"
-                    htmlFor="transaction-invoice-type"
-                  >
-                    <Select
-                      id="transaction-invoice-type"
-                      value={form.invoice_type}
-                      onChange={(event) =>
-                        updateField(
-                          'invoice_type',
-                          event.target.value as InvoiceType,
-                        )
-                      }
-                    >
-                      {Object.entries(invoiceTypeLabels).map(
-                        ([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ),
-                      )}
-                    </Select>
-                  </Field>
-                  <Field
-                    label="Moyen de paiement"
-                    htmlFor="transaction-payment-method"
-                  >
-                    <Select
-                      id="transaction-payment-method"
-                      value={form.payment_method}
-                      onChange={(event) =>
-                        updateField(
-                          'payment_method',
-                          event.target.value as PaymentMethod,
-                        )
-                      }
-                    >
-                      {Object.entries(paymentMethodLabels).map(
-                        ([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ),
-                      )}
-                    </Select>
-                  </Field>
-                  <Field label="Date d'échéance" htmlFor="transaction-due-date">
-                    <Input
-                      id="transaction-due-date"
-                      type="date"
-                      value={form.due_date}
-                      onChange={(event) =>
-                        updateField('due_date', event.target.value)
-                      }
-                    />
-                  </Field>
-                  <Field
-                    label="Date de paiement"
-                    htmlFor="transaction-payment-date"
+                    label="Nom du sous-produit"
+                    htmlFor="transaction-budget-line-name"
                   >
                     <Input
-                      id="transaction-payment-date"
-                      type="date"
-                      value={form.payment_date}
+                      id="transaction-budget-line-name"
+                      value={form.budget_line_name}
                       onChange={(event) =>
-                        updateField('payment_date', event.target.value)
+                        updateField('budget_line_name', event.target.value)
                       }
+                      required
                     />
                   </Field>
-                </>
-              ) : null}
-            </div>
+                ) : null}
+              </div>
+            ) : null}
 
-            <div className="mt-4 space-y-4">
-              {isProductScoped && canTargetBudgetLine ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Field
-                    label="Portée budget"
-                    htmlFor="transaction-budget-concern"
-                  >
-                    <Select
-                      id="transaction-budget-concern"
-                      value={form.budget_concern}
-                      onChange={(event) =>
-                        updateField(
-                          'budget_concern',
-                          event.target.value as BudgetConcern,
-                        )
-                      }
-                    >
-                      <option value="entire_product">Produit entier</option>
-                      <option value="specific_element">Sous-produit</option>
-                    </Select>
-                  </Field>
-                  {form.budget_concern === 'specific_element' ? (
-                    <Field
-                      label="Nom du sous-produit"
-                      htmlFor="transaction-budget-line-name"
-                    >
-                      <Input
-                        id="transaction-budget-line-name"
-                        value={form.budget_line_name}
-                        onChange={(event) =>
-                          updateField('budget_line_name', event.target.value)
-                        }
-                        required
-                      />
-                    </Field>
-                  ) : null}
-                </div>
-              ) : null}
-
+            {form.transaction_type === 'invoice' ? null : (
               <div
                 className={cn(
                   'rounded-md border p-3',
@@ -955,33 +1189,43 @@ export function TransactionModal({
                   </span>
                 </label>
               </div>
+            )}
 
-              <Field label="Description" htmlFor="transaction-description">
-                <Textarea
-                  id="transaction-description"
-                  value={form.description}
-                  onChange={(event) =>
-                    updateField('description', event.target.value)
-                  }
-                />
-              </Field>
-            </div>
-          </SectionCard>
+            <Field label="Description" htmlFor="transaction-description">
+              <Input
+                id="transaction-description"
+                value={form.description}
+                onChange={(event) =>
+                  updateField('description', event.target.value)
+                }
+              />
+            </Field>
 
-          {mutationError ? (
-            <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-              {mutationError}
-            </div>
-          ) : null}
-
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-              Annuler
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Création...' : 'Créer'}
-            </Button>
+            <NewTransactionDocumentField
+              file={documentFile}
+              disabled={isSubmitting}
+              onFileChange={(file) => {
+                setDocumentFile(file)
+                setMutationError(null)
+              }}
+              onClear={() => setDocumentFile(null)}
+            />
           </div>
+        </div>
+
+        {mutationError ? (
+          <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+            {mutationError}
+          </div>
+        ) : null}
+
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+            Annuler
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Création...' : 'Créer'}
+          </Button>
         </div>
       </form>
     </ModalShell>
@@ -1027,12 +1271,6 @@ export function TransactionReviewModal({
     localIsBudgetSelected ||
     canToggleBudgetSelection ||
     (isEditing && isQuote && form.quote_status === 'validated')
-  const breadcrumbParts = [
-    product.category_name,
-    product.subcategory_name,
-    product.product_name,
-    budgetLine.item_type === 'product' ? null : budgetLine.name,
-  ].filter(Boolean)
 
   function updateField<K extends keyof TransactionUpdateFormState>(
     key: K,
@@ -1147,7 +1385,9 @@ export function TransactionReviewModal({
 
   return (
     <ModalShell
-      title={isEditing ? 'Modifier la transaction' : 'Détails de la transaction'}
+      title={
+        isEditing ? 'Modifier la transaction' : 'Détails de la transaction'
+      }
       icon={
         isEditing ? (
           <Edit3 className="h-5 w-5" aria-hidden="true" />
@@ -1156,39 +1396,40 @@ export function TransactionReviewModal({
         )
       }
       size="compact"
+      headerActions={
+        isEditing || readOnly ? null : (
+          <Button
+            size="sm"
+            variant="outline"
+            type="button"
+            onClick={() => setIsEditing(true)}
+          >
+            <Edit3 aria-hidden />
+            Modifier
+          </Button>
+        )
+      }
       onClose={onClose}
     >
       <form className="space-y-4 text-sm" onSubmit={handleSubmit}>
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <p className="min-w-0 text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{project.name}</span>
-            <span> - {breadcrumbParts.join(' > ')}</span>
-          </p>
-          {isEditing ? (
-            <Button size="sm" variant="outline" type="button" onClick={resetEditMode}>
-              Annuler
-            </Button>
-          ) : readOnly ? null : (
-            <Button
-              size="sm"
-              variant="outline"
-              type="button"
-              onClick={() => setIsEditing(true)}
-            >
-              <Edit3 aria-hidden />
-              Modifier
-            </Button>
-          )}
-        </div>
+        <TransactionContextSummary
+          project={project}
+          product={product}
+          budgetLine={budgetLine}
+        />
 
-        <CompactSection title="Données transaction">
+        <CompactSection title="Transaction">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Field label="Date" htmlFor="review-transaction-issued-date">
               <Input
                 id="review-transaction-issued-date"
                 className="h-9 text-sm"
                 type={isEditing ? 'date' : 'text'}
-                value={isEditing ? form.issued_date : formatDate(transaction.issued_date)}
+                value={
+                  isEditing
+                    ? form.issued_date
+                    : formatDate(transaction.issued_date)
+                }
                 readOnly={!isEditing}
                 onChange={(event) =>
                   updateField('issued_date', event.target.value)
@@ -1235,7 +1476,10 @@ export function TransactionReviewModal({
                   className="h-9 text-sm"
                   value={form.quote_status}
                   onChange={(event) =>
-                    updateField('quote_status', event.target.value as QuoteStatus)
+                    updateField(
+                      'quote_status',
+                      event.target.value as QuoteStatus,
+                    )
                   }
                 >
                   {Object.entries(quoteStatusLabels).map(([value, label]) => (
@@ -1279,9 +1523,15 @@ export function TransactionReviewModal({
                 type={isEditing ? 'number' : 'text'}
                 min="0"
                 step="0.01"
-                value={isEditing ? form.amount_ht : formatCurrency(transaction.amount_ht)}
+                value={
+                  isEditing
+                    ? form.amount_ht
+                    : formatCurrency(transaction.amount_ht)
+                }
                 readOnly={!isEditing}
-                onChange={(event) => updateField('amount_ht', event.target.value)}
+                onChange={(event) =>
+                  updateField('amount_ht', event.target.value)
+                }
                 required
               />
             </Field>
@@ -1294,14 +1544,20 @@ export function TransactionReviewModal({
                 step="0.01"
                 value={isEditing ? form.vat_rate : `${transaction.vat_rate} %`}
                 readOnly={!isEditing}
-                onChange={(event) => updateField('vat_rate', event.target.value)}
+                onChange={(event) =>
+                  updateField('vat_rate', event.target.value)
+                }
               />
             </Field>
             <Field label="Montant TVA" htmlFor="review-transaction-amount-vat">
               <Input
                 id="review-transaction-amount-vat"
                 className="h-9 text-sm"
-                value={isEditing ? form.amount_vat : formatCurrency(transaction.amount_vat)}
+                value={
+                  isEditing
+                    ? form.amount_vat
+                    : formatCurrency(transaction.amount_vat)
+                }
                 readOnly
                 disabled={isEditing}
               />
@@ -1313,9 +1569,15 @@ export function TransactionReviewModal({
                 type={isEditing ? 'number' : 'text'}
                 min="0"
                 step="0.01"
-                value={isEditing ? form.amount_ttc : formatCurrency(transaction.amount_ttc)}
+                value={
+                  isEditing
+                    ? form.amount_ttc
+                    : formatCurrency(transaction.amount_ttc)
+                }
                 readOnly={!isEditing}
-                onChange={(event) => updateField('amount_ttc', event.target.value)}
+                onChange={(event) =>
+                  updateField('amount_ttc', event.target.value)
+                }
                 required
               />
             </Field>
@@ -1323,14 +1585,21 @@ export function TransactionReviewModal({
 
           {isQuote || isInvoice ? (
             <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="Date d'échéance" htmlFor="review-transaction-due-date">
+              <Field
+                label="Date d'échéance"
+                htmlFor="review-transaction-due-date"
+              >
                 <Input
                   id="review-transaction-due-date"
                   className="h-9 text-sm"
                   type={isEditing ? 'date' : 'text'}
-                  value={isEditing ? form.due_date : formatDate(transaction.due_date)}
+                  value={
+                    isEditing ? form.due_date : formatDate(transaction.due_date)
+                  }
                   readOnly={!isEditing}
-                  onChange={(event) => updateField('due_date', event.target.value)}
+                  onChange={(event) =>
+                    updateField('due_date', event.target.value)
+                  }
                 />
               </Field>
               {isInvoice ? (
@@ -1356,7 +1625,10 @@ export function TransactionReviewModal({
                       required={isEditing && form.invoice_status === 'paid'}
                     />
                   </Field>
-                  <Field label="Type facture" htmlFor="review-transaction-invoice-type">
+                  <Field
+                    label="Type facture"
+                    htmlFor="review-transaction-invoice-type"
+                  >
                     {isEditing ? (
                       <Select
                         id="review-transaction-invoice-type"
@@ -1369,11 +1641,13 @@ export function TransactionReviewModal({
                           )
                         }
                       >
-                        {Object.entries(invoiceTypeLabels).map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
+                        {Object.entries(invoiceTypeLabels).map(
+                          ([value, label]) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ),
+                        )}
                       </Select>
                     ) : (
                       <Input
@@ -1404,11 +1678,13 @@ export function TransactionReviewModal({
                           )
                         }
                       >
-                        {Object.entries(paymentMethodLabels).map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
+                        {Object.entries(paymentMethodLabels).map(
+                          ([value, label]) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ),
+                        )}
                       </Select>
                     ) : (
                       <Input
@@ -1430,7 +1706,14 @@ export function TransactionReviewModal({
         </CompactSection>
 
         <CompactSection title="Détails">
-          <div className="grid gap-3 lg:grid-cols-[minmax(16rem,1fr)_13rem_minmax(12rem,auto)] lg:items-end">
+          <div
+            className={cn(
+              'grid gap-3 lg:items-end',
+              isInvoice
+                ? 'lg:grid-cols-1'
+                : 'lg:grid-cols-[minmax(16rem,1fr)_13rem]',
+            )}
+          >
             <Field label="Description" htmlFor="review-transaction-description">
               <Input
                 id="review-transaction-description"
@@ -1442,37 +1725,27 @@ export function TransactionReviewModal({
                 }
               />
             </Field>
-            <label className="flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm">
-              <Checkbox
-                checked={localIsBudgetSelected}
-                disabled={
-                  readOnly || !canToggleBudgetSelectionFromForm || isMutating
-                }
-                onChange={handleBudgetSelectionToggle}
-              />
-              Sélectionné pour budget
-            </label>
-            <div>
-              <p className="text-xs font-medium">Document</p>
-              {transaction.document_state === 'attached' ? (
-                <div className="mt-1 flex h-9 gap-2">
-                  <Button size="sm" variant="outline">
-                    <Eye aria-hidden />
-                    Voir
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    <Download aria-hidden />
-                    Télécharger
-                  </Button>
-                </div>
-              ) : (
-                <div className="mt-1 flex h-9 items-center rounded-md border border-input bg-muted/30 px-3 text-sm text-muted-foreground">
-                  Aucun
-                </div>
-              )}
-            </div>
+            {isInvoice ? null : (
+              <label className="flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm">
+                <Checkbox
+                  checked={localIsBudgetSelected}
+                  disabled={
+                    readOnly || !canToggleBudgetSelectionFromForm || isMutating
+                  }
+                  onChange={handleBudgetSelectionToggle}
+                />
+                Sélectionné pour budget
+              </label>
+            )}
           </div>
         </CompactSection>
+
+        {Number.isInteger(Number(transaction.id)) ? (
+          <TransactionDocumentsPanel
+            transactionId={Number(transaction.id)}
+            readOnly={readOnly}
+          />
+        ) : null}
 
         {mutationError ? (
           <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
