@@ -27,9 +27,9 @@ type SupplierFormState = {
 type SupplierModalProps = {
   mode: SupplierModalMode
   supplier: SupplierRowViewModel | null
-  fallbackUserId: string
   onClose: () => void
-  onSave: (supplier: SupplierRowViewModel) => void
+  onSave: (supplier: SupplierRowViewModel) => Promise<void> | void
+  onDelete?: (supplier: SupplierRowViewModel) => Promise<void> | void
 }
 
 function emptyContact(supplierId: string, isPrimary = false): ContactDraft {
@@ -42,7 +42,9 @@ function emptyContact(supplierId: string, isPrimary = false): ContactDraft {
   }
 }
 
-function supplierToForm(supplier: SupplierRowViewModel | null): SupplierFormState {
+function supplierToForm(
+  supplier: SupplierRowViewModel | null,
+): SupplierFormState {
   const supplierId = supplier?.id ?? `supplier-${crypto.randomUUID()}`
 
   if (supplier === null) {
@@ -82,19 +84,26 @@ function readValue(value: string | null | undefined): string {
 export function SupplierModal({
   mode,
   supplier,
-  fallbackUserId,
   onClose,
   onSave,
+  onDelete,
 }: SupplierModalProps) {
   const [currentMode, setCurrentMode] = useState<SupplierModalMode>(mode)
-  const [form, setForm] = useState<SupplierFormState>(() => supplierToForm(supplier))
+  const [form, setForm] = useState<SupplierFormState>(() =>
+    supplierToForm(supplier),
+  )
   const [formError, setFormError] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const isReadOnly = currentMode === 'view'
+  const isBusy = isSaving || isDeleting
 
   useEffect(() => {
     setCurrentMode(mode)
     setForm(supplierToForm(supplier))
     setFormError(null)
+    setIsSaving(false)
+    setIsDeleting(false)
   }, [mode, supplier])
 
   function updateContact(contactId: string, updates: Partial<ContactDraft>) {
@@ -133,7 +142,9 @@ export function SupplierModal({
     setForm((current) => {
       if (current.contacts.length === 1) return current
 
-      const removedContact = current.contacts.find((contact) => contact.id === contactId)
+      const removedContact = current.contacts.find(
+        (contact) => contact.id === contactId,
+      )
       const remainingContacts = current.contacts.filter(
         (contact) => contact.id !== contactId,
       )
@@ -146,7 +157,7 @@ export function SupplierModal({
     })
   }
 
-  function saveSupplier() {
+  async function saveSupplier() {
     const hasName = form.name.trim() !== ''
     const primaryContacts = form.contacts.filter(
       (contact) => contact.is_primary || form.contacts.length === 1,
@@ -174,27 +185,60 @@ export function SupplierModal({
     }
 
     const supplierId = form.id ?? `supplier-${crypto.randomUUID()}`
-    onSave({
-      id: supplierId,
-      user_id: supplier?.user_id ?? fallbackUserId,
-      name: form.name.trim(),
-      siret: normalizeOptional(form.siret),
-      comment: normalizeOptional(form.comment) ?? '',
-      contacts: form.contacts.map((contact) => ({
-        id: contact.id,
-        supplier_id: supplierId,
-        name: normalizeOptional(contact.name),
-        phone_number: normalizeOptional(contact.phone_number),
-        email: normalizeOptional(contact.email),
-        is_primary: form.contacts.length === 1 ? true : contact.is_primary,
-        created_at: null,
+    setIsSaving(true)
+    setFormError(null)
+
+    try {
+      await onSave({
+        id: supplierId,
+        user_id: supplier?.user_id ?? '0',
+        name: form.name.trim(),
+        siret: normalizeOptional(form.siret),
+        comment: normalizeOptional(form.comment) ?? '',
+        contacts: form.contacts.map((contact) => ({
+          id: contact.id,
+          supplier_id: supplierId,
+          name: normalizeOptional(contact.name),
+          phone_number: normalizeOptional(contact.phone_number),
+          email: normalizeOptional(contact.email),
+          is_primary: form.contacts.length === 1 ? true : contact.is_primary,
+          created_at: null,
+          updated_at: null,
+        })),
+        created_at: supplier?.created_at ?? null,
         updated_at: null,
-      })),
-      created_at: supplier?.created_at ?? null,
-      updated_at: null,
-      deleted_at: supplier?.deleted_at ?? null,
-    })
-    onClose()
+        deleted_at: supplier?.deleted_at ?? null,
+      })
+      onClose()
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : 'Enregistrement impossible.',
+      )
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function deleteSupplier() {
+    if (!supplier || !onDelete) return
+    const confirmed = window.confirm(
+      `Supprimer le fournisseur "${supplier.name}" ?`,
+    )
+    if (!confirmed) return
+
+    setIsDeleting(true)
+    setFormError(null)
+
+    try {
+      await onDelete(supplier)
+      onClose()
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : 'Suppression impossible.',
+      )
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -219,12 +263,34 @@ export function SupplierModal({
           </div>
           <div className="flex items-center gap-2">
             {currentMode === 'view' ? (
-              <Button size="sm" variant="outline" onClick={() => setCurrentMode('edit')}>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={isBusy}
+                onClick={() => setCurrentMode('edit')}
+              >
                 <Pencil aria-hidden />
                 Modifier
               </Button>
             ) : null}
-            <Button size="icon" variant="ghost" aria-label="Fermer" onClick={onClose}>
+            {supplier && onDelete ? (
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={isBusy}
+                onClick={deleteSupplier}
+              >
+                <Trash2 aria-hidden />
+                {isDeleting ? 'Suppression...' : 'Supprimer'}
+              </Button>
+            ) : null}
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label="Fermer"
+              disabled={isBusy}
+              onClick={onClose}
+            >
               <X aria-hidden />
             </Button>
           </div>
@@ -247,7 +313,9 @@ export function SupplierModal({
                     <dd>{readValue(supplier?.siret)}</dd>
                   </div>
                   <div className="sm:col-span-2">
-                    <dt className="text-xs text-muted-foreground">Commentaire</dt>
+                    <dt className="text-xs text-muted-foreground">
+                      Commentaire
+                    </dt>
                     <dd>{readValue(supplier?.comment)}</dd>
                   </div>
                 </dl>
@@ -263,7 +331,9 @@ export function SupplierModal({
                       key={contact.id}
                       className="grid gap-2 px-1 py-1 md:grid-cols-[minmax(11rem,1.1fr)_minmax(10rem,0.9fr)_minmax(16rem,1.4fr)_88px]"
                     >
-                      <span className="font-medium">{readValue(contact.name)}</span>
+                      <span className="font-medium">
+                        {readValue(contact.name)}
+                      </span>
                       <span>{readValue(contact.phone_number)}</span>
                       <span>{readValue(contact.email)}</span>
                       <span className="text-xs text-muted-foreground">
@@ -282,7 +352,10 @@ export function SupplierModal({
                 </h3>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="text-xs font-medium" htmlFor="supplier-name">
+                    <label
+                      className="text-xs font-medium"
+                      htmlFor="supplier-name"
+                    >
                       Fournisseur
                     </label>
                     <Input
@@ -295,7 +368,10 @@ export function SupplierModal({
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-medium" htmlFor="supplier-siret">
+                    <label
+                      className="text-xs font-medium"
+                      htmlFor="supplier-siret"
+                    >
                       SIRET
                     </label>
                     <Input
@@ -309,7 +385,10 @@ export function SupplierModal({
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-medium" htmlFor="supplier-comment">
+                  <label
+                    className="text-xs font-medium"
+                    htmlFor="supplier-comment"
+                  >
                     Commentaire
                   </label>
                   <Input
@@ -328,7 +407,12 @@ export function SupplierModal({
                   <h3 className="text-xs font-semibold uppercase text-muted-foreground">
                     Contacts
                   </h3>
-                  <Button size="sm" variant="outline" onClick={addContact}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={isBusy}
+                    onClick={addContact}
+                  >
                     <Plus aria-hidden />
                     Ajouter un contact
                   </Button>
@@ -346,7 +430,9 @@ export function SupplierModal({
                         placeholder="Nom"
                         value={contact.name}
                         onChange={(event) =>
-                          updateContact(contact.id, { name: event.target.value })
+                          updateContact(contact.id, {
+                            name: event.target.value,
+                          })
                         }
                       />
                       <Input
@@ -366,13 +452,21 @@ export function SupplierModal({
                         placeholder="Email"
                         value={contact.email}
                         onChange={(event) =>
-                          updateContact(contact.id, { email: event.target.value })
+                          updateContact(contact.id, {
+                            email: event.target.value,
+                          })
                         }
                       />
                       <label className="flex items-center gap-2 text-xs">
                         <Checkbox
-                          checked={contact.is_primary || form.contacts.length === 1}
-                          disabled={contact.is_primary || form.contacts.length === 1}
+                          checked={
+                            contact.is_primary || form.contacts.length === 1
+                          }
+                          disabled={
+                            isBusy ||
+                            contact.is_primary ||
+                            form.contacts.length === 1
+                          }
                           onChange={(event) =>
                             updateContact(contact.id, {
                               is_primary: event.target.checked,
@@ -385,7 +479,7 @@ export function SupplierModal({
                         size="icon"
                         variant="ghost"
                         aria-label="Supprimer le contact"
-                        disabled={form.contacts.length === 1}
+                        disabled={isBusy || form.contacts.length === 1}
                         onClick={() => removeContact(contact.id)}
                       >
                         <Trash2 aria-hidden />
@@ -403,14 +497,14 @@ export function SupplierModal({
         </div>
 
         <div className="flex justify-end gap-2 border-t border-border px-5 py-3">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" disabled={isBusy} onClick={onClose}>
             <X aria-hidden />
             Fermer
           </Button>
           {!isReadOnly ? (
-            <Button variant="gold" onClick={saveSupplier}>
+            <Button variant="gold" disabled={isBusy} onClick={saveSupplier}>
               <Check aria-hidden />
-              Enregistrer
+              {isSaving ? 'Enregistrement...' : 'Enregistrer'}
             </Button>
           ) : null}
         </div>

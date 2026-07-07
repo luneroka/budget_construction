@@ -6,10 +6,7 @@ export type InvoiceStatus = 'unpaid' | 'on_hold' | 'paid'
 export type InvoiceType = 'full' | 'deposit' | 'interim' | 'balance'
 export type PaymentMethod = 'cash' | 'card' | 'wire'
 export type DocumentDisplayState =
-  | 'attached'
-  | 'missing'
-  | 'deleted'
-  | 'upload_error'
+  'attached' | 'missing' | 'deleted' | 'upload_error'
 
 export type CatalogSeed = Array<{
   name: string
@@ -219,10 +216,6 @@ export type BudgetWorkspaceViewModel = {
   categories: BudgetCategoryViewModel[]
   financialSummary: FinancialSummaryViewModel
   transactions: TransactionViewModel[]
-}
-
-export type SupplierTableViewModel = {
-  suppliers: SupplierRowViewModel[]
 }
 
 export type DocumentRowViewModel = {

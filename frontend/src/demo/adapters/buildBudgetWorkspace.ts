@@ -7,11 +7,9 @@ import type {
   PowerBiSeed,
   ProductSummaryViewModel,
   ProjectViewModel,
-  SupplierRowViewModel,
   TemplateViewModel,
   TransactionViewModel,
 } from '@/demo/types'
-import { buildSuppliers } from '@/demo/adapters/buildSuppliers'
 import {
   countTransactions,
   parseAmount,
@@ -21,7 +19,15 @@ import {
   sumProducts,
 } from '@/demo/adapters/utils'
 
-function buildProject(seed: PowerBiSeed, selectedBudgetAmount: number): ProjectViewModel {
+type DemoSupplierReference = {
+  id: string
+  name: string
+}
+
+function buildProject(
+  seed: PowerBiSeed,
+  selectedBudgetAmount: number,
+): ProjectViewModel {
   return {
     id: seed.project.key,
     user_id: seed.user.key,
@@ -55,7 +61,7 @@ function findTransactionGroup(seed: PowerBiSeed, productName: string) {
 function buildTransactions(
   group: PowerBiSeed['transactions_by_budget_line'][number],
   budgetLineId: string,
-  suppliersById: Map<string, SupplierRowViewModel>,
+  suppliersById: Map<string, DemoSupplierReference>,
 ): TransactionViewModel[] {
   return group.transactions.map<TransactionViewModel>((transaction, index) => {
     const supplier = transaction.supplier_key
@@ -81,7 +87,8 @@ function buildTransactions(
       invoice_type: transaction.transaction_type === 'invoice' ? 'full' : null,
       payment_method: transaction.payment_method,
       select_as_budget: transaction.select_as_budget,
-      document_state: transaction.transaction_type === 'invoice' ? 'attached' : 'missing',
+      document_state:
+        transaction.transaction_type === 'invoice' ? 'attached' : 'missing',
     }
   })
 }
@@ -119,7 +126,8 @@ function buildBudgetLine(
   const diyEstimates = transactions.filter(
     (transaction) => transaction.transaction_type === 'diy_estimate',
   )
-  const actualCostAmount = sumInvoicesByStatus(transactions, 'paid') +
+  const actualCostAmount =
+    sumInvoicesByStatus(transactions, 'paid') +
     sumInvoicesByStatus(transactions, 'unpaid') +
     sumInvoicesByStatus(transactions, 'on_hold')
   const selectedBudgetAmount =
@@ -219,12 +227,17 @@ function buildFinancialSummary(
     validated_quote_amount_ttc: validatedQuoteAmount,
     diy_estimate_amount_ttc: sum(
       transactions
-        .filter((transaction) => transaction.transaction_type === 'diy_estimate')
+        .filter(
+          (transaction) => transaction.transaction_type === 'diy_estimate',
+        )
         .map((transaction) => transaction.amount_ttc),
     ),
     actual_cost_amount_ttc: actualCostAmount,
     paid_invoice_amount_ttc: sumProducts(products, 'paid_invoice_amount_ttc'),
-    unpaid_invoice_amount_ttc: sumProducts(products, 'unpaid_invoice_amount_ttc'),
+    unpaid_invoice_amount_ttc: sumProducts(
+      products,
+      'unpaid_invoice_amount_ttc',
+    ),
     on_hold_invoice_amount_ttc: sumProducts(
       products,
       'on_hold_invoice_amount_ttc',
@@ -249,7 +262,10 @@ export function buildBudgetWorkspace(
   powerBiSeed: PowerBiSeed,
 ): BudgetWorkspaceViewModel {
   const suppliersById = new Map(
-    buildSuppliers(powerBiSeed).suppliers.map((supplier) => [supplier.id, supplier]),
+    powerBiSeed.suppliers.map((supplier) => [
+      supplier.key,
+      { id: supplier.key, name: supplier.name },
+    ]),
   )
   const allTransactions: TransactionViewModel[] = []
   const allProducts: ProductSummaryViewModel[] = []
@@ -302,7 +318,10 @@ export function buildBudgetWorkspace(
   const financialSummary = buildFinancialSummary(allProducts, allTransactions)
 
   return {
-    project: buildProject(powerBiSeed, financialSummary.selected_budget_amount_ttc),
+    project: buildProject(
+      powerBiSeed,
+      financialSummary.selected_budget_amount_ttc,
+    ),
     templates: buildTemplates(powerBiSeed),
     categories,
     financialSummary,
