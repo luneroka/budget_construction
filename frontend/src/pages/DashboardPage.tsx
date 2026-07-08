@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react'
-
 import { CircleDollarSign, Gauge, ReceiptText, WalletCards } from 'lucide-react'
 import {
   Bar,
@@ -34,295 +32,29 @@ import {
 import { ChartCard } from '@/components/shared/ChartCard'
 import { KpiCard } from '@/components/shared/KpiCard'
 import { PageHeader } from '@/components/shared/PageHeader'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import type {
-  ApiDecimal,
-  DashboardBudgetAlertRead,
-  DashboardTransactionWidgetItemRead,
-  DashboardTransactionWidgetRead,
-} from '@/api/types'
-import { formatCurrency, formatDate, formatMonth } from '@/lib/format'
+import {
+  ActionCenterWidget,
+  BudgetAlertsWidgetContent,
+  TransactionWidgetContent,
+} from '@/components/dashboard/ActionCenter'
+import {
+  DashboardChartSkeleton,
+  DashboardKpiSkeleton,
+} from '@/components/dashboard/Skeletons'
+import {
+  DashboardChartMessage,
+  DashboardMessage,
+} from '@/components/dashboard/Messages'
+import { CategoryTreemapNode } from '@/components/dashboard/TreemapNode'
+import {
+  chartColors,
+  currencyTooltip,
+  decimalToNumber,
+  distributionColors,
+  formatDashboardPercentage,
+} from '@/components/dashboard/utils'
+import { formatCurrency, formatMonth } from '@/lib/format'
 import { useAppState } from '@/state/appState'
-
-const chartColors = {
-  primary: 'hsl(var(--primary))',
-  accent: 'hsl(var(--accent))',
-  gold: 'hsl(var(--gold))',
-  success: 'hsl(var(--success))',
-  warning: 'hsl(var(--warning))',
-  destructive: 'hsl(var(--destructive))',
-  border: 'hsl(var(--border))',
-  mutedForeground: 'hsl(var(--muted-foreground))',
-}
-
-const distributionColors = [
-  chartColors.primary,
-  chartColors.accent,
-  chartColors.gold,
-  chartColors.success,
-  chartColors.warning,
-  chartColors.destructive,
-]
-
-function decimalToNumber(
-  value: ApiDecimal | number | null | undefined,
-): number {
-  const parsed = Number(value ?? 0)
-  return Number.isFinite(parsed) ? parsed : 0
-}
-
-function formatDashboardPercentage(value: ApiDecimal): string {
-  return `${new Intl.NumberFormat('fr-FR', {
-    maximumFractionDigits: 1,
-  }).format(decimalToNumber(value))} %`
-}
-
-function DashboardKpiSkeleton() {
-  return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <div
-          key={index}
-          className="rounded-lg border border-border bg-card p-5"
-        >
-          <div className="flex items-center justify-between gap-4">
-            <div className="h-3 w-28 animate-pulse rounded bg-muted" />
-            <div className="h-4 w-4 animate-pulse rounded bg-muted" />
-          </div>
-          <div className="mt-3 h-8 w-32 animate-pulse rounded bg-muted" />
-          <div className="mt-3 h-4 w-24 animate-pulse rounded bg-muted" />
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function DashboardMessage({ children }: { children: string }) {
-  return (
-    <div className="rounded-lg border border-dashed border-border bg-card p-6 text-sm text-muted-foreground">
-      {children}
-    </div>
-  )
-}
-
-function DashboardChartSkeleton() {
-  return <div className="h-72 animate-pulse rounded-md bg-muted" />
-}
-
-function DashboardChartMessage({ children }: { children: string }) {
-  return (
-    <div className="flex h-72 items-center justify-center rounded-md border border-dashed border-border text-sm text-muted-foreground">
-      {children}
-    </div>
-  )
-}
-
-function DashboardWidgetSkeleton() {
-  return (
-    <div className="space-y-3">
-      {Array.from({ length: 3 }).map((_, index) => (
-        <div key={index} className="h-12 animate-pulse rounded-md bg-muted" />
-      ))}
-    </div>
-  )
-}
-
-function DashboardWidgetMessage({ children }: { children: string }) {
-  return (
-    <div className="flex min-h-36 items-center justify-center rounded-md border border-dashed border-border px-4 text-center text-sm text-muted-foreground">
-      {children}
-    </div>
-  )
-}
-
-function currencyTooltip(value: unknown) {
-  return formatCurrency(decimalToNumber(value as ApiDecimal | number))
-}
-
-type TreemapNodeProps = {
-  x?: number
-  y?: number
-  width?: number
-  height?: number
-  category_name?: string
-  fill?: string
-}
-
-function CategoryTreemapNode(props: unknown) {
-  const {
-    x = 0,
-    y = 0,
-    width = 0,
-    height = 0,
-    category_name: categoryName = '',
-    fill = chartColors.primary,
-  } = props as TreemapNodeProps
-  const canShowLabel = width >= 90 && height >= 36
-
-  return (
-    <g>
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        fill={fill}
-        stroke="hsl(var(--card))"
-        strokeWidth={2}
-      />
-      {canShowLabel ? (
-        <text
-          x={x + 10}
-          y={y + 22}
-          fill="hsl(var(--primary-foreground))"
-          fontSize={12}
-          fontWeight={600}
-        >
-          {categoryName}
-        </text>
-      ) : null}
-    </g>
-  )
-}
-
-function ActionCenterWidget({
-  children,
-  count,
-  title,
-}: {
-  children: ReactNode
-  count: number
-  title: string
-}) {
-  return (
-    <ChartCard
-      title={title}
-      action={
-        <div className="flex items-center gap-2">
-          <Badge variant={count > 0 ? 'default' : 'muted'}>{count}</Badge>
-          <Button size="sm" variant="outline" disabled>
-            Voir tout
-          </Button>
-        </div>
-      }
-    >
-      {children}
-    </ChartCard>
-  )
-}
-
-function transactionItemTitle(item: DashboardTransactionWidgetItemRead) {
-  return item.description?.trim() || item.budget_line_name || item.product_name
-}
-
-function TransactionWidgetContent({
-  emptyMessage,
-  error,
-  isError,
-  isLoading,
-  widget,
-}: {
-  emptyMessage: string
-  error: unknown
-  isError: boolean
-  isLoading: boolean
-  widget?: DashboardTransactionWidgetRead
-}) {
-  if (isLoading) return <DashboardWidgetSkeleton />
-  if (isError) {
-    return (
-      <DashboardWidgetMessage>
-        {getApiErrorMessage(error)}
-      </DashboardWidgetMessage>
-    )
-  }
-  if (!widget || widget.items.length === 0) {
-    return <DashboardWidgetMessage>{emptyMessage}</DashboardWidgetMessage>
-  }
-
-  return (
-    <div className="divide-y divide-border">
-      {widget.items.map((item) => (
-        <div
-          key={item.transaction_id}
-          className="grid grid-cols-[1fr_auto] gap-3 py-3 first:pt-0 last:pb-0"
-        >
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-foreground">
-              {transactionItemTitle(item)}
-            </p>
-            <p className="mt-1 truncate text-xs text-muted-foreground">
-              {item.supplier_name ?? 'Autoconstruction'} · {item.category_name}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm font-semibold text-foreground">
-              {formatCurrency(decimalToNumber(item.amount_ttc))}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {formatDate(item.issued_date)}
-            </p>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function BudgetAlertsWidgetContent({
-  emptyMessage,
-  error,
-  isError,
-  isLoading,
-  items,
-}: {
-  emptyMessage: string
-  error: unknown
-  isError: boolean
-  isLoading: boolean
-  items?: DashboardBudgetAlertRead[]
-}) {
-  if (isLoading) return <DashboardWidgetSkeleton />
-  if (isError) {
-    return (
-      <DashboardWidgetMessage>
-        {getApiErrorMessage(error)}
-      </DashboardWidgetMessage>
-    )
-  }
-  if (!items || items.length === 0) {
-    return <DashboardWidgetMessage>{emptyMessage}</DashboardWidgetMessage>
-  }
-
-  return (
-    <div className="divide-y divide-border">
-      {items.map((item) => (
-        <div
-          key={item.product_id}
-          className="grid grid-cols-[1fr_auto] gap-3 py-3 first:pt-0 last:pb-0"
-        >
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-foreground">
-              {item.product_name}
-            </p>
-            <p className="mt-1 truncate text-xs text-muted-foreground">
-              {item.category_name}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm font-semibold text-destructive">
-              {formatCurrency(decimalToNumber(item.variance_ttc))}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {formatCurrency(decimalToNumber(item.actual_cost_amount_ttc))}
-            </p>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
 
 export function DashboardPage() {
   const { selectedProjectId } = useAppState()
