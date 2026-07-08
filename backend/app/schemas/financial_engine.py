@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
 from pydantic import BaseModel
 
 from app.models.budget_line import BudgetLineType
+from app.models.transaction import InvoiceStatus, QuoteStatus, TransactionType
 
 
 class FinancialTotalsRead(BaseModel):
@@ -83,3 +84,39 @@ class DashboardSupplierDistributionRead(BaseModel):
     supplier_id: int | None
     supplier_name: str
     actual_cost_amount_ttc: Decimal
+
+
+class DashboardTransactionWidgetItemRead(BaseModel):
+    transaction_id: int
+    budget_line_id: int
+    transaction_type: TransactionType
+    amount_ttc: Decimal
+    issued_date: date
+    due_date: date | None = None
+    description: str | None = None
+    quote_status: QuoteStatus | None = None
+    invoice_status: InvoiceStatus | None = None
+    supplier_name: str | None = None
+    category_name: str
+    product_name: str
+    budget_line_name: str
+    has_documents: bool
+
+
+class DashboardTransactionWidgetRead(BaseModel):
+    count: int
+    items: list[DashboardTransactionWidgetItemRead]
+
+
+class DashboardBudgetAlertRead(BaseModel):
+    product_id: int
+    product_name: str
+    category_name: str
+    selected_budget_amount_ttc: Decimal
+    actual_cost_amount_ttc: Decimal
+    variance_ttc: Decimal
+
+
+class DashboardBudgetAlertsRead(BaseModel):
+    count: int
+    items: list[DashboardBudgetAlertRead]

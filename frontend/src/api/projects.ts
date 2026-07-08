@@ -3,11 +3,13 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { apiConfig } from './config'
 import { apiGet, apiPatch, apiPost } from './client'
 import type {
+  DashboardBudgetAlertsRead,
   DashboardCategoryBudgetActualRead,
   DashboardCategoryDistributionRead,
   DashboardFinancialOverviewRead,
   DashboardSpendingOverTimePointRead,
   DashboardSupplierDistributionRead,
+  DashboardTransactionWidgetRead,
   GeneratedProjectRead,
   ProjectFinancialSummaryRead,
   ProjectFromTemplateCreate,
@@ -25,15 +27,52 @@ export const projectQueryKeys = {
   financialSummary: (projectId: number) =>
     [...projectQueryKeys.all, projectId, 'financial-summary'] as const,
   dashboardFinancialOverview: (projectId: number) =>
-    [...projectQueryKeys.all, projectId, 'dashboard', 'financial-overview'] as const,
+    [
+      ...projectQueryKeys.all,
+      projectId,
+      'dashboard',
+      'financial-overview',
+    ] as const,
   dashboardSpendingOverTime: (projectId: number) =>
-    [...projectQueryKeys.all, projectId, 'dashboard', 'charts', 'spending-over-time'] as const,
+    [
+      ...projectQueryKeys.all,
+      projectId,
+      'dashboard',
+      'charts',
+      'spending-over-time',
+    ] as const,
   dashboardBudgetVsActual: (projectId: number) =>
-    [...projectQueryKeys.all, projectId, 'dashboard', 'charts', 'budget-vs-actual'] as const,
+    [
+      ...projectQueryKeys.all,
+      projectId,
+      'dashboard',
+      'charts',
+      'budget-vs-actual',
+    ] as const,
   dashboardCategoryDistribution: (projectId: number) =>
-    [...projectQueryKeys.all, projectId, 'dashboard', 'charts', 'category-distribution'] as const,
+    [
+      ...projectQueryKeys.all,
+      projectId,
+      'dashboard',
+      'charts',
+      'category-distribution',
+    ] as const,
   dashboardSupplierDistribution: (projectId: number) =>
-    [...projectQueryKeys.all, projectId, 'dashboard', 'charts', 'supplier-distribution'] as const,
+    [
+      ...projectQueryKeys.all,
+      projectId,
+      'dashboard',
+      'charts',
+      'supplier-distribution',
+    ] as const,
+  dashboardWidget: (projectId: number, widget: string) =>
+    [
+      ...projectQueryKeys.all,
+      projectId,
+      'dashboard',
+      'widgets',
+      widget,
+    ] as const,
 }
 
 export function getProjects(includeDeleted = false): Promise<ProjectRead[]> {
@@ -115,6 +154,54 @@ export function getProjectDashboardSupplierDistribution(
   )
 }
 
+export function getProjectDashboardUnpaidInvoices(
+  projectId: number,
+): Promise<DashboardTransactionWidgetRead> {
+  return apiGet<DashboardTransactionWidgetRead>(
+    `/projects/${projectId}/dashboard/widgets/unpaid-invoices`,
+  )
+}
+
+export function getProjectDashboardQuotesToConfirm(
+  projectId: number,
+): Promise<DashboardTransactionWidgetRead> {
+  return apiGet<DashboardTransactionWidgetRead>(
+    `/projects/${projectId}/dashboard/widgets/quotes-to-confirm`,
+  )
+}
+
+export function getProjectDashboardQuotesToNegotiate(
+  projectId: number,
+): Promise<DashboardTransactionWidgetRead> {
+  return apiGet<DashboardTransactionWidgetRead>(
+    `/projects/${projectId}/dashboard/widgets/quotes-to-negotiate`,
+  )
+}
+
+export function getProjectDashboardMissingDocuments(
+  projectId: number,
+): Promise<DashboardTransactionWidgetRead> {
+  return apiGet<DashboardTransactionWidgetRead>(
+    `/projects/${projectId}/dashboard/widgets/missing-documents`,
+  )
+}
+
+export function getProjectDashboardRecentTransactions(
+  projectId: number,
+): Promise<DashboardTransactionWidgetRead> {
+  return apiGet<DashboardTransactionWidgetRead>(
+    `/projects/${projectId}/dashboard/widgets/recent-transactions`,
+  )
+}
+
+export function getProjectDashboardBudgetAlerts(
+  projectId: number,
+): Promise<DashboardBudgetAlertsRead> {
+  return apiGet<DashboardBudgetAlertsRead>(
+    `/projects/${projectId}/dashboard/widgets/budget-alerts`,
+  )
+}
+
 export function useProjectsQuery(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: projectQueryKeys.list(false),
@@ -172,7 +259,12 @@ export function useProjectDashboardFinancialOverviewQuery(
   return useQuery({
     queryKey:
       projectId === null
-        ? [...projectQueryKeys.all, 'missing-project', 'dashboard', 'financial-overview']
+        ? [
+            ...projectQueryKeys.all,
+            'missing-project',
+            'dashboard',
+            'financial-overview',
+          ]
         : projectQueryKeys.dashboardFinancialOverview(projectId),
     queryFn: () => {
       if (projectId === null) {
@@ -193,7 +285,13 @@ export function useProjectDashboardSpendingOverTimeQuery(
   return useQuery({
     queryKey:
       projectId === null
-        ? [...projectQueryKeys.all, 'missing-project', 'dashboard', 'charts', 'spending-over-time']
+        ? [
+            ...projectQueryKeys.all,
+            'missing-project',
+            'dashboard',
+            'charts',
+            'spending-over-time',
+          ]
         : projectQueryKeys.dashboardSpendingOverTime(projectId),
     queryFn: () => {
       if (projectId === null) {
@@ -214,7 +312,13 @@ export function useProjectDashboardBudgetVsActualQuery(
   return useQuery({
     queryKey:
       projectId === null
-        ? [...projectQueryKeys.all, 'missing-project', 'dashboard', 'charts', 'budget-vs-actual']
+        ? [
+            ...projectQueryKeys.all,
+            'missing-project',
+            'dashboard',
+            'charts',
+            'budget-vs-actual',
+          ]
         : projectQueryKeys.dashboardBudgetVsActual(projectId),
     queryFn: () => {
       if (projectId === null) {
@@ -235,7 +339,13 @@ export function useProjectDashboardCategoryDistributionQuery(
   return useQuery({
     queryKey:
       projectId === null
-        ? [...projectQueryKeys.all, 'missing-project', 'dashboard', 'charts', 'category-distribution']
+        ? [
+            ...projectQueryKeys.all,
+            'missing-project',
+            'dashboard',
+            'charts',
+            'category-distribution',
+          ]
         : projectQueryKeys.dashboardCategoryDistribution(projectId),
     queryFn: () => {
       if (projectId === null) {
@@ -256,7 +366,13 @@ export function useProjectDashboardSupplierDistributionQuery(
   return useQuery({
     queryKey:
       projectId === null
-        ? [...projectQueryKeys.all, 'missing-project', 'dashboard', 'charts', 'supplier-distribution']
+        ? [
+            ...projectQueryKeys.all,
+            'missing-project',
+            'dashboard',
+            'charts',
+            'supplier-distribution',
+          ]
         : projectQueryKeys.dashboardSupplierDistribution(projectId),
     queryFn: () => {
       if (projectId === null) {
@@ -264,6 +380,122 @@ export function useProjectDashboardSupplierDistributionQuery(
       }
 
       return getProjectDashboardSupplierDistribution(projectId)
+    },
+    enabled:
+      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
+  })
+}
+
+function useProjectDashboardTransactionWidgetQuery(
+  projectId: number | null,
+  widget: string,
+  queryFn: (projectId: number) => Promise<DashboardTransactionWidgetRead>,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey:
+      projectId === null
+        ? [
+            ...projectQueryKeys.all,
+            'missing-project',
+            'dashboard',
+            'widgets',
+            widget,
+          ]
+        : projectQueryKeys.dashboardWidget(projectId, widget),
+    queryFn: () => {
+      if (projectId === null) {
+        throw new Error('Identifiant projet manquant.')
+      }
+
+      return queryFn(projectId)
+    },
+    enabled:
+      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
+  })
+}
+
+export function useProjectDashboardUnpaidInvoicesQuery(
+  projectId: number | null,
+  options?: { enabled?: boolean },
+) {
+  return useProjectDashboardTransactionWidgetQuery(
+    projectId,
+    'unpaid-invoices',
+    getProjectDashboardUnpaidInvoices,
+    options,
+  )
+}
+
+export function useProjectDashboardQuotesToConfirmQuery(
+  projectId: number | null,
+  options?: { enabled?: boolean },
+) {
+  return useProjectDashboardTransactionWidgetQuery(
+    projectId,
+    'quotes-to-confirm',
+    getProjectDashboardQuotesToConfirm,
+    options,
+  )
+}
+
+export function useProjectDashboardQuotesToNegotiateQuery(
+  projectId: number | null,
+  options?: { enabled?: boolean },
+) {
+  return useProjectDashboardTransactionWidgetQuery(
+    projectId,
+    'quotes-to-negotiate',
+    getProjectDashboardQuotesToNegotiate,
+    options,
+  )
+}
+
+export function useProjectDashboardMissingDocumentsQuery(
+  projectId: number | null,
+  options?: { enabled?: boolean },
+) {
+  return useProjectDashboardTransactionWidgetQuery(
+    projectId,
+    'missing-documents',
+    getProjectDashboardMissingDocuments,
+    options,
+  )
+}
+
+export function useProjectDashboardRecentTransactionsQuery(
+  projectId: number | null,
+  options?: { enabled?: boolean },
+) {
+  return useProjectDashboardTransactionWidgetQuery(
+    projectId,
+    'recent-transactions',
+    getProjectDashboardRecentTransactions,
+    options,
+  )
+}
+
+export function useProjectDashboardBudgetAlertsQuery(
+  projectId: number | null,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey:
+      projectId === null
+        ? [
+            ...projectQueryKeys.all,
+            'missing-project',
+            'dashboard',
+            'widgets',
+            'budget-alerts',
+          ]
+        : projectQueryKeys.dashboardWidget(projectId, 'budget-alerts'),
+    queryFn: () => {
+      if (projectId === null) {
+        throw new Error('Identifiant projet manquant.')
+      }
+
+      return getProjectDashboardBudgetAlerts(projectId)
     },
     enabled:
       projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),

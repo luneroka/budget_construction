@@ -8,11 +8,13 @@ from app.models.user import User
 from app.repositories import budget_line as budget_line_repository
 from app.repositories import project as project_repository
 from app.schemas.financial_engine import (
+    DashboardBudgetAlertsRead,
     DashboardCategoryBudgetActualRead,
     DashboardCategoryDistributionRead,
     DashboardFinancialOverviewRead,
     DashboardSpendingOverTimePointRead,
     DashboardSupplierDistributionRead,
+    DashboardTransactionWidgetRead,
     ProjectFinancialSummaryRead,
 )
 from app.schemas.project import (
@@ -234,6 +236,144 @@ async def get_project_dashboard_supplier_distribution(
     current_user: User = Depends(get_current_user),
 ):
     projection = await financial_engine.get_dashboard_supplier_distribution(
+        db,
+        project_id,
+        current_user.id,
+    )
+
+    if projection is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
+        )
+
+    return projection
+
+
+@router.get(
+    '/{project_id}/dashboard/widgets/unpaid-invoices',
+    response_model=DashboardTransactionWidgetRead,
+)
+async def get_project_dashboard_unpaid_invoices(
+    project_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    projection = await financial_engine.get_dashboard_unpaid_invoices(
+        db,
+        project_id,
+        current_user.id,
+    )
+
+    if projection is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
+        )
+
+    return projection
+
+
+@router.get(
+    '/{project_id}/dashboard/widgets/quotes-to-confirm',
+    response_model=DashboardTransactionWidgetRead,
+)
+async def get_project_dashboard_quotes_to_confirm(
+    project_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    projection = await financial_engine.get_dashboard_quotes_to_confirm(
+        db,
+        project_id,
+        current_user.id,
+    )
+
+    if projection is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
+        )
+
+    return projection
+
+
+@router.get(
+    '/{project_id}/dashboard/widgets/quotes-to-negotiate',
+    response_model=DashboardTransactionWidgetRead,
+)
+async def get_project_dashboard_quotes_to_negotiate(
+    project_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    projection = await financial_engine.get_dashboard_quotes_to_negotiate(
+        db,
+        project_id,
+        current_user.id,
+    )
+
+    if projection is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
+        )
+
+    return projection
+
+
+@router.get(
+    '/{project_id}/dashboard/widgets/missing-documents',
+    response_model=DashboardTransactionWidgetRead,
+)
+async def get_project_dashboard_missing_documents(
+    project_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    projection = await financial_engine.get_dashboard_missing_documents(
+        db,
+        project_id,
+        current_user.id,
+    )
+
+    if projection is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
+        )
+
+    return projection
+
+
+@router.get(
+    '/{project_id}/dashboard/widgets/recent-transactions',
+    response_model=DashboardTransactionWidgetRead,
+)
+async def get_project_dashboard_recent_transactions(
+    project_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    projection = await financial_engine.get_dashboard_recent_transactions(
+        db,
+        project_id,
+        current_user.id,
+    )
+
+    if projection is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
+        )
+
+    return projection
+
+
+@router.get(
+    '/{project_id}/dashboard/widgets/budget-alerts',
+    response_model=DashboardBudgetAlertsRead,
+)
+async def get_project_dashboard_budget_alerts(
+    project_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    projection = await financial_engine.get_dashboard_budget_alerts(
         db,
         project_id,
         current_user.id,

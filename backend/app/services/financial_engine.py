@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -10,6 +11,7 @@ from sqlalchemy.orm import joinedload, selectinload, with_loader_criteria
 
 from app.models.budget_line import BudgetLine
 from app.models.category import Category
+from app.models.document import Document
 from app.models.product import Product
 from app.models.project import Project
 from app.models.subcategory import Subcategory
@@ -24,15 +26,20 @@ from app.schemas.financial_engine import (
     BudgetLineFinancialSummaryRead,
     DashboardCategoryBudgetActualRead,
     DashboardCategoryDistributionRead,
+    DashboardBudgetAlertRead,
+    DashboardBudgetAlertsRead,
     DashboardFinancialOverviewRead,
     DashboardSpendingOverTimePointRead,
     DashboardSupplierDistributionRead,
+    DashboardTransactionWidgetItemRead,
+    DashboardTransactionWidgetRead,
     FinancialTotalsRead,
     ProductFinancialSummaryRead,
     ProjectFinancialSummaryRead,
 )
 
 ZERO_MONEY = Decimal('0.00')
+DASHBOARD_WIDGET_LIMIT = 5
 
 
 @dataclass
@@ -328,6 +335,161 @@ class FinancialEngine:
             )
         ]
 
+    async def get_dashboard_unpaid_invoices(
+        self,
+        db: AsyncSession,
+        project_id: int,
+        user_id: int,
+    ) -> DashboardTransactionWidgetRead | None:
+        return await self._get_dashboard_transaction_widget(
+            db,
+            project_id,
+            user_id,
+            predicate=lambda transaction: (
+                transaction.transaction_type == TransactionType.invoice
+                and transaction.invoice_status == InvoiceStatus.unpaid
+            ),
+        )
+
+    async def get_dashboard_quotes_to_confirm(
+        self,
+        db: AsyncSession,
+        project_id: int,
+        user_id: int,
+    ) -> DashboardTransactionWidgetRead | None:
+        return await self._get_dashboard_transaction_widget(
+            db,
+            project_id,
+            user_id,
+            predicate=lambda transaction: (
+                transaction.transaction_type == TransactionType.quote
+                and transaction.quote_status == QuoteStatus.to_confirm
+            ),
+        )
+
+    async def get_dashboard_quotes_to_negotiate(
+        self,
+        db: AsyncSession,
+        project_id: int,
+        user_id: int,
+    ) -> DashboardTransactionWidgetRead | None:
+        return await self._get_dashboard_transaction_widget(
+            db,
+            project_id,
+            user_id,
+            predicate=lambda transaction: (
+                transaction.transaction_type == TransactionType.quote
+                and transaction.quote_status == QuoteStatus.to_negotiate
+            ),
+        )
+
+    async def get_dashboard_missing_documents(
+        self,
+        db: AsyncSession,
+        project_id: int,
+        user_id: int,
+    ) -> DashboardTransactionWidgetRead | None:
+        return await self._get_dashboard_transaction_widget(
+            db,
+            project_id,
+            user_id,
+            predicate=lambda transaction: not has_active_documents(transaction),
+        )
+
+    async def get_dashboard_recent_transactions(
+        self,
+        db: AsyncSession,
+        project_id: int,
+        user_id: int,
+    ) -> DashboardTransactionWidgetRead | None:
+        return await self._get_dashboard_transaction_widget(
+            db,
+            project_id,
+            user_id,
+            predicate=lambda _transaction: True,
+        )
+
+    async def get_dashboard_budget_alerts(
+        self,
+        db: AsyncSession,
+        project_id: int,
+        user_id: int,
+    ) -> DashboardBudgetAlertsRead | None:
+        project_financials = await self.calculate_project_financials(
+            db,
+            project_id,
+            user_id,
+        )
+        if project_financials is None:
+            return None
+
+        alerts = [
+            DashboardBudgetAlertRead(
+                product_id=product_financials.product.id,
+                product_name=product_financials.product.name,
+                category_name=(product_financials.product.subcategory.category.name),
+                selected_budget_amount_ttc=(
+                    product_financials.totals.selected_budget_amount_ttc
+                ),
+                actual_cost_amount_ttc=(
+                    product_financials.totals.actual_cost_amount_ttc
+                ),
+                variance_ttc=(
+                    product_financials.totals.selected_budget_amount_ttc
+                    - product_financials.totals.actual_cost_amount_ttc
+                ),
+            )
+            for product_financials in project_financials.products
+            if (
+                product_financials.totals.selected_budget_amount_ttc
+                - product_financials.totals.actual_cost_amount_ttc
+            )
+            < ZERO_MONEY
+        ]
+        alerts.sort(key=lambda alert: alert.variance_ttc)
+
+        return DashboardBudgetAlertsRead(
+            count=len(alerts),
+            items=alerts[:DASHBOARD_WIDGET_LIMIT],
+        )
+
+    async def _get_dashboard_transaction_widget(
+        self,
+        db: AsyncSession,
+        project_id: int,
+        user_id: int,
+        *,
+        predicate: Callable[[Transaction], bool],
+    ) -> DashboardTransactionWidgetRead | None:
+        project_financials = await self.calculate_project_financials(
+            db,
+            project_id,
+            user_id,
+        )
+        if project_financials is None:
+            return None
+
+        transactions = [
+            transaction
+            for transaction in iter_project_transactions(project_financials)
+            if predicate(transaction)
+        ]
+        transactions.sort(
+            key=lambda transaction: (
+                transaction.issued_date,
+                transaction.id,
+            ),
+            reverse=True,
+        )
+
+        return DashboardTransactionWidgetRead(
+            count=len(transactions),
+            items=[
+                dashboard_transaction_item_to_read_model(transaction)
+                for transaction in transactions[:DASHBOARD_WIDGET_LIMIT]
+            ],
+        )
+
     async def calculate_project_financials(
         self,
         db: AsyncSession,
@@ -424,9 +586,16 @@ class FinancialEngine:
                 .joinedload(Product.subcategory)
                 .joinedload(Subcategory.category),
                 selectinload(BudgetLine.transactions).joinedload(Transaction.supplier),
+                selectinload(BudgetLine.transactions).selectinload(
+                    Transaction.documents
+                ),
                 with_loader_criteria(
                     Transaction,
                     Transaction.deleted_at.is_(None),
+                ),
+                with_loader_criteria(
+                    Document,
+                    Document.deleted_at.is_(None),
                 ),
             )
             .where(
@@ -469,6 +638,34 @@ def iter_project_transactions(
         for budget_line_financials in product_financials.budget_lines
         for transaction in budget_line_financials.budget_line.transactions
     ]
+
+
+def has_active_documents(transaction: Transaction) -> bool:
+    return len(transaction.documents) > 0
+
+
+def dashboard_transaction_item_to_read_model(
+    transaction: Transaction,
+) -> DashboardTransactionWidgetItemRead:
+    budget_line = transaction.budget_line
+    product = budget_line.product
+
+    return DashboardTransactionWidgetItemRead(
+        transaction_id=transaction.id,
+        budget_line_id=budget_line.id,
+        transaction_type=transaction.transaction_type,
+        amount_ttc=transaction.amount_ttc,
+        issued_date=transaction.issued_date,
+        due_date=transaction.due_date,
+        description=transaction.description,
+        quote_status=transaction.quote_status,
+        invoice_status=transaction.invoice_status,
+        supplier_name=transaction.supplier.name if transaction.supplier else None,
+        category_name=product.subcategory.category.name,
+        product_name=product.name,
+        budget_line_name=budget_line.name,
+        has_documents=has_active_documents(transaction),
+    )
 
 
 def category_budget_actuals_to_read_models(

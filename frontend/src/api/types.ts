@@ -250,6 +250,42 @@ export type DashboardSupplierDistributionRead = {
   actual_cost_amount_ttc: ApiDecimal
 }
 
+export type DashboardTransactionWidgetItemRead = {
+  transaction_id: number
+  budget_line_id: number
+  transaction_type: TransactionType
+  amount_ttc: ApiDecimal
+  issued_date: ApiDate
+  due_date: ApiDate | null
+  description: string | null
+  quote_status: QuoteStatus | null
+  invoice_status: InvoiceStatus | null
+  supplier_name: string | null
+  category_name: string
+  product_name: string
+  budget_line_name: string
+  has_documents: boolean
+}
+
+export type DashboardTransactionWidgetRead = {
+  count: number
+  items: DashboardTransactionWidgetItemRead[]
+}
+
+export type DashboardBudgetAlertRead = {
+  product_id: number
+  product_name: string
+  category_name: string
+  selected_budget_amount_ttc: ApiDecimal
+  actual_cost_amount_ttc: ApiDecimal
+  variance_ttc: ApiDecimal
+}
+
+export type DashboardBudgetAlertsRead = {
+  count: number
+  items: DashboardBudgetAlertRead[]
+}
+
 export type TransactionBaseWrite = {
   supplier_id?: number | null
   transaction_type: TransactionType

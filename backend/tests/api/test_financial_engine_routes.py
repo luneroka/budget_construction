@@ -75,6 +75,11 @@ async def create_financial_summary_context(
         amount='1200.00',
         quote_status=QuoteStatus.to_negotiate,
     )
+    quote_to_confirm = _quote(
+        second_budget_line,
+        amount='700.00',
+        quote_status=QuoteStatus.to_confirm,
+    )
     selected_diy = _transaction(
         second_budget_line,
         transaction_type=TransactionType.diy_estimate,
@@ -94,6 +99,7 @@ async def create_financial_summary_context(
         [
             selected_quote,
             unselected_quote,
+            quote_to_confirm,
             selected_foundation_diy,
             _invoice(
                 budget_line,
@@ -132,6 +138,13 @@ async def create_financial_summary_context(
                 invoice_type=InvoiceType.full,
                 invoice_status=InvoiceStatus.paid,
                 payment_date=date(2026, 6, 22),
+            ),
+            _invoice(
+                second_budget_line,
+                amount='500.00',
+                invoice_type=InvoiceType.full,
+                invoice_status=InvoiceStatus.paid,
+                payment_date=date(2026, 6, 23),
             ),
         ]
     )
@@ -235,21 +248,21 @@ async def test_project_financial_summary_returns_dashboard_totals(
     assert summary['selected_budget_amount_ttc'] == '1450.00'
     assert summary['selected_quote_budget_amount_ttc'] == '1000.00'
     assert summary['selected_diy_budget_amount_ttc'] == '450.00'
-    assert summary['quote_amount_ttc'] == '2200.00'
+    assert summary['quote_amount_ttc'] == '2900.00'
     assert summary['validated_quote_amount_ttc'] == '1000.00'
     assert summary['diy_estimate_amount_ttc'] == '450.00'
-    assert summary['actual_cost_amount_ttc'] == '425.00'
-    assert summary['paid_invoice_amount_ttc'] == '125.00'
+    assert summary['actual_cost_amount_ttc'] == '925.00'
+    assert summary['paid_invoice_amount_ttc'] == '625.00'
     assert summary['unpaid_invoice_amount_ttc'] == '250.00'
     assert summary['on_hold_invoice_amount_ttc'] == '50.00'
-    assert summary['remaining_budget_amount_ttc'] == '1025.00'
-    assert summary['selected_budget_variance_ttc'] == '1025.00'
-    assert summary['selected_quote_budget_variance_ttc'] == '575.00'
-    assert summary['budget_completion_percentage'] == '29.31'
-    assert summary['quote_count'] == 2
+    assert summary['remaining_budget_amount_ttc'] == '525.00'
+    assert summary['selected_budget_variance_ttc'] == '525.00'
+    assert summary['selected_quote_budget_variance_ttc'] == '75.00'
+    assert summary['budget_completion_percentage'] == '63.79'
+    assert summary['quote_count'] == 3
     assert summary['validated_quote_count'] == 1
     assert summary['diy_estimate_count'] == 2
-    assert summary['invoice_count'] == 4
+    assert summary['invoice_count'] == 5
 
 
 async def test_project_dashboard_financial_overview_returns_kpi_projection(
@@ -269,10 +282,10 @@ async def test_project_dashboard_financial_overview_returns_kpi_projection(
         'project_id': context.project_id,
         'generated_at': overview['generated_at'],
         'selected_budget_amount_ttc': '1450.00',
-        'actual_cost_amount_ttc': '425.00',
-        'remaining_budget_amount_ttc': '1025.00',
-        'selected_budget_variance_ttc': '1025.00',
-        'budget_completion_percentage': '29.31',
+        'actual_cost_amount_ttc': '925.00',
+        'remaining_budget_amount_ttc': '525.00',
+        'selected_budget_variance_ttc': '525.00',
+        'budget_completion_percentage': '63.79',
     }
 
 
@@ -291,7 +304,7 @@ async def test_project_dashboard_spending_over_time_returns_monthly_projection(
     assert response.json() == [
         {
             'month': '2026-06',
-            'actual_cost_amount_ttc': '425.00',
+            'actual_cost_amount_ttc': '925.00',
         }
     ]
 
@@ -313,7 +326,7 @@ async def test_project_dashboard_budget_vs_actual_returns_category_projection(
             'category_id': response.json()[0]['category_id'],
             'category_name': 'Financial Summary Category',
             'selected_budget_amount_ttc': '1450.00',
-            'actual_cost_amount_ttc': '425.00',
+            'actual_cost_amount_ttc': '925.00',
         }
     ]
 
@@ -334,7 +347,7 @@ async def test_project_dashboard_category_distribution_returns_actual_projection
         {
             'category_id': response.json()[0]['category_id'],
             'category_name': 'Financial Summary Category',
-            'actual_cost_amount_ttc': '425.00',
+            'actual_cost_amount_ttc': '925.00',
         }
     ]
 
@@ -353,16 +366,128 @@ async def test_project_dashboard_supplier_distribution_returns_actual_projection
     assert response.status_code == 200
     assert response.json() == [
         {
+            'supplier_id': None,
+            'supplier_name': 'Sans fournisseur',
+            'actual_cost_amount_ttc': '525.00',
+        },
+        {
             'supplier_id': context.supplier_id,
             'supplier_name': 'Acme Construction',
             'actual_cost_amount_ttc': '400.00',
         },
-        {
-            'supplier_id': None,
-            'supplier_name': 'Sans fournisseur',
-            'actual_cost_amount_ttc': '25.00',
-        },
     ]
+
+
+async def test_project_dashboard_unpaid_invoices_returns_widget_projection(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_financial_summary_context(db_session)
+
+    response = await client.get(
+        f'/projects/{context.project_id}/dashboard/widgets/unpaid-invoices',
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 200
+    widget = response.json()
+    assert widget['count'] == 1
+    assert len(widget['items']) == 1
+    assert widget['items'][0]['transaction_type'] == 'invoice'
+    assert widget['items'][0]['invoice_status'] == 'unpaid'
+    assert widget['items'][0]['amount_ttc'] == '250.00'
+
+
+async def test_project_dashboard_quote_widgets_return_status_projections(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_financial_summary_context(db_session)
+
+    confirm_response = await client.get(
+        f'/projects/{context.project_id}/dashboard/widgets/quotes-to-confirm',
+        headers=auth_headers(context.access_token),
+    )
+    negotiate_response = await client.get(
+        f'/projects/{context.project_id}/dashboard/widgets/quotes-to-negotiate',
+        headers=auth_headers(context.access_token),
+    )
+
+    assert confirm_response.status_code == 200
+    confirm_widget = confirm_response.json()
+    assert confirm_widget['count'] == 1
+    assert confirm_widget['items'][0]['transaction_type'] == 'quote'
+    assert confirm_widget['items'][0]['quote_status'] == 'to_confirm'
+
+    assert negotiate_response.status_code == 200
+    negotiate_widget = negotiate_response.json()
+    assert negotiate_widget['count'] == 1
+    assert negotiate_widget['items'][0]['transaction_type'] == 'quote'
+    assert negotiate_widget['items'][0]['quote_status'] == 'to_negotiate'
+
+
+async def test_project_dashboard_missing_documents_returns_limited_widget_projection(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_financial_summary_context(db_session)
+
+    response = await client.get(
+        f'/projects/{context.project_id}/dashboard/widgets/missing-documents',
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 200
+    widget = response.json()
+    assert widget['count'] == 10
+    assert len(widget['items']) == 5
+    assert all(not item['has_documents'] for item in widget['items'])
+
+
+async def test_project_dashboard_recent_transactions_returns_limited_widget_projection(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_financial_summary_context(db_session)
+
+    response = await client.get(
+        f'/projects/{context.project_id}/dashboard/widgets/recent-transactions',
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 200
+    widget = response.json()
+    assert widget['count'] == 10
+    assert len(widget['items']) == 5
+    assert widget['items'][0]['issued_date'] == '2026-06-10'
+
+
+async def test_project_dashboard_budget_alerts_returns_negative_variances(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_financial_summary_context(db_session)
+
+    response = await client.get(
+        f'/projects/{context.project_id}/dashboard/widgets/budget-alerts',
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 200
+    widget = response.json()
+    assert widget == {
+        'count': 1,
+        'items': [
+            {
+                'product_id': context.second_product_id,
+                'product_name': 'Windows',
+                'category_name': 'Financial Summary Category',
+                'selected_budget_amount_ttc': '300.00',
+                'actual_cost_amount_ttc': '525.00',
+                'variance_ttc': '-225.00',
+            }
+        ],
+    }
 
 
 async def test_project_financial_summary_breaks_down_by_product(
@@ -395,8 +520,8 @@ async def test_project_financial_summary_breaks_down_by_product(
     assert windows['product_name'] == 'Windows'
     assert windows['selected_budget_amount_ttc'] == '300.00'
     assert windows['selected_diy_budget_amount_ttc'] == '300.00'
-    assert windows['actual_cost_amount_ttc'] == '25.00'
-    assert windows['invoice_count'] == 1
+    assert windows['actual_cost_amount_ttc'] == '525.00'
+    assert windows['invoice_count'] == 2
 
 
 async def test_project_financial_summary_includes_empty_template_product(
