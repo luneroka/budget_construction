@@ -446,19 +446,6 @@ export function DashboardPage() {
               </ActionCenterWidget>
 
               <ActionCenterWidget
-                title="Devis à confirmer"
-                count={quotesToConfirmQuery.data?.count ?? 0}
-              >
-                <TransactionWidgetContent
-                  emptyMessage="Aucun devis à confirmer."
-                  error={quotesToConfirmQuery.error}
-                  isError={quotesToConfirmQuery.isError}
-                  isLoading={quotesToConfirmQuery.isLoading}
-                  widget={quotesToConfirmQuery.data}
-                />
-              </ActionCenterWidget>
-
-              <ActionCenterWidget
                 title="Devis à négocier"
                 count={quotesToNegotiateQuery.data?.count ?? 0}
               >
@@ -468,6 +455,19 @@ export function DashboardPage() {
                   isError={quotesToNegotiateQuery.isError}
                   isLoading={quotesToNegotiateQuery.isLoading}
                   widget={quotesToNegotiateQuery.data}
+                />
+              </ActionCenterWidget>
+
+              <ActionCenterWidget
+                title="Devis à confirmer"
+                count={quotesToConfirmQuery.data?.count ?? 0}
+              >
+                <TransactionWidgetContent
+                  emptyMessage="Aucun devis à confirmer."
+                  error={quotesToConfirmQuery.error}
+                  isError={quotesToConfirmQuery.isError}
+                  isLoading={quotesToConfirmQuery.isLoading}
+                  widget={quotesToConfirmQuery.data}
                 />
               </ActionCenterWidget>
 
@@ -487,6 +487,7 @@ export function DashboardPage() {
               <ActionCenterWidget
                 title="Transactions récentes"
                 count={recentTransactionsQuery.data?.count ?? 0}
+                showCountBadge={false}
               >
                 <TransactionWidgetContent
                   emptyMessage="Aucune transaction récente."
@@ -494,12 +495,15 @@ export function DashboardPage() {
                   isError={recentTransactionsQuery.isError}
                   isLoading={recentTransactionsQuery.isLoading}
                   widget={recentTransactionsQuery.data}
+                  maxItems={5}
                 />
               </ActionCenterWidget>
 
               <ActionCenterWidget
-                title="Alertes budget"
+                title="Top 5 Écarts budgétaires"
                 count={budgetAlertsQuery.data?.count ?? 0}
+                showCountBadge={false}
+                showActionButton={false}
               >
                 <BudgetAlertsWidgetContent
                   emptyMessage="Aucun dépassement de budget."
@@ -507,6 +511,7 @@ export function DashboardPage() {
                   isError={budgetAlertsQuery.isError}
                   isLoading={budgetAlertsQuery.isLoading}
                   items={budgetAlertsQuery.data?.items}
+                  maxItems={5}
                 />
               </ActionCenterWidget>
             </div>

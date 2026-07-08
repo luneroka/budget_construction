@@ -18,23 +18,32 @@ export function ActionCenterWidget({
   children,
   count,
   title,
+  showActionButton = true,
+  showCountBadge = true,
 }: {
   children: ReactNode
-  count: number
+  count?: number
   title: string
+  showActionButton?: boolean
+  showCountBadge?: boolean
 }) {
+  const actionContent = (
+    <div className="flex items-center gap-2">
+      {showCountBadge ? (
+        <Badge variant={(count ?? 0) > 0 ? 'default' : 'muted'}>
+          {count ?? 0}
+        </Badge>
+      ) : null}
+      {showActionButton ? (
+        <Button size="sm" variant="outline" disabled>
+          Voir tout
+        </Button>
+      ) : null}
+    </div>
+  )
+
   return (
-    <ChartCard
-      title={title}
-      action={
-        <div className="flex items-center gap-2">
-          <Badge variant={count > 0 ? 'default' : 'muted'}>{count}</Badge>
-          <Button size="sm" variant="outline" disabled>
-            Voir tout
-          </Button>
-        </div>
-      }
-    >
+    <ChartCard title={title} action={actionContent}>
       {children}
     </ChartCard>
   )
@@ -50,12 +59,14 @@ export function TransactionWidgetContent({
   isError,
   isLoading,
   widget,
+  maxItems,
 }: {
   emptyMessage: string
   error: unknown
   isError: boolean
   isLoading: boolean
   widget?: DashboardTransactionWidgetRead
+  maxItems?: number
 }) {
   if (isLoading) return <DashboardWidgetSkeleton />
   if (isError) {
@@ -69,9 +80,11 @@ export function TransactionWidgetContent({
     return <DashboardWidgetMessage>{emptyMessage}</DashboardWidgetMessage>
   }
 
+  const items = maxItems ? widget.items.slice(0, maxItems) : widget.items
+
   return (
     <div className="divide-y divide-border">
-      {widget.items.map((item) => (
+      {items.map((item) => (
         <div
           key={item.transaction_id}
           className="grid grid-cols-[1fr_auto] gap-3 py-3 first:pt-0 last:pb-0"
@@ -104,12 +117,14 @@ export function BudgetAlertsWidgetContent({
   isError,
   isLoading,
   items,
+  maxItems,
 }: {
   emptyMessage: string
   error: unknown
   isError: boolean
   isLoading: boolean
   items?: DashboardBudgetAlertRead[]
+  maxItems?: number
 }) {
   if (isLoading) return <DashboardWidgetSkeleton />
   if (isError) {
@@ -123,9 +138,16 @@ export function BudgetAlertsWidgetContent({
     return <DashboardWidgetMessage>{emptyMessage}</DashboardWidgetMessage>
   }
 
+  const displayedItems = [...(items ?? [])]
+    .sort(
+      (a, b) =>
+        Math.abs(Number(b.variance_ttc)) - Math.abs(Number(a.variance_ttc)),
+    )
+    .slice(0, maxItems ?? items?.length ?? 0)
+
   return (
     <div className="divide-y divide-border">
-      {items.map((item) => (
+      {displayedItems.map((item) => (
         <div
           key={item.product_id}
           className="grid grid-cols-[1fr_auto] gap-3 py-3 first:pt-0 last:pb-0"
