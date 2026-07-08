@@ -3,7 +3,11 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { apiConfig } from './config'
 import { apiGet, apiPatch, apiPost } from './client'
 import type {
+  DashboardCategoryBudgetActualRead,
+  DashboardCategoryDistributionRead,
   DashboardFinancialOverviewRead,
+  DashboardSpendingOverTimePointRead,
+  DashboardSupplierDistributionRead,
   GeneratedProjectRead,
   ProjectFinancialSummaryRead,
   ProjectFromTemplateCreate,
@@ -22,6 +26,14 @@ export const projectQueryKeys = {
     [...projectQueryKeys.all, projectId, 'financial-summary'] as const,
   dashboardFinancialOverview: (projectId: number) =>
     [...projectQueryKeys.all, projectId, 'dashboard', 'financial-overview'] as const,
+  dashboardSpendingOverTime: (projectId: number) =>
+    [...projectQueryKeys.all, projectId, 'dashboard', 'charts', 'spending-over-time'] as const,
+  dashboardBudgetVsActual: (projectId: number) =>
+    [...projectQueryKeys.all, projectId, 'dashboard', 'charts', 'budget-vs-actual'] as const,
+  dashboardCategoryDistribution: (projectId: number) =>
+    [...projectQueryKeys.all, projectId, 'dashboard', 'charts', 'category-distribution'] as const,
+  dashboardSupplierDistribution: (projectId: number) =>
+    [...projectQueryKeys.all, projectId, 'dashboard', 'charts', 'supplier-distribution'] as const,
 }
 
 export function getProjects(includeDeleted = false): Promise<ProjectRead[]> {
@@ -68,6 +80,38 @@ export function getProjectDashboardFinancialOverview(
 ): Promise<DashboardFinancialOverviewRead> {
   return apiGet<DashboardFinancialOverviewRead>(
     `/projects/${projectId}/dashboard/financial-overview`,
+  )
+}
+
+export function getProjectDashboardSpendingOverTime(
+  projectId: number,
+): Promise<DashboardSpendingOverTimePointRead[]> {
+  return apiGet<DashboardSpendingOverTimePointRead[]>(
+    `/projects/${projectId}/dashboard/charts/spending-over-time`,
+  )
+}
+
+export function getProjectDashboardBudgetVsActual(
+  projectId: number,
+): Promise<DashboardCategoryBudgetActualRead[]> {
+  return apiGet<DashboardCategoryBudgetActualRead[]>(
+    `/projects/${projectId}/dashboard/charts/budget-vs-actual`,
+  )
+}
+
+export function getProjectDashboardCategoryDistribution(
+  projectId: number,
+): Promise<DashboardCategoryDistributionRead[]> {
+  return apiGet<DashboardCategoryDistributionRead[]>(
+    `/projects/${projectId}/dashboard/charts/category-distribution`,
+  )
+}
+
+export function getProjectDashboardSupplierDistribution(
+  projectId: number,
+): Promise<DashboardSupplierDistributionRead[]> {
+  return apiGet<DashboardSupplierDistributionRead[]>(
+    `/projects/${projectId}/dashboard/charts/supplier-distribution`,
   )
 }
 
@@ -136,6 +180,90 @@ export function useProjectDashboardFinancialOverviewQuery(
       }
 
       return getProjectDashboardFinancialOverview(projectId)
+    },
+    enabled:
+      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
+  })
+}
+
+export function useProjectDashboardSpendingOverTimeQuery(
+  projectId: number | null,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey:
+      projectId === null
+        ? [...projectQueryKeys.all, 'missing-project', 'dashboard', 'charts', 'spending-over-time']
+        : projectQueryKeys.dashboardSpendingOverTime(projectId),
+    queryFn: () => {
+      if (projectId === null) {
+        throw new Error('Identifiant projet manquant.')
+      }
+
+      return getProjectDashboardSpendingOverTime(projectId)
+    },
+    enabled:
+      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
+  })
+}
+
+export function useProjectDashboardBudgetVsActualQuery(
+  projectId: number | null,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey:
+      projectId === null
+        ? [...projectQueryKeys.all, 'missing-project', 'dashboard', 'charts', 'budget-vs-actual']
+        : projectQueryKeys.dashboardBudgetVsActual(projectId),
+    queryFn: () => {
+      if (projectId === null) {
+        throw new Error('Identifiant projet manquant.')
+      }
+
+      return getProjectDashboardBudgetVsActual(projectId)
+    },
+    enabled:
+      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
+  })
+}
+
+export function useProjectDashboardCategoryDistributionQuery(
+  projectId: number | null,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey:
+      projectId === null
+        ? [...projectQueryKeys.all, 'missing-project', 'dashboard', 'charts', 'category-distribution']
+        : projectQueryKeys.dashboardCategoryDistribution(projectId),
+    queryFn: () => {
+      if (projectId === null) {
+        throw new Error('Identifiant projet manquant.')
+      }
+
+      return getProjectDashboardCategoryDistribution(projectId)
+    },
+    enabled:
+      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
+  })
+}
+
+export function useProjectDashboardSupplierDistributionQuery(
+  projectId: number | null,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey:
+      projectId === null
+        ? [...projectQueryKeys.all, 'missing-project', 'dashboard', 'charts', 'supplier-distribution']
+        : projectQueryKeys.dashboardSupplierDistribution(projectId),
+    queryFn: () => {
+      if (projectId === null) {
+        throw new Error('Identifiant projet manquant.')
+      }
+
+      return getProjectDashboardSupplierDistribution(projectId)
     },
     enabled:
       projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),

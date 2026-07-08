@@ -8,7 +8,11 @@ from app.models.user import User
 from app.repositories import budget_line as budget_line_repository
 from app.repositories import project as project_repository
 from app.schemas.financial_engine import (
+    DashboardCategoryBudgetActualRead,
+    DashboardCategoryDistributionRead,
     DashboardFinancialOverviewRead,
+    DashboardSpendingOverTimePointRead,
+    DashboardSupplierDistributionRead,
     ProjectFinancialSummaryRead,
 )
 from app.schemas.project import (
@@ -149,6 +153,98 @@ async def get_project_dashboard_financial_overview(
         )
 
     return financial_overview
+
+
+@router.get(
+    '/{project_id}/dashboard/charts/spending-over-time',
+    response_model=list[DashboardSpendingOverTimePointRead],
+)
+async def get_project_dashboard_spending_over_time(
+    project_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    projection = await financial_engine.get_dashboard_spending_over_time(
+        db,
+        project_id,
+        current_user.id,
+    )
+
+    if projection is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
+        )
+
+    return projection
+
+
+@router.get(
+    '/{project_id}/dashboard/charts/budget-vs-actual',
+    response_model=list[DashboardCategoryBudgetActualRead],
+)
+async def get_project_dashboard_budget_vs_actual(
+    project_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    projection = await financial_engine.get_dashboard_budget_vs_actual(
+        db,
+        project_id,
+        current_user.id,
+    )
+
+    if projection is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
+        )
+
+    return projection
+
+
+@router.get(
+    '/{project_id}/dashboard/charts/category-distribution',
+    response_model=list[DashboardCategoryDistributionRead],
+)
+async def get_project_dashboard_category_distribution(
+    project_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    projection = await financial_engine.get_dashboard_category_distribution(
+        db,
+        project_id,
+        current_user.id,
+    )
+
+    if projection is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
+        )
+
+    return projection
+
+
+@router.get(
+    '/{project_id}/dashboard/charts/supplier-distribution',
+    response_model=list[DashboardSupplierDistributionRead],
+)
+async def get_project_dashboard_supplier_distribution(
+    project_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    projection = await financial_engine.get_dashboard_supplier_distribution(
+        db,
+        project_id,
+        current_user.id,
+    )
+
+    if projection is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
+        )
+
+    return projection
 
 
 # API ENDPOINT TO UPDATE A PROJECT

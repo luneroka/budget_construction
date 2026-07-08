@@ -226,6 +226,30 @@ export type DashboardFinancialOverviewRead = {
   budget_completion_percentage: ApiDecimal
 }
 
+export type DashboardSpendingOverTimePointRead = {
+  month: string
+  actual_cost_amount_ttc: ApiDecimal
+}
+
+export type DashboardCategoryBudgetActualRead = {
+  category_id: number
+  category_name: string
+  selected_budget_amount_ttc: ApiDecimal
+  actual_cost_amount_ttc: ApiDecimal
+}
+
+export type DashboardCategoryDistributionRead = {
+  category_id: number
+  category_name: string
+  actual_cost_amount_ttc: ApiDecimal
+}
+
+export type DashboardSupplierDistributionRead = {
+  supplier_id: number | null
+  supplier_name: string
+  actual_cost_amount_ttc: ApiDecimal
+}
+
 export type TransactionBaseWrite = {
   supplier_id?: number | null
   transaction_type: TransactionType

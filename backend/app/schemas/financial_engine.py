@@ -59,3 +59,27 @@ class DashboardFinancialOverviewRead(BaseModel):
     remaining_budget_amount_ttc: Decimal
     selected_budget_variance_ttc: Decimal
     budget_completion_percentage: Decimal
+
+
+class DashboardSpendingOverTimePointRead(BaseModel):
+    month: str
+    actual_cost_amount_ttc: Decimal
+
+
+class DashboardCategoryBudgetActualRead(BaseModel):
+    category_id: int
+    category_name: str
+    selected_budget_amount_ttc: Decimal
+    actual_cost_amount_ttc: Decimal
+
+
+class DashboardCategoryDistributionRead(BaseModel):
+    category_id: int
+    category_name: str
+    actual_cost_amount_ttc: Decimal
+
+
+class DashboardSupplierDistributionRead(BaseModel):
+    supplier_id: int | None
+    supplier_name: str
+    actual_cost_amount_ttc: Decimal

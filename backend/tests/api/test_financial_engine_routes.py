@@ -12,6 +12,7 @@ from app.models.category import Category
 from app.models.product import Product
 from app.models.project import Project
 from app.models.subcategory import Subcategory
+from app.models.supplier import Supplier
 from app.models.template import Template
 from app.models.template_item import TemplateItem
 from app.models.transaction import (
@@ -32,6 +33,7 @@ class FinancialSummaryRouteContext:
     second_product_id: int
     budget_line_id: int
     second_budget_line_id: int
+    supplier_id: int
 
 
 async def create_financial_summary_context(
@@ -46,6 +48,7 @@ async def create_financial_summary_context(
     subcategory = Subcategory(category=category, name='Financial Summary Subcategory')
     product = Product(subcategory=subcategory, name='Foundations')
     second_product = Product(subcategory=subcategory, name='Windows')
+    supplier = Supplier(user=user, name='Acme Construction')
     project = Project(user=user, name='Financial Summary Project')
     budget_line = BudgetLine(
         project=project,
@@ -83,7 +86,9 @@ async def create_financial_summary_context(
         amount='150.00',
     )
 
-    db_session.add_all([user, category, subcategory, product, second_product, project])
+    db_session.add_all(
+        [user, category, subcategory, product, second_product, supplier, project]
+    )
     await db_session.flush()
     db_session.add_all(
         [
@@ -96,18 +101,21 @@ async def create_financial_summary_context(
                 invoice_type=InvoiceType.deposit,
                 invoice_status=InvoiceStatus.paid,
                 payment_date=date(2026, 6, 21),
+                supplier=supplier,
             ),
             _invoice(
                 budget_line,
                 amount='250.00',
                 invoice_type=InvoiceType.interim,
                 invoice_status=InvoiceStatus.unpaid,
+                supplier=supplier,
             ),
             _invoice(
                 budget_line,
                 amount='50.00',
                 invoice_type=InvoiceType.balance,
                 invoice_status=InvoiceStatus.on_hold,
+                supplier=supplier,
             ),
             _invoice(
                 budget_line,
@@ -115,6 +123,7 @@ async def create_financial_summary_context(
                 invoice_type=InvoiceType.full,
                 invoice_status=InvoiceStatus.unpaid,
                 deleted_at=datetime.now(UTC).replace(tzinfo=None),
+                supplier=supplier,
             ),
             selected_diy,
             _invoice(
@@ -135,6 +144,7 @@ async def create_financial_summary_context(
     await db_session.refresh(project)
     await db_session.refresh(product)
     await db_session.refresh(second_product)
+    await db_session.refresh(supplier)
     await db_session.refresh(budget_line)
     await db_session.refresh(second_budget_line)
 
@@ -145,6 +155,7 @@ async def create_financial_summary_context(
         second_product_id=second_product.id,
         budget_line_id=budget_line.id,
         second_budget_line_id=second_budget_line.id,
+        supplier_id=supplier.id,
     )
 
 
@@ -188,6 +199,7 @@ def _invoice(
     invoice_status: InvoiceStatus,
     payment_date: date | None = None,
     deleted_at: datetime | None = None,
+    supplier: Supplier | None = None,
 ) -> Transaction:
     transaction = _transaction(
         budget_line,
@@ -198,6 +210,7 @@ def _invoice(
     transaction.invoice_status = invoice_status
     transaction.invoice_type = invoice_type
     transaction.deleted_at = deleted_at
+    transaction.supplier = supplier
     return transaction
 
 
@@ -261,6 +274,95 @@ async def test_project_dashboard_financial_overview_returns_kpi_projection(
         'selected_budget_variance_ttc': '1025.00',
         'budget_completion_percentage': '29.31',
     }
+
+
+async def test_project_dashboard_spending_over_time_returns_monthly_projection(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_financial_summary_context(db_session)
+
+    response = await client.get(
+        f'/projects/{context.project_id}/dashboard/charts/spending-over-time',
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            'month': '2026-06',
+            'actual_cost_amount_ttc': '425.00',
+        }
+    ]
+
+
+async def test_project_dashboard_budget_vs_actual_returns_category_projection(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_financial_summary_context(db_session)
+
+    response = await client.get(
+        f'/projects/{context.project_id}/dashboard/charts/budget-vs-actual',
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            'category_id': response.json()[0]['category_id'],
+            'category_name': 'Financial Summary Category',
+            'selected_budget_amount_ttc': '1450.00',
+            'actual_cost_amount_ttc': '425.00',
+        }
+    ]
+
+
+async def test_project_dashboard_category_distribution_returns_actual_projection(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_financial_summary_context(db_session)
+
+    response = await client.get(
+        f'/projects/{context.project_id}/dashboard/charts/category-distribution',
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            'category_id': response.json()[0]['category_id'],
+            'category_name': 'Financial Summary Category',
+            'actual_cost_amount_ttc': '425.00',
+        }
+    ]
+
+
+async def test_project_dashboard_supplier_distribution_returns_actual_projection(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_financial_summary_context(db_session)
+
+    response = await client.get(
+        f'/projects/{context.project_id}/dashboard/charts/supplier-distribution',
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            'supplier_id': context.supplier_id,
+            'supplier_name': 'Acme Construction',
+            'actual_cost_amount_ttc': '400.00',
+        },
+        {
+            'supplier_id': None,
+            'supplier_name': 'Sans fournisseur',
+            'actual_cost_amount_ttc': '25.00',
+        },
+    ]
 
 
 async def test_project_financial_summary_breaks_down_by_product(

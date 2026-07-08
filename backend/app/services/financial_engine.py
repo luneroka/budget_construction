@@ -22,7 +22,11 @@ from app.models.transaction import (
 )
 from app.schemas.financial_engine import (
     BudgetLineFinancialSummaryRead,
+    DashboardCategoryBudgetActualRead,
+    DashboardCategoryDistributionRead,
     DashboardFinancialOverviewRead,
+    DashboardSpendingOverTimePointRead,
+    DashboardSupplierDistributionRead,
     FinancialTotalsRead,
     ProductFinancialSummaryRead,
     ProjectFinancialSummaryRead,
@@ -205,6 +209,125 @@ class FinancialEngine:
             budget_completion_percentage=totals.budget_completion_percentage,
         )
 
+    async def get_dashboard_spending_over_time(
+        self,
+        db: AsyncSession,
+        project_id: int,
+        user_id: int,
+    ) -> list[DashboardSpendingOverTimePointRead] | None:
+        project_financials = await self.calculate_project_financials(
+            db,
+            project_id,
+            user_id,
+        )
+        if project_financials is None:
+            return None
+
+        monthly_totals: dict[str, Decimal] = {}
+        for transaction in iter_project_transactions(project_financials):
+            if transaction.transaction_type != TransactionType.invoice:
+                continue
+
+            month = transaction.issued_date.strftime('%Y-%m')
+            monthly_totals[month] = (
+                monthly_totals.get(month, ZERO_MONEY) + transaction.amount_ttc
+            )
+
+        return [
+            DashboardSpendingOverTimePointRead(
+                month=month,
+                actual_cost_amount_ttc=amount,
+            )
+            for month, amount in sorted(monthly_totals.items())
+        ]
+
+    async def get_dashboard_budget_vs_actual(
+        self,
+        db: AsyncSession,
+        project_id: int,
+        user_id: int,
+    ) -> list[DashboardCategoryBudgetActualRead] | None:
+        project_financials = await self.calculate_project_financials(
+            db,
+            project_id,
+            user_id,
+        )
+        if project_financials is None:
+            return None
+
+        return category_budget_actuals_to_read_models(project_financials)
+
+    async def get_dashboard_category_distribution(
+        self,
+        db: AsyncSession,
+        project_id: int,
+        user_id: int,
+    ) -> list[DashboardCategoryDistributionRead] | None:
+        project_financials = await self.calculate_project_financials(
+            db,
+            project_id,
+            user_id,
+        )
+        if project_financials is None:
+            return None
+
+        return [
+            DashboardCategoryDistributionRead(
+                category_id=category.category_id,
+                category_name=category.category_name,
+                actual_cost_amount_ttc=category.actual_cost_amount_ttc,
+            )
+            for category in category_budget_actuals_to_read_models(project_financials)
+            if category.actual_cost_amount_ttc > ZERO_MONEY
+        ]
+
+    async def get_dashboard_supplier_distribution(
+        self,
+        db: AsyncSession,
+        project_id: int,
+        user_id: int,
+    ) -> list[DashboardSupplierDistributionRead] | None:
+        project_financials = await self.calculate_project_financials(
+            db,
+            project_id,
+            user_id,
+        )
+        if project_financials is None:
+            return None
+
+        supplier_totals: dict[tuple[int | None, str], Decimal] = {}
+        for transaction in iter_project_transactions(project_financials):
+            if transaction.transaction_type != TransactionType.invoice:
+                continue
+
+            supplier = transaction.supplier
+            supplier_id = (
+                supplier.id
+                if supplier is not None and supplier.deleted_at is None
+                else None
+            )
+            supplier_name = (
+                supplier.name
+                if supplier is not None and supplier.deleted_at is None
+                else 'Sans fournisseur'
+            )
+            key = (supplier_id, supplier_name)
+            supplier_totals[key] = (
+                supplier_totals.get(key, ZERO_MONEY) + transaction.amount_ttc
+            )
+
+        return [
+            DashboardSupplierDistributionRead(
+                supplier_id=supplier_id,
+                supplier_name=supplier_name,
+                actual_cost_amount_ttc=amount,
+            )
+            for (supplier_id, supplier_name), amount in sorted(
+                supplier_totals.items(),
+                key=lambda item: (-item[1], item[0][1]),
+            )
+        ]
+
     async def calculate_project_financials(
         self,
         db: AsyncSession,
@@ -300,7 +423,7 @@ class FinancialEngine:
                 joinedload(BudgetLine.product)
                 .joinedload(Product.subcategory)
                 .joinedload(Subcategory.category),
-                selectinload(BudgetLine.transactions),
+                selectinload(BudgetLine.transactions).joinedload(Transaction.supplier),
                 with_loader_criteria(
                     Transaction,
                     Transaction.deleted_at.is_(None),
@@ -335,6 +458,44 @@ class FinancialEngine:
                 ),
             )
         return totals
+
+
+def iter_project_transactions(
+    project_financials: ProjectFinancials,
+) -> list[Transaction]:
+    return [
+        transaction
+        for product_financials in project_financials.products
+        for budget_line_financials in product_financials.budget_lines
+        for transaction in budget_line_financials.budget_line.transactions
+    ]
+
+
+def category_budget_actuals_to_read_models(
+    project_financials: ProjectFinancials,
+) -> list[DashboardCategoryBudgetActualRead]:
+    category_totals: dict[int, tuple[str, FinancialTotals]] = {}
+
+    for product_financials in project_financials.products:
+        category = product_financials.product.subcategory.category
+        _, totals = category_totals.setdefault(
+            category.id,
+            (category.name, FinancialTotals()),
+        )
+        totals.merge(product_financials.totals)
+
+    return [
+        DashboardCategoryBudgetActualRead(
+            category_id=category_id,
+            category_name=category_name,
+            selected_budget_amount_ttc=totals.selected_budget_amount_ttc,
+            actual_cost_amount_ttc=totals.actual_cost_amount_ttc,
+        )
+        for category_id, (category_name, totals) in sorted(
+            category_totals.items(),
+            key=lambda item: item[1][0],
+        )
+    ]
 
 
 def budget_line_financials_to_read_model(
