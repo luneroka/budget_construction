@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CircleDollarSign, Gauge, ReceiptText, WalletCards } from 'lucide-react'
 import {
@@ -72,6 +72,7 @@ import {
   type QuickViewId,
 } from '@/lib/transactionWorkspace'
 import { notifyError } from '@/lib/toasts'
+import { cn } from '@/lib/utils'
 import { useAppState } from '@/state/appState'
 import type { ProjectViewModel } from '@/demo/types'
 
@@ -101,7 +102,17 @@ function getBudgetSelection(
   }
 }
 
-export function DashboardPage() {
+type DashboardPageProps = {
+  includeActionCenter?: boolean
+  exportLayout?: boolean
+  onExportReadyChange?: (isReady: boolean) => void
+}
+
+export function DashboardPage({
+  includeActionCenter = true,
+  exportLayout = false,
+  onExportReadyChange,
+}: DashboardPageProps = {}) {
   const { selectedProjectId } = useAppState()
   const navigate = useNavigate()
   const projectsQuery = useProjectsQuery({ enabled: true })
@@ -134,27 +145,27 @@ export function DashboardPage() {
   const unpaidInvoicesQuery = useProjectDashboardUnpaidInvoicesQuery(
     projectId,
     {
-      enabled: true,
+      enabled: includeActionCenter,
     },
   )
   const quotesToConfirmQuery = useProjectDashboardQuotesToConfirmQuery(
     projectId,
-    { enabled: true },
+    { enabled: includeActionCenter },
   )
   const quotesToNegotiateQuery = useProjectDashboardQuotesToNegotiateQuery(
     projectId,
-    { enabled: true },
+    { enabled: includeActionCenter },
   )
   const missingDocumentsQuery = useProjectDashboardMissingDocumentsQuery(
     projectId,
-    { enabled: true },
+    { enabled: includeActionCenter },
   )
   const recentTransactionsQuery = useProjectDashboardRecentTransactionsQuery(
     projectId,
-    { enabled: true },
+    { enabled: includeActionCenter },
   )
   const budgetAlertsQuery = useProjectDashboardBudgetAlertsQuery(projectId, {
-    enabled: true,
+    enabled: includeActionCenter,
   })
   const transactionsQuery = useProjectTransactionsQuery(projectId, {
     enabled: false,
@@ -170,6 +181,11 @@ export function DashboardPage() {
     )
     return selectedProject ? projectToViewModel(selectedProject) : null
   }, [projectId, projectsQuery.data])
+  const dashboardDescription = project?.location
+    ? `Vue financière synthétique du projet ${project.name} à ${project.location}.`
+    : project
+      ? `Vue financière synthétique du projet ${project.name}.`
+      : 'Vue financière synthétique du projet sélectionné.'
   const suppliers = useMemo(
     () => suppliersToViewModel(suppliersQuery.data),
     [suppliersQuery.data],
@@ -218,6 +234,24 @@ export function DashboardPage() {
         .slice(0, 10),
     [supplierDistributionQuery.data],
   )
+  const dashboardExportReady =
+    !projectsQuery.isLoading &&
+    !projectsQuery.isFetching &&
+    (projectId === null ||
+      (!financialOverviewQuery.isLoading &&
+        !financialOverviewQuery.isFetching &&
+        !spendingOverTimeQuery.isLoading &&
+        !spendingOverTimeQuery.isFetching &&
+        !budgetVsActualQuery.isLoading &&
+        !budgetVsActualQuery.isFetching &&
+        !categoryDistributionQuery.isLoading &&
+        !categoryDistributionQuery.isFetching &&
+        !supplierDistributionQuery.isLoading &&
+        !supplierDistributionQuery.isFetching))
+
+  useEffect(() => {
+    onExportReadyChange?.(dashboardExportReady)
+  }, [dashboardExportReady, onExportReadyChange])
 
   async function openTransaction(transactionId: number) {
     const result = await transactionsQuery.refetch()
@@ -251,10 +285,7 @@ export function DashboardPage() {
 
   return (
     <section>
-      <PageHeader
-        title="Tableau de bord"
-        description="Vue financière synthétique du projet sélectionné."
-      />
+      <PageHeader title="Tableau de bord" description={dashboardDescription} />
 
       {projectsQuery.isLoading ? (
         <DashboardKpiSkeleton />
@@ -271,7 +302,12 @@ export function DashboardPage() {
           {getApiErrorMessage(financialOverviewQuery.error)}
         </DashboardMessage>
       ) : financialOverview ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div
+          className={cn(
+            'grid gap-4',
+            exportLayout ? 'grid-cols-4' : 'sm:grid-cols-2 xl:grid-cols-4',
+          )}
+        >
           <KpiCard
             label="Budget"
             value={formatCurrency(
@@ -313,7 +349,12 @@ export function DashboardPage() {
 
       {projectId !== null ? (
         <>
-          <div className="mt-6 grid gap-6 xl:grid-cols-2">
+          <div
+            className={cn(
+              'mt-6 grid gap-6',
+              exportLayout ? 'grid-cols-2' : 'xl:grid-cols-2',
+            )}
+          >
             <ChartCard
               title="Dépenses dans le temps"
               description="Montants facturés par mois."
@@ -529,120 +570,122 @@ export function DashboardPage() {
             </ChartCard>
           </div>
 
-          <div className="mt-6">
-            <div className="mb-4">
-              <h2 className="font-heading text-xl font-semibold text-foreground">
-                Centre d’action
-              </h2>
+          {includeActionCenter ? (
+            <div className="mt-6">
+              <div className="mb-4">
+                <h2 className="font-heading text-xl font-semibold text-foreground">
+                  Centre d’action
+                </h2>
+              </div>
+              <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+                <ActionCenterWidget
+                  title="Factures impayées"
+                  count={unpaidInvoicesQuery.data?.count ?? 0}
+                  onViewAll={() => viewAllTransactions('unpaid_invoices')}
+                >
+                  <TransactionWidgetContent
+                    emptyMessage="Aucune facture impayée."
+                    error={unpaidInvoicesQuery.error}
+                    isError={unpaidInvoicesQuery.isError}
+                    isLoading={unpaidInvoicesQuery.isLoading}
+                    widget={unpaidInvoicesQuery.data}
+                    onItemClick={(item) =>
+                      void openTransaction(item.transaction_id)
+                    }
+                  />
+                </ActionCenterWidget>
+
+                <ActionCenterWidget
+                  title="Devis à négocier"
+                  count={quotesToNegotiateQuery.data?.count ?? 0}
+                  onViewAll={() => viewAllTransactions('quotes_to_negotiate')}
+                >
+                  <TransactionWidgetContent
+                    emptyMessage="Aucun devis à négocier."
+                    error={quotesToNegotiateQuery.error}
+                    isError={quotesToNegotiateQuery.isError}
+                    isLoading={quotesToNegotiateQuery.isLoading}
+                    widget={quotesToNegotiateQuery.data}
+                    onItemClick={(item) =>
+                      void openTransaction(item.transaction_id)
+                    }
+                  />
+                </ActionCenterWidget>
+
+                <ActionCenterWidget
+                  title="Devis à confirmer"
+                  count={quotesToConfirmQuery.data?.count ?? 0}
+                  onViewAll={() => viewAllTransactions('quotes_to_confirm')}
+                >
+                  <TransactionWidgetContent
+                    emptyMessage="Aucun devis à confirmer."
+                    error={quotesToConfirmQuery.error}
+                    isError={quotesToConfirmQuery.isError}
+                    isLoading={quotesToConfirmQuery.isLoading}
+                    widget={quotesToConfirmQuery.data}
+                    onItemClick={(item) =>
+                      void openTransaction(item.transaction_id)
+                    }
+                  />
+                </ActionCenterWidget>
+
+                <ActionCenterWidget
+                  title="Documents manquants"
+                  count={missingDocumentsQuery.data?.count ?? 0}
+                  onViewAll={() => viewAllTransactions('missing_documents')}
+                >
+                  <TransactionWidgetContent
+                    emptyMessage="Aucun document manquant."
+                    error={missingDocumentsQuery.error}
+                    isError={missingDocumentsQuery.isError}
+                    isLoading={missingDocumentsQuery.isLoading}
+                    widget={missingDocumentsQuery.data}
+                    onItemClick={(item) =>
+                      void openTransaction(item.transaction_id)
+                    }
+                  />
+                </ActionCenterWidget>
+
+                <ActionCenterWidget
+                  title="Transactions récentes"
+                  count={recentTransactionsQuery.data?.count ?? 0}
+                  showCountBadge={false}
+                  onViewAll={() => void navigate('/transactions')}
+                >
+                  <TransactionWidgetContent
+                    emptyMessage="Aucune transaction récente."
+                    error={recentTransactionsQuery.error}
+                    isError={recentTransactionsQuery.isError}
+                    isLoading={recentTransactionsQuery.isLoading}
+                    widget={recentTransactionsQuery.data}
+                    maxItems={5}
+                    onItemClick={(item) =>
+                      void openTransaction(item.transaction_id)
+                    }
+                  />
+                </ActionCenterWidget>
+
+                <ActionCenterWidget
+                  title="Top 5 Écarts budgétaires"
+                  count={budgetAlertsQuery.data?.count ?? 0}
+                  showCountBadge={false}
+                  showActionButton={false}
+                >
+                  <BudgetAlertsWidgetContent
+                    emptyMessage="Aucun dépassement de budget."
+                    error={budgetAlertsQuery.error}
+                    isError={budgetAlertsQuery.isError}
+                    isLoading={budgetAlertsQuery.isLoading}
+                    items={budgetAlertsQuery.data?.items}
+                    maxItems={5}
+                    onItemClick={(item) => openBudgetAlert(item.product_id)}
+                  />
+                </ActionCenterWidget>
+              </div>
             </div>
-            <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-              <ActionCenterWidget
-                title="Factures impayées"
-                count={unpaidInvoicesQuery.data?.count ?? 0}
-                onViewAll={() => viewAllTransactions('unpaid_invoices')}
-              >
-                <TransactionWidgetContent
-                  emptyMessage="Aucune facture impayée."
-                  error={unpaidInvoicesQuery.error}
-                  isError={unpaidInvoicesQuery.isError}
-                  isLoading={unpaidInvoicesQuery.isLoading}
-                  widget={unpaidInvoicesQuery.data}
-                  onItemClick={(item) =>
-                    void openTransaction(item.transaction_id)
-                  }
-                />
-              </ActionCenterWidget>
+          ) : null}
 
-              <ActionCenterWidget
-                title="Devis à négocier"
-                count={quotesToNegotiateQuery.data?.count ?? 0}
-                onViewAll={() => viewAllTransactions('quotes_to_negotiate')}
-              >
-                <TransactionWidgetContent
-                  emptyMessage="Aucun devis à négocier."
-                  error={quotesToNegotiateQuery.error}
-                  isError={quotesToNegotiateQuery.isError}
-                  isLoading={quotesToNegotiateQuery.isLoading}
-                  widget={quotesToNegotiateQuery.data}
-                  onItemClick={(item) =>
-                    void openTransaction(item.transaction_id)
-                  }
-                />
-              </ActionCenterWidget>
-
-              <ActionCenterWidget
-                title="Devis à confirmer"
-                count={quotesToConfirmQuery.data?.count ?? 0}
-                onViewAll={() => viewAllTransactions('quotes_to_confirm')}
-              >
-                <TransactionWidgetContent
-                  emptyMessage="Aucun devis à confirmer."
-                  error={quotesToConfirmQuery.error}
-                  isError={quotesToConfirmQuery.isError}
-                  isLoading={quotesToConfirmQuery.isLoading}
-                  widget={quotesToConfirmQuery.data}
-                  onItemClick={(item) =>
-                    void openTransaction(item.transaction_id)
-                  }
-                />
-              </ActionCenterWidget>
-
-              <ActionCenterWidget
-                title="Documents manquants"
-                count={missingDocumentsQuery.data?.count ?? 0}
-                onViewAll={() => viewAllTransactions('missing_documents')}
-              >
-                <TransactionWidgetContent
-                  emptyMessage="Aucun document manquant."
-                  error={missingDocumentsQuery.error}
-                  isError={missingDocumentsQuery.isError}
-                  isLoading={missingDocumentsQuery.isLoading}
-                  widget={missingDocumentsQuery.data}
-                  onItemClick={(item) =>
-                    void openTransaction(item.transaction_id)
-                  }
-                />
-              </ActionCenterWidget>
-
-              <ActionCenterWidget
-                title="Transactions récentes"
-                count={recentTransactionsQuery.data?.count ?? 0}
-                showCountBadge={false}
-                onViewAll={() => void navigate('/transactions')}
-              >
-                <TransactionWidgetContent
-                  emptyMessage="Aucune transaction récente."
-                  error={recentTransactionsQuery.error}
-                  isError={recentTransactionsQuery.isError}
-                  isLoading={recentTransactionsQuery.isLoading}
-                  widget={recentTransactionsQuery.data}
-                  maxItems={5}
-                  onItemClick={(item) =>
-                    void openTransaction(item.transaction_id)
-                  }
-                />
-              </ActionCenterWidget>
-
-              <ActionCenterWidget
-                title="Top 5 Écarts budgétaires"
-                count={budgetAlertsQuery.data?.count ?? 0}
-                showCountBadge={false}
-                showActionButton={false}
-              >
-                <BudgetAlertsWidgetContent
-                  emptyMessage="Aucun dépassement de budget."
-                  error={budgetAlertsQuery.error}
-                  isError={budgetAlertsQuery.isError}
-                  isLoading={budgetAlertsQuery.isLoading}
-                  items={budgetAlertsQuery.data?.items}
-                  maxItems={5}
-                  onItemClick={(item) => openBudgetAlert(item.product_id)}
-                />
-              </ActionCenterWidget>
-            </div>
-          </div>
-
-          {transactionReview && project ? (
+          {includeActionCenter && transactionReview && project ? (
             <TransactionReviewModal
               project={project}
               context={transactionReview.context}

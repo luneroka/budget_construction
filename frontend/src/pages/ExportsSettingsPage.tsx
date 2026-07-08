@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Download, FileSpreadsheet } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Download, FileImage, FileSpreadsheet } from 'lucide-react'
 
 import { getApiErrorMessage } from '@/api/client'
 import {
@@ -13,8 +13,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
+import {
+  captureDashboardPng,
+  DASHBOARD_EXPORT_WIDTH,
+  dashboardPngFilename,
+} from '@/lib/dashboardCapture'
 import { downloadBlob } from '@/lib/downloads'
 import { notifyError, notifySuccess } from '@/lib/toasts'
+import { DashboardPage } from '@/pages/DashboardPage'
 import { useAppState } from '@/state/appState'
 
 const transactionTypeOptions: Array<{
@@ -32,11 +38,14 @@ export function ExportsSettingsPage() {
   const projectId = Number(selectedProjectId)
   const hasSelectedProject = Number.isInteger(projectId) && projectId > 0
   const exportMutation = useAccountingCsvExportMutation()
+  const dashboardExportRef = useRef<HTMLDivElement | null>(null)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [transactionType, setTransactionType] =
     useState<AccountingExportTransactionType>('all')
   const [formError, setFormError] = useState<string | null>(null)
+  const [dashboardExportReady, setDashboardExportReady] = useState(false)
+  const [dashboardExporting, setDashboardExporting] = useState(false)
 
   async function handleAccountingCsvExport() {
     setFormError(null)
@@ -70,6 +79,46 @@ export function ExportsSettingsPage() {
       const message = getApiErrorMessage(error)
       setFormError(message)
       notifyError(`Impossible de générer l’export CSV. ${message}`)
+    }
+  }
+
+  async function handleDashboardPngExport() {
+    setFormError(null)
+
+    if (!hasSelectedProject) {
+      const message = 'Sélectionnez un projet avant de lancer un export.'
+      setFormError(message)
+      notifyError(message)
+      return
+    }
+
+    if (!dashboardExportRef.current) {
+      const message = 'La zone de capture du tableau de bord est indisponible.'
+      setFormError(message)
+      notifyError(message)
+      return
+    }
+
+    if (!dashboardExportReady) {
+      const message = 'Le tableau de bord est encore en préparation.'
+      setFormError(message)
+      notifyError(message)
+      return
+    }
+
+    setDashboardExporting(true)
+    try {
+      await new Promise((resolve) => requestAnimationFrame(resolve))
+      await new Promise((resolve) => requestAnimationFrame(resolve))
+      const blob = await captureDashboardPng(dashboardExportRef.current)
+      downloadBlob(blob, dashboardPngFilename(projectId))
+      notifySuccess('Export PNG téléchargé.')
+    } catch (error) {
+      const message = getApiErrorMessage(error)
+      setFormError(message)
+      notifyError(`Impossible de générer l’export PNG. ${message}`)
+    } finally {
+      setDashboardExporting(false)
     }
   }
 
@@ -148,6 +197,56 @@ export function ExportsSettingsPage() {
             </Button>
           </div>
         </SectionCard>
+
+        <SectionCard
+          title="Dashboard PNG"
+          description="Une image haute résolution du tableau de bord, prête à partager par email ou dans une présentation."
+          icon={FileImage}
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              L’export utilise une mise en page desktop fixe avec les
+              indicateurs et les graphiques du projet.
+            </p>
+            {formError ? (
+              <p className="text-sm text-destructive">{formError}</p>
+            ) : null}
+            <Button
+              onClick={handleDashboardPngExport}
+              disabled={
+                !hasSelectedProject ||
+                !dashboardExportReady ||
+                dashboardExporting
+              }
+            >
+              <Download aria-hidden />
+              {dashboardExporting
+                ? 'Génération en cours...'
+                : dashboardExportReady
+                  ? 'Télécharger le PNG'
+                  : 'Préparation du dashboard...'}
+            </Button>
+          </div>
+        </SectionCard>
+      </div>
+
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed left-0 top-0 -z-10"
+      >
+        <div
+          ref={dashboardExportRef}
+          className="bg-background p-8 text-foreground"
+          style={{
+            width: DASHBOARD_EXPORT_WIDTH,
+          }}
+        >
+          <DashboardPage
+            includeActionCenter={false}
+            exportLayout
+            onExportReadyChange={setDashboardExportReady}
+          />
+        </div>
       </div>
     </section>
   )
