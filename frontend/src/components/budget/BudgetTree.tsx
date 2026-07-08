@@ -32,9 +32,7 @@ import {
 
 type BudgetTreeProps = {
   categories: BudgetCategoryViewModel[]
-  getBudgetSelection: (
-    line: BudgetLineSummaryViewModel,
-  ) => BudgetSelectionState
+  getBudgetSelection: (line: BudgetLineSummaryViewModel) => BudgetSelectionState
   getLineWithBudgetSelection: (
     line: BudgetLineSummaryViewModel,
   ) => BudgetLineSummaryViewModel
@@ -52,6 +50,7 @@ type BudgetTreeProps = {
   onRequestDeleteTransaction: (context: ViewedTransactionContext) => void
   onEditTransaction: (context: ViewedTransactionContext) => void
   onViewTransaction: (context: ViewedTransactionContext) => void
+  onViewTransactionDocuments: (transaction: TransactionViewModel) => void
 }
 
 export function BudgetTree({
@@ -69,6 +68,7 @@ export function BudgetTree({
   onRequestDeleteTransaction,
   onEditTransaction,
   onViewTransaction,
+  onViewTransactionDocuments,
 }: BudgetTreeProps) {
   const {
     openCategories,
@@ -180,6 +180,9 @@ export function BudgetTree({
                                             onViewTransaction={
                                               onViewTransaction
                                             }
+                                            onViewTransactionDocuments={
+                                              onViewTransactionDocuments
+                                            }
                                           />
                                         ) : (
                                           product.budget_lines.map((line) => {
@@ -240,6 +243,9 @@ export function BudgetTree({
                                                       }
                                                       onViewTransaction={
                                                         onViewTransaction
+                                                      }
+                                                      onViewTransactionDocuments={
+                                                        onViewTransactionDocuments
                                                       }
                                                     />
                                                   </>

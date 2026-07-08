@@ -1,4 +1,6 @@
+from collections.abc import Sequence
 from datetime import UTC, datetime
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,9 +9,11 @@ from sqlalchemy.engine import Row
 from app.models.document import Document
 from app.models.project import Project
 from app.models.budget_line import BudgetLine
+from app.models.product import Product
+from app.models.supplier import Supplier
 from app.models.transaction import Transaction, TransactionType
 
-DocumentListRow = Row[tuple[Document, TransactionType, str | None]]
+DocumentListRow = Row[tuple[Document, TransactionType, str | None, str, str, Decimal]]
 
 
 async def create_document(
@@ -65,12 +69,21 @@ async def get_documents(
 
 async def get_document_list(
     db: AsyncSession, user_id: int, include_deleted: bool = False
-) -> list[DocumentListRow]:
+) -> Sequence[DocumentListRow]:
     query = (
-        select(Document, Transaction.transaction_type, Transaction.description)
+        select(
+            Document,
+            Transaction.transaction_type,
+            Transaction.description,
+            Supplier.name,
+            Product.name,
+            Transaction.amount_ttc,
+        )
         .join(Transaction, Document.transaction_id == Transaction.id)
         .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
         .join(Project, BudgetLine.project_id == Project.id)
+        .join(Product, BudgetLine.product_id == Product.id)
+        .outerjoin(Supplier, Transaction.supplier_id == Supplier.id)
         .where(Document.user_id == user_id)
         .order_by(Document.created_at.desc())
     )

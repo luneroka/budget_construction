@@ -53,6 +53,7 @@ def generate_download_url(
     object_key: str,
     filename: str | None = None,
     expires_in: int = 300,
+    inline: bool = False,
 ) -> str:
     client = get_r2_client()
 
@@ -62,8 +63,9 @@ def generate_download_url(
     }
     if filename:
         safe_filename = filename.replace('"', '').replace('\r', '').replace('\n', '')
+        disposition = 'inline' if inline else 'attachment'
         params['ResponseContentDisposition'] = (
-            f'attachment; filename="{safe_filename}"; '
+            f'{disposition}; filename="{safe_filename}"; '
             f"filename*=UTF-8''{quote(filename, safe='')}"
         )
 

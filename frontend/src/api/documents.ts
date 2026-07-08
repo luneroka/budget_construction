@@ -54,8 +54,11 @@ export function getDocument(documentId: number): Promise<DocumentRead> {
 
 export function getDocumentDownloadUrl(
   documentId: number,
+  inline = true,
 ): Promise<DocumentDownloadUrl> {
-  return apiGet<DocumentDownloadUrl>(`/documents/${documentId}/download-url`)
+  return apiGet<DocumentDownloadUrl>(`/documents/${documentId}/download-url`, {
+    params: { inline },
+  })
 }
 
 export function deleteDocument(documentId: number): Promise<void> {

@@ -1,6 +1,10 @@
 import { useMemo, useState } from 'react'
 
 import { getApiErrorMessage } from '@/api/client'
+import {
+  getDocumentDownloadUrl,
+  getTransactionDocuments,
+} from '@/api/documents'
 import { useSuppliersQuery } from '@/api/suppliers'
 import { BudgetSummaryCards } from '@/components/budget/BudgetSummaryCards'
 import { BudgetTree } from '@/components/budget/BudgetTree'
@@ -11,6 +15,7 @@ import {
   TransactionModal,
   TransactionReviewModal,
 } from '@/components/budget/TransactionModal'
+import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
 import type {
   ActiveAction,
   BudgetLineDeleteState,
@@ -21,7 +26,10 @@ import type {
   TransactionAction,
 } from '@/components/budget/types'
 import { PageHeader } from '@/components/shared/PageHeader'
-import type { BudgetLineSummaryViewModel } from '@/demo/types'
+import type {
+  BudgetLineSummaryViewModel,
+  TransactionViewModel,
+} from '@/demo/types'
 import {
   type BudgetSelectionState,
   canToggleBudgetSelection,
@@ -31,6 +39,8 @@ import {
   suppliersToViewModel,
   useBudgetWorkspaceQuery,
 } from '@/lib/budgetWorkspaceApiAdapter'
+import { downloadDocument } from '@/lib/documents'
+import { formatCurrency } from '@/lib/format'
 import { useAppState } from '@/state/appState'
 
 export function BudgetPage() {
@@ -45,6 +55,14 @@ export function BudgetPage() {
   const [activeAction, setActiveAction] = useState<ActiveAction | null>(null)
   const [transactionReview, setTransactionReview] =
     useState<TransactionReviewState | null>(null)
+  const [viewerDocument, setViewerDocument] = useState<{
+    documentId: number
+    filename: string
+    title: string
+    url: string
+  } | null>(null)
+  const [viewerLoading, setViewerLoading] = useState(false)
+  const [viewerError, setViewerError] = useState<string | null>(null)
   const [transactionDelete, setTransactionDelete] =
     useState<TransactionDeleteState | null>(null)
   const [budgetLineDelete, setBudgetLineDelete] =
@@ -74,7 +92,9 @@ export function BudgetPage() {
     }
   }, [workspace])
 
-  function getBudgetSelection(line: BudgetLineSummaryViewModel): BudgetSelectionState {
+  function getBudgetSelection(
+    line: BudgetLineSummaryViewModel,
+  ): BudgetSelectionState {
     return {
       selected_quote_transaction_id: line.selected_quote_transaction_id,
       selected_diy_estimate_transaction_id:
@@ -95,6 +115,73 @@ export function BudgetPage() {
     // Budget selection is backend-owned. Chunk 4 will wire mutations.
   }
 
+  const transactionDocumentTypeLabels: Record<
+    TransactionViewModel['transaction_type'],
+    string
+  > = {
+    quote: 'Devis',
+    diy_estimate: 'Estimation DIY',
+    invoice: 'Facture',
+  }
+
+  function formatTransactionDocumentTitle(
+    transaction: TransactionViewModel,
+  ): string {
+    const typeLabel =
+      transactionDocumentTypeLabels[transaction.transaction_type]
+    const supplier = transaction.supplier_name ?? 'Autoconstruction'
+    const amount = Number.isFinite(transaction.amount_ttc)
+      ? formatCurrency(transaction.amount_ttc)
+      : '-'
+
+    return `${typeLabel} • ${supplier} • ${amount}`
+  }
+
+  async function openTransactionDocumentsViewer(
+    transaction: TransactionViewModel,
+  ) {
+    setViewerLoading(true)
+    setViewerError(null)
+
+    try {
+      const documents = await getTransactionDocuments(Number(transaction.id))
+      if (documents.length === 0) {
+        setViewerError('Aucun document joint à cette transaction.')
+        return
+      }
+
+      const document = documents[0]
+      const { url } = await getDocumentDownloadUrl(document.id, true)
+      setViewerDocument({
+        documentId: document.id,
+        filename: document.original_filename,
+        title: `${document.original_filename} — ${formatTransactionDocumentTitle(
+          transaction,
+        )}`,
+        url,
+      })
+    } catch (error) {
+      setViewerError(getApiErrorMessage(error))
+    } finally {
+      setViewerLoading(false)
+    }
+  }
+
+  async function handleViewerDownload() {
+    if (!viewerDocument) return
+
+    setViewerLoading(true)
+    setViewerError(null)
+
+    try {
+      await downloadDocument(viewerDocument.documentId, viewerDocument.filename)
+    } catch (error) {
+      setViewerError(getApiErrorMessage(error))
+    } finally {
+      setViewerLoading(false)
+    }
+  }
+
   if (!projectId) {
     return (
       <section>
@@ -112,10 +199,7 @@ export function BudgetPage() {
   if (workspaceQuery.isLoading) {
     return (
       <section>
-        <PageHeader
-          title="Budget"
-          description="Chargement du budget projet."
-        />
+        <PageHeader title="Budget" description="Chargement du budget projet." />
         <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
           Chargement du budget
         </div>
@@ -197,17 +281,18 @@ export function BudgetPage() {
             initialMode: 'view',
           })
         }
+        onViewTransactionDocuments={openTransactionDocumentsViewer}
       />
 
       {activeAction?.kind === 'transaction' ? (
-          <TransactionModal
-            project={project}
-            product={activeAction.product}
-            budgetLine={activeAction.budgetLine}
-            initialStructure={activeAction.initialStructure}
-            suppliers={suppliers}
-            onClose={() => setActiveAction(null)}
-          />
+        <TransactionModal
+          project={project}
+          product={activeAction.product}
+          budgetLine={activeAction.budgetLine}
+          initialStructure={activeAction.initialStructure}
+          suppliers={suppliers}
+          onClose={() => setActiveAction(null)}
+        />
       ) : null}
 
       {activeAction && activeAction.kind !== 'transaction' ? (
@@ -218,6 +303,20 @@ export function BudgetPage() {
           onSelectStructureChoice={setSelectedStructureChoice}
           onContinue={continueFromStructureChoice}
           onClose={() => setActiveAction(null)}
+        />
+      ) : null}
+
+      {viewerDocument ? (
+        <DocumentViewerDialog
+          title={viewerDocument.title}
+          url={viewerDocument.url}
+          isPending={viewerLoading}
+          error={viewerError}
+          onClose={() => {
+            setViewerDocument(null)
+            setViewerError(null)
+          }}
+          onDownload={() => void handleViewerDownload()}
         />
       ) : null}
 

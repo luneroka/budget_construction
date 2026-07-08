@@ -26,6 +26,9 @@ class DocumentRead(BaseModel):
 class DocumentListRead(DocumentRead):
     transaction_type: TransactionType
     transaction_description: str | None = None
+    supplier_name: str | None = None
+    product_name: str | None = None
+    amount_ttc: str | None = None
 
 
 class DocumentDownloadUrl(BaseModel):

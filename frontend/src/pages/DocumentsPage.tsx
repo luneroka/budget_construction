@@ -13,6 +13,7 @@ import {
 import type { DocumentListRead } from '@/api/types'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
+import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { TableToolbar } from '@/components/shared/TableToolbar'
 import { Button } from '@/components/ui/button'
@@ -24,7 +25,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { formatDate, formatFileSize } from '@/lib/format'
+import { downloadDocument } from '@/lib/documents'
+import { formatCurrency, formatDate } from '@/lib/format'
 
 type DocumentAction = 'view' | 'download'
 
@@ -37,13 +39,8 @@ const documentTransactionTypeLabels: Record<
   invoice: 'Facture',
 }
 
-function filenameExtension(filename: string): string {
-  const extension = filename.split('.').pop()
-  return extension && extension !== filename ? `.${extension}` : ''
-}
-
-function formatTransactionTitle(description: string | null): string {
-  if (!description) return '-'
+function formatTransactionTitle(description: string | null): string | null {
+  if (!description) return null
 
   const [documentLabel, ...subjectParts] = description.split(' - ')
   const subject = subjectParts.join(' - ')
@@ -54,25 +51,15 @@ function formatTransactionTitle(description: string | null): string {
 }
 
 function formatDocumentDisplayName(document: DocumentListRead): string {
-  const transactionTitle = formatTransactionTitle(
-    document.transaction_description,
-  )
-  const baseName =
-    transactionTitle === '-'
-      ? documentTransactionTypeLabels[document.transaction_type]
-      : transactionTitle
+  const typeLabel = documentTransactionTypeLabels[document.transaction_type]
+  const supplier = document.supplier_name ?? 'Autoconstruction'
+  const amount = document.amount_ttc
+    ? formatCurrency(Number(document.amount_ttc))
+    : '-'
+  const productLabel = document.product_name?.trim()
+  const primaryLabel = productLabel ? `${typeLabel} ${productLabel}` : typeLabel
 
-  return `${baseName}${filenameExtension(document.original_filename)}`
-}
-
-function triggerDocumentDownload(url: string, filename: string) {
-  const link = window.document.createElement('a')
-  link.href = url
-  link.download = filename
-  link.rel = 'noopener noreferrer'
-  window.document.body.appendChild(link)
-  link.click()
-  link.remove()
+  return `${primaryLabel} • ${supplier} • ${amount}`
 }
 
 function sortDocuments(documents: DocumentListRead[]): DocumentListRead[] {
@@ -90,6 +77,12 @@ export function DocumentsPage() {
   const [activeDocumentId, setActiveDocumentId] = useState<number | null>(null)
   const [documentPendingDeletion, setDocumentPendingDeletion] =
     useState<DocumentListRead | null>(null)
+  const [viewerDocument, setViewerDocument] = useState<{
+    document: DocumentListRead
+    url: string
+  } | null>(null)
+  const [viewerLoading, setViewerLoading] = useState(false)
+  const [viewerError, setViewerError] = useState<string | null>(null)
   const documentsQuery = useDocumentsQuery({ enabled: true })
   const deleteDocumentMutation = useDeleteDocumentMutation()
   const documents = useMemo(
@@ -106,6 +99,9 @@ export function DocumentsPage() {
         formatDocumentDisplayName(document),
         document.transaction_type,
         document.transaction_description,
+        document.supplier_name,
+        document.product_name,
+        document.amount_ttc,
         String(document.transaction_id),
       ]
         .filter(Boolean)
@@ -122,24 +118,34 @@ export function DocumentsPage() {
     documentsQuery.isFetching && !isLoadingDocuments && !documentsError
   const showEmptyState =
     !isLoadingDocuments && !documentsError && filteredDocuments.length === 0
+  const pendingDeletionTransactionTitle = documentPendingDeletion
+    ? formatTransactionTitle(documentPendingDeletion.transaction_description)
+    : null
 
   async function openDocumentAction(
     action: DocumentAction,
     document: DocumentListRead,
   ) {
     setActiveDocumentId(document.id)
+    setViewerLoading(true)
     setActionError(null)
+    setViewerError(null)
 
     try {
-      const { url } = await getDocumentDownloadUrl(document.id)
+      if (action === 'download') {
+        await downloadDocument(document.id, document.original_filename)
+        return
+      }
+
+      const { url } = await getDocumentDownloadUrl(document.id, true)
+
       if (action === 'view') {
-        window.open(url, '_blank', 'noopener,noreferrer')
-      } else {
-        triggerDocumentDownload(url, formatDocumentDisplayName(document))
+        setViewerDocument({ document, url })
       }
     } catch (error) {
       setActionError(getApiErrorMessage(error))
     } finally {
+      setViewerLoading(false)
       setActiveDocumentId(null)
     }
   }
@@ -164,6 +170,24 @@ export function DocumentsPage() {
     }
   }
 
+  async function handleViewerDownload() {
+    if (!viewerDocument) return
+
+    setViewerLoading(true)
+    setViewerError(null)
+
+    try {
+      await downloadDocument(
+        viewerDocument.document.id,
+        viewerDocument.document.original_filename,
+      )
+    } catch (error) {
+      setViewerError(getApiErrorMessage(error))
+    } finally {
+      setViewerLoading(false)
+    }
+  }
+
   function emptyStateMessage() {
     if (search.trim() !== '') {
       return 'Aucun document ne correspond à la recherche.'
@@ -177,7 +201,7 @@ export function DocumentsPage() {
       return (
         <TableRow>
           <TableCell
-            colSpan={6}
+            colSpan={5}
             className="py-8 text-center text-muted-foreground"
           >
             Chargement des documents...
@@ -189,7 +213,7 @@ export function DocumentsPage() {
     if (documentsError) {
       return (
         <TableRow>
-          <TableCell colSpan={6} className="py-8 text-center text-destructive">
+          <TableCell colSpan={5} className="py-8 text-center text-destructive">
             Impossible de charger les documents.
           </TableCell>
         </TableRow>
@@ -213,14 +237,11 @@ export function DocumentsPage() {
           <TableCell className="min-w-32 whitespace-nowrap">
             <StatusBadge status={document.transaction_type} />
           </TableCell>
-          <TableCell className="font-medium">
-            {formatTransactionTitle(document.transaction_description)}
+          <TableCell className="font-medium whitespace-nowrap">
+            {document.supplier_name ?? 'Autoconstruction'}
           </TableCell>
           <TableCell className="whitespace-nowrap">
             {formatDate(document.created_at)}
-          </TableCell>
-          <TableCell className="min-w-20 whitespace-nowrap text-right font-medium">
-            {formatFileSize(document.file_size)}
           </TableCell>
           <TableCell className="text-center">
             <div className="inline-flex justify-center gap-1">
@@ -228,7 +249,6 @@ export function DocumentsPage() {
                 size="icon"
                 variant="ghost"
                 aria-label={`Voir ${document.original_filename}`}
-                disabled={isBusy}
                 onClick={() => openDocumentAction('view', document)}
               >
                 <Eye aria-hidden />
@@ -300,9 +320,8 @@ export function DocumentsPage() {
             <TableRow>
               <TableHead>Fichier</TableHead>
               <TableHead className="min-w-32">Type</TableHead>
-              <TableHead>Transaction</TableHead>
+              <TableHead>Fournisseur</TableHead>
               <TableHead>Ajouté le</TableHead>
-              <TableHead className="min-w-20 text-right">Taille</TableHead>
               <TableHead className="text-center!">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -314,6 +333,20 @@ export function DocumentsPage() {
           </div>
         ) : null}
       </div>
+
+      {viewerDocument ? (
+        <DocumentViewerDialog
+          title={formatDocumentDisplayName(viewerDocument.document)}
+          url={viewerDocument.url}
+          isPending={viewerLoading}
+          error={viewerError}
+          onClose={() => {
+            setViewerDocument(null)
+            setViewerError(null)
+          }}
+          onDownload={() => void handleViewerDownload()}
+        />
+      ) : null}
 
       {documentPendingDeletion ? (
         <ConfirmationDialog
@@ -331,11 +364,11 @@ export function DocumentsPage() {
           <p className="font-medium text-foreground">
             {formatDocumentDisplayName(documentPendingDeletion)}
           </p>
-          <p className="mt-1 text-muted-foreground">
-            {formatTransactionTitle(
-              documentPendingDeletion.transaction_description,
-            )}
-          </p>
+          {pendingDeletionTransactionTitle ? (
+            <p className="mt-1 text-muted-foreground">
+              {pendingDeletionTransactionTitle}
+            </p>
+          ) : null}
         </ConfirmationDialog>
       ) : null}
     </section>

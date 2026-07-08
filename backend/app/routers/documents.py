@@ -112,12 +112,22 @@ def _cleanup_uploaded_file(object_key: str) -> None:
 def _document_list_read(
     row: document_repository.DocumentListRow,
 ) -> DocumentListRead:
-    document, transaction_type, transaction_description = row
+    (
+        document,
+        transaction_type,
+        transaction_description,
+        supplier_name,
+        product_name,
+        amount_ttc,
+    ) = row
     return DocumentListRead.model_validate(
         {
             **document.__dict__,
             'transaction_type': transaction_type,
             'transaction_description': transaction_description,
+            'supplier_name': supplier_name,
+            'product_name': product_name,
+            'amount_ttc': str(amount_ttc) if amount_ttc is not None else None,
         }
     )
 
@@ -269,6 +279,7 @@ async def get_document(
 )
 async def get_document_download_url(
     document_id: int,
+    inline: bool = True,
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -287,6 +298,7 @@ async def get_document_download_url(
     url = generate_download_url(
         document.file_path,
         filename=document.original_filename,
+        inline=inline,
     )
 
     return DocumentDownloadUrl(url=url)

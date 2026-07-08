@@ -16,7 +16,6 @@ import {
 } from '@/api/budget-workspace-cache'
 import { getApiErrorMessage } from '@/api/client'
 import {
-  getDocumentDownloadUrl,
   useDeleteDocumentMutation,
   useTransactionDocumentsQuery,
   useUploadTransactionDocumentMutation,
@@ -35,6 +34,7 @@ import type {
   TransactionRead,
   TransactionUpdate,
 } from '@/api/types'
+import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -53,6 +53,7 @@ import type {
   TransactionType,
   TransactionViewModel,
 } from '@/demo/types'
+import { downloadDocument } from '@/lib/documents'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -558,10 +559,14 @@ function TransactionDocumentsPanel({
   readOnly?: boolean
 }) {
   const queryClient = useQueryClient()
-  const documentsQuery = useTransactionDocumentsQuery(transactionId)
+  const documentsQuery = useTransactionDocumentsQuery(transactionId, {
+    enabled: Number.isInteger(transactionId),
+  })
   const uploadDocumentMutation = useUploadTransactionDocumentMutation()
   const deleteDocumentMutation = useDeleteDocumentMutation()
   const [documentError, setDocumentError] = useState<string | null>(null)
+  const [documentPendingDeletion, setDocumentPendingDeletion] =
+    useState<DocumentRead | null>(null)
   const isMutating =
     uploadDocumentMutation.isPending || deleteDocumentMutation.isPending
 
@@ -580,8 +585,7 @@ function TransactionDocumentsPanel({
   async function handleDownload(document: DocumentRead) {
     try {
       setDocumentError(null)
-      const { url } = await getDocumentDownloadUrl(document.id)
-      window.open(url, '_blank', 'noopener,noreferrer')
+      await downloadDocument(document.id, document.original_filename)
     } catch (error) {
       setDocumentError(getApiErrorMessage(error))
     }
@@ -592,12 +596,19 @@ function TransactionDocumentsPanel({
       setDocumentError(null)
       await deleteDocumentMutation.mutateAsync({ documentId: document.id })
       invalidateDocumentQueries(queryClient, transactionId)
+      setDocumentPendingDeletion(null)
     } catch (error) {
       setDocumentError(getApiErrorMessage(error))
     }
   }
 
   const documents = documentsQuery.data ?? []
+  const hasAttachedDocuments = documents.length > 0
+  const canUploadDocument =
+    !readOnly &&
+    documentsQuery.isSuccess &&
+    !hasAttachedDocuments &&
+    !documentsQuery.isFetching
 
   return (
     <div className="space-y-3 rounded-md border border-border p-4">
@@ -606,7 +617,15 @@ function TransactionDocumentsPanel({
         Documents
       </div>
 
-      {readOnly ? null : (
+      {documentsQuery.isLoading ? (
+        <p className="text-sm text-muted-foreground">
+          Chargement des documents
+        </p>
+      ) : documentsQuery.isError ? (
+        <p className="text-sm text-destructive">
+          {getApiErrorMessage(documentsQuery.error)}
+        </p>
+      ) : canUploadDocument ? (
         <Input
           type="file"
           accept={documentInputAccept}
@@ -617,19 +636,13 @@ function TransactionDocumentsPanel({
             void handleUpload(file)
           }}
         />
-      )}
+      ) : null}
 
-      {documentsQuery.isLoading ? (
-        <p className="text-sm text-muted-foreground">
-          Chargement des documents
-        </p>
-      ) : documentsQuery.isError ? (
-        <p className="text-sm text-destructive">
-          {getApiErrorMessage(documentsQuery.error)}
-        </p>
-      ) : documents.length === 0 ? (
+      {documentsQuery.isSuccess && documents.length === 0 ? (
         <p className="text-sm text-muted-foreground">Aucun document joint.</p>
-      ) : (
+      ) : null}
+
+      {documents.length > 0 ? (
         <div className="space-y-2">
           {documents.map((document) => (
             <div
@@ -660,7 +673,10 @@ function TransactionDocumentsPanel({
                     variant="outline"
                     type="button"
                     disabled={isMutating}
-                    onClick={() => void handleDelete(document)}
+                    onClick={() => {
+                      setDocumentError(null)
+                      setDocumentPendingDeletion(document)
+                    }}
                   >
                     <Trash2 aria-hidden />
                     Supprimer
@@ -670,12 +686,34 @@ function TransactionDocumentsPanel({
             </div>
           ))}
         </div>
-      )}
+      ) : null}
 
-      {documentError ? (
+      {documentError && !documentPendingDeletion ? (
         <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
           {documentError}
         </p>
+      ) : null}
+
+      {documentPendingDeletion ? (
+        <ConfirmationDialog
+          title="Supprimer ce document ?"
+          description="Ce document sera retiré de la transaction associée."
+          error={documentError}
+          isPending={deleteDocumentMutation.isPending}
+          onCancel={() => {
+            if (deleteDocumentMutation.isPending) return
+            setDocumentPendingDeletion(null)
+            setDocumentError(null)
+          }}
+          onConfirm={() => void handleDelete(documentPendingDeletion)}
+        >
+          <p className="font-medium text-foreground">
+            {documentPendingDeletion.original_filename}
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            {formatFileSize(documentPendingDeletion.file_size)}
+          </p>
+        </ConfirmationDialog>
       ) : null}
     </div>
   )

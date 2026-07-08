@@ -2,6 +2,7 @@ import type { ViewedTransactionContext } from '@/components/budget/TransactionMo
 import type {
   BudgetLineSummaryViewModel,
   ProductSummaryViewModel,
+  TransactionViewModel,
 } from '@/demo/types'
 
 export type ProductStructureChoice = 'single' | 'breakdown'
@@ -10,6 +11,10 @@ export type TransactionAction = {
   budgetLine?: BudgetLineSummaryViewModel
   product: ProductSummaryViewModel
   initialStructure?: ProductStructureChoice
+}
+
+export type ViewTransactionDocumentsAction = {
+  transaction: TransactionViewModel
 }
 
 export type BreakdownAction = {

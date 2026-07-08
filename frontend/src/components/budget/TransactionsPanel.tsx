@@ -46,6 +46,7 @@ type TransactionsPanelProps = {
   onRequestDeleteTransaction: (context: ViewedTransactionContext) => void
   onEditTransaction: (context: ViewedTransactionContext) => void
   onViewTransaction: (context: ViewedTransactionContext) => void
+  onViewTransactionDocuments: (transaction: TransactionViewModel) => void
 }
 
 function TransactionSectionDivider({ label }: { label: string }) {
@@ -90,6 +91,7 @@ function TransactionRows({
   onRequestDeleteTransaction,
   onEditTransaction,
   onViewTransaction,
+  onViewTransactionDocuments,
 }: TransactionsPanelProps) {
   if (transactions.length === 0) return <EmptyTransactionRows />
 
@@ -218,13 +220,7 @@ function TransactionRows({
             <button
               type="button"
               className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
-              onClick={() =>
-                onViewTransaction({
-                  budgetLine,
-                  product,
-                  transaction,
-                })
-              }
+              onClick={() => onViewTransactionDocuments(transaction)}
               aria-label="Voir les documents de la transaction"
             >
               <Paperclip className="h-4 w-4" aria-hidden="true" />

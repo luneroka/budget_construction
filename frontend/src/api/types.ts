@@ -321,6 +321,9 @@ export type DocumentRead = {
 export type DocumentListRead = DocumentRead & {
   transaction_type: TransactionType
   transaction_description: string | null
+  supplier_name: string | null
+  product_name: string | null
+  amount_ttc: ApiDecimal | null
 }
 
 export type DocumentDownloadUrl = {
