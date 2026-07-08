@@ -44,10 +44,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type {
-  BudgetLineSummaryViewModel,
-  ProjectViewModel,
-} from '@/demo/types'
+import type { BudgetLineSummaryViewModel, ProjectViewModel } from '@/demo/types'
 import { suppliersToViewModel } from '@/lib/budgetWorkspaceApiAdapter'
 import {
   canToggleBudgetSelection,
@@ -74,8 +71,7 @@ import { notifyError } from '@/lib/toasts'
 import { useAppState } from '@/state/appState'
 
 type TransactionTypeFilter =
-  | 'all'
-  | TransactionWorkspaceRow['transaction']['transaction_type']
+  'all' | TransactionWorkspaceRow['transaction']['transaction_type']
 type DateFilter = 'all' | 'last_7_days' | 'last_30_days' | 'current_month'
 type SortField = 'date' | 'amount'
 type SortDirection = 'asc' | 'desc'
@@ -787,7 +783,7 @@ export function TransactionsPage() {
       <div className="mt-6 overflow-hidden rounded-lg border border-border bg-card">
         <TableToolbar
           searchValue={search}
-          searchPlaceholder="Rechercher fournisseur, catégorie, poste, type, montant..."
+          searchPlaceholder="Rechercher fournisseur, catégorie, poste, montant..."
           onSearchChange={setSearch}
           actions={
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
