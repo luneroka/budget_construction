@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { apiConfig } from './config'
 import { apiGet, apiPatch, apiPost } from './client'
 import type {
+  DashboardFinancialOverviewRead,
   GeneratedProjectRead,
   ProjectFinancialSummaryRead,
   ProjectFromTemplateCreate,
@@ -19,6 +20,8 @@ export const projectQueryKeys = {
     [...projectQueryKeys.all, projectId, 'detail', { includeDeleted }] as const,
   financialSummary: (projectId: number) =>
     [...projectQueryKeys.all, projectId, 'financial-summary'] as const,
+  dashboardFinancialOverview: (projectId: number) =>
+    [...projectQueryKeys.all, projectId, 'dashboard', 'financial-overview'] as const,
 }
 
 export function getProjects(includeDeleted = false): Promise<ProjectRead[]> {
@@ -57,6 +60,14 @@ export function getProjectFinancialSummary(
 ): Promise<ProjectFinancialSummaryRead> {
   return apiGet<ProjectFinancialSummaryRead>(
     `/projects/${projectId}/financial-summary`,
+  )
+}
+
+export function getProjectDashboardFinancialOverview(
+  projectId: number,
+): Promise<DashboardFinancialOverviewRead> {
+  return apiGet<DashboardFinancialOverviewRead>(
+    `/projects/${projectId}/dashboard/financial-overview`,
   )
 }
 
@@ -104,6 +115,27 @@ export function useProjectFinancialSummaryQuery(
       }
 
       return getProjectFinancialSummary(projectId)
+    },
+    enabled:
+      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
+  })
+}
+
+export function useProjectDashboardFinancialOverviewQuery(
+  projectId: number | null,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey:
+      projectId === null
+        ? [...projectQueryKeys.all, 'missing-project', 'dashboard', 'financial-overview']
+        : projectQueryKeys.dashboardFinancialOverview(projectId),
+    queryFn: () => {
+      if (projectId === null) {
+        throw new Error('Identifiant projet manquant.')
+      }
+
+      return getProjectDashboardFinancialOverview(projectId)
     },
     enabled:
       projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),

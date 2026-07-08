@@ -184,8 +184,10 @@ export type FinancialTotalsRead = {
   paid_invoice_amount_ttc: ApiDecimal
   unpaid_invoice_amount_ttc: ApiDecimal
   on_hold_invoice_amount_ttc: ApiDecimal
+  remaining_budget_amount_ttc: ApiDecimal
   selected_budget_variance_ttc: ApiDecimal
   selected_quote_budget_variance_ttc: ApiDecimal
+  budget_completion_percentage: ApiDecimal
   quote_count: number
   validated_quote_count: number
   diy_estimate_count: number
@@ -212,6 +214,16 @@ export type ProjectFinancialSummaryRead = FinancialTotalsRead & {
   project_id: number
   generated_at: ApiDateTime
   products: ProductFinancialSummaryRead[]
+}
+
+export type DashboardFinancialOverviewRead = {
+  project_id: number
+  generated_at: ApiDateTime
+  selected_budget_amount_ttc: ApiDecimal
+  actual_cost_amount_ttc: ApiDecimal
+  remaining_budget_amount_ttc: ApiDecimal
+  selected_budget_variance_ttc: ApiDecimal
+  budget_completion_percentage: ApiDecimal
 }
 
 export type TransactionBaseWrite = {

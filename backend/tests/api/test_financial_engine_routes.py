@@ -229,12 +229,38 @@ async def test_project_financial_summary_returns_dashboard_totals(
     assert summary['paid_invoice_amount_ttc'] == '125.00'
     assert summary['unpaid_invoice_amount_ttc'] == '250.00'
     assert summary['on_hold_invoice_amount_ttc'] == '50.00'
+    assert summary['remaining_budget_amount_ttc'] == '1025.00'
     assert summary['selected_budget_variance_ttc'] == '1025.00'
     assert summary['selected_quote_budget_variance_ttc'] == '575.00'
+    assert summary['budget_completion_percentage'] == '29.31'
     assert summary['quote_count'] == 2
     assert summary['validated_quote_count'] == 1
     assert summary['diy_estimate_count'] == 2
     assert summary['invoice_count'] == 4
+
+
+async def test_project_dashboard_financial_overview_returns_kpi_projection(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_financial_summary_context(db_session)
+
+    response = await client.get(
+        f'/projects/{context.project_id}/dashboard/financial-overview',
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 200
+    overview = cast(dict[str, object], response.json())
+    assert overview == {
+        'project_id': context.project_id,
+        'generated_at': overview['generated_at'],
+        'selected_budget_amount_ttc': '1450.00',
+        'actual_cost_amount_ttc': '425.00',
+        'remaining_budget_amount_ttc': '1025.00',
+        'selected_budget_variance_ttc': '1025.00',
+        'budget_completion_percentage': '29.31',
+    }
 
 
 async def test_project_financial_summary_breaks_down_by_product(

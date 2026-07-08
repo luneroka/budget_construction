@@ -40,9 +40,7 @@ export function KpiCard({
           />
         ) : null}
       </div>
-      <p className="mt-2 font-heading text-2xl font-bold text-foreground">
-        {value}
-      </p>
+      <p className="mt-2 text-2xl font-bold text-foreground">{value}</p>
       {detail ? (
         <p className="mt-2 text-sm text-muted-foreground">{detail}</p>
       ) : null}

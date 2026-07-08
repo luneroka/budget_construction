@@ -22,20 +22,7 @@ Each page answers a different question.
 
 ## Dashboard
 
-Question:
-
-> What requires my attention today?
-
-Purpose:
-
-- Monitor project health
-- Surface actionable items
-- Display KPIs and analytics
-- Quickly navigate to operational tasks
-
-The Dashboard is **not** a transaction management page.
-
----
+The detailed Dashboard strategy now lives in docs/ui/dashboard_design.md. This document focuses exclusively on the Transactions workspace.
 
 ## Budget
 
@@ -252,182 +239,6 @@ Do not introduce another editing workflow.
 
 ---
 
-# Dashboard
-
-## Philosophy
-
-The Dashboard is not another transaction page.
-
-It surfaces:
-
-- KPIs
-- Charts
-- Actionable summaries
-
-Large editable tables belong in the Transactions page.
-
----
-
-## Layout
-
-### Section 1
-
-Project KPIs
-
-Examples:
-
-- Selected Budget
-- Actual Cost
-- Remaining Budget
-- Variance
-- DIY share
-
----
-
-### Section 2
-
-Charts
-
-Examples:
-
-- Spending over time
-- Budget vs Actual
-- Category distribution
-- Invoice evolution
-
----
-
-### Section 3
-
-Action Center
-
-Contains small actionable widgets.
-
-Examples:
-
-## Quotes awaiting validation ("À confirmer")
-
-Show:
-
-- latest 5
-
-CTA
-
-View all →
-
-opens Transactions page
-
-filtered on:
-
-Quote + Pending
-
----
-
-## Unpaid invoices
-
-Show:
-
-latest 5
-
-CTA
-
-View all →
-
-opens Transactions page
-
-filtered on:
-
-Invoice + Unpaid
-
----
-
-## Recent transactions
-
-Show:
-
-latest 5
-
-CTA
-
-View all →
-
-opens Transactions page
-
-sorted by newest
-
----
-
-## Missing documents
-
-Show:
-
-transactions without attached documents
-
-CTA
-
-View all →
-
-opens Transactions page
-
-filtered on:
-
-Missing documents
-
----
-
-## Budget alerts
-
-Examples:
-
-- Budget exceeded
-- High variance
-- Products without budget
-- Missing supplier
-
-Each alert links directly to the corresponding Budget item.
-
----
-
-# Navigation Philosophy
-
-Dashboard
-
-↓
-
-Monitor
-
-Budget
-
-↓
-
-Build & maintain
-
-Transactions
-
-↓
-
-Operate
-
-Suppliers
-
-↓
-
-Manage companies
-
-Documents
-
-↓
-
-Browse project files
-
-Settings
-
-↓
-
-Configure application
-
----
-
 # UX Principles
 
 Always:
@@ -470,13 +281,11 @@ Operational transaction workspace.
 
 Status
 
-- [ ] Not Started
-- [ ] In Progress
-- [ ] Completed
+- [x] Completed
 
 ---
 
-## Chunk 2 — Filters
+## Chunk 2 — Quick Views & Filters
 
 Goal
 
@@ -496,111 +305,12 @@ Transactions page becomes a fast operational workspace with predefined views, se
 
 Status
 
-- [ ] Not Started
-- [ ] In Progress
-- [ ] Completed
-
----
-
-## Chunk 3 — Dashboard Redesign
-
-Goal
-
-Transform Dashboard into a monitoring page.
-
-Tasks
-
-- KPI cards
-- Charts
-- Action Center
-- Dashboard widgets
-
-Deliverable
-
-Executive project overview.
-
-Status
-
-- [ ] Not Started
-- [ ] In Progress
-- [ ] Completed
-
----
-
-## Chunk 4 — Deep Linking
-
-Goal
-
-Connect Dashboard widgets to Transactions.
-
-Examples
-
-Unpaid invoices
-
-↓
-
-Transactions
-
-↓
-
-Invoice + Unpaid filter
-
-Recent transactions
-
-↓
-
-Transactions
-
-↓
-
-Latest first
-
-Deliverable
-
-Seamless navigation.
-
-Status
-
-- [ ] Not Started
-- [ ] In Progress
-- [ ] Completed
-
----
-
-## Chunk 5 — Polish
-
-Tasks
-
-- Empty states
-- Loading states
-- Error states
-- Keyboard shortcuts
-- Responsive behavior
-- Performance review
-
-Deliverable
-
-Production-ready transaction experience.
-
-Status
-
-- [ ] Not Started
-- [ ] In Progress
-- [ ] Completed
+- [x] Completed
 
 ---
 
 # Final Vision
 
-The application offers three complementary perspectives over the same project data:
+The application offers a comprehensive operational workspace for reviewing, searching, updating, and completing every project transaction through the **Transactions** page.
 
-**Dashboard**
-Executive monitoring and actionable summaries.
-
-**Budget**
-Hierarchical construction budget management.
-
-**Transactions**
-Operational workspace for reviewing, searching, updating and completing every project transaction.
-
-Together, these three pages cover the complete lifecycle of day-to-day construction budget management without duplicating functionality or overloading a single interface.
+Dashboard and Budget have their own dedicated strategy documents to cover executive monitoring and hierarchical budget management respectively.

@@ -7,7 +7,10 @@ from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.repositories import budget_line as budget_line_repository
 from app.repositories import project as project_repository
-from app.schemas.financial_engine import ProjectFinancialSummaryRead
+from app.schemas.financial_engine import (
+    DashboardFinancialOverviewRead,
+    ProjectFinancialSummaryRead,
+)
 from app.schemas.project import (
     GeneratedProjectRead,
     ProjectCreate,
@@ -30,7 +33,9 @@ async def create_project(
     current_user: User = Depends(get_current_user),
 ):
     try:
-        return await project_repository.create_project(db, project_data, current_user.id)
+        return await project_repository.create_project(
+            db, project_data, current_user.id
+        )
     except project_repository.ProjectValidationError as error:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -121,6 +126,29 @@ async def get_project_financial_summary(
         )
 
     return financial_summary
+
+
+@router.get(
+    '/{project_id}/dashboard/financial-overview',
+    response_model=DashboardFinancialOverviewRead,
+)
+async def get_project_dashboard_financial_overview(
+    project_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    financial_overview = await financial_engine.get_dashboard_financial_overview(
+        db,
+        project_id,
+        current_user.id,
+    )
+
+    if financial_overview is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
+        )
+
+    return financial_overview
 
 
 # API ENDPOINT TO UPDATE A PROJECT

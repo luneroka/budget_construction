@@ -22,6 +22,7 @@ from app.models.transaction import (
 )
 from app.schemas.financial_engine import (
     BudgetLineFinancialSummaryRead,
+    DashboardFinancialOverviewRead,
     FinancialTotalsRead,
     ProductFinancialSummaryRead,
     ProjectFinancialSummaryRead,
@@ -127,6 +128,16 @@ class ProjectFinancials:
 
 
 def financial_totals_to_read_model(totals: FinancialTotals) -> FinancialTotalsRead:
+    selected_budget_variance = (
+        totals.selected_budget_amount_ttc - totals.actual_cost_amount_ttc
+    )
+    budget_completion_percentage = (
+        (totals.actual_cost_amount_ttc / totals.selected_budget_amount_ttc)
+        * Decimal('100')
+        if totals.selected_budget_amount_ttc > ZERO_MONEY
+        else ZERO_MONEY
+    ).quantize(Decimal('0.01'))
+
     return FinancialTotalsRead(
         selected_budget_amount_ttc=totals.selected_budget_amount_ttc,
         selected_quote_budget_amount_ttc=totals.selected_quote_budget_amount_ttc,
@@ -138,12 +149,12 @@ def financial_totals_to_read_model(totals: FinancialTotals) -> FinancialTotalsRe
         paid_invoice_amount_ttc=totals.paid_invoice_amount_ttc,
         unpaid_invoice_amount_ttc=totals.unpaid_invoice_amount_ttc,
         on_hold_invoice_amount_ttc=totals.on_hold_invoice_amount_ttc,
-        selected_budget_variance_ttc=(
-            totals.selected_budget_amount_ttc - totals.actual_cost_amount_ttc
-        ),
+        remaining_budget_amount_ttc=selected_budget_variance,
+        selected_budget_variance_ttc=selected_budget_variance,
         selected_quote_budget_variance_ttc=(
             totals.selected_quote_budget_amount_ttc - totals.actual_cost_amount_ttc
         ),
+        budget_completion_percentage=budget_completion_percentage,
         quote_count=totals.quote_count,
         validated_quote_count=totals.validated_quote_count,
         diy_estimate_count=totals.diy_estimate_count,
@@ -168,6 +179,31 @@ class FinancialEngine:
             return None
 
         return project_financials_to_read_model(project_financials)
+
+    async def get_dashboard_financial_overview(
+        self,
+        db: AsyncSession,
+        project_id: int,
+        user_id: int,
+    ) -> DashboardFinancialOverviewRead | None:
+        project_financials = await self.calculate_project_financials(
+            db,
+            project_id,
+            user_id,
+        )
+        if project_financials is None:
+            return None
+
+        totals = financial_totals_to_read_model(project_financials.totals)
+        return DashboardFinancialOverviewRead(
+            project_id=project_financials.project_id,
+            generated_at=project_financials.generated_at,
+            selected_budget_amount_ttc=totals.selected_budget_amount_ttc,
+            actual_cost_amount_ttc=totals.actual_cost_amount_ttc,
+            remaining_budget_amount_ttc=totals.remaining_budget_amount_ttc,
+            selected_budget_variance_ttc=totals.selected_budget_variance_ttc,
+            budget_completion_percentage=totals.budget_completion_percentage,
+        )
 
     async def calculate_project_financials(
         self,

@@ -19,8 +19,10 @@ class FinancialTotalsRead(BaseModel):
     paid_invoice_amount_ttc: Decimal
     unpaid_invoice_amount_ttc: Decimal
     on_hold_invoice_amount_ttc: Decimal
+    remaining_budget_amount_ttc: Decimal
     selected_budget_variance_ttc: Decimal
     selected_quote_budget_variance_ttc: Decimal
+    budget_completion_percentage: Decimal
     quote_count: int
     validated_quote_count: int
     diy_estimate_count: int
@@ -47,3 +49,13 @@ class ProjectFinancialSummaryRead(FinancialTotalsRead):
     project_id: int
     generated_at: datetime
     products: list[ProductFinancialSummaryRead]
+
+
+class DashboardFinancialOverviewRead(BaseModel):
+    project_id: int
+    generated_at: datetime
+    selected_budget_amount_ttc: Decimal
+    actual_cost_amount_ttc: Decimal
+    remaining_budget_amount_ttc: Decimal
+    selected_budget_variance_ttc: Decimal
+    budget_completion_percentage: Decimal
