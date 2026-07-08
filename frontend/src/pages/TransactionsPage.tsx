@@ -1,26 +1,42 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useQueries } from '@tanstack/react-query'
-import { Edit3, Eye, FileSearch, Paperclip, Trash2 } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Edit3,
+  Eye,
+  FileSearch,
+  Paperclip,
+  Trash2,
+} from 'lucide-react'
 
 import { getApiErrorMessage } from '@/api/client'
 import {
   getDocumentDownloadUrl,
   getTransactionDocuments,
 } from '@/api/documents'
+import { useProjectQuery } from '@/api/projects'
 import { useSuppliersQuery } from '@/api/suppliers'
-import {
-  getBudgetLineTransactions,
-  transactionQueryKeys,
-} from '@/api/transactions'
+import { useProjectTransactionsQuery } from '@/api/transactions'
+import type {
+  ApiDecimal,
+  ProjectRead,
+  ProjectTransactionRead,
+} from '@/api/types'
+import { DeleteTransactionDialog } from '@/components/budget/DeleteTransactionDialog'
+import type {
+  TransactionDeleteState,
+  TransactionReviewState,
+} from '@/components/budget/types'
 import {
   TransactionReviewModal,
   type ViewedTransactionContext,
 } from '@/components/budget/TransactionModal'
-import { DeleteTransactionDialog } from '@/components/budget/DeleteTransactionDialog'
 import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { TableToolbar } from '@/components/shared/TableToolbar'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import {
@@ -32,19 +48,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import type {
-  TransactionReviewState,
-  TransactionDeleteState,
-} from '@/components/budget/types'
-import type {
   BudgetLineSummaryViewModel,
   ProductSummaryViewModel,
+  ProjectViewModel,
   TransactionViewModel,
 } from '@/demo/types'
-import {
-  suppliersToViewModel,
-  transactionToViewModel,
-  useBudgetWorkspaceQuery,
-} from '@/lib/budgetWorkspaceApiAdapter'
+import { suppliersToViewModel } from '@/lib/budgetWorkspaceApiAdapter'
 import {
   canToggleBudgetSelection,
   isSelectedBudgetTransaction,
@@ -52,12 +61,50 @@ import {
 } from '@/lib/budgetViewModel'
 import { downloadDocument } from '@/lib/documents'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { cn } from '@/lib/utils'
 import { notifyError } from '@/lib/toasts'
 import { useAppState } from '@/state/appState'
 
+type QuickViewId =
+  | 'all'
+  | 'unpaid_invoices'
+  | 'quotes_to_confirm'
+  | 'quotes_to_negotiate'
+  | 'missing_documents'
+  | 'recent'
+  | 'budget_selected'
+  | 'budget_not_selected'
+
+type TransactionTypeFilter = 'all' | TransactionViewModel['transaction_type']
+type DateFilter = 'all' | 'last_7_days' | 'last_30_days' | 'current_month'
+type SortField = 'date' | 'amount'
+type SortDirection = 'asc' | 'desc'
+
+type SortState = {
+  field: SortField
+  direction: SortDirection
+}
+
 type TransactionWorkspaceRow = ViewedTransactionContext & {
+  documentFilenames: string[]
   searchText: string
 }
+
+const pageSizeOptions = [25, 50, 100]
+const recentWindowDays = 30
+
+const quickViews: Array<{ id: QuickViewId; label: string }> = [
+  { id: 'all', label: 'Toutes' },
+  { id: 'unpaid_invoices', label: 'Factures impayées' },
+  { id: 'quotes_to_negotiate', label: 'Devis à négocier' },
+  { id: 'quotes_to_confirm', label: 'Devis à confirmer' },
+  { id: 'missing_documents', label: 'Documents manquants' },
+  { id: 'recent', label: 'Transactions récentes' },
+  { id: 'budget_selected', label: 'Budget sélectionné' },
+  { id: 'budget_not_selected', label: 'Budget non sélectionné' },
+]
+
+const visibleQuickViews = quickViews.filter((view) => view.id !== 'recent')
 
 const transactionTypeLabels: Record<
   TransactionViewModel['transaction_type'],
@@ -68,7 +115,25 @@ const transactionTypeLabels: Record<
   invoice: 'Facture',
 }
 
-const pageSizeOptions = [25, 50, 100]
+function decimalToNumber(value: ApiDecimal | number | null | undefined) {
+  if (value == null) return 0
+  return typeof value === 'number' ? value : Number(value)
+}
+
+function projectToViewModel(project: ProjectRead): ProjectViewModel {
+  return {
+    id: String(project.id),
+    user_id: String(project.user_id),
+    template_id: project.template_id ?? 0,
+    name: project.name,
+    description: project.description ?? '',
+    location: project.location ?? '',
+    start_date: project.start_date ?? '',
+    end_date: project.end_date ?? '',
+    project_status: project.project_status,
+    selected_budget_amount_ttc: 0,
+  }
+}
 
 function getBudgetSelection(
   budgetLine: BudgetLineSummaryViewModel,
@@ -98,11 +163,16 @@ function getBudgetLabel(
   return budgetLine.name
 }
 
+function isBudgetSelected(transaction: TransactionViewModel) {
+  return transaction.select_as_budget
+}
+
 function buildSearchText({
   product,
   budgetLine,
   transaction,
-}: ViewedTransactionContext) {
+  documentFilenames,
+}: TransactionWorkspaceRow) {
   return [
     transaction.supplier_name ?? 'Autoconstruction',
     product.category_name,
@@ -113,21 +183,201 @@ function buildSearchText({
     String(transaction.amount_ttc),
     transaction.amount_ttc.toFixed(2),
     formatCurrency(transaction.amount_ttc),
+    ...documentFilenames,
   ]
     .join(' ')
     .toLocaleLowerCase()
 }
 
+function buildTransactionRow(
+  transaction: ProjectTransactionRead,
+): TransactionWorkspaceRow {
+  const transactionId = String(transaction.id)
+  const budgetLine: BudgetLineSummaryViewModel = {
+    budget_line_id: String(transaction.budget_line_id),
+    name: transaction.budget_line_name,
+    item_type: transaction.budget_line_item_type,
+    selected_quote_transaction_id:
+      transaction.selected_quote_transaction_id === null
+        ? null
+        : String(transaction.selected_quote_transaction_id),
+    selected_diy_estimate_transaction_id:
+      transaction.selected_diy_estimate_transaction_id === null
+        ? null
+        : String(transaction.selected_diy_estimate_transaction_id),
+    selected_budget_amount_ttc: 0,
+    quote_amount_ttc: 0,
+    validated_quote_amount_ttc: 0,
+    diy_estimate_amount_ttc: 0,
+    actual_cost_amount_ttc: 0,
+    paid_invoice_amount_ttc: 0,
+    unpaid_invoice_amount_ttc: 0,
+    on_hold_invoice_amount_ttc: 0,
+    selected_budget_variance_ttc: 0,
+    quote_count: 0,
+    validated_quote_count: 0,
+    diy_estimate_count: 0,
+    invoice_count: 0,
+    transactions: [],
+  }
+  const product: ProductSummaryViewModel = {
+    product_id: String(transaction.product_id),
+    product_name: transaction.product_name,
+    subcategory_name: transaction.subcategory_name,
+    category_name: transaction.category_name,
+    selected_budget_amount_ttc: 0,
+    actual_cost_amount_ttc: 0,
+    paid_invoice_amount_ttc: 0,
+    unpaid_invoice_amount_ttc: 0,
+    on_hold_invoice_amount_ttc: 0,
+    selected_budget_variance_ttc: 0,
+    budget_lines: [budgetLine],
+  }
+  const viewModel: TransactionViewModel = {
+    id: transactionId,
+    budget_line_id: String(transaction.budget_line_id),
+    supplier_id:
+      transaction.supplier_id === null ? null : String(transaction.supplier_id),
+    supplier_name: transaction.supplier_name,
+    transaction_type: transaction.transaction_type,
+    amount_ht: decimalToNumber(transaction.amount_ht),
+    vat_rate: decimalToNumber(transaction.vat_rate),
+    amount_vat: decimalToNumber(transaction.amount_vat),
+    amount_ttc: decimalToNumber(transaction.amount_ttc),
+    issued_date: transaction.issued_date,
+    due_date: transaction.due_date,
+    payment_date: transaction.payment_date,
+    description: transaction.description ?? '',
+    quote_status: transaction.quote_status,
+    invoice_status: transaction.invoice_status,
+    invoice_type: transaction.invoice_type,
+    payment_method: transaction.payment_method,
+    select_as_budget:
+      transactionId === budgetLine.selected_quote_transaction_id ||
+      transactionId === budgetLine.selected_diy_estimate_transaction_id,
+    document_state: transaction.has_documents ? 'attached' : 'missing',
+  }
+  const row = {
+    budgetLine,
+    documentFilenames: transaction.document_original_filenames,
+    product,
+    searchText: '',
+    transaction: viewModel,
+  }
+
+  return {
+    ...row,
+    searchText: buildSearchText(row),
+  }
+}
+
+function dateAtStart(value: Date) {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate())
+}
+
+function isWithinLastDays(value: string, days: number, now = new Date()) {
+  const issuedDate = dateAtStart(new Date(`${value}T00:00:00`))
+  const today = dateAtStart(now)
+  const cutoff = new Date(today)
+  cutoff.setDate(today.getDate() - days + 1)
+
+  return issuedDate >= cutoff && issuedDate <= today
+}
+
+function isInCurrentMonth(value: string, now = new Date()) {
+  const issuedDate = new Date(`${value}T00:00:00`)
+
+  return (
+    issuedDate.getFullYear() === now.getFullYear() &&
+    issuedDate.getMonth() === now.getMonth()
+  )
+}
+
+function matchesDateFilter(row: TransactionWorkspaceRow, filter: DateFilter) {
+  if (filter === 'last_7_days') {
+    return isWithinLastDays(row.transaction.issued_date, 7)
+  }
+
+  if (filter === 'last_30_days') {
+    return isWithinLastDays(row.transaction.issued_date, 30)
+  }
+
+  if (filter === 'current_month') {
+    return isInCurrentMonth(row.transaction.issued_date)
+  }
+
+  return true
+}
+
+function matchesQuickView(
+  row: TransactionWorkspaceRow,
+  quickView: QuickViewId,
+) {
+  const { transaction } = row
+
+  if (quickView === 'unpaid_invoices') {
+    return (
+      transaction.transaction_type === 'invoice' &&
+      transaction.invoice_status === 'unpaid'
+    )
+  }
+
+  if (quickView === 'quotes_to_confirm') {
+    return (
+      transaction.transaction_type === 'quote' &&
+      transaction.quote_status === 'to_confirm'
+    )
+  }
+
+  if (quickView === 'quotes_to_negotiate') {
+    return (
+      transaction.transaction_type === 'quote' &&
+      transaction.quote_status === 'to_negotiate'
+    )
+  }
+
+  if (quickView === 'missing_documents') {
+    return transaction.document_state === 'missing'
+  }
+
+  if (quickView === 'recent') {
+    return isWithinLastDays(transaction.issued_date, recentWindowDays)
+  }
+
+  if (quickView === 'budget_selected') {
+    return isBudgetSelected(transaction)
+  }
+
+  if (quickView === 'budget_not_selected') {
+    return (
+      ['quote', 'diy_estimate'].includes(transaction.transaction_type) &&
+      !isBudgetSelected(transaction)
+    )
+  }
+
+  return true
+}
+
 function sortTransactions(
   rows: TransactionWorkspaceRow[],
+  sort: SortState,
 ): TransactionWorkspaceRow[] {
-  return [...rows].sort((left, right) => {
-    const dateSort = right.transaction.issued_date.localeCompare(
-      left.transaction.issued_date,
-    )
-    if (dateSort !== 0) return dateSort
+  const direction = sort.direction === 'asc' ? 1 : -1
 
-    return Number(right.transaction.id) - Number(left.transaction.id)
+  return [...rows].sort((left, right) => {
+    if (sort.field === 'amount') {
+      const amountSort =
+        (left.transaction.amount_ttc - right.transaction.amount_ttc) * direction
+      if (amountSort !== 0) return amountSort
+    } else {
+      const dateSort =
+        left.transaction.issued_date.localeCompare(
+          right.transaction.issued_date,
+        ) * direction
+      if (dateSort !== 0) return dateSort
+    }
+
+    return (Number(left.transaction.id) - Number(right.transaction.id)) * -1
   })
 }
 
@@ -149,16 +399,70 @@ function TransactionTableMessage({
   )
 }
 
+function SortableHeader({
+  align = 'left',
+  children,
+  field,
+  sort,
+  onSort,
+}: {
+  align?: 'left' | 'right'
+  children: string
+  field: SortField
+  sort: SortState
+  onSort: (field: SortField) => void
+}) {
+  const isActive = sort.field === field
+  const Icon = !isActive
+    ? ArrowUpDown
+    : sort.direction === 'asc'
+      ? ArrowUp
+      : ArrowDown
+
+  return (
+    <TableHead
+      className={cn('whitespace-nowrap', align === 'right' && 'text-right')}
+    >
+      <button
+        type="button"
+        className={cn(
+          'inline-flex items-center gap-1.5 rounded-sm text-left font-semibold text-foreground transition-colors hover:text-gold',
+          align === 'right' && 'justify-end',
+        )}
+        onClick={() => onSort(field)}
+      >
+        {children}
+        <Icon className="h-3.5 w-3.5" aria-hidden />
+      </button>
+    </TableHead>
+  )
+}
+
 export function TransactionsPage() {
   const { selectedProjectId } = useAppState()
   const selectedProjectNumericId = Number(selectedProjectId)
   const projectId = Number.isInteger(selectedProjectNumericId)
     ? selectedProjectNumericId
     : null
-  const workspaceQuery = useBudgetWorkspaceQuery(projectId)
+  const projectQuery = useProjectQuery(projectId, { enabled: true })
+  const transactionsQuery = useProjectTransactionsQuery(projectId, {
+    enabled: true,
+  })
   const suppliersQuery = useSuppliersQuery({ enabled: projectId !== null })
-  const workspace = workspaceQuery.workspace
+  const project = useMemo(
+    () => (projectQuery.data ? projectToViewModel(projectQuery.data) : null),
+    [projectQuery.data],
+  )
+  const [activeQuickView, setActiveQuickView] = useState<QuickViewId>('all')
   const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState<TransactionTypeFilter>('all')
+  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [supplierFilter, setSupplierFilter] = useState('all')
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all')
+  const [sort, setSort] = useState<SortState>({
+    field: 'date',
+    direction: 'desc',
+  })
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(pageSizeOptions[0])
   const [transactionReview, setTransactionReview] =
@@ -179,108 +483,159 @@ export function TransactionsPage() {
     () => suppliersToViewModel(suppliersQuery.data),
     [suppliersQuery.data],
   )
-
-  const budgetLineContexts = useMemo(() => {
-    if (!workspace) return []
-
-    return workspace.financialSummary.products.flatMap((product) =>
-      product.budget_lines.map((budgetLine) => ({
-        budgetLine,
-        product,
-      })),
-    )
-  }, [workspace])
-
-  const transactionQueries = useQueries({
-    queries: budgetLineContexts.map(({ budgetLine }) => {
-      const budgetLineId = Number(budgetLine.budget_line_id)
-
-      return {
-        queryKey:
-          projectId === null || !Number.isInteger(budgetLineId)
-            ? [...transactionQueryKeys.all, 'missing-budget-line', 'list']
-            : transactionQueryKeys.budgetLineList(projectId, budgetLineId),
-        queryFn: () => {
-          if (projectId === null || !Number.isInteger(budgetLineId)) {
-            throw new Error('Identifiant projet ou poste de budget manquant.')
-          }
-
-          return getBudgetLineTransactions(projectId, budgetLineId)
-        },
-        enabled: projectId !== null && Number.isInteger(budgetLineId),
-      }
-    }),
-  })
-
-  const transactionRows = useMemo(() => {
-    const rows = budgetLineContexts.flatMap((context, index) =>
-      (transactionQueries[index]?.data ?? []).map((transaction) => {
-        const viewModel = transactionToViewModel(
-          transaction,
-          context.budgetLine,
-          suppliersQuery.data ?? [],
-        )
-        const rowContext = {
-          ...context,
-          transaction: viewModel,
-        }
-
-        return {
-          ...rowContext,
-          searchText: buildSearchText(rowContext),
-        }
-      }),
-    )
-
-    return sortTransactions(rows)
-  }, [budgetLineContexts, suppliersQuery.data, transactionQueries])
-
+  const transactionRows = useMemo(
+    () => (transactionsQuery.data ?? []).map(buildTransactionRow),
+    [transactionsQuery.data],
+  )
   const normalizedSearch = search.trim().toLocaleLowerCase()
-  const filteredRows = useMemo(() => {
-    if (!normalizedSearch) return transactionRows
+  const secondaryFilteredRows = useMemo(
+    () =>
+      transactionRows.filter((row) => {
+        if (normalizedSearch && !row.searchText.includes(normalizedSearch)) {
+          return false
+        }
 
-    return transactionRows.filter((row) =>
-      row.searchText.includes(normalizedSearch),
-    )
-  }, [normalizedSearch, transactionRows])
+        if (
+          typeFilter !== 'all' &&
+          row.transaction.transaction_type !== typeFilter
+        ) {
+          return false
+        }
+
+        if (
+          categoryFilter !== 'all' &&
+          row.product.category_name !== categoryFilter
+        ) {
+          return false
+        }
+
+        if (supplierFilter === 'none' && row.transaction.supplier_id !== null) {
+          return false
+        }
+
+        if (
+          supplierFilter !== 'all' &&
+          supplierFilter !== 'none' &&
+          row.transaction.supplier_id !== supplierFilter
+        ) {
+          return false
+        }
+
+        return matchesDateFilter(row, dateFilter)
+      }),
+    [
+      categoryFilter,
+      dateFilter,
+      normalizedSearch,
+      supplierFilter,
+      transactionRows,
+      typeFilter,
+    ],
+  )
+  const quickViewCounts = useMemo(
+    () =>
+      Object.fromEntries(
+        quickViews.map((view) => [
+          view.id,
+          secondaryFilteredRows.filter((row) => matchesQuickView(row, view.id))
+            .length,
+        ]),
+      ) as Record<QuickViewId, number>,
+    [secondaryFilteredRows],
+  )
+  const filteredRows = useMemo(
+    () =>
+      secondaryFilteredRows.filter((row) =>
+        matchesQuickView(row, activeQuickView),
+      ),
+    [activeQuickView, secondaryFilteredRows],
+  )
+  const sortedRows = useMemo(
+    () => sortTransactions(filteredRows, sort),
+    [filteredRows, sort],
+  )
+  const categoryOptions = useMemo(
+    () =>
+      [...new Set(transactionRows.map((row) => row.product.category_name))]
+        .filter(Boolean)
+        .sort((left, right) => left.localeCompare(right, 'fr')),
+    [transactionRows],
+  )
+  const supplierOptions = useMemo(() => {
+    const options = new Map<string, string>()
+    let hasAutoconstruction = false
+
+    transactionRows.forEach((row) => {
+      if (row.transaction.supplier_id === null) {
+        hasAutoconstruction = true
+      } else {
+        options.set(
+          row.transaction.supplier_id,
+          row.transaction.supplier_name ?? 'Fournisseur',
+        )
+      }
+    })
+
+    return {
+      hasAutoconstruction,
+      suppliers: [...options.entries()].sort((left, right) =>
+        left[1].localeCompare(right[1], 'fr'),
+      ),
+    }
+  }, [transactionRows])
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [normalizedSearch, pageSize, projectId, transactionRows.length])
+  }, [
+    activeQuickView,
+    categoryFilter,
+    dateFilter,
+    normalizedSearch,
+    pageSize,
+    projectId,
+    supplierFilter,
+    typeFilter,
+  ])
 
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize))
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize))
   const safeCurrentPage = Math.min(currentPage, totalPages)
   const pageStart = (safeCurrentPage - 1) * pageSize
-  const paginatedRows = filteredRows.slice(pageStart, pageStart + pageSize)
-  const transactionQueryError = transactionQueries.find(
-    (query) => query.isError,
-  )?.error
+  const paginatedRows = sortedRows.slice(pageStart, pageStart + pageSize)
   const pageError =
-    workspaceQuery.error ??
+    projectQuery.error ??
+    transactionsQuery.error ??
     suppliersQuery.error ??
-    transactionQueryError ??
     null
   const isLoading =
-    workspaceQuery.isLoading ||
-    suppliersQuery.isLoading ||
-    transactionQueries.some((query) => query.isLoading)
+    projectQuery.isLoading ||
+    transactionsQuery.isLoading ||
+    suppliersQuery.isLoading
   const isRefreshing =
     !isLoading &&
     !pageError &&
-    (workspaceQuery.isFetching ||
-      suppliersQuery.isFetching ||
-      transactionQueries.some((query) => query.isFetching))
-  const transactionCountLabel = `${filteredRows.length} transaction${
-    filteredRows.length > 1 ? 's' : ''
+    (projectQuery.isFetching ||
+      transactionsQuery.isFetching ||
+      suppliersQuery.isFetching)
+  const transactionCountLabel = `${sortedRows.length} transaction${
+    sortedRows.length > 1 ? 's' : ''
   }`
 
   function retryQueries() {
-    void workspaceQuery.projectQuery.refetch()
-    void workspaceQuery.financialSummaryQuery.refetch()
-    void workspaceQuery.budgetLinesQuery.refetch()
+    void projectQuery.refetch()
+    void transactionsQuery.refetch()
     void suppliersQuery.refetch()
-    transactionQueries.forEach((query) => {
-      void query.refetch()
+  }
+
+  function updateSort(field: SortField) {
+    setSort((current) => {
+      if (current.field !== field) {
+        return { field, direction: 'desc' }
+      }
+
+      return {
+        field,
+        direction: current.direction === 'asc' ? 'desc' : 'asc',
+      }
     })
   }
 
@@ -503,11 +858,120 @@ export function TransactionsPage() {
       <PageHeader
         title="Transactions"
         description={
-          workspace
-            ? `${workspace.project.name} · Vue chronologique de toutes les transactions du projet.`
+          project
+            ? `${project.name} · Vue chronologique de toutes les transactions du projet.`
             : 'Vue chronologique de toutes les transactions du projet.'
         }
       />
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {visibleQuickViews.map((view) => {
+          const isActive = activeQuickView === view.id
+
+          return (
+            <Button
+              key={view.id}
+              size="sm"
+              variant={isActive ? 'gold' : 'outline'}
+              className="rounded-full"
+              onClick={() => setActiveQuickView(view.id)}
+            >
+              {view.label}
+              <Badge variant={isActive ? 'default' : 'muted'}>
+                {quickViewCounts[view.id] ?? 0}
+              </Badge>
+            </Button>
+          )
+        })}
+      </div>
+
+      <div className="mt-4 grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="space-y-1.5">
+          <label
+            className="text-xs font-medium text-muted-foreground"
+            htmlFor="transactions-type-filter"
+          >
+            Type
+          </label>
+          <Select
+            id="transactions-type-filter"
+            value={typeFilter}
+            onChange={(event) =>
+              setTypeFilter(event.target.value as TransactionTypeFilter)
+            }
+          >
+            <option value="all">Tous les types</option>
+            {Object.entries(transactionTypeLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <label
+            className="text-xs font-medium text-muted-foreground"
+            htmlFor="transactions-category-filter"
+          >
+            Catégorie
+          </label>
+          <Select
+            id="transactions-category-filter"
+            value={categoryFilter}
+            onChange={(event) => setCategoryFilter(event.target.value)}
+          >
+            <option value="all">Toutes les catégories</option>
+            {categoryOptions.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <label
+            className="text-xs font-medium text-muted-foreground"
+            htmlFor="transactions-supplier-filter"
+          >
+            Fournisseur
+          </label>
+          <Select
+            id="transactions-supplier-filter"
+            value={supplierFilter}
+            onChange={(event) => setSupplierFilter(event.target.value)}
+          >
+            <option value="all">Tous les fournisseurs</option>
+            {supplierOptions.hasAutoconstruction ? (
+              <option value="none">Autoconstruction</option>
+            ) : null}
+            {supplierOptions.suppliers.map(([supplierId, supplierName]) => (
+              <option key={supplierId} value={supplierId}>
+                {supplierName}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <label
+            className="text-xs font-medium text-muted-foreground"
+            htmlFor="transactions-date-filter"
+          >
+            Date
+          </label>
+          <Select
+            id="transactions-date-filter"
+            value={dateFilter}
+            onChange={(event) =>
+              setDateFilter(event.target.value as DateFilter)
+            }
+          >
+            <option value="all">Toutes les dates</option>
+            <option value="last_7_days">7 derniers jours</option>
+            <option value="last_30_days">30 derniers jours</option>
+            <option value="current_month">Mois en cours</option>
+          </Select>
+        </div>
+      </div>
 
       {pageError ? (
         <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -554,14 +1018,21 @@ export function TransactionsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="whitespace-nowrap">Date</TableHead>
+              <SortableHeader field="date" sort={sort} onSort={updateSort}>
+                Date
+              </SortableHeader>
               <TableHead className="whitespace-nowrap">Type</TableHead>
               <TableHead className="whitespace-nowrap">Fournisseur</TableHead>
               <TableHead className="whitespace-nowrap">Catégorie</TableHead>
               <TableHead className="whitespace-nowrap">Poste budget</TableHead>
-              <TableHead className="whitespace-nowrap text-right">
+              <SortableHeader
+                align="right"
+                field="amount"
+                sort={sort}
+                onSort={updateSort}
+              >
                 Montant TTC
-              </TableHead>
+              </SortableHeader>
               <TableHead className="whitespace-nowrap">Statut</TableHead>
               <TableHead className="whitespace-nowrap">Documents</TableHead>
               <TableHead className="text-center! whitespace-nowrap">
@@ -571,12 +1042,12 @@ export function TransactionsPage() {
           </TableHeader>
           <TableBody>{renderTableBody()}</TableBody>
         </Table>
-        {filteredRows.length > pageSize ? (
+        {sortedRows.length > pageSize ? (
           <div className="flex flex-col gap-3 border-t border-border px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <span>
               {pageStart + 1}-
-              {Math.min(pageStart + pageSize, filteredRows.length)} sur{' '}
-              {filteredRows.length}
+              {Math.min(pageStart + pageSize, sortedRows.length)} sur{' '}
+              {sortedRows.length}
             </span>
             <div className="flex gap-2">
               <Button
@@ -602,9 +1073,9 @@ export function TransactionsPage() {
         ) : null}
       </div>
 
-      {workspace && transactionReview ? (
+      {project && transactionReview ? (
         <TransactionReviewModal
-          project={workspace.project}
+          project={project}
           context={transactionReview.context}
           initialMode={transactionReview.initialMode}
           suppliers={suppliers}

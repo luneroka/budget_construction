@@ -6,10 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
+from app.models.transaction import Transaction
 from app.models.user import User
 from app.repositories.budget_line import BudgetLineValidationError
 from app.repositories import transaction as transaction_repository
 from app.schemas.transaction import (
+    ProjectTransactionRead,
     TransactionCreate,
     TransactionCreateForProduct,
     TransactionRead,
@@ -26,10 +28,68 @@ product_router = APIRouter(
     prefix='/projects/{project_id}/products/{product_id}/transactions',
     tags=['Transactions'],
 )
+project_router = APIRouter(
+    prefix='/projects/{project_id}/transactions',
+    tags=['Transactions'],
+)
 
 
 def _bad_request(error: ValueError) -> Never:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
+
+
+def _to_project_transaction_read(transaction: Transaction) -> ProjectTransactionRead:
+    budget_line = transaction.budget_line
+    product = budget_line.product
+    active_documents = [
+        document
+        for document in transaction.documents
+        if document.deleted_at is None
+    ]
+    base = TransactionRead.model_validate(transaction).model_dump()
+
+    return ProjectTransactionRead(
+        **base,
+        budget_line_name=budget_line.name,
+        budget_line_item_type=budget_line.item_type,
+        selected_quote_transaction_id=budget_line.selected_quote_transaction_id,
+        selected_diy_estimate_transaction_id=(
+            budget_line.selected_diy_estimate_transaction_id
+        ),
+        product_id=product.id,
+        product_name=product.name,
+        subcategory_name=product.subcategory.name,
+        category_id=product.subcategory.category_id,
+        category_name=product.subcategory.category.name,
+        supplier_name=transaction.supplier.name if transaction.supplier else None,
+        document_original_filenames=[
+            document.original_filename for document in active_documents
+        ],
+    )
+
+
+@project_router.get('/', response_model=list[ProjectTransactionRead])
+async def get_project_transactions(
+    project_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    transactions = await transaction_repository.get_transactions_by_project(
+        db,
+        project_id,
+        current_user.id,
+    )
+
+    if transactions is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Project not found',
+        )
+
+    return [
+        _to_project_transaction_read(transaction)
+        for transaction in transactions
+    ]
 
 
 @router.post('/', response_model=TransactionRead, status_code=status.HTTP_201_CREATED)

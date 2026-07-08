@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 import enum
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models.transaction import (
     InvoiceStatus,
@@ -13,6 +13,7 @@ from app.models.transaction import (
     QuoteStatus,
     TransactionType,
 )
+from app.models.budget_line import BudgetLineType
 
 
 class BudgetConcern(str, enum.Enum):
@@ -165,3 +166,17 @@ class TransactionRead(TransactionReadBase):
     deleted_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ProjectTransactionRead(TransactionRead):
+    budget_line_name: str
+    budget_line_item_type: BudgetLineType
+    selected_quote_transaction_id: int | None = None
+    selected_diy_estimate_transaction_id: int | None = None
+    product_id: int
+    product_name: str
+    subcategory_name: str
+    category_id: int
+    category_name: str
+    supplier_name: str | None = None
+    document_original_filenames: list[str] = Field(default_factory=list)

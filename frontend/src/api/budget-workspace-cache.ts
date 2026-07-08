@@ -22,6 +22,9 @@ export function invalidateBudgetWorkspaceQueries(
 
   if (budgetLineId) {
     void queryClient.invalidateQueries({
+      queryKey: transactionQueryKeys.projectList(projectId),
+    })
+    void queryClient.invalidateQueries({
       queryKey: transactionQueryKeys.budgetLineList(projectId, budgetLineId),
     })
   } else {

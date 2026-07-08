@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { apiDelete, apiGet, apiPatch, apiPost } from './client'
 import { apiConfig } from './config'
 import type {
+  ProjectTransactionRead,
   TransactionCreate,
   TransactionCreateForProduct,
   TransactionRead,
@@ -11,6 +12,10 @@ import type {
 
 export const transactionQueryKeys = {
   all: ['transactions'] as const,
+  project: (projectId: number) =>
+    [...transactionQueryKeys.all, 'project', projectId] as const,
+  projectList: (projectId: number) =>
+    [...transactionQueryKeys.project(projectId), 'list'] as const,
   budgetLine: (projectId: number, budgetLineId: number) =>
     [
       ...transactionQueryKeys.all,
@@ -30,6 +35,14 @@ export const transactionQueryKeys = {
       transactionId,
       'detail',
     ] as const,
+}
+
+export function getProjectTransactions(
+  projectId: number,
+): Promise<ProjectTransactionRead[]> {
+  return apiGet<ProjectTransactionRead[]>(
+    `/projects/${projectId}/transactions/`,
+  )
 }
 
 export function getBudgetLineTransactions(
@@ -114,6 +127,27 @@ export function unselectBudgetCandidate(
   return apiDelete<TransactionRead>(
     `/projects/${projectId}/budget-lines/${budgetLineId}/transactions/${transactionId}/select-budget`,
   )
+}
+
+export function useProjectTransactionsQuery(
+  projectId: number | null,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey:
+      projectId === null
+        ? [...transactionQueryKeys.all, 'missing-project', 'list']
+        : transactionQueryKeys.projectList(projectId),
+    queryFn: () => {
+      if (projectId === null) {
+        throw new Error('Identifiant projet manquant.')
+      }
+
+      return getProjectTransactions(projectId)
+    },
+    enabled:
+      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
+  })
 }
 
 export function useBudgetLineTransactionsQuery(

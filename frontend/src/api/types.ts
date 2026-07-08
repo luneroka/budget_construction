@@ -279,6 +279,20 @@ export type TransactionRead = {
   deleted_at: ApiDateTime | null
 }
 
+export type ProjectTransactionRead = TransactionRead & {
+  budget_line_name: string
+  budget_line_item_type: BudgetLineType
+  selected_quote_transaction_id: number | null
+  selected_diy_estimate_transaction_id: number | null
+  product_id: number
+  product_name: string
+  subcategory_name: string
+  category_id: number
+  category_name: string
+  supplier_name: string | null
+  document_original_filenames: string[]
+}
+
 export type CatalogProductRead = {
   id: number
   name: string

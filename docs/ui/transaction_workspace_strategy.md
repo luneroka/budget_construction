@@ -166,6 +166,11 @@ No hierarchy.
 
 Newest first.
 
+Users can also sort by clicking the table headers for:
+
+- Date
+- Montant TTC
+
 ---
 
 ## Suggested Columns
@@ -195,43 +200,39 @@ Global search should match:
 
 ---
 
+## Quick Views
+
+Quick Views are predefined operational views rather than generic filters.
+
+They appear as pills directly below the page title.
+
+Suggested views include:
+
+- Toutes
+- Factures impayées
+- Devis à confirmer
+- Devis à négocier
+- Documents manquants
+- Transactions récentes
+- Budget sélectionné
+- Budget non sélectionné
+
+Each Quick View displays the number of matching transactions.
+
+Dashboard widgets should deep-link directly to these Quick Views.
+
+---
+
 ## Filters
 
-Transaction Type
+These are secondary filters that refine the currently selected Quick View.
 
-- Quotes
-- DIY Estimates
-- Invoices
+Filters include:
 
-Status
-
-Quotes
-
-- Draft
-- Pending
-- Validated
-- Rejected
-
-Invoices
-
-- Pending
-- Paid
-
-Budget
-
-- Selected budget candidate
-- Not selected
-
-Documents
-
-- Has document
-- Missing document
-
-Supplier
-
-Date
-
-Project
+- Type
+- Catégorie
+- Fournisseur
+- Date
 
 ---
 
@@ -479,20 +480,19 @@ Status
 
 Goal
 
-Implement operational filtering.
+Implement both Quick Views and secondary filters.
 
 Tasks
 
-- Type
-- Status
-- Supplier
-- Date
-- Budget selection
-- Missing documents
+- Implement Quick Views
+- Display counters on Quick Views
+- Secondary filters (Type, Catégorie, Fournisseur, Date)
+- Column sorting (Date, Montant TTC)
+- Backend query optimization for project-level transaction retrieval
 
 Deliverable
 
-Fast transaction lookup.
+Transactions page becomes a fast operational workspace with predefined views, secondary filters and efficient backend querying.
 
 Status
 

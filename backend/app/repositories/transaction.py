@@ -9,6 +9,8 @@ from sqlalchemy.orm import selectinload
 from app.models.document import Document
 from app.models.project import Project
 from app.models.budget_line import BudgetLine
+from app.models.product import Product
+from app.models.subcategory import Subcategory
 from app.models.supplier import Supplier
 from app.models.transaction import (
     InvoiceStatus,
@@ -492,6 +494,43 @@ async def get_transactions_by_budget_line(
         .options(selectinload(Transaction.documents))
         .where(
             Transaction.budget_line_id == budget_line_id,
+            Transaction.deleted_at.is_(None),
+        )
+        .order_by(Transaction.issued_date.desc(), Transaction.id.desc())
+    )
+
+    return list(result.scalars().all())
+
+
+async def get_transactions_by_project(
+    db: AsyncSession,
+    project_id: int,
+    user_id: int,
+) -> list[Transaction] | None:
+    project_result = await db.execute(
+        select(Project.id).where(
+            Project.id == project_id,
+            Project.user_id == user_id,
+            Project.deleted_at.is_(None),
+        )
+    )
+    if project_result.scalar_one_or_none() is None:
+        return None
+
+    result = await db.execute(
+        select(Transaction)
+        .options(
+            selectinload(Transaction.documents),
+            selectinload(Transaction.supplier),
+            selectinload(Transaction.budget_line)
+            .selectinload(BudgetLine.product)
+            .selectinload(Product.subcategory)
+            .selectinload(Subcategory.category),
+        )
+        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
+        .where(
+            BudgetLine.project_id == project_id,
+            BudgetLine.deleted_at.is_(None),
             Transaction.deleted_at.is_(None),
         )
         .order_by(Transaction.issued_date.desc(), Transaction.id.desc())
