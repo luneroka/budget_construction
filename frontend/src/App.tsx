@@ -11,6 +11,7 @@ import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { ProjectsSettingsPage, SettingsPage } from '@/pages/SettingsPage'
 import { SuppliersPage } from '@/pages/SuppliersPage'
+import { TransactionsPage } from '@/pages/TransactionsPage'
 
 export default function App() {
   return (
@@ -52,6 +53,7 @@ export default function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="budget" element={<BudgetPage />} />
+            <Route path="transactions" element={<TransactionsPage />} />
             <Route path="suppliers" element={<SuppliersPage />} />
             <Route path="documents" element={<DocumentsPage />} />
             <Route path="settings" element={<SettingsPage />} />

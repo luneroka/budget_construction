@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import {
+  ArrowLeftRight,
   FileText,
   LayoutDashboard,
   CircleDollarSign,
@@ -18,6 +19,7 @@ type SidebarItem = {
 const primaryItems: SidebarItem[] = [
   { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
   { label: 'Budget', to: '/budget', icon: CircleDollarSign },
+  { label: 'Transactions', to: '/transactions', icon: ArrowLeftRight },
   { label: 'Fournisseurs', to: '/suppliers', icon: Users },
   { label: 'Documents', to: '/documents', icon: FileText },
 ]
