@@ -161,23 +161,36 @@ Action Center with operational widgets integrated into the Dashboard.
 
 ---
 
-## Chunk 4 – Deep Linking
+## Chunk 4 – Dashboard Navigation & Quick Actions
 
-**Goal**  
-Implement deep linking from Dashboard widgets to Budget, Transactions, Suppliers, or Documents pages with predefined filters and views.
+**Goal**
+
+Turn the Dashboard into an operational cockpit by allowing users to process Action Center items directly while preserving access to the full workspaces.
 
 **Backend prerequisites**
 
-- Ensure Dashboard read models expose the identifiers required for direct navigation to Budget, Transactions, Suppliers and Documents.
+- Ensure Dashboard read models expose the identifiers required to open the existing Transaction modal directly.
+- Ensure Dashboard read models expose the identifiers required for navigation to Budget, Transactions, Suppliers and Documents.
+- Ensure widget queries refresh correctly after transaction updates.
 
 **Tasks**
 
-- Define navigation paths for each widget to their respective detailed pages.
-- Ensure filters or Quick Views are applied automatically upon navigation.
-- Test deep links for accuracy and usability.
+- Make Action Center rows clickable.
+- Reuse the existing Transaction modal; do not create a Dashboard-specific editing workflow.
+- Clicking an item from the following widgets opens the Transaction modal directly:
+  - Unpaid invoices
+  - Quotes awaiting validation
+  - Quotes to negotiate
+  - Missing documents
+  - Recent transactions
+- After saving changes, automatically invalidate the relevant React Query caches so the widget refreshes immediately.
+- If the updated transaction no longer matches the widget criteria, remove it from the queue and allow the next item to appear automatically.
+- Keep the existing "Voir tout" action as a secondary workflow that navigates to the Transactions page with the corresponding Quick View already selected.
+- Budget alerts remain an exception: clicking an alert should navigate to the Budget page focused on the affected product or budget line rather than opening the Transaction modal.
 
-**Deliverable**  
-Seamless navigation from Dashboard widgets to detailed operational pages.
+**Deliverable**
+
+An Action Center supporting both immediate processing through the Transaction modal and navigation to the complete operational workspaces.
 
 **Status**
 

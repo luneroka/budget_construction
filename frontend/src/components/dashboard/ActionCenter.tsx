@@ -9,7 +9,9 @@ import type {
   DashboardTransactionWidgetRead,
 } from '@/api/types'
 import { getApiErrorMessage } from '@/api/client'
+import type { QuickViewId } from '@/lib/transactionWorkspace'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { cn } from '@/lib/utils'
 import { DashboardWidgetMessage } from './Messages'
 import { DashboardWidgetSkeleton } from './Skeletons'
 import { decimalToNumber } from './utils'
@@ -20,12 +22,14 @@ export function ActionCenterWidget({
   title,
   showActionButton = true,
   showCountBadge = true,
+  onViewAll,
 }: {
   children: ReactNode
   count?: number
   title: string
   showActionButton?: boolean
   showCountBadge?: boolean
+  onViewAll?: () => void
 }) {
   const actionContent = (
     <div className="flex items-center gap-2">
@@ -35,7 +39,7 @@ export function ActionCenterWidget({
         </Badge>
       ) : null}
       {showActionButton ? (
-        <Button size="sm" variant="outline" disabled>
+        <Button size="sm" variant="outline" onClick={onViewAll}>
           Voir tout
         </Button>
       ) : null}
@@ -60,6 +64,7 @@ export function TransactionWidgetContent({
   isLoading,
   widget,
   maxItems,
+  onItemClick,
 }: {
   emptyMessage: string
   error: unknown
@@ -67,6 +72,8 @@ export function TransactionWidgetContent({
   isLoading: boolean
   widget?: DashboardTransactionWidgetRead
   maxItems?: number
+  quickView?: QuickViewId
+  onItemClick?: (item: DashboardTransactionWidgetItemRead) => void
 }) {
   if (isLoading) return <DashboardWidgetSkeleton />
   if (isError) {
@@ -85,9 +92,15 @@ export function TransactionWidgetContent({
   return (
     <div className="divide-y divide-border">
       {items.map((item) => (
-        <div
+        <button
+          type="button"
           key={item.transaction_id}
-          className="grid grid-cols-[1fr_auto] gap-3 py-3 first:pt-0 last:pb-0"
+          className={cn(
+            'grid w-full grid-cols-[1fr_auto] gap-3 py-3 text-left first:pt-0 last:pb-0',
+            onItemClick &&
+              'rounded-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          )}
+          onClick={() => onItemClick?.(item)}
         >
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-foreground">
@@ -105,7 +118,7 @@ export function TransactionWidgetContent({
               {formatDate(item.issued_date)}
             </p>
           </div>
-        </div>
+        </button>
       ))}
     </div>
   )
@@ -118,6 +131,7 @@ export function BudgetAlertsWidgetContent({
   isLoading,
   items,
   maxItems,
+  onItemClick,
 }: {
   emptyMessage: string
   error: unknown
@@ -125,6 +139,7 @@ export function BudgetAlertsWidgetContent({
   isLoading: boolean
   items?: DashboardBudgetAlertRead[]
   maxItems?: number
+  onItemClick?: (item: DashboardBudgetAlertRead) => void
 }) {
   if (isLoading) return <DashboardWidgetSkeleton />
   if (isError) {
@@ -148,9 +163,15 @@ export function BudgetAlertsWidgetContent({
   return (
     <div className="divide-y divide-border">
       {displayedItems.map((item) => (
-        <div
+        <button
+          type="button"
           key={item.product_id}
-          className="grid grid-cols-[1fr_auto] gap-3 py-3 first:pt-0 last:pb-0"
+          className={cn(
+            'grid w-full grid-cols-[1fr_auto] gap-3 py-3 text-left first:pt-0 last:pb-0',
+            onItemClick &&
+              'rounded-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          )}
+          onClick={() => onItemClick?.(item)}
         >
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-foreground">
@@ -168,7 +189,7 @@ export function BudgetAlertsWidgetContent({
               {formatCurrency(decimalToNumber(item.actual_cost_amount_ttc))}
             </p>
           </div>
-        </div>
+        </button>
       ))}
     </div>
   )

@@ -13,6 +13,7 @@ import {
   Trees,
   type LucideIcon,
 } from 'lucide-react'
+import { forwardRef } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { TableCell, TableRow } from '@/components/ui/table'
@@ -313,17 +314,23 @@ export function SubcategoryRow({
   )
 }
 
-export function ProductRow({
-  product,
-  isOpen,
-  onToggle,
-}: {
+export const ProductRow = forwardRef<
+  HTMLTableRowElement,
+  {
   product: ProductSummaryViewModel
+  isFocused?: boolean
   isOpen: boolean
   onToggle: () => void
-}) {
+  }
+>(function ProductRow({ product, isFocused, isOpen, onToggle }, ref) {
   return (
-    <TableRow className="bg-card hover:bg-muted/40">
+    <TableRow
+      ref={ref}
+      className={cn(
+        'bg-card hover:bg-muted/40',
+        isFocused && 'ring-2 ring-gold ring-inset',
+      )}
+    >
       <TableCell colSpan={7} className="px-4 py-2">
         <button
           type="button"
@@ -364,7 +371,7 @@ export function ProductRow({
       </TableCell>
     </TableRow>
   )
-}
+})
 
 export function BudgetLineRow({
   line,

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 import { getApiErrorMessage } from '@/api/client'
 import {
@@ -46,6 +47,8 @@ import { useAppState } from '@/state/appState'
 
 export function BudgetPage() {
   const { selectedProjectId } = useAppState()
+  const [searchParams] = useSearchParams()
+  const focusedProductId = searchParams.get('product_id')
   const selectedProjectNumericId = Number(selectedProjectId)
   const projectId = Number.isInteger(selectedProjectNumericId)
     ? selectedProjectNumericId
@@ -260,6 +263,7 @@ export function BudgetPage() {
 
       <BudgetTree
         categories={categories}
+        focusedProductId={focusedProductId}
         getBudgetSelection={getBudgetSelection}
         getLineWithBudgetSelection={getLineWithBudgetSelection}
         projectId={projectId}

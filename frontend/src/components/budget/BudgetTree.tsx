@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, useEffect, useRef } from 'react'
 
 import type { ViewedTransactionContext } from '@/components/budget/TransactionModal'
 import {
@@ -37,6 +37,7 @@ type BudgetTreeProps = {
     line: BudgetLineSummaryViewModel,
   ) => BudgetLineSummaryViewModel
   projectId?: number
+  focusedProductId?: string | null
   readOnly?: boolean
   onAddBreakdown: (action: BreakdownAction) => void
   onAddFirstTransaction: (action: BreakdownAction) => void
@@ -57,6 +58,7 @@ export function BudgetTree({
   categories,
   getBudgetSelection,
   getLineWithBudgetSelection,
+  focusedProductId,
   projectId,
   readOnly,
   onAddBreakdown,
@@ -79,7 +81,35 @@ export function BudgetTree({
     toggleSubcategory,
     toggleProduct,
     toggleBudgetLine,
+    openCategory,
+    openSubcategory,
+    openProduct,
   } = useBudgetExpansion()
+  const focusedProductRef = useRef<HTMLTableRowElement | null>(null)
+
+  useEffect(() => {
+    if (!focusedProductId) return
+
+    for (const category of categories) {
+      for (const group of groupProductsBySubcategory(category.products)) {
+        const product = group.products.find(
+          (candidate) => candidate.product_id === focusedProductId,
+        )
+        if (product) {
+          openCategory(category.category_id)
+          openSubcategory(`${category.category_id}:${group.name}`)
+          openProduct(product.product_id)
+          window.setTimeout(() => {
+            focusedProductRef.current?.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center',
+            })
+          }, 0)
+          return
+        }
+      }
+    }
+  }, [categories, focusedProductId, openCategory, openProduct, openSubcategory])
 
   return (
     <div className="space-y-4">
@@ -127,7 +157,15 @@ export function BudgetTree({
                               return (
                                 <Fragment key={product.product_id}>
                                   <ProductRow
+                                    ref={
+                                      focusedProductId === product.product_id
+                                        ? focusedProductRef
+                                        : undefined
+                                    }
                                     product={product}
+                                    isFocused={
+                                      focusedProductId === product.product_id
+                                    }
                                     isOpen={isProductOpen}
                                     onToggle={() =>
                                       toggleProduct(product.product_id)

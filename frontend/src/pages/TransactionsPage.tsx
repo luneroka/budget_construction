@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   ArrowDown,
   ArrowUp,
@@ -18,11 +19,7 @@ import {
 import { useProjectQuery } from '@/api/projects'
 import { useSuppliersQuery } from '@/api/suppliers'
 import { useProjectTransactionsQuery } from '@/api/transactions'
-import type {
-  ApiDecimal,
-  ProjectRead,
-  ProjectTransactionRead,
-} from '@/api/types'
+import type { ProjectRead } from '@/api/types'
 import { DeleteTransactionDialog } from '@/components/budget/DeleteTransactionDialog'
 import type {
   TransactionDeleteState,
@@ -49,9 +46,7 @@ import {
 } from '@/components/ui/table'
 import type {
   BudgetLineSummaryViewModel,
-  ProductSummaryViewModel,
   ProjectViewModel,
-  TransactionViewModel,
 } from '@/demo/types'
 import { suppliersToViewModel } from '@/lib/budgetWorkspaceApiAdapter'
 import {
@@ -59,23 +54,28 @@ import {
   isSelectedBudgetTransaction,
   type BudgetSelectionState,
 } from '@/lib/budgetViewModel'
+import {
+  buildTransactionRow,
+  getBudgetLabel,
+  getTransactionStatus,
+  isInCurrentMonth,
+  isWithinLastDays,
+  matchesQuickView,
+  quickViews,
+  transactionTypeLabels,
+  type QuickViewId,
+  type TransactionWorkspaceRow,
+  visibleQuickViews,
+} from '@/lib/transactionWorkspace'
 import { downloadDocument } from '@/lib/documents'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { notifyError } from '@/lib/toasts'
 import { useAppState } from '@/state/appState'
 
-type QuickViewId =
+type TransactionTypeFilter =
   | 'all'
-  | 'unpaid_invoices'
-  | 'quotes_to_confirm'
-  | 'quotes_to_negotiate'
-  | 'missing_documents'
-  | 'recent'
-  | 'budget_selected'
-  | 'budget_not_selected'
-
-type TransactionTypeFilter = 'all' | TransactionViewModel['transaction_type']
+  | TransactionWorkspaceRow['transaction']['transaction_type']
 type DateFilter = 'all' | 'last_7_days' | 'last_30_days' | 'current_month'
 type SortField = 'date' | 'amount'
 type SortDirection = 'asc' | 'desc'
@@ -85,39 +85,10 @@ type SortState = {
   direction: SortDirection
 }
 
-type TransactionWorkspaceRow = ViewedTransactionContext & {
-  documentFilenames: string[]
-  searchText: string
-}
-
 const pageSizeOptions = [25, 50, 100]
-const recentWindowDays = 30
 
-const quickViews: Array<{ id: QuickViewId; label: string }> = [
-  { id: 'all', label: 'Toutes' },
-  { id: 'unpaid_invoices', label: 'Factures impayées' },
-  { id: 'quotes_to_negotiate', label: 'Devis à négocier' },
-  { id: 'quotes_to_confirm', label: 'Devis à confirmer' },
-  { id: 'missing_documents', label: 'Documents manquants' },
-  { id: 'recent', label: 'Transactions récentes' },
-  { id: 'budget_selected', label: 'Budget sélectionné' },
-  { id: 'budget_not_selected', label: 'Budget non sélectionné' },
-]
-
-const visibleQuickViews = quickViews.filter((view) => view.id !== 'recent')
-
-const transactionTypeLabels: Record<
-  TransactionViewModel['transaction_type'],
-  string
-> = {
-  quote: 'Devis',
-  diy_estimate: 'Estimation DIY',
-  invoice: 'Facture',
-}
-
-function decimalToNumber(value: ApiDecimal | number | null | undefined) {
-  if (value == null) return 0
-  return typeof value === 'number' ? value : Number(value)
+function isQuickViewId(value: string | null): value is QuickViewId {
+  return quickViews.some((view) => view.id === value)
 }
 
 function projectToViewModel(project: ProjectRead): ProjectViewModel {
@@ -145,154 +116,6 @@ function getBudgetSelection(
   }
 }
 
-function getTransactionStatus(transaction: TransactionViewModel) {
-  return transaction.quote_status ?? transaction.invoice_status
-}
-
-function getBudgetLabel(
-  product: ProductSummaryViewModel,
-  budgetLine: BudgetLineSummaryViewModel,
-) {
-  const productName = product.product_name.trim()
-  const budgetLineName = budgetLine.name.trim()
-
-  if (productName.toLocaleLowerCase() === budgetLineName.toLocaleLowerCase()) {
-    return product.product_name
-  }
-
-  return budgetLine.name
-}
-
-function isBudgetSelected(transaction: TransactionViewModel) {
-  return transaction.select_as_budget
-}
-
-function buildSearchText({
-  product,
-  budgetLine,
-  transaction,
-  documentFilenames,
-}: TransactionWorkspaceRow) {
-  return [
-    transaction.supplier_name ?? 'Autoconstruction',
-    product.category_name,
-    product.product_name,
-    budgetLine.name,
-    transaction.transaction_type,
-    transactionTypeLabels[transaction.transaction_type],
-    String(transaction.amount_ttc),
-    transaction.amount_ttc.toFixed(2),
-    formatCurrency(transaction.amount_ttc),
-    ...documentFilenames,
-  ]
-    .join(' ')
-    .toLocaleLowerCase()
-}
-
-function buildTransactionRow(
-  transaction: ProjectTransactionRead,
-): TransactionWorkspaceRow {
-  const transactionId = String(transaction.id)
-  const budgetLine: BudgetLineSummaryViewModel = {
-    budget_line_id: String(transaction.budget_line_id),
-    name: transaction.budget_line_name,
-    item_type: transaction.budget_line_item_type,
-    selected_quote_transaction_id:
-      transaction.selected_quote_transaction_id === null
-        ? null
-        : String(transaction.selected_quote_transaction_id),
-    selected_diy_estimate_transaction_id:
-      transaction.selected_diy_estimate_transaction_id === null
-        ? null
-        : String(transaction.selected_diy_estimate_transaction_id),
-    selected_budget_amount_ttc: 0,
-    quote_amount_ttc: 0,
-    validated_quote_amount_ttc: 0,
-    diy_estimate_amount_ttc: 0,
-    actual_cost_amount_ttc: 0,
-    paid_invoice_amount_ttc: 0,
-    unpaid_invoice_amount_ttc: 0,
-    on_hold_invoice_amount_ttc: 0,
-    selected_budget_variance_ttc: 0,
-    quote_count: 0,
-    validated_quote_count: 0,
-    diy_estimate_count: 0,
-    invoice_count: 0,
-    transactions: [],
-  }
-  const product: ProductSummaryViewModel = {
-    product_id: String(transaction.product_id),
-    product_name: transaction.product_name,
-    subcategory_name: transaction.subcategory_name,
-    category_name: transaction.category_name,
-    selected_budget_amount_ttc: 0,
-    actual_cost_amount_ttc: 0,
-    paid_invoice_amount_ttc: 0,
-    unpaid_invoice_amount_ttc: 0,
-    on_hold_invoice_amount_ttc: 0,
-    selected_budget_variance_ttc: 0,
-    budget_lines: [budgetLine],
-  }
-  const viewModel: TransactionViewModel = {
-    id: transactionId,
-    budget_line_id: String(transaction.budget_line_id),
-    supplier_id:
-      transaction.supplier_id === null ? null : String(transaction.supplier_id),
-    supplier_name: transaction.supplier_name,
-    transaction_type: transaction.transaction_type,
-    amount_ht: decimalToNumber(transaction.amount_ht),
-    vat_rate: decimalToNumber(transaction.vat_rate),
-    amount_vat: decimalToNumber(transaction.amount_vat),
-    amount_ttc: decimalToNumber(transaction.amount_ttc),
-    issued_date: transaction.issued_date,
-    due_date: transaction.due_date,
-    payment_date: transaction.payment_date,
-    description: transaction.description ?? '',
-    quote_status: transaction.quote_status,
-    invoice_status: transaction.invoice_status,
-    invoice_type: transaction.invoice_type,
-    payment_method: transaction.payment_method,
-    select_as_budget:
-      transactionId === budgetLine.selected_quote_transaction_id ||
-      transactionId === budgetLine.selected_diy_estimate_transaction_id,
-    document_state: transaction.has_documents ? 'attached' : 'missing',
-  }
-  const row = {
-    budgetLine,
-    documentFilenames: transaction.document_original_filenames,
-    product,
-    searchText: '',
-    transaction: viewModel,
-  }
-
-  return {
-    ...row,
-    searchText: buildSearchText(row),
-  }
-}
-
-function dateAtStart(value: Date) {
-  return new Date(value.getFullYear(), value.getMonth(), value.getDate())
-}
-
-function isWithinLastDays(value: string, days: number, now = new Date()) {
-  const issuedDate = dateAtStart(new Date(`${value}T00:00:00`))
-  const today = dateAtStart(now)
-  const cutoff = new Date(today)
-  cutoff.setDate(today.getDate() - days + 1)
-
-  return issuedDate >= cutoff && issuedDate <= today
-}
-
-function isInCurrentMonth(value: string, now = new Date()) {
-  const issuedDate = new Date(`${value}T00:00:00`)
-
-  return (
-    issuedDate.getFullYear() === now.getFullYear() &&
-    issuedDate.getMonth() === now.getMonth()
-  )
-}
-
 function matchesDateFilter(row: TransactionWorkspaceRow, filter: DateFilter) {
   if (filter === 'last_7_days') {
     return isWithinLastDays(row.transaction.issued_date, 7)
@@ -304,55 +127,6 @@ function matchesDateFilter(row: TransactionWorkspaceRow, filter: DateFilter) {
 
   if (filter === 'current_month') {
     return isInCurrentMonth(row.transaction.issued_date)
-  }
-
-  return true
-}
-
-function matchesQuickView(
-  row: TransactionWorkspaceRow,
-  quickView: QuickViewId,
-) {
-  const { transaction } = row
-
-  if (quickView === 'unpaid_invoices') {
-    return (
-      transaction.transaction_type === 'invoice' &&
-      transaction.invoice_status === 'unpaid'
-    )
-  }
-
-  if (quickView === 'quotes_to_confirm') {
-    return (
-      transaction.transaction_type === 'quote' &&
-      transaction.quote_status === 'to_confirm'
-    )
-  }
-
-  if (quickView === 'quotes_to_negotiate') {
-    return (
-      transaction.transaction_type === 'quote' &&
-      transaction.quote_status === 'to_negotiate'
-    )
-  }
-
-  if (quickView === 'missing_documents') {
-    return transaction.document_state === 'missing'
-  }
-
-  if (quickView === 'recent') {
-    return isWithinLastDays(transaction.issued_date, recentWindowDays)
-  }
-
-  if (quickView === 'budget_selected') {
-    return isBudgetSelected(transaction)
-  }
-
-  if (quickView === 'budget_not_selected') {
-    return (
-      ['quote', 'diy_estimate'].includes(transaction.transaction_type) &&
-      !isBudgetSelected(transaction)
-    )
   }
 
   return true
@@ -440,6 +214,8 @@ function SortableHeader({
 
 export function TransactionsPage() {
   const { selectedProjectId } = useAppState()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const quickViewParam = searchParams.get('quick_view')
   const selectedProjectNumericId = Number(selectedProjectId)
   const projectId = Number.isInteger(selectedProjectNumericId)
     ? selectedProjectNumericId
@@ -453,7 +229,9 @@ export function TransactionsPage() {
     () => (projectQuery.data ? projectToViewModel(projectQuery.data) : null),
     [projectQuery.data],
   )
-  const [activeQuickView, setActiveQuickView] = useState<QuickViewId>('all')
+  const [activeQuickView, setActiveQuickView] = useState<QuickViewId>(() =>
+    isQuickViewId(quickViewParam) ? quickViewParam : 'all',
+  )
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TransactionTypeFilter>('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
@@ -596,6 +374,25 @@ export function TransactionsPage() {
     supplierFilter,
     typeFilter,
   ])
+
+  useEffect(() => {
+    if (isQuickViewId(quickViewParam) && quickViewParam !== activeQuickView) {
+      setActiveQuickView(quickViewParam)
+    }
+  }, [activeQuickView, quickViewParam])
+
+  function selectQuickView(quickView: QuickViewId) {
+    setActiveQuickView(quickView)
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      if (quickView === 'all') {
+        next.delete('quick_view')
+      } else {
+        next.set('quick_view', quickView)
+      }
+      return next
+    })
+  }
 
   const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize))
   const safeCurrentPage = Math.min(currentPage, totalPages)
@@ -874,7 +671,7 @@ export function TransactionsPage() {
               size="sm"
               variant={isActive ? 'gold' : 'outline'}
               className="rounded-full"
-              onClick={() => setActiveQuickView(view.id)}
+              onClick={() => selectQuickView(view.id)}
             >
               {view.label}
               <Badge variant={isActive ? 'default' : 'muted'}>

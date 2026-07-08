@@ -19,6 +19,9 @@ export function invalidateBudgetWorkspaceQueries(
   void queryClient.invalidateQueries({
     queryKey: budgetLineQueryKeys.projectList(projectId),
   })
+  void queryClient.invalidateQueries({
+    queryKey: [...projectQueryKeys.all, projectId, 'dashboard'],
+  })
 
   if (budgetLineId) {
     void queryClient.invalidateQueries({
@@ -46,5 +49,10 @@ export function invalidateDocumentQueries(
   })
   void queryClient.invalidateQueries({
     queryKey: transactionQueryKeys.all,
+  })
+  void queryClient.invalidateQueries({
+    queryKey: projectQueryKeys.all,
+    predicate: (query) =>
+      query.queryKey.some((part) => part === 'dashboard'),
   })
 }

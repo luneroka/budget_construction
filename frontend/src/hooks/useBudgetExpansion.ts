@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 
 function toggleSetValue(current: Set<string>, id: string) {
   const next = new Set(current)
@@ -18,19 +18,55 @@ export function useBudgetExpansion() {
   const [openBudgetLines, setOpenBudgetLines] = useState<Set<string>>(
     () => new Set(),
   )
+  const openCategory = useCallback(
+    (id: string) => setOpenCategories((current) => new Set(current).add(id)),
+    [],
+  )
+  const openSubcategory = useCallback(
+    (id: string) =>
+      setOpenSubcategories((current) => new Set(current).add(id)),
+    [],
+  )
+  const openProduct = useCallback(
+    (id: string) => setOpenProducts((current) => new Set(current).add(id)),
+    [],
+  )
+  const openBudgetLine = useCallback(
+    (id: string) => setOpenBudgetLines((current) => new Set(current).add(id)),
+    [],
+  )
+  const toggleCategory = useCallback(
+    (id: string) =>
+      setOpenCategories((current) => toggleSetValue(current, id)),
+    [],
+  )
+  const toggleSubcategory = useCallback(
+    (id: string) =>
+      setOpenSubcategories((current) => toggleSetValue(current, id)),
+    [],
+  )
+  const toggleProduct = useCallback(
+    (id: string) => setOpenProducts((current) => toggleSetValue(current, id)),
+    [],
+  )
+  const toggleBudgetLine = useCallback(
+    (id: string) =>
+      setOpenBudgetLines((current) => toggleSetValue(current, id)),
+    [],
+  )
 
   return {
     openCategories,
     openSubcategories,
     openProducts,
     openBudgetLines,
-    toggleCategory: (id: string) =>
-      setOpenCategories((current) => toggleSetValue(current, id)),
-    toggleSubcategory: (id: string) =>
-      setOpenSubcategories((current) => toggleSetValue(current, id)),
-    toggleProduct: (id: string) =>
-      setOpenProducts((current) => toggleSetValue(current, id)),
-    toggleBudgetLine: (id: string) =>
-      setOpenBudgetLines((current) => toggleSetValue(current, id)),
+    openCategory,
+    openSubcategory,
+    openProduct,
+    openBudgetLine,
+    toggleCategory,
+    toggleSubcategory,
+    toggleProduct,
+    toggleBudgetLine,
   }
 }

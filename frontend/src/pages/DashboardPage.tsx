@@ -1,3 +1,5 @@
+import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { CircleDollarSign, Gauge, ReceiptText, WalletCards } from 'lucide-react'
 import {
   Bar,
@@ -29,6 +31,11 @@ import {
   useProjectDashboardUnpaidInvoicesQuery,
   useProjectsQuery,
 } from '@/api/projects'
+import { useSuppliersQuery } from '@/api/suppliers'
+import { useProjectTransactionsQuery } from '@/api/transactions'
+import type { ProjectRead } from '@/api/types'
+import type { TransactionReviewState } from '@/components/budget/types'
+import { TransactionReviewModal } from '@/components/budget/TransactionModal'
 import { ChartCard } from '@/components/shared/ChartCard'
 import { KpiCard } from '@/components/shared/KpiCard'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -54,10 +61,51 @@ import {
   formatDashboardPercentage,
 } from '@/components/dashboard/utils'
 import { formatCurrency, formatMonth } from '@/lib/format'
+import {
+  suppliersToViewModel,
+} from '@/lib/budgetWorkspaceApiAdapter'
+import {
+  canToggleBudgetSelection,
+  isSelectedBudgetTransaction,
+  type BudgetSelectionState,
+} from '@/lib/budgetViewModel'
+import {
+  buildTransactionRow,
+  type QuickViewId,
+} from '@/lib/transactionWorkspace'
+import { notifyError } from '@/lib/toasts'
 import { useAppState } from '@/state/appState'
+import type { ProjectViewModel } from '@/demo/types'
+
+function projectToViewModel(project: ProjectRead): ProjectViewModel {
+  return {
+    id: String(project.id),
+    user_id: String(project.user_id),
+    template_id: project.template_id ?? 0,
+    name: project.name,
+    description: project.description ?? '',
+    location: project.location ?? '',
+    start_date: project.start_date ?? '',
+    end_date: project.end_date ?? '',
+    project_status: project.project_status,
+    selected_budget_amount_ttc: 0,
+  }
+}
+
+function getBudgetSelection(
+  state: TransactionReviewState | null,
+): BudgetSelectionState {
+  return {
+    selected_quote_transaction_id:
+      state?.context.budgetLine.selected_quote_transaction_id ?? null,
+    selected_diy_estimate_transaction_id:
+      state?.context.budgetLine.selected_diy_estimate_transaction_id ?? null,
+  }
+}
 
 export function DashboardPage() {
   const { selectedProjectId } = useAppState()
+  const navigate = useNavigate()
   const projectsQuery = useProjectsQuery({ enabled: true })
   const selectedProjectNumericId = selectedProjectId
     ? Number(selectedProjectId)
@@ -110,6 +158,32 @@ export function DashboardPage() {
   const budgetAlertsQuery = useProjectDashboardBudgetAlertsQuery(projectId, {
     enabled: true,
   })
+  const transactionsQuery = useProjectTransactionsQuery(projectId, {
+    enabled: true,
+  })
+  const suppliersQuery = useSuppliersQuery({ enabled: projectId !== null })
+  const [transactionReview, setTransactionReview] =
+    useState<TransactionReviewState | null>(null)
+  const project = useMemo(() => {
+    const selectedProject = projectsQuery.data?.find(
+      (candidate) => candidate.id === projectId,
+    )
+    return selectedProject ? projectToViewModel(selectedProject) : null
+  }, [projectId, projectsQuery.data])
+  const suppliers = useMemo(
+    () => suppliersToViewModel(suppliersQuery.data),
+    [suppliersQuery.data],
+  )
+  const transactionRowsById = useMemo(
+    () =>
+      new Map(
+        (transactionsQuery.data ?? []).map((transaction) => {
+          const row = buildTransactionRow(transaction)
+          return [transaction.id, row]
+        }),
+      ),
+    [transactionsQuery.data],
+  )
   const financialOverview = financialOverviewQuery.data
   const variance = decimalToNumber(
     financialOverview?.selected_budget_variance_ttc,
@@ -144,6 +218,23 @@ export function DashboardPage() {
   const topSupplierDistributionData = [...supplierDistributionData]
     .sort((a, b) => b.actual_cost_amount_ttc - a.actual_cost_amount_ttc)
     .slice(0, 10)
+
+  function openTransaction(transactionId: number) {
+    const context = transactionRowsById.get(transactionId)
+    if (!context) {
+      notifyError('Transaction en cours de chargement. Réessayez dans un instant.')
+      return
+    }
+    setTransactionReview({ context, initialMode: 'view' })
+  }
+
+  function viewAllTransactions(quickView: QuickViewId) {
+    void navigate(`/transactions?quick_view=${quickView}`)
+  }
+
+  function openBudgetAlert(productId: number) {
+    void navigate(`/budget?product_id=${productId}`)
+  }
 
   return (
     <section>
@@ -435,6 +526,7 @@ export function DashboardPage() {
               <ActionCenterWidget
                 title="Factures impayées"
                 count={unpaidInvoicesQuery.data?.count ?? 0}
+                onViewAll={() => viewAllTransactions('unpaid_invoices')}
               >
                 <TransactionWidgetContent
                   emptyMessage="Aucune facture impayée."
@@ -442,12 +534,14 @@ export function DashboardPage() {
                   isError={unpaidInvoicesQuery.isError}
                   isLoading={unpaidInvoicesQuery.isLoading}
                   widget={unpaidInvoicesQuery.data}
+                  onItemClick={(item) => openTransaction(item.transaction_id)}
                 />
               </ActionCenterWidget>
 
               <ActionCenterWidget
                 title="Devis à négocier"
                 count={quotesToNegotiateQuery.data?.count ?? 0}
+                onViewAll={() => viewAllTransactions('quotes_to_negotiate')}
               >
                 <TransactionWidgetContent
                   emptyMessage="Aucun devis à négocier."
@@ -455,12 +549,14 @@ export function DashboardPage() {
                   isError={quotesToNegotiateQuery.isError}
                   isLoading={quotesToNegotiateQuery.isLoading}
                   widget={quotesToNegotiateQuery.data}
+                  onItemClick={(item) => openTransaction(item.transaction_id)}
                 />
               </ActionCenterWidget>
 
               <ActionCenterWidget
                 title="Devis à confirmer"
                 count={quotesToConfirmQuery.data?.count ?? 0}
+                onViewAll={() => viewAllTransactions('quotes_to_confirm')}
               >
                 <TransactionWidgetContent
                   emptyMessage="Aucun devis à confirmer."
@@ -468,12 +564,14 @@ export function DashboardPage() {
                   isError={quotesToConfirmQuery.isError}
                   isLoading={quotesToConfirmQuery.isLoading}
                   widget={quotesToConfirmQuery.data}
+                  onItemClick={(item) => openTransaction(item.transaction_id)}
                 />
               </ActionCenterWidget>
 
               <ActionCenterWidget
                 title="Documents manquants"
                 count={missingDocumentsQuery.data?.count ?? 0}
+                onViewAll={() => viewAllTransactions('missing_documents')}
               >
                 <TransactionWidgetContent
                   emptyMessage="Aucun document manquant."
@@ -481,6 +579,7 @@ export function DashboardPage() {
                   isError={missingDocumentsQuery.isError}
                   isLoading={missingDocumentsQuery.isLoading}
                   widget={missingDocumentsQuery.data}
+                  onItemClick={(item) => openTransaction(item.transaction_id)}
                 />
               </ActionCenterWidget>
 
@@ -488,6 +587,7 @@ export function DashboardPage() {
                 title="Transactions récentes"
                 count={recentTransactionsQuery.data?.count ?? 0}
                 showCountBadge={false}
+                onViewAll={() => void navigate('/transactions')}
               >
                 <TransactionWidgetContent
                   emptyMessage="Aucune transaction récente."
@@ -496,6 +596,7 @@ export function DashboardPage() {
                   isLoading={recentTransactionsQuery.isLoading}
                   widget={recentTransactionsQuery.data}
                   maxItems={5}
+                  onItemClick={(item) => openTransaction(item.transaction_id)}
                 />
               </ActionCenterWidget>
 
@@ -512,10 +613,29 @@ export function DashboardPage() {
                   isLoading={budgetAlertsQuery.isLoading}
                   items={budgetAlertsQuery.data?.items}
                   maxItems={5}
+                  onItemClick={(item) => openBudgetAlert(item.product_id)}
                 />
               </ActionCenterWidget>
             </div>
           </div>
+
+          {transactionReview && project ? (
+            <TransactionReviewModal
+              project={project}
+              context={transactionReview.context}
+              initialMode={transactionReview.initialMode}
+              suppliers={suppliers}
+              isBudgetSelected={isSelectedBudgetTransaction(
+                transactionReview.context.transaction,
+                getBudgetSelection(transactionReview),
+              )}
+              canToggleBudgetSelection={canToggleBudgetSelection(
+                transactionReview.context.transaction,
+              )}
+              onToggleBudgetSelection={() => undefined}
+              onClose={() => setTransactionReview(null)}
+            />
+          ) : null}
         </>
       ) : null}
     </section>
