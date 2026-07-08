@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   CircleDollarSign,
   Settings,
+  Trash2,
   Users,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
@@ -22,6 +23,7 @@ const primaryItems: SidebarItem[] = [
   { label: 'Transactions', to: '/transactions', icon: ArrowLeftRight },
   { label: 'Fournisseurs', to: '/suppliers', icon: Users },
   { label: 'Documents', to: '/documents', icon: FileText },
+  { label: 'Corbeille', to: '/trash', icon: Trash2 },
 ]
 
 const secondaryItems: SidebarItem[] = [

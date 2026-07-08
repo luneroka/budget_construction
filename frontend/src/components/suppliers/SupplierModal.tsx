@@ -531,7 +531,7 @@ export function SupplierModal({
       {deleteConfirmationOpen && supplier ? (
         <ConfirmationDialog
           title="Supprimer ce fournisseur ?"
-          description="Ce fournisseur sera retiré de votre répertoire. Les transactions existantes ne seront pas supprimées."
+          description="Ce fournisseur sera déplacé dans la corbeille. Les transactions existantes ne seront pas supprimées."
           error={deleteError}
           isPending={isDeleting}
           onCancel={() => {

@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Copy, Mail, Plus } from 'lucide-react'
 
 import { getApiErrorMessage } from '@/api/client'
+import { trashQueryKeys } from '@/api/trash'
 import {
   supplierQueryKeys,
   useCreateSupplierMutation,
@@ -31,6 +32,7 @@ import type {
   SupplierRowViewModel,
 } from '@/demo/types'
 import { notifyError, notifySuccess } from '@/lib/toasts'
+import { useAppState } from '@/state/appState'
 
 function supplierToViewModel(supplier: SupplierRead): SupplierRowViewModel {
   return {
@@ -158,7 +160,7 @@ async function copyEmailToClipboard(email: string) {
     await navigator.clipboard.writeText(email)
     notifySuccess('Email copié dans le presse-papiers.')
   } catch {
-    notifyError("Impossible de copier l’email.")
+    notifyError('Impossible de copier l’email.')
   }
 }
 
@@ -168,6 +170,7 @@ function phoneHref(phoneNumber: string) {
 
 export function SuppliersPage() {
   const queryClient = useQueryClient()
+  const { selectedProjectId } = useAppState()
   const [search, setSearch] = useState('')
   const [modalMode, setModalMode] = useState<SupplierModalMode | null>(null)
   const [selectedSupplier, setSelectedSupplier] =
@@ -228,15 +231,14 @@ export function SuppliersPage() {
   async function saveSupplier(savedSupplier: SupplierRowViewModel) {
     try {
       const isCreating = selectedSupplier === null
-      const saved =
-        isCreating
-          ? await createSupplierMutation.mutateAsync(
-              supplierToCreatePayload(savedSupplier),
-            )
-          : await updateSupplierMutation.mutateAsync({
-              supplierId: numberFromId(selectedSupplier.id),
-              supplier: supplierToUpdatePayload(savedSupplier),
-            })
+      const saved = isCreating
+        ? await createSupplierMutation.mutateAsync(
+            supplierToCreatePayload(savedSupplier),
+          )
+        : await updateSupplierMutation.mutateAsync({
+            supplierId: numberFromId(selectedSupplier.id),
+            supplier: supplierToUpdatePayload(savedSupplier),
+          })
 
       queryClient.setQueryData<SupplierRead[]>(
         supplierQueryKeys.list(false),
@@ -245,9 +247,7 @@ export function SuppliersPage() {
       void queryClient.invalidateQueries({
         queryKey: supplierQueryKeys.list(false),
       })
-      notifySuccess(
-        isCreating ? 'Fournisseur ajouté.' : 'Fournisseur modifié.',
-      )
+      notifySuccess(isCreating ? 'Fournisseur ajouté.' : 'Fournisseur modifié.')
     } catch (error) {
       const message = getApiErrorMessage(error)
       notifyError(`Impossible d’enregistrer le fournisseur. ${message}`)
@@ -267,7 +267,13 @@ export function SuppliersPage() {
       void queryClient.invalidateQueries({
         queryKey: supplierQueryKeys.list(false),
       })
-      notifySuccess('Fournisseur supprimé.')
+      const projectId = Number(selectedProjectId)
+      if (Number.isInteger(projectId) && projectId > 0) {
+        void queryClient.invalidateQueries({
+          queryKey: trashQueryKeys.projectList(projectId),
+        })
+      }
+      notifySuccess('Fournisseur déplacé dans la corbeille.')
     } catch (error) {
       const message = getApiErrorMessage(error)
       notifyError(`Impossible de supprimer le fournisseur. ${message}`)

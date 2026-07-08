@@ -15,6 +15,7 @@ import {
   invalidateDocumentQueries,
 } from '@/api/budget-workspace-cache'
 import { getApiErrorMessage } from '@/api/client'
+import { trashQueryKeys } from '@/api/trash'
 import {
   useDeleteDocumentMutation,
   useTransactionDocumentsQuery,
@@ -145,7 +146,7 @@ const transactionTypeLabels: Record<TransactionType, string> = {
 
 const issuedDateLabels: Record<TransactionType, string> = {
   quote: 'Date du devis',
-  diy_estimate: "Date de l’estimation",
+  diy_estimate: 'Date de l’estimation',
   invoice: 'Date de facture',
 }
 
@@ -560,9 +561,11 @@ function NewTransactionDocumentField({
 
 function TransactionDocumentsPanel({
   transactionId,
+  projectId,
   readOnly,
 }: {
   transactionId: number
+  projectId?: number
   readOnly?: boolean
 }) {
   const queryClient = useQueryClient()
@@ -608,8 +611,13 @@ function TransactionDocumentsPanel({
       setDocumentError(null)
       await deleteDocumentMutation.mutateAsync({ documentId: document.id })
       invalidateDocumentQueries(queryClient, transactionId)
+      if (projectId) {
+        void queryClient.invalidateQueries({
+          queryKey: trashQueryKeys.projectList(projectId),
+        })
+      }
       setDocumentPendingDeletion(null)
-      notifySuccess('Document supprimé.')
+      notifySuccess('Document déplacé dans la corbeille.')
     } catch (error) {
       const message = getApiErrorMessage(error)
       setDocumentError(message)
@@ -712,7 +720,7 @@ function TransactionDocumentsPanel({
       {documentPendingDeletion ? (
         <ConfirmationDialog
           title="Supprimer ce document ?"
-          description="Ce document sera retiré de la transaction associée."
+          description="Ce document sera déplacé dans la corbeille."
           error={documentError}
           isPending={deleteDocumentMutation.isPending}
           onCancel={() => {
@@ -1828,6 +1836,7 @@ export function TransactionReviewModal({
         {Number.isInteger(Number(transaction.id)) ? (
           <TransactionDocumentsPanel
             transactionId={Number(transaction.id)}
+            projectId={Number(project.id)}
             readOnly={readOnly}
           />
         ) : null}

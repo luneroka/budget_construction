@@ -6,6 +6,7 @@ import {
   invalidateDocumentQueries,
 } from '@/api/budget-workspace-cache'
 import { getApiErrorMessage } from '@/api/client'
+import { trashQueryKeys } from '@/api/trash'
 import { useDeleteBudgetLineTransactionMutation } from '@/api/transactions'
 import type { TransactionDeleteState } from '@/components/budget/types'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
@@ -37,8 +38,8 @@ export function DeleteTransactionDialog({
       : `${product.product_name} · ${budgetLine.name}`
   const hasAttachedDocument = transaction.document_state === 'attached'
   const deleteDescription = hasAttachedDocument
-    ? 'Cette transaction sera supprimée définitivement. Les documents joints seront aussi supprimés.'
-    : 'Cette transaction sera supprimée définitivement.'
+    ? 'Cette transaction sera placée dans la corbeille. Les documents joints y seront aussi déplacés.'
+    : 'Cette transaction sera placée dans la corbeille.'
   const canDelete =
     Number.isInteger(projectId) &&
     Number.isInteger(budgetLineId) &&
@@ -59,7 +60,10 @@ export function DeleteTransactionDialog({
       })
       invalidateBudgetWorkspaceQueries(queryClient, projectId, budgetLineId)
       invalidateDocumentQueries(queryClient, transactionId)
-      notifySuccess('Transaction supprimée.')
+      void queryClient.invalidateQueries({
+        queryKey: trashQueryKeys.projectList(projectId),
+      })
+      notifySuccess('Transaction déplacée dans la corbeille.')
       onConfirm()
     } catch (deleteError) {
       const message = getApiErrorMessage(deleteError)

@@ -10,6 +10,7 @@ import {
   useDeleteDocumentMutation,
   useDocumentsQuery,
 } from '@/api/documents'
+import { trashQueryKeys } from '@/api/trash'
 import type { DocumentListRead } from '@/api/types'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
@@ -28,6 +29,7 @@ import {
 import { downloadDocument } from '@/lib/documents'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { notifyError, notifySuccess } from '@/lib/toasts'
+import { useAppState } from '@/state/appState'
 
 type DocumentAction = 'view' | 'download'
 
@@ -73,6 +75,7 @@ function sortDocuments(documents: DocumentListRead[]): DocumentListRead[] {
 
 export function DocumentsPage() {
   const queryClient = useQueryClient()
+  const { selectedProjectId } = useAppState()
   const [search, setSearch] = useState('')
   const [actionError, setActionError] = useState<string | null>(null)
   const [activeDocumentId, setActiveDocumentId] = useState<number | null>(null)
@@ -169,8 +172,14 @@ export function DocumentsPage() {
           current?.filter((candidate) => candidate.id !== document.id) ?? [],
       )
       invalidateDocumentQueries(queryClient, document.transaction_id)
+      const projectId = Number(selectedProjectId)
+      if (Number.isInteger(projectId) && projectId > 0) {
+        void queryClient.invalidateQueries({
+          queryKey: trashQueryKeys.projectList(projectId),
+        })
+      }
       setDocumentPendingDeletion(null)
-      notifySuccess('Document supprimé.')
+      notifySuccess('Document déplacé dans la corbeille.')
     } catch (error) {
       const message = getApiErrorMessage(error)
       setActionError(message)
@@ -363,7 +372,7 @@ export function DocumentsPage() {
       {documentPendingDeletion ? (
         <ConfirmationDialog
           title="Supprimer ce document ?"
-          description="Ce document sera retiré de la transaction associée."
+          description="Ce document sera déplacé dans la corbeille."
           error={actionError}
           isPending={activeDocumentId === documentPendingDeletion.id}
           onCancel={() => {

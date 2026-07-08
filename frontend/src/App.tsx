@@ -12,6 +12,7 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 import { ProjectsSettingsPage, SettingsPage } from '@/pages/SettingsPage'
 import { SuppliersPage } from '@/pages/SuppliersPage'
 import { TransactionsPage } from '@/pages/TransactionsPage'
+import { TrashPage } from '@/pages/TrashPage'
 
 export default function App() {
   return (
@@ -56,6 +57,7 @@ export default function App() {
             <Route path="transactions" element={<TransactionsPage />} />
             <Route path="suppliers" element={<SuppliersPage />} />
             <Route path="documents" element={<DocumentsPage />} />
+            <Route path="trash" element={<TrashPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route
               path="settings/projects"

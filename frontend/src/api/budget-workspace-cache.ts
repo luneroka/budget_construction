@@ -3,6 +3,8 @@ import type { QueryClient } from '@tanstack/react-query'
 import { budgetLineQueryKeys } from '@/api/budget-lines'
 import { documentQueryKeys } from '@/api/documents'
 import { projectQueryKeys } from '@/api/projects'
+import { supplierQueryKeys } from '@/api/suppliers'
+import { trashQueryKeys } from '@/api/trash'
 import { transactionQueryKeys } from '@/api/transactions'
 
 export function invalidateBudgetWorkspaceQueries(
@@ -37,6 +39,35 @@ export function invalidateBudgetWorkspaceQueries(
   }
 }
 
+export function invalidateTrashAffectedQueries(
+  queryClient: QueryClient,
+  projectId: number,
+  transactionId?: number,
+) {
+  void queryClient.invalidateQueries({
+    queryKey: trashQueryKeys.projectList(projectId),
+  })
+  invalidateBudgetWorkspaceQueries(queryClient, projectId)
+  void queryClient.invalidateQueries({
+    queryKey: supplierQueryKeys.lists(),
+  })
+
+  if (transactionId) {
+    invalidateDocumentQueries(queryClient, transactionId)
+  } else {
+    void queryClient.invalidateQueries({
+      queryKey: documentQueryKeys.lists(),
+    })
+    void queryClient.invalidateQueries({
+      queryKey: transactionQueryKeys.all,
+    })
+    void queryClient.invalidateQueries({
+      queryKey: projectQueryKeys.all,
+      predicate: (query) => query.queryKey.some((part) => part === 'dashboard'),
+    })
+  }
+}
+
 export function invalidateDocumentQueries(
   queryClient: QueryClient,
   transactionId: number,
@@ -52,7 +83,6 @@ export function invalidateDocumentQueries(
   })
   void queryClient.invalidateQueries({
     queryKey: projectQueryKeys.all,
-    predicate: (query) =>
-      query.queryKey.some((part) => part === 'dashboard'),
+    predicate: (query) => query.queryKey.some((part) => part === 'dashboard'),
   })
 }
