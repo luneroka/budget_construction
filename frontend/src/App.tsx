@@ -7,9 +7,11 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { BudgetPage } from '@/pages/BudgetPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { DocumentsPage } from '@/pages/DocumentsPage'
+import { ExportsSettingsPage } from '@/pages/ExportsSettingsPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
-import { ProjectsSettingsPage, SettingsPage } from '@/pages/SettingsPage'
+import { ProjectsSettingsPage } from '@/pages/ProjectsSettingsPage'
+import { SettingsPage } from '@/pages/SettingsPage'
 import { SuppliersPage } from '@/pages/SuppliersPage'
 import { TransactionsPage } from '@/pages/TransactionsPage'
 import { TrashPage } from '@/pages/TrashPage'
@@ -63,6 +65,7 @@ export default function App() {
               path="settings/projects"
               element={<ProjectsSettingsPage />}
             />
+            <Route path="settings/exports" element={<ExportsSettingsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Route>

@@ -1,9 +1,8 @@
-import { FolderKanban, SlidersHorizontal } from 'lucide-react'
+import { FileSpreadsheet, FolderKanban, SlidersHorizontal } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { PageHeader } from '@/components/shared/PageHeader'
 import { SectionCard } from '@/components/shared/SectionCard'
-import { SettingsBackButton } from '@/components/shared/SettingsBackButton'
 
 export function SettingsPage() {
   return (
@@ -36,16 +35,21 @@ export function SettingsPage() {
             </p>
           </SectionCard>
         </Link>
+        <Link
+          to="/settings/exports"
+          className="block rounded-lg transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          <SectionCard
+            title="Exports"
+            description="Fichiers comptables et rapports du projet."
+            icon={FileSpreadsheet}
+          >
+            <p className="text-sm font-medium text-primary">
+              Ouvrir les exports
+            </p>
+          </SectionCard>
+        </Link>
       </div>
-    </section>
-  )
-}
-
-export function ProjectsSettingsPage() {
-  return (
-    <section>
-      <SettingsBackButton />
-      <PageHeader title="Projets" description="Gestion des projets." />
     </section>
   )
 }

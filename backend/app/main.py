@@ -21,6 +21,7 @@ from app.routers import (
     budget_lines,
     transactions,
     documents,
+    exports,
     trash,
     admin,
 )
@@ -42,6 +43,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=['*'],
     allow_headers=['*'],
+    expose_headers=['Content-Disposition'],
 )
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 app.add_exception_handler(RequestValidationError, request_validation_exception_handler)
@@ -57,6 +59,7 @@ app.include_router(template_items.router)
 app.include_router(projects.router)
 app.include_router(budget_lines.router)
 app.include_router(budget_lines.product_router)
+app.include_router(exports.router)
 app.include_router(transactions.project_router)
 app.include_router(transactions.router)
 app.include_router(transactions.product_router)

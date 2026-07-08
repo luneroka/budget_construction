@@ -1,4 +1,7 @@
+import csv
 from dataclasses import dataclass
+from datetime import datetime, UTC
+from io import StringIO
 from typing import cast
 
 from httpx import AsyncClient
@@ -8,12 +11,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import create_access_token
 from app.models.budget_line import BudgetLine
 from app.models.category import Category
+from app.models.document import Document
 from app.models.product import Product
 from app.models.project import Project
 from app.models.subcategory import Subcategory
+from app.models.supplier import Supplier
 from app.models.template import Template
 from app.models.template_item import TemplateItem
+from app.models.transaction import Transaction
 from app.models.user import User
+from app.services.export import CSV_COLUMNS
 
 
 @dataclass(frozen=True)
@@ -121,6 +128,16 @@ async def get_budget_line(
     return budget_line
 
 
+async def get_user_by_email(db_session: AsyncSession, email: str) -> User:
+    result = await db_session.execute(select(User).where(User.email == email))
+    return result.scalar_one()
+
+
+def parse_csv_response(content: bytes) -> list[dict[str, str]]:
+    text = content.decode('utf-8-sig')
+    return list(csv.DictReader(StringIO(text)))
+
+
 async def test_create_quote_for_product(
     client: AsyncClient,
     db_session: AsyncSession,
@@ -197,6 +214,202 @@ async def test_select_budget_candidate(
 
     budget_line = await get_budget_line(db_session, budget_line_id)
     assert budget_line.selected_quote_transaction_id == transaction_id
+
+
+async def test_export_accounting_csv_downloads_human_readable_rows(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    email = 'accounting-csv-export-user@example.com'
+    context = await create_transaction_route_context(db_session, email=email)
+    user = await get_user_by_email(db_session, email)
+    supplier = Supplier(
+        user_id=user.id, name='Alpha Renovation', siret='12345678901234'
+    )
+    db_session.add(supplier)
+    await db_session.commit()
+    await db_session.refresh(supplier)
+
+    invoice = await create_product_transaction(
+        client,
+        context,
+        {
+            **invoice_payload(),
+            'supplier_id': supplier.id,
+            'issued_date': '2026-06-20',
+            'due_date': '2026-07-20',
+            'payment_date': '2026-06-25',
+            'invoice_status': 'paid',
+            'invoice_type': 'deposit',
+            'payment_method': 'wire',
+            'description': 'Foundation invoice',
+        },
+    )
+    document = Document(
+        transaction_id=cast(int, invoice['id']),
+        user_id=user.id,
+        original_filename='foundation-invoice.pdf',
+        stored_filename='stored-foundation-invoice.pdf',
+        file_path='documents/stored-foundation-invoice.pdf',
+        mime_type='application/pdf',
+        file_size=128,
+    )
+    deleted_document = Document(
+        transaction_id=cast(int, invoice['id']),
+        user_id=user.id,
+        original_filename='deleted-invoice.pdf',
+        stored_filename='deleted-invoice.pdf',
+        file_path='documents/deleted-invoice.pdf',
+        mime_type='application/pdf',
+        file_size=128,
+        deleted_at=datetime.now(UTC).replace(tzinfo=None),
+    )
+    db_session.add_all([document, deleted_document])
+    await db_session.commit()
+
+    response = await client.get(
+        f'/projects/{context.project_id}/exports/accounting.csv',
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 200
+    assert response.headers['content-type'].startswith('text/csv')
+    assert (
+        response.headers['content-disposition']
+        == f'attachment; filename="project-{context.project_id}-accounting.csv"'
+    )
+    rows = parse_csv_response(response.content)
+    assert len(rows) == 1
+    assert list(rows[0].keys()) == CSV_COLUMNS
+    assert rows[0]['Transaction ID'] == str(invoice['id'])
+    assert rows[0]['Transaction type'] == 'Invoice'
+    assert rows[0]['Supplier'] == 'Alpha Renovation'
+    assert rows[0]['Supplier reference'] == '12345678901234'
+    assert rows[0]['Project'] == f'Project {email}'
+    assert rows[0]['Category'] == f'Category {email}'
+    assert rows[0]['Subcategory'] == f'Subcategory {email}'
+    assert rows[0]['Product'] == f'Product {email}'
+    assert rows[0]['Budget line'] == 'Whole product budget'
+    assert rows[0]['Amount HT'] == '120.00'
+    assert rows[0]['VAT rate (%)'] == '20.00'
+    assert rows[0]['VAT amount'] == '24.00'
+    assert rows[0]['Amount TTC'] == '144.00'
+    assert rows[0]['Issued date'] == '2026-06-20'
+    assert rows[0]['Due date'] == '2026-07-20'
+    assert rows[0]['Payment date'] == '2026-06-25'
+    assert rows[0]['Invoice status'] == 'Paid'
+    assert rows[0]['Invoice type'] == 'Deposit'
+    assert rows[0]['Payment method'] == 'Wire transfer'
+    assert rows[0]['Description'] == 'Foundation invoice'
+    assert rows[0]['Document present'] == 'Yes'
+    assert rows[0]['Document filename(s)'] == 'stored-foundation-invoice.pdf'
+    assert rows[0]['Original document filename(s)'] == 'foundation-invoice.pdf'
+
+
+async def test_export_accounting_csv_filters_by_date_and_transaction_type(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_transaction_route_context(
+        db_session,
+        email='accounting-csv-filter-user@example.com',
+    )
+    invoice = await create_product_transaction(
+        client,
+        context,
+        {**invoice_payload(), 'issued_date': '2026-06-20'},
+    )
+    quote = await create_product_transaction(
+        client,
+        context,
+        {**quote_payload(), 'issued_date': '2026-06-21'},
+    )
+    diy_estimate = await create_product_transaction(
+        client,
+        context,
+        {**diy_estimate_payload(), 'issued_date': '2026-06-22'},
+    )
+    await create_product_transaction(
+        client,
+        context,
+        {**invoice_payload(), 'issued_date': '2026-07-01'},
+    )
+
+    expected_by_filter = {
+        'all': [invoice['id'], quote['id'], diy_estimate['id']],
+        'invoices': [invoice['id']],
+        'quotes': [quote['id']],
+        'diy_estimates': [diy_estimate['id']],
+    }
+    for transaction_type, expected_ids in expected_by_filter.items():
+        response = await client.get(
+            f'/projects/{context.project_id}/exports/accounting.csv',
+            headers=auth_headers(context.access_token),
+            params={
+                'start_date': '2026-06-01',
+                'end_date': '2026-06-30',
+                'transaction_type': transaction_type,
+            },
+        )
+
+        assert response.status_code == 200
+        rows = parse_csv_response(response.content)
+        assert [row['Transaction ID'] for row in rows] == [
+            str(transaction_id) for transaction_id in expected_ids
+        ]
+
+
+async def test_export_accounting_csv_excludes_deleted_transactions(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_transaction_route_context(
+        db_session,
+        email='accounting-csv-deleted-user@example.com',
+    )
+    active_invoice = await create_product_transaction(
+        client,
+        context,
+        {**invoice_payload(), 'issued_date': '2026-06-20'},
+    )
+    deleted_invoice = await create_product_transaction(
+        client,
+        context,
+        {**invoice_payload(), 'issued_date': '2026-06-21'},
+    )
+    result = await db_session.execute(
+        select(Transaction).where(Transaction.id == deleted_invoice['id'])
+    )
+    transaction = result.scalar_one()
+    transaction.deleted_at = datetime.now(UTC).replace(tzinfo=None)
+    await db_session.commit()
+
+    response = await client.get(
+        f'/projects/{context.project_id}/exports/accounting.csv',
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 200
+    rows = parse_csv_response(response.content)
+    assert [row['Transaction ID'] for row in rows] == [str(active_invoice['id'])]
+
+
+async def test_export_accounting_csv_rejects_invalid_date_range(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_transaction_route_context(
+        db_session,
+        email='accounting-csv-invalid-date-user@example.com',
+    )
+
+    response = await client.get(
+        f'/projects/{context.project_id}/exports/accounting.csv',
+        headers=auth_headers(context.access_token),
+        params={'start_date': '2026-07-01', 'end_date': '2026-06-01'},
+    )
+
+    assert response.status_code == 400
 
 
 async def test_select_budget_candidate_keeps_quote_and_diy_selections(

@@ -133,6 +133,7 @@ class ProductFinancials:
 @dataclass(frozen=True)
 class ProjectFinancials:
     project_id: int
+    project_name: str
     generated_at: datetime
     totals: FinancialTotals
     products: list[ProductFinancials]
@@ -522,6 +523,7 @@ class FinancialEngine:
 
         return ProjectFinancials(
             project_id=project_id,
+            project_name=project.name,
             generated_at=datetime.now(UTC).replace(tzinfo=None),
             totals=project_totals,
             products=list(products.values()),
