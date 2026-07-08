@@ -24,6 +24,7 @@ class DocumentRead(BaseModel):
 
 
 class DocumentListRead(DocumentRead):
+    project_id: int
     transaction_type: TransactionType
     transaction_description: str | None = None
     supplier_name: str | None = None

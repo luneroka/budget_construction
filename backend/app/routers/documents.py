@@ -114,6 +114,7 @@ def _document_list_read(
 ) -> DocumentListRead:
     (
         document,
+        project_id,
         transaction_type,
         transaction_description,
         supplier_name,
@@ -123,6 +124,7 @@ def _document_list_read(
     return DocumentListRead.model_validate(
         {
             **document.__dict__,
+            'project_id': project_id,
             'transaction_type': transaction_type,
             'transaction_description': transaction_description,
             'supplier_name': supplier_name,

@@ -22,7 +22,7 @@ export function SectionCard({
   children,
 }: SectionCardProps) {
   return (
-    <Card>
+    <Card className="flex flex-col">
       <CardHeader>
         <div className="flex items-center gap-3">
           {Icon ? (
@@ -32,11 +32,13 @@ export function SectionCard({
           ) : null}
           <div>
             <CardTitle>{title}</CardTitle>
-            {description ? <CardDescription>{description}</CardDescription> : null}
+            {description ? (
+              <CardDescription>{description}</CardDescription>
+            ) : null}
           </div>
         </div>
       </CardHeader>
-      <CardContent>{children}</CardContent>
+      <CardContent className="flex-1">{children}</CardContent>
     </Card>
   )
 }

@@ -8,12 +8,15 @@ import { Check, ChevronDown, FolderPlus, Loader2, Settings } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { getApiErrorMessage } from '@/api/client'
-import { useProjectsQuery } from '@/api/projects'
+import {
+  useProjectFinancialSummaryQuery,
+  useProjectsQuery,
+} from '@/api/projects'
 import type { ProjectRead } from '@/api/types'
 import type { ProjectViewModel } from '@/demo/types'
 import { Button } from '@/components/ui/button'
 import { useProjectOnboarding } from '@/hooks/useProjectOnboarding'
-import { formatCurrency, formatProjectStatus } from '@/lib/format'
+import { formatCurrency } from '@/lib/format'
 import { useAppState } from '@/state/appState'
 import { ProjectOnboardingDialog } from './ProjectOnboardingDialog'
 
@@ -49,6 +52,16 @@ export function ProjectSwitcher() {
       projects.find((project) => project.id === selectedProjectId) ?? projects[0],
     [projects, selectedProjectId],
   )
+  const selectedProjectNumericId = selectedProject
+    ? Number(selectedProject.id)
+    : null
+  const selectedProjectSummaryQuery = useProjectFinancialSummaryQuery(
+    Number.isInteger(selectedProjectNumericId) ? selectedProjectNumericId : null,
+    { enabled: true },
+  )
+  const selectedBudgetAmount = selectedProjectSummaryQuery.data
+    ? Number(selectedProjectSummaryQuery.data.selected_budget_amount_ttc)
+    : (selectedProject?.selected_budget_amount_ttc ?? 0)
 
   useEffect(() => {
     if (selectedProject && selectedProject.id !== selectedProjectId) {
@@ -151,10 +164,8 @@ export function ProjectSwitcher() {
               {selectedProject.location}
             </span>
             <span className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-sidebar-foreground/70">
-              <span>{formatProjectStatus(selectedProject.project_status)}</span>
-              <span aria-hidden="true">·</span>
               <span>
-                {formatCurrency(selectedProject.selected_budget_amount_ttc)}
+                Budget : {formatCurrency(selectedBudgetAmount)}
               </span>
             </span>
           </span>

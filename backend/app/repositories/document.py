@@ -13,7 +13,9 @@ from app.models.product import Product
 from app.models.supplier import Supplier
 from app.models.transaction import Transaction, TransactionType
 
-DocumentListRow = Row[tuple[Document, TransactionType, str | None, str, str, Decimal]]
+DocumentListRow = Row[
+    tuple[Document, int, TransactionType, str | None, str, str, Decimal]
+]
 
 
 async def create_document(
@@ -73,6 +75,7 @@ async def get_document_list(
     query = (
         select(
             Document,
+            BudgetLine.project_id,
             Transaction.transaction_type,
             Transaction.description,
             Supplier.name,

@@ -405,6 +405,7 @@ export type DocumentRead = {
 }
 
 export type DocumentListRead = DocumentRead & {
+  project_id: number
   transaction_type: TransactionType
   transaction_description: string | null
   supplier_name: string | null

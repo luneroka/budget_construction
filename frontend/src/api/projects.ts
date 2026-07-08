@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { apiConfig } from './config'
-import { apiGet, apiPatch, apiPost } from './client'
+import { apiDelete, apiGet, apiPatch, apiPost } from './client'
 import type {
   DashboardBudgetAlertsRead,
   DashboardCategoryBudgetActualRead,
@@ -104,6 +104,10 @@ export function updateProject(
   project: ProjectUpdate,
 ): Promise<ProjectRead> {
   return apiPatch<ProjectRead, ProjectUpdate>(`/projects/${projectId}`, project)
+}
+
+export function deleteProject(projectId: number): Promise<ProjectRead> {
+  return apiDelete<ProjectRead>(`/projects/${projectId}`)
 }
 
 export function getProjectFinancialSummary(
@@ -517,5 +521,11 @@ export function useUpdateProjectMutation() {
       projectId: number
       project: ProjectUpdate
     }) => updateProject(projectId, project),
+  })
+}
+
+export function useDeleteProjectMutation() {
+  return useMutation({
+    mutationFn: deleteProject,
   })
 }

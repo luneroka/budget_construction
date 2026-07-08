@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Download, FileImage, FileSpreadsheet } from 'lucide-react'
+import { Download, FileImage, FileSpreadsheet, FileText } from 'lucide-react'
 
 import { getApiErrorMessage } from '@/api/client'
 import {
@@ -130,61 +130,63 @@ export function ExportsSettingsPage() {
         description="Générez les fichiers utiles au suivi de votre projet."
       />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="exports-settings-grid-three grid gap-4">
         <SectionCard
           title="CSV"
           description="Un fichier CSV complet pour la comptabilité et l’analyse dans un tableur."
           icon={FileSpreadsheet}
         >
-          <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="export-start-date">Date de début</Label>
-                <Input
-                  id="export-start-date"
-                  type="date"
-                  value={startDate}
-                  onChange={(event) => setStartDate(event.target.value)}
-                  disabled={exportMutation.isPending}
-                />
+          <div className="flex h-full flex-col justify-between gap-4">
+            <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="export-start-date">Date de début</Label>
+                  <Input
+                    id="export-start-date"
+                    type="date"
+                    value={startDate}
+                    onChange={(event) => setStartDate(event.target.value)}
+                    disabled={exportMutation.isPending}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="export-end-date">Date de fin</Label>
+                  <Input
+                    id="export-end-date"
+                    type="date"
+                    value={endDate}
+                    onChange={(event) => setEndDate(event.target.value)}
+                    disabled={exportMutation.isPending}
+                  />
+                </div>
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="export-end-date">Date de fin</Label>
-                <Input
-                  id="export-end-date"
-                  type="date"
-                  value={endDate}
-                  onChange={(event) => setEndDate(event.target.value)}
+                <Label htmlFor="export-transaction-type">
+                  Type de transaction
+                </Label>
+                <Select
+                  id="export-transaction-type"
+                  value={transactionType}
+                  onChange={(event) =>
+                    setTransactionType(
+                      event.target.value as AccountingExportTransactionType,
+                    )
+                  }
                   disabled={exportMutation.isPending}
-                />
+                >
+                  {transactionTypeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="export-transaction-type">
-                Type de transaction
-              </Label>
-              <Select
-                id="export-transaction-type"
-                value={transactionType}
-                onChange={(event) =>
-                  setTransactionType(
-                    event.target.value as AccountingExportTransactionType,
-                  )
-                }
-                disabled={exportMutation.isPending}
-              >
-                {transactionTypeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </Select>
+              {formError ? (
+                <p className="text-sm text-destructive">{formError}</p>
+              ) : null}
             </div>
-
-            {formError ? (
-              <p className="text-sm text-destructive">{formError}</p>
-            ) : null}
 
             <Button
               onClick={handleAccountingCsvExport}
@@ -203,14 +205,16 @@ export function ExportsSettingsPage() {
           description="Une image haute résolution du tableau de bord, prête à partager par email ou dans une présentation."
           icon={FileImage}
         >
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              L’export utilise une mise en page desktop fixe avec les
-              indicateurs et les graphiques du projet.
-            </p>
-            {formError ? (
-              <p className="text-sm text-destructive">{formError}</p>
-            ) : null}
+          <div className="flex h-full flex-col justify-between gap-4">
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                L’export utilise une mise en page desktop fixe avec les
+                indicateurs et les graphiques du projet.
+              </p>
+              {formError ? (
+                <p className="text-sm text-destructive">{formError}</p>
+              ) : null}
+            </div>
             <Button
               onClick={handleDashboardPngExport}
               disabled={
@@ -218,6 +222,7 @@ export function ExportsSettingsPage() {
                 !dashboardExportReady ||
                 dashboardExporting
               }
+              className=""
             >
               <Download aria-hidden />
               {dashboardExporting
@@ -225,6 +230,31 @@ export function ExportsSettingsPage() {
                 : dashboardExportReady
                   ? 'Télécharger le PNG'
                   : 'Préparation du dashboard...'}
+            </Button>
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="Rapport PDF"
+          description="Un rapport synthétique du projet avec chiffres clés, budget et suivi documentaire."
+          icon={FileText}
+        >
+          <div className="flex h-full flex-col justify-between gap-4 opacity-70">
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Cette option permettra de générer un document prêt à partager
+                avec les parties prenantes du projet.
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="export-pdf-format">Format</Label>
+                <Select id="export-pdf-format" value="summary" disabled>
+                  <option value="summary">Rapport synthétique</option>
+                </Select>
+              </div>
+            </div>
+            <Button disabled>
+              <Download aria-hidden />
+              Bientôt disponible
             </Button>
           </div>
         </SectionCard>

@@ -150,3 +150,26 @@ h5,
 h6 {
   font-family: var(--font-heading);
 }
+
+@media (min-width: 900px) {
+  .project-settings-grid-three,
+  .exports-settings-grid-three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .project-settings-grid-two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .project-settings-grid-three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .exports-settings-grid-three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
