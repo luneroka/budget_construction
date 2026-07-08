@@ -10,6 +10,7 @@ import { useDeleteBudgetLineTransactionMutation } from '@/api/transactions'
 import type { TransactionDeleteState } from '@/components/budget/types'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { notifyError, notifySuccess } from '@/lib/toasts'
 
 export function DeleteTransactionDialog({
   context,
@@ -58,9 +59,12 @@ export function DeleteTransactionDialog({
       })
       invalidateBudgetWorkspaceQueries(queryClient, projectId, budgetLineId)
       invalidateDocumentQueries(queryClient, transactionId)
+      notifySuccess('Transaction supprimée.')
       onConfirm()
     } catch (deleteError) {
-      setError(getApiErrorMessage(deleteError))
+      const message = getApiErrorMessage(deleteError)
+      setError(message)
+      notifyError(`Impossible de supprimer la transaction. ${message}`)
     }
   }
 

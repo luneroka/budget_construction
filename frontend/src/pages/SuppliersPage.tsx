@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Copy, Mail, Plus } from 'lucide-react'
-import toast from 'react-hot-toast'
 
 import { getApiErrorMessage } from '@/api/client'
 import {
@@ -31,6 +30,7 @@ import type {
   SupplierContactViewModel,
   SupplierRowViewModel,
 } from '@/demo/types'
+import { notifyError, notifySuccess } from '@/lib/toasts'
 
 function supplierToViewModel(supplier: SupplierRead): SupplierRowViewModel {
   return {
@@ -156,9 +156,9 @@ function primaryContact(
 async function copyEmailToClipboard(email: string) {
   try {
     await navigator.clipboard.writeText(email)
-    toast.success('Email copié dans le presse-papiers.')
+    notifySuccess('Email copié dans le presse-papiers.')
   } catch {
-    toast.error("Impossible de copier l'email.")
+    notifyError("Impossible de copier l’email.")
   }
 }
 
@@ -227,8 +227,9 @@ export function SuppliersPage() {
 
   async function saveSupplier(savedSupplier: SupplierRowViewModel) {
     try {
+      const isCreating = selectedSupplier === null
       const saved =
-        selectedSupplier === null
+        isCreating
           ? await createSupplierMutation.mutateAsync(
               supplierToCreatePayload(savedSupplier),
             )
@@ -244,8 +245,13 @@ export function SuppliersPage() {
       void queryClient.invalidateQueries({
         queryKey: supplierQueryKeys.list(false),
       })
+      notifySuccess(
+        isCreating ? 'Fournisseur ajouté.' : 'Fournisseur modifié.',
+      )
     } catch (error) {
-      throw new Error(getApiErrorMessage(error))
+      const message = getApiErrorMessage(error)
+      notifyError(`Impossible d’enregistrer le fournisseur. ${message}`)
+      throw new Error(message)
     }
   }
 
@@ -261,8 +267,11 @@ export function SuppliersPage() {
       void queryClient.invalidateQueries({
         queryKey: supplierQueryKeys.list(false),
       })
+      notifySuccess('Fournisseur supprimé.')
     } catch (error) {
-      throw new Error(getApiErrorMessage(error))
+      const message = getApiErrorMessage(error)
+      notifyError(`Impossible de supprimer le fournisseur. ${message}`)
+      throw new Error(message)
     }
   }
 

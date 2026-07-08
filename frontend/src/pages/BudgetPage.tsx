@@ -41,6 +41,7 @@ import {
 } from '@/lib/budgetWorkspaceApiAdapter'
 import { downloadDocument } from '@/lib/documents'
 import { formatCurrency } from '@/lib/format'
+import { notifyError } from '@/lib/toasts'
 import { useAppState } from '@/state/appState'
 
 export function BudgetPage() {
@@ -161,7 +162,9 @@ export function BudgetPage() {
         url,
       })
     } catch (error) {
-      setViewerError(getApiErrorMessage(error))
+      const message = getApiErrorMessage(error)
+      setViewerError(message)
+      notifyError(`Impossible d’ouvrir le document. ${message}`)
     } finally {
       setViewerLoading(false)
     }
@@ -176,7 +179,9 @@ export function BudgetPage() {
     try {
       await downloadDocument(viewerDocument.documentId, viewerDocument.filename)
     } catch (error) {
-      setViewerError(getApiErrorMessage(error))
+      const message = getApiErrorMessage(error)
+      setViewerError(message)
+      notifyError(`Impossible de télécharger le document. ${message}`)
     } finally {
       setViewerLoading(false)
     }

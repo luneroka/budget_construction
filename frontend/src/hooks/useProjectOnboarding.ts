@@ -9,6 +9,7 @@ import {
 } from '@/api/projects'
 import { useTemplatesQuery } from '@/api/templates'
 import type { ProjectFromTemplateCreate, ProjectRead } from '@/api/types'
+import { notifyError, notifySuccess } from '@/lib/toasts'
 
 type UseProjectOnboardingOptions = {
   projectCount: number
@@ -55,26 +56,34 @@ export function useProjectOnboarding({
   }, [projectCount, projectsLoaded, selectedProjectId, setSelectedProjectId])
 
   async function submit(project: ProjectFromTemplateCreate) {
-    const generatedProject = await createProjectMutation.mutateAsync(project)
+    try {
+      const generatedProject = await createProjectMutation.mutateAsync(project)
 
-    queryClient.setQueryData<ProjectRead[]>(
-      projectQueryKeys.list(false),
-      (current) => {
-        const existingProjects = current ?? []
-        const withoutCreatedProject = existingProjects.filter(
-          (existingProject) => existingProject.id !== generatedProject.project.id,
-        )
+      queryClient.setQueryData<ProjectRead[]>(
+        projectQueryKeys.list(false),
+        (current) => {
+          const existingProjects = current ?? []
+          const withoutCreatedProject = existingProjects.filter(
+            (existingProject) =>
+              existingProject.id !== generatedProject.project.id,
+          )
 
-        return [...withoutCreatedProject, generatedProject.project].sort((a, b) =>
-          a.name.localeCompare(b.name),
-        )
-      },
-    )
+          return [...withoutCreatedProject, generatedProject.project].sort(
+            (a, b) => a.name.localeCompare(b.name),
+          )
+        },
+      )
 
-    setSelectedProjectId(String(generatedProject.project.id))
-    setIsOpen(false)
-    onProjectCreated?.()
-    navigate('/budget')
+      setSelectedProjectId(String(generatedProject.project.id))
+      setIsOpen(false)
+      onProjectCreated?.()
+      notifySuccess('Projet créé et budget initialisé.')
+      navigate('/budget')
+    } catch (error) {
+      const message = getApiErrorMessage(error)
+      notifyError(`Impossible de créer le projet. ${message}`)
+      throw error
+    }
   }
 
   return {

@@ -55,6 +55,7 @@ import type {
 } from '@/demo/types'
 import { downloadDocument } from '@/lib/documents'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { notifyError, notifySuccess } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
 
 type ProductStructureChoice = 'single' | 'breakdown'
@@ -577,8 +578,11 @@ function TransactionDocumentsPanel({
       setDocumentError(null)
       await uploadDocumentMutation.mutateAsync({ transactionId, file })
       invalidateDocumentQueries(queryClient, transactionId)
+      notifySuccess('Document ajouté à la transaction.')
     } catch (error) {
-      setDocumentError(getApiErrorMessage(error))
+      const message = getApiErrorMessage(error)
+      setDocumentError(message)
+      notifyError(`Impossible d’ajouter le document. ${message}`)
     }
   }
 
@@ -587,7 +591,9 @@ function TransactionDocumentsPanel({
       setDocumentError(null)
       await downloadDocument(document.id, document.original_filename)
     } catch (error) {
-      setDocumentError(getApiErrorMessage(error))
+      const message = getApiErrorMessage(error)
+      setDocumentError(message)
+      notifyError(`Impossible de télécharger le document. ${message}`)
     }
   }
 
@@ -597,8 +603,11 @@ function TransactionDocumentsPanel({
       await deleteDocumentMutation.mutateAsync({ documentId: document.id })
       invalidateDocumentQueries(queryClient, transactionId)
       setDocumentPendingDeletion(null)
+      notifySuccess('Document supprimé.')
     } catch (error) {
-      setDocumentError(getApiErrorMessage(error))
+      const message = getApiErrorMessage(error)
+      setDocumentError(message)
+      notifyError(`Impossible de supprimer le document. ${message}`)
     }
   }
 
@@ -848,6 +857,7 @@ export function TransactionModal({
   ) {
     event.preventDefault()
     setMutationError(null)
+    let isUploadingDocument = false
 
     try {
       const projectId = requiredId(project.id, 'Projet')
@@ -891,6 +901,7 @@ export function TransactionModal({
       }
 
       if (documentFile) {
+        isUploadingDocument = true
         setCreatedTransactionForDocument({
           transactionId: createdTransaction.id,
           budgetLineId: targetBudgetLineId,
@@ -907,9 +918,20 @@ export function TransactionModal({
         )
       }
 
+      notifySuccess(
+        documentFile
+          ? 'Transaction ajoutée avec son document.'
+          : 'Transaction ajoutée.',
+      )
       onClose()
     } catch (error) {
-      setMutationError(getApiErrorMessage(error))
+      const message = getApiErrorMessage(error)
+      setMutationError(message)
+      notifyError(
+        isUploadingDocument
+          ? `Impossible d’ajouter le document. ${message}`
+          : `Impossible d’ajouter la transaction. ${message}`,
+      )
     }
   }
 
@@ -1359,9 +1381,12 @@ export function TransactionReviewModal({
         transaction: buildTransactionUpdate(transaction, form),
       })
       invalidateBudgetWorkspaceQueries(queryClient, projectId, budgetLineId)
+      notifySuccess('Transaction modifiée.')
       onClose()
     } catch (error) {
-      setMutationError(getApiErrorMessage(error))
+      const message = getApiErrorMessage(error)
+      setMutationError(message)
+      notifyError(`Impossible de modifier la transaction. ${message}`)
     }
   }
 
@@ -1406,8 +1431,15 @@ export function TransactionReviewModal({
       invalidateBudgetWorkspaceQueries(queryClient, projectId, budgetLineId)
       setLocalIsBudgetSelected((current) => !current)
       onToggleBudgetSelection()
+      notifySuccess(
+        localIsBudgetSelected
+          ? 'Transaction retirée du budget sélectionné.'
+          : 'Transaction sélectionnée pour le budget.',
+      )
     } catch (error) {
-      setMutationError(getApiErrorMessage(error))
+      const message = getApiErrorMessage(error)
+      setMutationError(message)
+      notifyError(`Impossible de modifier la sélection budget. ${message}`)
     }
   }
 

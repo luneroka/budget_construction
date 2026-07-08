@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/table'
 import { downloadDocument } from '@/lib/documents'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { notifyError, notifySuccess } from '@/lib/toasts'
 
 type DocumentAction = 'view' | 'download'
 
@@ -143,7 +144,13 @@ export function DocumentsPage() {
         setViewerDocument({ document, url })
       }
     } catch (error) {
-      setActionError(getApiErrorMessage(error))
+      const message = getApiErrorMessage(error)
+      setActionError(message)
+      notifyError(
+        action === 'download'
+          ? `Impossible de télécharger le document. ${message}`
+          : `Impossible d’ouvrir le document. ${message}`,
+      )
     } finally {
       setViewerLoading(false)
       setActiveDocumentId(null)
@@ -163,8 +170,11 @@ export function DocumentsPage() {
       )
       invalidateDocumentQueries(queryClient, document.transaction_id)
       setDocumentPendingDeletion(null)
+      notifySuccess('Document supprimé.')
     } catch (error) {
-      setActionError(getApiErrorMessage(error))
+      const message = getApiErrorMessage(error)
+      setActionError(message)
+      notifyError(`Impossible de supprimer le document. ${message}`)
     } finally {
       setActiveDocumentId(null)
     }
@@ -182,7 +192,9 @@ export function DocumentsPage() {
         viewerDocument.document.original_filename,
       )
     } catch (error) {
-      setViewerError(getApiErrorMessage(error))
+      const message = getApiErrorMessage(error)
+      setViewerError(message)
+      notifyError(`Impossible de télécharger le document. ${message}`)
     } finally {
       setViewerLoading(false)
     }

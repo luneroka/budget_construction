@@ -7,6 +7,7 @@ import { useAuth } from '@/auth/authContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { notifyError, notifySuccess } from '@/lib/toasts'
 
 type LocationState = {
   from?: {
@@ -42,11 +43,14 @@ export function LoginPage() {
 
     try {
       await login({ email, password })
+      notifySuccess('Connexion réussie.')
       navigate(getRedirectTarget(location.state as LocationState | null), {
         replace: true,
       })
     } catch (error) {
-      setErrorMessage(getApiErrorMessage(error))
+      const message = getApiErrorMessage(error)
+      setErrorMessage(message)
+      notifyError(`Connexion impossible. ${message}`)
     } finally {
       setIsSubmitting(false)
     }

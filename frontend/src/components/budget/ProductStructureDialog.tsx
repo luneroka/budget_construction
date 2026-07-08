@@ -17,6 +17,7 @@ import type {
   BreakdownAction,
   ProductStructureChoice,
 } from '@/components/budget/types'
+import { notifyError, notifySuccess } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
 
 export function ProductStructureDialog({
@@ -68,9 +69,12 @@ export function ProductStructureDialog({
         },
       })
       invalidateBudgetWorkspaceQueries(queryClient, projectId)
+      notifySuccess('Sous-produit ajouté.')
       onClose()
     } catch (mutationError) {
-      setError(getApiErrorMessage(mutationError))
+      const message = getApiErrorMessage(mutationError)
+      setError(message)
+      notifyError(`Impossible d’ajouter le sous-produit. ${message}`)
     }
   }
 
@@ -95,9 +99,12 @@ export function ProductStructureDialog({
         },
       })
       invalidateBudgetWorkspaceQueries(queryClient, projectId)
+      notifySuccess('Produit décomposé en sous-produits.')
       onClose()
     } catch (mutationError) {
-      setError(getApiErrorMessage(mutationError))
+      const message = getApiErrorMessage(mutationError)
+      setError(message)
+      notifyError(`Impossible de décomposer le produit. ${message}`)
     }
   }
 

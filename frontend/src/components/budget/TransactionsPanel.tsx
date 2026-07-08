@@ -21,6 +21,7 @@ import type {
 } from '@/demo/types'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { transactionToViewModel } from '@/lib/budgetWorkspaceApiAdapter'
+import { notifyError, notifySuccess } from '@/lib/toasts'
 import {
   canToggleBudgetSelection,
   formatSelectedBudgetSource,
@@ -297,7 +298,11 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
 
     try {
       setSelectionError(null)
-      if (isSelectedBudgetTransaction(transaction, props.budgetSelection)) {
+      const isCurrentlySelected = isSelectedBudgetTransaction(
+        transaction,
+        props.budgetSelection,
+      )
+      if (isCurrentlySelected) {
         await unselectBudgetCandidateMutation.mutateAsync({
           projectId: props.projectId,
           budgetLineId,
@@ -315,8 +320,15 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
         props.projectId,
         budgetLineId,
       )
+      notifySuccess(
+        isCurrentlySelected
+          ? 'Transaction retirée du budget sélectionné.'
+          : 'Transaction sélectionnée pour le budget.',
+      )
     } catch (error) {
-      setSelectionError(getApiErrorMessage(error))
+      const message = getApiErrorMessage(error)
+      setSelectionError(message)
+      notifyError(`Impossible de modifier la sélection budget. ${message}`)
     }
   }
 

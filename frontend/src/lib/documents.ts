@@ -1,4 +1,5 @@
 import { getDocumentDownloadUrl } from '@/api/documents'
+import { notifySuccess } from '@/lib/toasts'
 
 function triggerBrowserDownload(url: string, filename: string) {
   const link = window.document.createElement('a')
@@ -16,4 +17,5 @@ export async function downloadDocument(
 ): Promise<void> {
   const { url } = await getDocumentDownloadUrl(documentId, false)
   triggerBrowserDownload(url, filename)
+  notifySuccess('Document téléchargé.')
 }

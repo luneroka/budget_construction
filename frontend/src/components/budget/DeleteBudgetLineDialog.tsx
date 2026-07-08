@@ -7,6 +7,7 @@ import { getApiErrorMessage } from '@/api/client'
 import type { BudgetLineDeleteState } from '@/components/budget/types'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
 import { formatCurrency } from '@/lib/format'
+import { notifyError, notifySuccess } from '@/lib/toasts'
 
 export function DeleteBudgetLineDialog({
   context,
@@ -41,9 +42,12 @@ export function DeleteBudgetLineDialog({
         budgetLineId,
       })
       invalidateBudgetWorkspaceQueries(queryClient, projectId, budgetLineId)
+      notifySuccess('Sous-produit supprimé.')
       onConfirm()
     } catch (deleteError) {
-      setError(getApiErrorMessage(deleteError))
+      const message = getApiErrorMessage(deleteError)
+      setError(message)
+      notifyError(`Impossible de supprimer le sous-produit. ${message}`)
     }
   }
 
