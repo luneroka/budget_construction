@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { getApiErrorMessage } from '@/api/client'
@@ -47,8 +47,9 @@ import { useAppState } from '@/state/appState'
 
 export function BudgetPage() {
   const { selectedProjectId } = useAppState()
-  const [searchParams] = useSearchParams()
-  const focusedProductId = searchParams.get('product_id')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const productFocusParam = searchParams.get('product_id')
+  const [focusedProductId, setFocusedProductId] = useState<string | null>(null)
   const selectedProjectNumericId = Number(selectedProjectId)
   const projectId = Number.isInteger(selectedProjectNumericId)
     ? selectedProjectNumericId
@@ -95,6 +96,20 @@ export function BudgetPage() {
         workspace.financialSummary.invoice_count,
     }
   }, [workspace])
+
+  useEffect(() => {
+    if (!productFocusParam) return
+
+    setFocusedProductId(productFocusParam)
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        next.delete('product_id')
+        return next
+      },
+      { replace: true },
+    )
+  }, [productFocusParam, setSearchParams])
 
   function getBudgetSelection(
     line: BudgetLineSummaryViewModel,

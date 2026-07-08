@@ -61,9 +61,7 @@ import {
   formatDashboardPercentage,
 } from '@/components/dashboard/utils'
 import { formatCurrency, formatMonth } from '@/lib/format'
-import {
-  suppliersToViewModel,
-} from '@/lib/budgetWorkspaceApiAdapter'
+import { suppliersToViewModel } from '@/lib/budgetWorkspaceApiAdapter'
 import {
   canToggleBudgetSelection,
   isSelectedBudgetTransaction,
@@ -159,11 +157,13 @@ export function DashboardPage() {
     enabled: true,
   })
   const transactionsQuery = useProjectTransactionsQuery(projectId, {
-    enabled: true,
+    enabled: false,
   })
-  const suppliersQuery = useSuppliersQuery({ enabled: projectId !== null })
   const [transactionReview, setTransactionReview] =
     useState<TransactionReviewState | null>(null)
+  const suppliersQuery = useSuppliersQuery({
+    enabled: projectId !== null && transactionReview !== null,
+  })
   const project = useMemo(() => {
     const selectedProject = projectsQuery.data?.find(
       (candidate) => candidate.id === projectId,
@@ -174,55 +174,68 @@ export function DashboardPage() {
     () => suppliersToViewModel(suppliersQuery.data),
     [suppliersQuery.data],
   )
-  const transactionRowsById = useMemo(
-    () =>
-      new Map(
-        (transactionsQuery.data ?? []).map((transaction) => {
-          const row = buildTransactionRow(transaction)
-          return [transaction.id, row]
-        }),
-      ),
-    [transactionsQuery.data],
-  )
   const financialOverview = financialOverviewQuery.data
   const variance = decimalToNumber(
     financialOverview?.selected_budget_variance_ttc,
   )
-  const spendingOverTimeData = (spendingOverTimeQuery.data ?? []).map(
-    (item) => ({
-      ...item,
-      label: formatMonth(item.month),
-      actual_cost_amount_ttc: decimalToNumber(item.actual_cost_amount_ttc),
-    }),
+  const spendingOverTimeData = useMemo(
+    () =>
+      (spendingOverTimeQuery.data ?? []).map((item) => ({
+        ...item,
+        label: formatMonth(item.month),
+        actual_cost_amount_ttc: decimalToNumber(item.actual_cost_amount_ttc),
+      })),
+    [spendingOverTimeQuery.data],
   )
-  const budgetVsActualData = (budgetVsActualQuery.data ?? []).map((item) => ({
-    ...item,
-    selected_budget_amount_ttc: decimalToNumber(
-      item.selected_budget_amount_ttc,
-    ),
-    actual_cost_amount_ttc: decimalToNumber(item.actual_cost_amount_ttc),
-  }))
-  const categoryDistributionData = (categoryDistributionQuery.data ?? []).map(
-    (item, index) => ({
-      ...item,
-      actual_cost_amount_ttc: decimalToNumber(item.actual_cost_amount_ttc),
-      fill: distributionColors[index % distributionColors.length],
-    }),
+  const budgetVsActualData = useMemo(
+    () =>
+      (budgetVsActualQuery.data ?? []).map((item) => ({
+        ...item,
+        selected_budget_amount_ttc: decimalToNumber(
+          item.selected_budget_amount_ttc,
+        ),
+        actual_cost_amount_ttc: decimalToNumber(item.actual_cost_amount_ttc),
+      })),
+    [budgetVsActualQuery.data],
   )
-  const supplierDistributionData = (supplierDistributionQuery.data ?? []).map(
-    (item) => ({
-      ...item,
-      actual_cost_amount_ttc: decimalToNumber(item.actual_cost_amount_ttc),
-    }),
+  const categoryDistributionData = useMemo(
+    () =>
+      (categoryDistributionQuery.data ?? []).map((item, index) => ({
+        ...item,
+        actual_cost_amount_ttc: decimalToNumber(item.actual_cost_amount_ttc),
+        fill: distributionColors[index % distributionColors.length],
+      })),
+    [categoryDistributionQuery.data],
   )
-  const topSupplierDistributionData = [...supplierDistributionData]
-    .sort((a, b) => b.actual_cost_amount_ttc - a.actual_cost_amount_ttc)
-    .slice(0, 10)
+  const topSupplierDistributionData = useMemo(
+    () =>
+      (supplierDistributionQuery.data ?? [])
+        .map((item) => ({
+          ...item,
+          actual_cost_amount_ttc: decimalToNumber(item.actual_cost_amount_ttc),
+        }))
+        .sort((a, b) => b.actual_cost_amount_ttc - a.actual_cost_amount_ttc)
+        .slice(0, 10),
+    [supplierDistributionQuery.data],
+  )
 
-  function openTransaction(transactionId: number) {
-    const context = transactionRowsById.get(transactionId)
+  async function openTransaction(transactionId: number) {
+    const result = await transactionsQuery.refetch()
+    if (result.error) {
+      notifyError(
+        `Impossible d’ouvrir la transaction. ${getApiErrorMessage(
+          result.error,
+        )}`,
+      )
+      return
+    }
+
+    const transaction = result.data?.find(
+      (candidate) => candidate.id === transactionId,
+    )
+    const context = transaction ? buildTransactionRow(transaction) : null
     if (!context) {
-      notifyError('Transaction en cours de chargement. Réessayez dans un instant.')
+      notifyError('Transaction introuvable dans le projet sélectionné.')
       return
     }
     setTransactionReview({ context, initialMode: 'view' })
@@ -534,7 +547,9 @@ export function DashboardPage() {
                   isError={unpaidInvoicesQuery.isError}
                   isLoading={unpaidInvoicesQuery.isLoading}
                   widget={unpaidInvoicesQuery.data}
-                  onItemClick={(item) => openTransaction(item.transaction_id)}
+                  onItemClick={(item) =>
+                    void openTransaction(item.transaction_id)
+                  }
                 />
               </ActionCenterWidget>
 
@@ -549,7 +564,9 @@ export function DashboardPage() {
                   isError={quotesToNegotiateQuery.isError}
                   isLoading={quotesToNegotiateQuery.isLoading}
                   widget={quotesToNegotiateQuery.data}
-                  onItemClick={(item) => openTransaction(item.transaction_id)}
+                  onItemClick={(item) =>
+                    void openTransaction(item.transaction_id)
+                  }
                 />
               </ActionCenterWidget>
 
@@ -564,7 +581,9 @@ export function DashboardPage() {
                   isError={quotesToConfirmQuery.isError}
                   isLoading={quotesToConfirmQuery.isLoading}
                   widget={quotesToConfirmQuery.data}
-                  onItemClick={(item) => openTransaction(item.transaction_id)}
+                  onItemClick={(item) =>
+                    void openTransaction(item.transaction_id)
+                  }
                 />
               </ActionCenterWidget>
 
@@ -579,7 +598,9 @@ export function DashboardPage() {
                   isError={missingDocumentsQuery.isError}
                   isLoading={missingDocumentsQuery.isLoading}
                   widget={missingDocumentsQuery.data}
-                  onItemClick={(item) => openTransaction(item.transaction_id)}
+                  onItemClick={(item) =>
+                    void openTransaction(item.transaction_id)
+                  }
                 />
               </ActionCenterWidget>
 
@@ -596,7 +617,9 @@ export function DashboardPage() {
                   isLoading={recentTransactionsQuery.isLoading}
                   widget={recentTransactionsQuery.data}
                   maxItems={5}
-                  onItemClick={(item) => openTransaction(item.transaction_id)}
+                  onItemClick={(item) =>
+                    void openTransaction(item.transaction_id)
+                  }
                 />
               </ActionCenterWidget>
 
