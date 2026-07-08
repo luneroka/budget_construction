@@ -143,6 +143,12 @@ const transactionTypeLabels: Record<TransactionType, string> = {
   invoice: 'Facture',
 }
 
+const issuedDateLabels: Record<TransactionType, string> = {
+  quote: 'Date du devis',
+  diy_estimate: "Date de l’estimation",
+  invoice: 'Date de facture',
+}
+
 const quoteStatusLabels: Record<QuoteStatus, string> = {
   to_confirm: 'À confirmer',
   to_negotiate: 'À négocier',
@@ -1038,7 +1044,10 @@ export function TransactionModal({
                 required
               />
             </Field>
-            <Field label="Date" htmlFor="transaction-issued-date">
+            <Field
+              label={issuedDateLabels[form.transaction_type]}
+              htmlFor="transaction-issued-date"
+            >
               <Input
                 id="transaction-issued-date"
                 type="date"
@@ -1478,9 +1487,25 @@ export function TransactionReviewModal({
           budgetLine={budgetLine}
         />
 
+        {transaction.created_at || transaction.updated_at ? (
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            {transaction.created_at ? (
+              <span>Ajoutée le {formatDate(transaction.created_at)}</span>
+            ) : null}
+            {transaction.updated_at ? (
+              <span className="sm:ml-auto">
+                Dernière modification : {formatDate(transaction.updated_at)}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+
         <CompactSection title="Transaction">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Field label="Date" htmlFor="review-transaction-issued-date">
+            <Field
+              label={issuedDateLabels[transaction.transaction_type]}
+              htmlFor="review-transaction-issued-date"
+            >
               <Input
                 id="review-transaction-issued-date"
                 className="h-9 text-sm"

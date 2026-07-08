@@ -141,6 +141,9 @@ export type TransactionViewModel = {
   issued_date: string
   due_date: string | null
   payment_date: string | null
+  created_at: string | null
+  updated_at: string | null
+  deleted_at: string | null
   description: string
   quote_status: QuoteStatus | null
   invoice_status: InvoiceStatus | null
