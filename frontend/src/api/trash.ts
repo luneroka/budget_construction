@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { apiConfig } from './config'
-import { apiGet, apiPost } from './client'
+import { apiDelete, apiGet, apiPost } from './client'
 import type {
   DocumentRead,
   SupplierRead,
@@ -49,6 +49,33 @@ export function restoreTrashSupplier(
     `/projects/${projectId}/trash/suppliers/${supplierId}/restore`,
     undefined,
   )
+}
+
+export function hardDeleteTrashTransaction(
+  projectId: number,
+  transactionId: number,
+): Promise<void> {
+  return apiDelete<void>(
+    `/projects/${projectId}/trash/transactions/${transactionId}`,
+  )
+}
+
+export function hardDeleteTrashDocument(
+  projectId: number,
+  documentId: number,
+): Promise<void> {
+  return apiDelete<void>(`/projects/${projectId}/trash/documents/${documentId}`)
+}
+
+export function hardDeleteTrashSupplier(
+  projectId: number,
+  supplierId: number,
+): Promise<void> {
+  return apiDelete<void>(`/projects/${projectId}/trash/suppliers/${supplierId}`)
+}
+
+export function emptyProjectTrash(projectId: number): Promise<void> {
+  return apiDelete<void>(`/projects/${projectId}/trash/`)
 }
 
 export function useProjectTrashQuery(
@@ -105,5 +132,48 @@ export function useRestoreTrashSupplierMutation() {
       projectId: number
       supplierId: number
     }) => restoreTrashSupplier(projectId, supplierId),
+  })
+}
+
+export function useHardDeleteTrashTransactionMutation() {
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      transactionId,
+    }: {
+      projectId: number
+      transactionId: number
+    }) => hardDeleteTrashTransaction(projectId, transactionId),
+  })
+}
+
+export function useHardDeleteTrashDocumentMutation() {
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      documentId,
+    }: {
+      projectId: number
+      documentId: number
+    }) => hardDeleteTrashDocument(projectId, documentId),
+  })
+}
+
+export function useHardDeleteTrashSupplierMutation() {
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      supplierId,
+    }: {
+      projectId: number
+      supplierId: number
+    }) => hardDeleteTrashSupplier(projectId, supplierId),
+  })
+}
+
+export function useEmptyProjectTrashMutation() {
+  return useMutation({
+    mutationFn: ({ projectId }: { projectId: number }) =>
+      emptyProjectTrash(projectId),
   })
 }

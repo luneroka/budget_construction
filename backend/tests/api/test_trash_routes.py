@@ -3,7 +3,8 @@ from decimal import Decimal
 from typing import cast
 
 from httpx import AsyncClient
-from sqlalchemy import select
+import pytest
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token
@@ -143,6 +144,42 @@ async def test_project_trash_is_project_scoped(
     assert other_project_response.status_code == 404
 
 
+async def test_project_trash_includes_deleted_supplier_without_transactions(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    access_token, project_id, *_ = await create_trash_context(
+        db_session,
+        email='orphan-supplier-trash-user@example.com',
+    )
+    deleted_at = datetime.now(UTC).replace(tzinfo=None)
+    user = await db_session.scalar(
+        select(User).where(User.email == 'orphan-supplier-trash-user@example.com')
+    )
+    assert user is not None
+    supplier = Supplier(
+        user=user,
+        name='Fournisseur sans transaction',
+        deleted_at=deleted_at,
+        updated_at=deleted_at,
+    )
+    db_session.add(supplier)
+    await db_session.commit()
+    await db_session.refresh(supplier)
+
+    response = await client.get(
+        f'/projects/{project_id}/trash/',
+        headers=auth_headers(access_token),
+    )
+
+    assert response.status_code == 200
+    payload = cast(list[dict[str, object]], response.json())
+    supplier_item = next(
+        item for item in payload if item['type'] == 'supplier' and item['id'] == supplier.id
+    )
+    assert supplier_item['linked_transaction_count'] == 0
+
+
 async def test_restore_transaction_restores_attached_documents(
     client: AsyncClient,
     db_session: AsyncSession,
@@ -275,3 +312,123 @@ async def test_restore_transaction_is_not_available_from_another_project(
         select(Transaction.deleted_at).where(Transaction.id == transaction_id)
     )
     assert result.scalar_one() is not None
+
+
+async def test_hard_delete_document_removes_metadata_and_file(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    access_token, project_id, _, document_id, _ = await create_trash_context(
+        db_session,
+        email='hard-delete-document-trash-user@example.com',
+    )
+    deleted_file_paths: list[str] = []
+
+    monkeypatch.setattr(
+        'app.routers.trash.delete_file_from_r2',
+        lambda file_path: deleted_file_paths.append(file_path),
+    )
+
+    response = await client.delete(
+        f'/projects/{project_id}/trash/documents/{document_id}',
+        headers=auth_headers(access_token),
+    )
+
+    assert response.status_code == 204
+    assert deleted_file_paths == ['documents/facture.pdf']
+    assert await db_session.get(Document, document_id) is None
+
+
+async def test_hard_delete_transaction_removes_transaction_documents_and_files(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    access_token, project_id, transaction_id, document_id, supplier_id = (
+        await create_trash_context(
+            db_session,
+            email='hard-delete-transaction-trash-user@example.com',
+        )
+    )
+    deleted_file_paths: list[str] = []
+
+    monkeypatch.setattr(
+        'app.routers.trash.delete_file_from_r2',
+        lambda file_path: deleted_file_paths.append(file_path),
+    )
+
+    response = await client.delete(
+        f'/projects/{project_id}/trash/transactions/{transaction_id}',
+        headers=auth_headers(access_token),
+    )
+
+    assert response.status_code == 204
+    assert deleted_file_paths == ['documents/facture.pdf']
+    assert await db_session.get(Transaction, transaction_id) is None
+    assert await db_session.get(Document, document_id) is None
+
+    supplier = await db_session.get(Supplier, supplier_id)
+    assert supplier is not None
+    assert supplier.deleted_at is not None
+
+
+async def test_hard_delete_supplier_removes_contacts_and_detaches_transactions(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    access_token, project_id, transaction_id, _, supplier_id = (
+        await create_trash_context(
+            db_session,
+            email='hard-delete-supplier-trash-user@example.com',
+        )
+    )
+
+    response = await client.delete(
+        f'/projects/{project_id}/trash/suppliers/{supplier_id}',
+        headers=auth_headers(access_token),
+    )
+
+    assert response.status_code == 204
+    assert await db_session.get(Supplier, supplier_id) is None
+
+    transaction = await db_session.get(Transaction, transaction_id)
+    assert transaction is not None
+    assert transaction.supplier_id is None
+
+    contact_count = await db_session.scalar(
+        select(func.count(SupplierContact.id)).where(
+            SupplierContact.supplier_id == supplier_id
+        )
+    )
+    assert contact_count == 0
+
+
+async def test_empty_trash_permanently_deletes_all_project_trash(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    access_token, project_id, transaction_id, document_id, supplier_id = (
+        await create_trash_context(
+            db_session,
+            email='empty-trash-route-user@example.com',
+        )
+    )
+    deleted_file_paths: list[str] = []
+
+    monkeypatch.setattr(
+        'app.routers.trash.delete_file_from_r2',
+        lambda file_path: deleted_file_paths.append(file_path),
+    )
+
+    response = await client.delete(
+        f'/projects/{project_id}/trash/',
+        headers=auth_headers(access_token),
+    )
+
+    assert response.status_code == 204
+    assert deleted_file_paths == ['documents/facture.pdf']
+    assert await db_session.get(Transaction, transaction_id) is None
+    assert await db_session.get(Document, document_id) is None
+    assert await db_session.get(Supplier, supplier_id) is None

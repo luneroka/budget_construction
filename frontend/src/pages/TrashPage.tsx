@@ -1,16 +1,21 @@
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { RotateCcw } from 'lucide-react'
+import { RotateCcw, Trash2 } from 'lucide-react'
 
 import { invalidateTrashAffectedQueries } from '@/api/budget-workspace-cache'
 import { getApiErrorMessage } from '@/api/client'
 import {
+  useEmptyProjectTrashMutation,
+  useHardDeleteTrashDocumentMutation,
+  useHardDeleteTrashSupplierMutation,
+  useHardDeleteTrashTransactionMutation,
   useProjectTrashQuery,
   useRestoreTrashDocumentMutation,
   useRestoreTrashSupplierMutation,
   useRestoreTrashTransactionMutation,
 } from '@/api/trash'
 import type { TrashItemRead } from '@/api/types'
+import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { TableToolbar } from '@/components/shared/TableToolbar'
 import { Badge } from '@/components/ui/badge'
@@ -28,6 +33,9 @@ import { notifyError, notifySuccess } from '@/lib/toasts'
 import { useAppState } from '@/state/appState'
 
 type TrashFilter = 'all' | TrashItemRead['type']
+type PendingHardDelete =
+  { type: 'item'; item: TrashItemRead } | { type: 'empty' } | null
+type TrashCounts = Record<TrashItemRead['type'], number>
 
 const typeLabels: Record<TrashItemRead['type'], string> = {
   transaction: 'Transaction',
@@ -41,6 +49,10 @@ const filterOptions: Array<{ value: TrashFilter; label: string }> = [
   { value: 'document', label: 'Documents' },
   { value: 'supplier', label: 'Fournisseurs' },
 ]
+const destructiveGhostButtonClass =
+  'text-destructive hover:bg-destructive hover:text-destructive-foreground'
+const permanentDeleteDescription =
+  'Cette action est irréversible. Les éléments supprimés définitivement ne pourront plus être restaurés.'
 
 function selectedProjectIdFromState(selectedProjectId: string): number | null {
   const numericProjectId = Number(selectedProjectId)
@@ -78,6 +90,32 @@ function itemStatus(item: TrashItemRead): string {
   return 'Restaurable'
 }
 
+function hardDeleteDescription(item: TrashItemRead): string {
+  if (item.type === 'transaction') {
+    return 'Cette opération supprimera définitivement cette transaction ainsi que ses documents associés.'
+  }
+
+  if (item.type === 'document') {
+    return 'Cette opération supprimera définitivement ce document ainsi que son fichier stocké.'
+  }
+
+  return 'Cette opération supprimera définitivement ce fournisseur et ses contacts. Les transactions liées seront conservées sans fournisseur.'
+}
+
+function countTrashItems(items: TrashItemRead[]): TrashCounts {
+  return items.reduce<TrashCounts>(
+    (counts, item) => ({
+      ...counts,
+      [item.type]: counts[item.type] + 1,
+    }),
+    { transaction: 0, document: 0, supplier: 0 },
+  )
+}
+
+function formatCount(count: number, singular: string, plural: string): string {
+  return `${count} ${count > 1 ? plural : singular}`
+}
+
 function itemMatchesSearch(item: TrashItemRead, search: string): boolean {
   if (!search) return true
 
@@ -99,10 +137,16 @@ export function TrashPage() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TrashFilter>('all')
   const [activeItemKey, setActiveItemKey] = useState<string | null>(null)
+  const [pendingHardDelete, setPendingHardDelete] =
+    useState<PendingHardDelete>(null)
   const trashQuery = useProjectTrashQuery(projectId, { enabled: true })
   const restoreTransactionMutation = useRestoreTrashTransactionMutation()
   const restoreDocumentMutation = useRestoreTrashDocumentMutation()
   const restoreSupplierMutation = useRestoreTrashSupplierMutation()
+  const hardDeleteTransactionMutation = useHardDeleteTrashTransactionMutation()
+  const hardDeleteDocumentMutation = useHardDeleteTrashDocumentMutation()
+  const hardDeleteSupplierMutation = useHardDeleteTrashSupplierMutation()
+  const emptyTrashMutation = useEmptyProjectTrashMutation()
   const normalizedSearch = search.trim().toLowerCase()
   const filteredItems = useMemo(
     () =>
@@ -121,6 +165,16 @@ export function TrashPage() {
     trashQuery.isFetching && !isLoadingTrash && !trashError
   const showEmptyState =
     !isLoadingTrash && !trashError && filteredItems.length === 0
+  const trashItemCount = trashQuery.data?.length ?? 0
+  const trashCounts = useMemo(
+    () => countTrashItems(trashQuery.data ?? []),
+    [trashQuery.data],
+  )
+  const isHardDeletePending =
+    hardDeleteTransactionMutation.isPending ||
+    hardDeleteDocumentMutation.isPending ||
+    hardDeleteSupplierMutation.isPending ||
+    emptyTrashMutation.isPending
 
   async function restoreItem(item: TrashItemRead) {
     if (projectId === null) return
@@ -161,6 +215,66 @@ export function TrashPage() {
       notifyError(`Impossible de restaurer l’élément. ${message}`)
     } finally {
       setActiveItemKey(null)
+    }
+  }
+
+  async function hardDeleteItem(item: TrashItemRead) {
+    if (projectId === null) return
+
+    const itemKey = `${item.type}-${item.id}`
+    setActiveItemKey(itemKey)
+
+    try {
+      if (item.type === 'transaction') {
+        await hardDeleteTransactionMutation.mutateAsync({
+          projectId,
+          transactionId: item.id,
+        })
+        invalidateTrashAffectedQueries(queryClient, projectId, item.id)
+        notifySuccess('Transaction supprimée définitivement.')
+      } else if (item.type === 'document') {
+        await hardDeleteDocumentMutation.mutateAsync({
+          projectId,
+          documentId: item.id,
+        })
+        invalidateTrashAffectedQueries(
+          queryClient,
+          projectId,
+          item.transaction_id,
+        )
+        notifySuccess('Document supprimé définitivement.')
+      } else {
+        await hardDeleteSupplierMutation.mutateAsync({
+          projectId,
+          supplierId: item.id,
+        })
+        invalidateTrashAffectedQueries(queryClient, projectId)
+        notifySuccess('Fournisseur supprimé définitivement.')
+      }
+    } catch (error) {
+      const message = getApiErrorMessage(error)
+      notifyError(`Impossible de supprimer définitivement. ${message}`)
+    } finally {
+      setActiveItemKey(null)
+      setPendingHardDelete(null)
+    }
+  }
+
+  async function emptyTrash() {
+    if (projectId === null) return
+
+    setActiveItemKey('empty-trash')
+
+    try {
+      await emptyTrashMutation.mutateAsync({ projectId })
+      invalidateTrashAffectedQueries(queryClient, projectId)
+      notifySuccess('Corbeille vidée.')
+    } catch (error) {
+      const message = getApiErrorMessage(error)
+      notifyError(`Impossible de vider la corbeille. ${message}`)
+    } finally {
+      setActiveItemKey(null)
+      setPendingHardDelete(null)
     }
   }
 
@@ -238,16 +352,28 @@ export function TrashPage() {
             </span>
           </TableCell>
           <TableCell className="text-right">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={isBusy || isRestoreDisabled}
-              title={isRestoreDisabled ? itemStatus(item) : undefined}
-              onClick={() => void restoreItem(item)}
-            >
-              <RotateCcw aria-hidden />
-              Restaurer
-            </Button>
+            <div className="flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={isBusy || isRestoreDisabled || isHardDeletePending}
+                title={isRestoreDisabled ? itemStatus(item) : undefined}
+                onClick={() => void restoreItem(item)}
+              >
+                <RotateCcw aria-hidden />
+                Restaurer
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className={destructiveGhostButtonClass}
+                disabled={isBusy || isHardDeletePending}
+                onClick={() => setPendingHardDelete({ type: 'item', item })}
+              >
+                <Trash2 aria-hidden />
+                Supprimer définitivement
+              </Button>
+            </div>
           </TableCell>
         </TableRow>
       )
@@ -294,6 +420,21 @@ export function TrashPage() {
                   {option.label}
                 </Button>
               ))}
+              <Button
+                size="sm"
+                variant="ghost"
+                className={destructiveGhostButtonClass}
+                disabled={
+                  projectId === null ||
+                  trashItemCount === 0 ||
+                  isLoadingTrash ||
+                  isHardDeletePending
+                }
+                onClick={() => setPendingHardDelete({ type: 'empty' })}
+              >
+                <Trash2 aria-hidden />
+                Vider la corbeille
+              </Button>
             </div>
           }
         />
@@ -323,6 +464,67 @@ export function TrashPage() {
           </div>
         ) : null}
       </div>
+      {pendingHardDelete?.type === 'item' ? (
+        <ConfirmationDialog
+          title="Supprimer définitivement"
+          description={permanentDeleteDescription}
+          isPending={isHardDeletePending}
+          confirmLabel="Supprimer définitivement"
+          pendingLabel="Suppression..."
+          onCancel={() => {
+            if (isHardDeletePending) return
+            setPendingHardDelete(null)
+          }}
+          onConfirm={() => void hardDeleteItem(pendingHardDelete.item)}
+        >
+          <p className="font-medium text-foreground">
+            {pendingHardDelete.item.name}
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            {typeLabels[pendingHardDelete.item.type]} ·{' '}
+            {itemContext(pendingHardDelete.item)}
+          </p>
+          <p className="mt-3 text-destructive">
+            {hardDeleteDescription(pendingHardDelete.item)}
+          </p>
+        </ConfirmationDialog>
+      ) : null}
+      {pendingHardDelete?.type === 'empty' ? (
+        <ConfirmationDialog
+          title="Supprimer définitivement"
+          description={permanentDeleteDescription}
+          isPending={isHardDeletePending}
+          confirmLabel="Vider la corbeille"
+          pendingLabel="Suppression..."
+          onCancel={() => {
+            if (isHardDeletePending) return
+            setPendingHardDelete(null)
+          }}
+          onConfirm={() => void emptyTrash()}
+        >
+          <p className="font-medium text-foreground">Impact de l’opération</p>
+          <ul className="mt-2 space-y-1 text-muted-foreground">
+            <li>
+              {formatCount(
+                trashCounts.transaction,
+                'transaction',
+                'transactions',
+              )}
+            </li>
+            <li>
+              {formatCount(trashCounts.document, 'document', 'documents')}
+            </li>
+            <li>
+              {formatCount(trashCounts.supplier, 'fournisseur', 'fournisseurs')}
+            </li>
+          </ul>
+          <p className="mt-3 text-destructive">
+            Les transactions supprimeront aussi leurs documents associés et les
+            fichiers stockés. Les fournisseurs supprimés seront détachés des
+            transactions conservées.
+          </p>
+        </ConfirmationDialog>
+      ) : null}
     </section>
   )
 }

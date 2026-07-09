@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
+from app.models.document import Document
+from app.models.supplier import Supplier
 from app.models.transaction import Transaction
 from app.models.user import User
 from app.repositories import trash as trash_repository
@@ -17,8 +21,10 @@ from app.schemas.trash import (
     TrashSupplierRead,
     TrashTransactionRead,
 )
+from app.services.storage import delete_file_from_r2
 
 router = APIRouter(prefix='/projects/{project_id}/trash', tags=['Trash'])
+logger = logging.getLogger(__name__)
 
 
 def _transaction_name(transaction: Transaction) -> str:
@@ -43,6 +49,45 @@ async def _ensure_project(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Project not found',
         )
+
+
+def _delete_document_files(file_paths: list[str]) -> None:
+    for file_path in file_paths:
+        try:
+            delete_file_from_r2(file_path)
+        except Exception as exc:
+            logger.exception('Failed to delete document from R2')
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail='Failed to delete document file',
+            ) from exc
+
+
+async def _permanently_delete_transaction(
+    db: AsyncSession,
+    transaction: Transaction,
+) -> None:
+    _delete_document_files([document.file_path for document in transaction.documents])
+    await trash_repository.permanently_delete_transaction(db, transaction)
+
+
+async def _permanently_delete_document(
+    db: AsyncSession,
+    document_id: int,
+    document_file_path: str,
+) -> None:
+    _delete_document_files([document_file_path])
+    document = await db.get(Document, document_id)
+    if document is None:
+        return
+    await trash_repository.permanently_delete_document(db, document)
+
+
+async def _permanently_delete_supplier(
+    db: AsyncSession,
+    supplier: Supplier,
+) -> None:
+    await trash_repository.permanently_delete_supplier(db, supplier)
 
 
 @router.get('/', response_model=list[TrashItemRead])
@@ -124,6 +169,104 @@ async def get_project_trash(
         )
 
     return sorted(items, key=lambda item: item.deleted_at, reverse=True)
+
+
+@router.delete('/', status_code=status.HTTP_204_NO_CONTENT)
+async def empty_project_trash(
+    project_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    await _ensure_project(db, project_id, current_user.id)
+
+    targets = await trash_repository.get_project_permanent_delete_targets(
+        db,
+        project_id,
+        current_user.id,
+    )
+    for transaction in targets.transactions:
+        await _permanently_delete_transaction(db, transaction)
+
+    for document in targets.documents:
+        await _permanently_delete_document(db, document.id, document.file_path)
+
+    for supplier in targets.suppliers:
+        await _permanently_delete_supplier(db, supplier)
+
+
+@router.delete(
+    '/transactions/{transaction_id}',
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def hard_delete_transaction(
+    project_id: int,
+    transaction_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    transaction = await trash_repository.get_deleted_transaction_for_permanent_delete(
+        db,
+        project_id,
+        transaction_id,
+        current_user.id,
+    )
+    if transaction is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Transaction not found',
+        )
+
+    await _permanently_delete_transaction(db, transaction)
+
+
+@router.delete(
+    '/documents/{document_id}',
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def hard_delete_document(
+    project_id: int,
+    document_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    document = await trash_repository.get_deleted_document_for_permanent_delete(
+        db,
+        project_id,
+        document_id,
+        current_user.id,
+    )
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Document not found',
+        )
+
+    await _permanently_delete_document(db, document.id, document.file_path)
+
+
+@router.delete(
+    '/suppliers/{supplier_id}',
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def hard_delete_supplier(
+    project_id: int,
+    supplier_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    supplier = await trash_repository.get_deleted_supplier_for_permanent_delete(
+        db,
+        project_id,
+        supplier_id,
+        current_user.id,
+    )
+    if supplier is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Supplier not found',
+        )
+
+    await _permanently_delete_supplier(db, supplier)
 
 
 @router.post('/transactions/{transaction_id}/restore', response_model=TransactionRead)

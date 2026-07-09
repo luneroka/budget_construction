@@ -49,21 +49,29 @@ export function invalidateTrashAffectedQueries(
   })
   invalidateBudgetWorkspaceQueries(queryClient, projectId)
   void queryClient.invalidateQueries({
+    queryKey: transactionQueryKeys.projectList(projectId),
+  })
+  void queryClient.invalidateQueries({
+    queryKey: documentQueryKeys.lists(),
+  })
+  void queryClient.invalidateQueries({
     queryKey: supplierQueryKeys.lists(),
+  })
+  void queryClient.invalidateQueries({
+    queryKey: projectQueryKeys.financialSummary(projectId),
+  })
+  void queryClient.invalidateQueries({
+    queryKey: projectQueryKeys.all,
+    predicate: (query) =>
+      query.queryKey.includes(projectId) &&
+      query.queryKey.some((part) => part === 'dashboard'),
   })
 
   if (transactionId) {
     invalidateDocumentQueries(queryClient, transactionId)
   } else {
     void queryClient.invalidateQueries({
-      queryKey: documentQueryKeys.lists(),
-    })
-    void queryClient.invalidateQueries({
       queryKey: transactionQueryKeys.all,
-    })
-    void queryClient.invalidateQueries({
-      queryKey: projectQueryKeys.all,
-      predicate: (query) => query.queryKey.some((part) => part === 'dashboard'),
     })
   }
 }

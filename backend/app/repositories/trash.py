@@ -25,6 +25,19 @@ class TrashRestoreError(ValueError):
     pass
 
 
+class TrashPermanentDeleteTargets:
+    def __init__(
+        self,
+        *,
+        transactions: list[Transaction] | None = None,
+        documents: list[Document] | None = None,
+        suppliers: list[Supplier] | None = None,
+    ) -> None:
+        self.transactions = transactions or []
+        self.documents = documents or []
+        self.suppliers = suppliers or []
+
+
 async def project_exists_for_user(
     db: AsyncSession,
     project_id: int,
@@ -93,15 +106,21 @@ async def get_deleted_suppliers(
     user_id: int,
 ) -> Sequence[DeletedSupplierRow]:
     result = await db.execute(
-        select(Supplier, func.count(Transaction.id))
-        .join(Transaction, Transaction.supplier_id == Supplier.id)
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
+        select(
+            Supplier,
+            func.count(Transaction.id)
+            .filter(
+                Project.id == project_id,
+                Project.user_id == user_id,
+                Project.deleted_at.is_(None),
+                BudgetLine.deleted_at.is_(None),
+            )
+            .label('linked_transaction_count'),
+        )
+        .outerjoin(Transaction, Transaction.supplier_id == Supplier.id)
+        .outerjoin(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
+        .outerjoin(Project, BudgetLine.project_id == Project.id)
         .where(
-            Project.id == project_id,
-            Project.user_id == user_id,
-            Project.deleted_at.is_(None),
-            BudgetLine.deleted_at.is_(None),
             Supplier.user_id == user_id,
             Supplier.deleted_at.is_not(None),
         )
@@ -207,19 +226,11 @@ async def restore_supplier(
     result = await db.execute(
         select(Supplier)
         .options(selectinload(Supplier.contacts))
-        .join(Transaction, Transaction.supplier_id == Supplier.id)
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
         .where(
             Supplier.id == supplier_id,
             Supplier.user_id == user_id,
             Supplier.deleted_at.is_not(None),
-            BudgetLine.project_id == project_id,
-            BudgetLine.deleted_at.is_(None),
-            Project.user_id == user_id,
-            Project.deleted_at.is_(None),
         )
-        .group_by(Supplier.id)
     )
     supplier = result.scalar_one_or_none()
     if supplier is None:
@@ -231,3 +242,211 @@ async def restore_supplier(
     await db.commit()
     await db.refresh(supplier)
     return supplier
+
+
+async def get_deleted_transaction_for_permanent_delete(
+    db: AsyncSession,
+    project_id: int,
+    transaction_id: int,
+    user_id: int,
+) -> Transaction | None:
+    result = await db.execute(
+        select(Transaction)
+        .options(selectinload(Transaction.documents))
+        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
+        .join(Project, BudgetLine.project_id == Project.id)
+        .where(
+            Transaction.id == transaction_id,
+            Transaction.deleted_at.is_not(None),
+            BudgetLine.project_id == project_id,
+            BudgetLine.deleted_at.is_(None),
+            Project.user_id == user_id,
+            Project.deleted_at.is_(None),
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_deleted_document_for_permanent_delete(
+    db: AsyncSession,
+    project_id: int,
+    document_id: int,
+    user_id: int,
+) -> Document | None:
+    result = await db.execute(
+        select(Document)
+        .join(Transaction, Document.transaction_id == Transaction.id)
+        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
+        .join(Project, BudgetLine.project_id == Project.id)
+        .where(
+            Document.id == document_id,
+            Document.user_id == user_id,
+            Document.deleted_at.is_not(None),
+            BudgetLine.project_id == project_id,
+            BudgetLine.deleted_at.is_(None),
+            Project.user_id == user_id,
+            Project.deleted_at.is_(None),
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_deleted_supplier_for_permanent_delete(
+    db: AsyncSession,
+    project_id: int,
+    supplier_id: int,
+    user_id: int,
+) -> Supplier | None:
+    result = await db.execute(
+        select(Supplier)
+        .options(selectinload(Supplier.contacts))
+        .where(
+            Supplier.id == supplier_id,
+            Supplier.user_id == user_id,
+            Supplier.deleted_at.is_not(None),
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_project_permanent_delete_targets(
+    db: AsyncSession,
+    project_id: int,
+    user_id: int,
+) -> TrashPermanentDeleteTargets:
+    transaction_result = await db.execute(
+        select(Transaction)
+        .options(selectinload(Transaction.documents))
+        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
+        .join(Project, BudgetLine.project_id == Project.id)
+        .where(
+            BudgetLine.project_id == project_id,
+            BudgetLine.deleted_at.is_(None),
+            Project.user_id == user_id,
+            Project.deleted_at.is_(None),
+            Transaction.deleted_at.is_not(None),
+        )
+    )
+    transactions = list(transaction_result.scalars().unique().all())
+    transaction_ids = {transaction.id for transaction in transactions}
+
+    document_result = await db.execute(
+        select(Document)
+        .join(Transaction, Document.transaction_id == Transaction.id)
+        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
+        .join(Project, BudgetLine.project_id == Project.id)
+        .where(
+            Document.user_id == user_id,
+            Document.deleted_at.is_not(None),
+            BudgetLine.project_id == project_id,
+            BudgetLine.deleted_at.is_(None),
+            Project.user_id == user_id,
+            Project.deleted_at.is_(None),
+        )
+    )
+    documents = [
+        document
+        for document in document_result.scalars().all()
+        if document.transaction_id not in transaction_ids
+    ]
+
+    supplier_result = await db.execute(
+        select(Supplier)
+        .options(selectinload(Supplier.contacts))
+        .where(
+            Supplier.user_id == user_id,
+            Supplier.deleted_at.is_not(None),
+        )
+    )
+    suppliers = list(supplier_result.scalars().unique().all())
+
+    return TrashPermanentDeleteTargets(
+        transactions=transactions,
+        documents=documents,
+        suppliers=suppliers,
+    )
+
+
+async def permanently_delete_targets(
+    db: AsyncSession,
+    targets: TrashPermanentDeleteTargets,
+) -> None:
+    try:
+        for transaction in targets.transactions:
+            await _clear_selected_budget_candidate_if_matches(
+                db,
+                transaction.budget_line_id,
+                transaction.id,
+            )
+
+        for supplier in targets.suppliers:
+            await db.execute(
+                update(Transaction)
+                .where(Transaction.supplier_id == supplier.id)
+                .values(supplier_id=None)
+            )
+
+        for document in targets.documents:
+            await db.delete(document)
+
+        for transaction in targets.transactions:
+            await db.delete(transaction)
+
+        for supplier in targets.suppliers:
+            await db.delete(supplier)
+
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
+
+
+async def permanently_delete_transaction(
+    db: AsyncSession,
+    transaction: Transaction,
+) -> None:
+    await permanently_delete_targets(
+        db,
+        TrashPermanentDeleteTargets(transactions=[transaction]),
+    )
+
+
+async def permanently_delete_document(db: AsyncSession, document: Document) -> None:
+    await permanently_delete_targets(
+        db,
+        TrashPermanentDeleteTargets(documents=[document]),
+    )
+
+
+async def permanently_delete_supplier(db: AsyncSession, supplier: Supplier) -> None:
+    await permanently_delete_targets(
+        db,
+        TrashPermanentDeleteTargets(suppliers=[supplier]),
+    )
+
+
+async def _clear_selected_budget_candidate_if_matches(
+    db: AsyncSession,
+    budget_line_id: int,
+    transaction_id: int,
+) -> None:
+    await db.execute(
+        update(BudgetLine)
+        .where(
+            BudgetLine.id == budget_line_id,
+            BudgetLine.selected_quote_transaction_id == transaction_id,
+        )
+        .values(
+            selected_quote_transaction_id=None,
+        )
+    )
+    await db.execute(
+        update(BudgetLine)
+        .where(
+            BudgetLine.id == budget_line_id,
+            BudgetLine.selected_diy_estimate_transaction_id == transaction_id,
+        )
+        .values(
+            selected_diy_estimate_transaction_id=None,
+        )
+    )
