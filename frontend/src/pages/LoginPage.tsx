@@ -1,7 +1,8 @@
-import { type FormEvent, useState } from 'react'
-import { LogIn } from 'lucide-react'
+import { type FormEvent, useRef, useState } from 'react'
+import { KeyRound, LogIn } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
+import { forgotPassword } from '@/api/auth'
 import { getApiErrorMessage } from '@/api/client'
 import { useAuth } from '@/auth/authContext'
 import { Button } from '@/components/ui/button'
@@ -31,14 +32,18 @@ export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { login } = useAuth()
+  const emailInputRef = useRef<HTMLInputElement>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [resetMessage, setResetMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRequestingReset, setIsRequestingReset] = useState(false)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setErrorMessage(null)
+    setResetMessage(null)
     setIsSubmitting(true)
 
     try {
@@ -53,6 +58,31 @@ export function LoginPage() {
       notifyError(`Connexion impossible. ${message}`)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleForgotPassword() {
+    setErrorMessage(null)
+    setResetMessage(null)
+
+    if (!emailInputRef.current?.reportValidity()) {
+      return
+    }
+
+    setIsRequestingReset(true)
+
+    try {
+      await forgotPassword({ email })
+      const message =
+        'Si cet email existe, un lien de réinitialisation vient d’être envoyé.'
+      setResetMessage(message)
+      notifySuccess(message)
+    } catch (error) {
+      const message = getApiErrorMessage(error)
+      setErrorMessage(message)
+      notifyError(`Réinitialisation impossible. ${message}`)
+    } finally {
+      setIsRequestingReset(false)
     }
   }
 
@@ -78,10 +108,14 @@ export function LoginPage() {
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                ref={emailInputRef}
                 type="email"
                 autoComplete="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value)
+                  setResetMessage(null)
+                }}
                 required
               />
             </div>
@@ -98,6 +132,19 @@ export function LoginPage() {
               />
             </div>
 
+            <Button
+              type="button"
+              variant="link"
+              className="h-auto px-0 text-accent"
+              disabled={isSubmitting || isRequestingReset}
+              onClick={handleForgotPassword}
+            >
+              <KeyRound aria-hidden />
+              {isRequestingReset
+                ? 'Envoi du lien...'
+                : 'Mot de passe oublié ?'}
+            </Button>
+
             {errorMessage ? (
               <div
                 className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
@@ -107,11 +154,20 @@ export function LoginPage() {
               </div>
             ) : null}
 
+            {resetMessage ? (
+              <div
+                className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success"
+                role="status"
+              >
+                {resetMessage}
+              </div>
+            ) : null}
+
             <Button
               type="submit"
               variant="gold"
               className="w-full"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isRequestingReset}
             >
               <LogIn aria-hidden />
               {isSubmitting ? 'Connexion...' : 'Se connecter'}
