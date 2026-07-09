@@ -8,6 +8,7 @@ import { useAuth } from '@/auth/authContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PasswordInput } from '@/components/ui/password-input'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 
 type LocationState = {
@@ -35,6 +36,7 @@ export function LoginPage() {
   const emailInputRef = useRef<HTMLInputElement>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [resetMessage, setResetMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -122,12 +124,13 @@ export function LoginPage() {
 
             <div className="space-y-2">
               <Label htmlFor="password">Mot de passe</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 autoComplete="current-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                isVisible={isPasswordVisible}
+                onVisibilityChange={setIsPasswordVisible}
                 required
               />
             </div>

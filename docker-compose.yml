@@ -20,6 +20,8 @@ services:
       context: ./backend
     ports:
       - '8000:8000'
+    environment:
+      APP_URL: http://localhost:5173
     develop:
       watch:
         - action: sync

@@ -11,6 +11,7 @@ import { ExportsSettingsPage } from '@/pages/ExportsSettingsPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { ProjectsSettingsPage } from '@/pages/ProjectsSettingsPage'
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { SuppliersPage } from '@/pages/SuppliersPage'
 import { TransactionsPage } from '@/pages/TransactionsPage'
@@ -51,6 +52,7 @@ export default function App() {
         <Route element={<RedirectAuthenticated />}>
           <Route path="login" element={<LoginPage />} />
         </Route>
+        <Route path="auth/reset-password" element={<ResetPasswordPage />} />
 
         <Route element={<RequireAuth />}>
           <Route element={<AppLayout />}>
