@@ -265,6 +265,38 @@ async def test_project_financial_summary_returns_dashboard_totals(
     assert summary['invoice_count'] == 5
 
 
+async def test_project_financial_summary_excludes_rejected_quotes(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_financial_summary_context(db_session)
+    rejected_quote = Transaction(
+        budget_line_id=context.second_budget_line_id,
+        transaction_type=TransactionType.quote,
+        amount_ht=Decimal('900.00'),
+        amount_vat=Decimal('0.00'),
+        amount_ttc=Decimal('900.00'),
+        issued_date=date(2026, 6, 10),
+        quote_status=QuoteStatus.rejected,
+    )
+    db_session.add(rejected_quote)
+    await db_session.commit()
+
+    response = await client.get(
+        f'/projects/{context.project_id}/financial-summary',
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 200
+    summary = cast(dict[str, object], response.json())
+    assert summary['quote_amount_ttc'] == '2900.00'
+    assert summary['selected_budget_amount_ttc'] == '1450.00'
+    assert summary['selected_quote_budget_amount_ttc'] == '1000.00'
+    assert summary['validated_quote_amount_ttc'] == '1000.00'
+    assert summary['quote_count'] == 4
+    assert summary['validated_quote_count'] == 1
+
+
 async def test_project_dashboard_financial_overview_returns_kpi_projection(
     client: AsyncClient,
     db_session: AsyncSession,

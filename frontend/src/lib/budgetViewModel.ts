@@ -117,7 +117,9 @@ export function isProductEmpty(product: ProductSummaryViewModel) {
     product.budget_lines.length === 0 ||
     product.budget_lines.every(
       (line) =>
-        line.transactions.length === 0 &&
+        line.quote_count === 0 &&
+        line.diy_estimate_count === 0 &&
+        line.invoice_count === 0 &&
         line.selected_budget_amount_ttc === 0 &&
         line.actual_cost_amount_ttc === 0 &&
         line.diy_estimate_amount_ttc === 0,

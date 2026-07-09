@@ -593,6 +593,106 @@ async def test_invalid_selected_candidate_returns_400(
     assert response.status_code == 400
 
 
+async def test_rejected_quote_cannot_be_selected_as_budget_candidate(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_transaction_route_context(
+        db_session,
+        email='rejected-quote-select-budget-candidate-user@example.com',
+    )
+    transaction = await create_product_transaction(
+        client,
+        context,
+        quote_payload(quote_status='rejected'),
+    )
+    transaction_id = transaction['id']
+    budget_line_id = transaction['budget_line_id']
+    assert isinstance(transaction_id, int)
+    assert isinstance(budget_line_id, int)
+
+    response = await client.post(
+        (
+            f'/projects/{context.project_id}/budget-lines/{budget_line_id}'
+            f'/transactions/{transaction_id}/select-budget'
+        ),
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 400
+    budget_line = await get_budget_line(db_session, budget_line_id)
+    assert budget_line.selected_quote_transaction_id is None
+
+
+async def test_rejected_quote_remains_visible_in_budget_line_transactions(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_transaction_route_context(
+        db_session,
+        email='rejected-quote-visible-user@example.com',
+    )
+    transaction = await create_product_transaction(
+        client,
+        context,
+        quote_payload(quote_status='rejected'),
+    )
+    budget_line_id = transaction['budget_line_id']
+    assert isinstance(budget_line_id, int)
+
+    response = await client.get(
+        f'/projects/{context.project_id}/budget-lines/{budget_line_id}/transactions/',
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 200
+    transactions = response.json()
+    assert [item['id'] for item in transactions] == [transaction['id']]
+    assert transactions[0]['quote_status'] == 'rejected'
+
+
+async def test_rejected_quote_can_be_changed_back_and_selected(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_transaction_route_context(
+        db_session,
+        email='rejected-quote-lifecycle-user@example.com',
+    )
+    transaction = await create_product_transaction(
+        client,
+        context,
+        quote_payload(quote_status='rejected'),
+    )
+    transaction_id = transaction['id']
+    budget_line_id = transaction['budget_line_id']
+    assert isinstance(transaction_id, int)
+    assert isinstance(budget_line_id, int)
+
+    update_response = await client.patch(
+        (
+            f'/projects/{context.project_id}/budget-lines/{budget_line_id}'
+            f'/transactions/{transaction_id}'
+        ),
+        headers=auth_headers(context.access_token),
+        json={'quote_status': 'validated'},
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()['quote_status'] == 'validated'
+
+    select_response = await client.post(
+        (
+            f'/projects/{context.project_id}/budget-lines/{budget_line_id}'
+            f'/transactions/{transaction_id}/select-budget'
+        ),
+        headers=auth_headers(context.access_token),
+    )
+
+    assert select_response.status_code == 200
+    budget_line = await get_budget_line(db_session, budget_line_id)
+    assert budget_line.selected_quote_transaction_id == transaction_id
+
+
 async def test_invoice_cannot_be_selected_as_budget_candidate(
     client: AsyncClient,
     db_session: AsyncSession,

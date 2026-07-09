@@ -12,6 +12,7 @@ export type QuickViewId =
   | 'unpaid_invoices'
   | 'quotes_to_confirm'
   | 'quotes_to_negotiate'
+  | 'quotes_rejected'
   | 'missing_documents'
   | 'recent'
   | 'budget_selected'
@@ -28,7 +29,8 @@ export const quickViews: Array<{ id: QuickViewId; label: string }> = [
   { id: 'all', label: 'Toutes' },
   { id: 'unpaid_invoices', label: 'Factures impayées' },
   { id: 'quotes_to_negotiate', label: 'Devis à négocier' },
-  { id: 'quotes_to_confirm', label: 'Devis à confirmer' },
+  { id: 'quotes_to_confirm', label: 'Devis en attente' },
+  { id: 'quotes_rejected', label: 'Devis rejetés' },
   { id: 'missing_documents', label: 'Documents manquants' },
   { id: 'recent', label: 'Transactions récentes' },
   { id: 'budget_selected', label: 'Budget sélectionné' },
@@ -228,6 +230,13 @@ export function matchesQuickView(
     return (
       transaction.transaction_type === 'quote' &&
       transaction.quote_status === 'to_negotiate'
+    )
+  }
+
+  if (quickView === 'quotes_rejected') {
+    return (
+      transaction.transaction_type === 'quote' &&
+      transaction.quote_status === 'rejected'
     )
   }
 

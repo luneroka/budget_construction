@@ -72,9 +72,10 @@ TRANSACTION_TYPE_LABELS = {
 }
 
 QUOTE_STATUS_LABELS = {
-    QuoteStatus.to_confirm: 'To confirm',
+    QuoteStatus.to_confirm: 'Pending',
     QuoteStatus.to_negotiate: 'To negotiate',
     QuoteStatus.validated: 'Validated',
+    QuoteStatus.rejected: 'Rejected',
 }
 
 INVOICE_STATUS_LABELS = {

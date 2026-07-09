@@ -151,9 +151,10 @@ const issuedDateLabels: Record<TransactionType, string> = {
 }
 
 const quoteStatusLabels: Record<QuoteStatus, string> = {
-  to_confirm: 'À confirmer',
+  to_confirm: 'En attente',
   to_negotiate: 'À négocier',
   validated: 'Validé',
+  rejected: 'Rejeté',
 }
 
 const invoiceStatusLabels: Record<InvoiceStatus, string> = {
@@ -861,7 +862,7 @@ export function TransactionModal({
       form.transaction_type === 'quote' &&
       form.quote_status !== 'validated'
     ) {
-      return 'Validez le devis pour pouvoir le sélectionner comme budget.'
+      return 'Acceptez le devis pour pouvoir le sélectionner comme budget.'
     }
     return 'Le montant contribuera au budget sélectionné de ce poste.'
   }

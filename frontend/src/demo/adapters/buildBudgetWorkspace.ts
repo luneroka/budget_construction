@@ -112,7 +112,8 @@ function buildBudgetLine(
     transactions.find(
       (transaction) =>
         transaction.select_as_budget &&
-        transaction.transaction_type === 'quote',
+        transaction.transaction_type === 'quote' &&
+        transaction.quote_status === 'validated',
     ) ?? null
   const selectedDiyEstimateTransaction =
     transactions.find(
@@ -121,7 +122,9 @@ function buildBudgetLine(
         transaction.transaction_type === 'diy_estimate',
     ) ?? null
   const quotes = transactions.filter(
-    (transaction) => transaction.transaction_type === 'quote',
+    (transaction) =>
+      transaction.transaction_type === 'quote' &&
+      transaction.quote_status !== 'rejected',
   )
   const validatedQuotes = quotes.filter(
     (transaction) => transaction.quote_status === 'validated',
@@ -157,7 +160,9 @@ function buildBudgetLine(
     unpaid_invoice_amount_ttc: sumInvoicesByStatus(transactions, 'unpaid'),
     on_hold_invoice_amount_ttc: sumInvoicesByStatus(transactions, 'on_hold'),
     selected_budget_variance_ttc: selectedBudgetAmount - actualCostAmount,
-    quote_count: quotes.length,
+    quote_count: transactions.filter(
+      (transaction) => transaction.transaction_type === 'quote',
+    ).length,
     validated_quote_count: validatedQuotes.length,
     diy_estimate_count: diyEstimates.length,
     invoice_count: transactions.filter(
@@ -215,7 +220,11 @@ function buildFinancialSummary(
   const actualCostAmount = sumProducts(products, 'actual_cost_amount_ttc')
   const quoteAmount = sum(
     transactions
-      .filter((transaction) => transaction.transaction_type === 'quote')
+      .filter(
+        (transaction) =>
+          transaction.transaction_type === 'quote' &&
+          transaction.quote_status !== 'rejected',
+      )
       .map((transaction) => transaction.amount_ttc),
   )
   const validatedQuoteAmount = sum(

@@ -63,8 +63,10 @@ class FinancialTotals:
         amount = transaction.amount_ttc
 
         if transaction.transaction_type == TransactionType.quote:
-            self.quote_amount_ttc += amount
             self.quote_count += 1
+            if transaction.quote_status == QuoteStatus.rejected:
+                return
+            self.quote_amount_ttc += amount
             if transaction.quote_status == QuoteStatus.validated:
                 self.validated_quote_amount_ttc += amount
                 self.validated_quote_count += 1

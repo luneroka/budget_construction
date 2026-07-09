@@ -34,6 +34,7 @@ class QuoteStatus(str, enum.Enum):
     to_confirm = 'to_confirm'
     to_negotiate = 'to_negotiate'
     validated = 'validated'
+    rejected = 'rejected'
 
 
 class InvoiceStatus(str, enum.Enum):

@@ -1,7 +1,7 @@
 export type ProjectStatus = 'draft' | 'active' | 'completed' | 'archived'
 export type BudgetLineType = 'product' | 'breakdown'
 export type TransactionType = 'quote' | 'diy_estimate' | 'invoice'
-export type QuoteStatus = 'to_confirm' | 'to_negotiate' | 'validated'
+export type QuoteStatus = 'to_confirm' | 'to_negotiate' | 'validated' | 'rejected'
 export type InvoiceStatus = 'unpaid' | 'on_hold' | 'paid'
 export type InvoiceType = 'full' | 'deposit' | 'interim' | 'balance'
 export type PaymentMethod = 'cash' | 'card' | 'wire'
