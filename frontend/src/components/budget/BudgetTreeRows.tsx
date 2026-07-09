@@ -17,6 +17,7 @@ import {
   varianceClass,
 } from '@/lib/budgetDomain'
 import { cn } from '@/lib/utils'
+import { highlightSearchMatches } from '@/lib/searchHighlight'
 
 function ToggleIcon({ isOpen }: { isOpen: boolean }) {
   return (
@@ -293,9 +294,13 @@ export const ProductRow = forwardRef<
     product: Product
     isFocused?: boolean
     isOpen: boolean
+    searchQuery?: string
     onToggle: () => void
   }
->(function ProductRow({ product, isFocused, isOpen, onToggle }, ref) {
+>(function ProductRow(
+  { product, isFocused, isOpen, searchQuery = '', onToggle },
+  ref,
+) {
   return (
     <TableRow
       ref={ref}
@@ -314,7 +319,7 @@ export const ProductRow = forwardRef<
           <span className="flex min-w-0 items-center gap-3">
             <ToggleIcon isOpen={isOpen} />
             <span className="block font-medium text-foreground">
-              {product.product_name}
+              {highlightSearchMatches(product.product_name, searchQuery)}
             </span>
           </span>
           <span className="hidden text-right text-xs">
@@ -351,6 +356,7 @@ export function BudgetLineRow({
   product,
   isOpen,
   readOnly,
+  searchQuery = '',
   onRequestDelete,
   onToggle,
 }: {
@@ -358,6 +364,7 @@ export function BudgetLineRow({
   product: Product
   isOpen: boolean
   readOnly?: boolean
+  searchQuery?: string
   onRequestDelete: (context: BudgetLineDeleteState) => void
   onToggle: () => void
 }) {
@@ -378,7 +385,7 @@ export function BudgetLineRow({
               />
               <span className="min-w-0">
                 <span className="block truncate font-medium text-foreground">
-                  {line.name}
+                  {highlightSearchMatches(line.name, searchQuery)}
                 </span>
                 <span className="hidden mt-1 text-xs text-muted-foreground">
                   Budget sélectionné:{' '}

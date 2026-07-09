@@ -28,6 +28,10 @@ import {
   varianceClass,
 } from '@/lib/budgetDomain'
 import { formatCurrency } from '@/lib/format'
+import {
+  highlightSearchMatches,
+  normalizeSearchText,
+} from '@/lib/searchHighlight'
 import { cn } from '@/lib/utils'
 
 type BudgetTreeProps = {
@@ -66,14 +70,6 @@ type CategoryNavigationCard = {
 const ALL_CATEGORIES_ID = 'all'
 const ALL_SUBCATEGORIES_ID = 'all'
 
-function normalizeSearchText(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase()
-    .trim()
-}
-
 function productMatchesSearch(product: Product, normalizedSearch: string) {
   if (!normalizedSearch) return true
 
@@ -84,6 +80,30 @@ function productMatchesSearch(product: Product, normalizedSearch: string) {
 
   return searchableValues.some((value) =>
     normalizeSearchText(value).includes(normalizedSearch),
+  )
+}
+
+function ProductSearchBreadcrumb({
+  product,
+  searchQuery,
+}: {
+  product: Product
+  searchQuery: string
+}) {
+  return (
+    <TableRow className="border-b-0 bg-muted/20 hover:bg-muted/20">
+      <TableCell colSpan={7} className="px-4 pt-2 pb-0">
+        <div className="text-[0.7rem] font-medium tracking-wide text-muted-foreground">
+          <span>
+            {highlightSearchMatches(product.category_name, searchQuery)}
+          </span>
+          <span className="mx-1.5 text-muted-foreground/60">›</span>
+          <span>
+            {highlightSearchMatches(product.subcategory_name, searchQuery)}
+          </span>
+        </div>
+      </TableCell>
+    </TableRow>
   )
 }
 
@@ -412,6 +432,12 @@ export function BudgetTree({
 
                 return (
                   <Fragment key={product.product_id}>
+                    {isSearchActive ? (
+                      <ProductSearchBreadcrumb
+                        product={product}
+                        searchQuery={productSearch}
+                      />
+                    ) : null}
                     <ProductRow
                       ref={
                         focusedProductId === product.product_id
@@ -421,6 +447,7 @@ export function BudgetTree({
                       product={product}
                       isFocused={focusedProductId === product.product_id}
                       isOpen={isProductOpen}
+                      searchQuery={isSearchActive ? productSearch : ''}
                       onToggle={() =>
                         isSearchActive
                           ? toggleSearchProduct(product.product_id)
@@ -481,6 +508,9 @@ export function BudgetTree({
                                     product={product}
                                     isOpen={isLineOpen}
                                     readOnly={readOnly}
+                                    searchQuery={
+                                      isSearchActive ? productSearch : ''
+                                    }
                                     onRequestDelete={onRequestDeleteBudgetLine}
                                     onToggle={() =>
                                       toggleBudgetLine(line.budget_line_id)
