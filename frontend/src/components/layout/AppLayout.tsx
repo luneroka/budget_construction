@@ -1,5 +1,6 @@
-import { LogOut } from 'lucide-react'
-import { Outlet } from 'react-router-dom'
+import { LogOut, Menu, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Outlet, useLocation } from 'react-router-dom'
 
 import { useAuth } from '@/auth/authContext'
 import { Button } from '@/components/ui/button'
@@ -8,6 +9,8 @@ import { SidebarNav } from './SidebarNav'
 
 export function AppLayout() {
   const { logout, user } = useAuth()
+  const location = useLocation()
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const initials =
     user?.name
       .split(' ')
@@ -16,9 +19,38 @@ export function AppLayout() {
       .map((part) => part[0]?.toUpperCase())
       .join('') || 'U'
 
+  useEffect(() => {
+    setIsSidebarOpen(false)
+  }, [location.pathname])
+
   return (
-    <div className="min-h-screen flex font-body">
-      <aside className="w-58 bg-sidebar text-sidebar-foreground flex flex-col  shrink-0 sticky top-0 h-screen">
+    <div className="flex min-h-screen font-body">
+      {isSidebarOpen ? (
+        <button
+          type="button"
+          className="min-[1600px]:hidden fixed inset-0 z-30 bg-black/40"
+          aria-label="Fermer le menu"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      ) : null}
+
+      <aside
+        className={[
+          'fixed inset-y-0 left-0 z-40 flex h-screen w-58 shrink-0 flex-col bg-sidebar text-sidebar-foreground shadow-xl transition-transform duration-200 ease-out min-[1600px]:sticky min-[1600px]:top-0 min-[1600px]:z-auto min-[1600px]:translate-x-0 min-[1600px]:shadow-none',
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
+        ].join(' ')}
+      >
+        <div className="flex justify-end border-b border-sidebar-border px-3 py-2 min-[1600px]:hidden">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-9 w-9 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            aria-label="Fermer le menu"
+            onClick={() => setIsSidebarOpen(false)}
+          >
+            <X aria-hidden />
+          </Button>
+        </div>
         <ProjectSwitcher />
         <SidebarNav />
         <div className="border-t border-sidebar-border p-4">
@@ -47,8 +79,20 @@ export function AppLayout() {
         </div>
       </aside>
 
-      <main className="flex-1 bg-background">
-        <div className="p-8">
+      <main className="min-w-0 flex-1 bg-background">
+        <div className="sticky top-0 z-20 flex items-center border-b border-border bg-background/95 px-4 py-3 backdrop-blur min-[1600px]:hidden">
+          <Button
+            size="icon"
+            variant="outline"
+            className="h-9 w-9"
+            aria-label="Ouvrir le menu"
+            aria-expanded={isSidebarOpen}
+            onClick={() => setIsSidebarOpen(true)}
+          >
+            <Menu aria-hidden />
+          </Button>
+        </div>
+        <div className="p-4 sm:p-6 min-[1600px]:p-8">
           <Outlet />
         </div>
       </main>
