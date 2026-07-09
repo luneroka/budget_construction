@@ -44,13 +44,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { BudgetLineSummaryViewModel, ProjectViewModel } from '@/demo/types'
-import { suppliersToViewModel } from '@/lib/budgetWorkspaceApiAdapter'
+import type { BudgetLine, Project } from '@/types'
+import { suppliersToDomain } from '@/lib/budgetWorkspaceApiAdapter'
 import {
   canToggleBudgetSelection,
   isSelectedBudgetTransaction,
   type BudgetSelectionState,
-} from '@/lib/budgetViewModel'
+} from '@/lib/budgetDomain'
 import {
   buildTransactionRow,
   getBudgetLabel,
@@ -87,7 +87,7 @@ function isQuickViewId(value: string | null): value is QuickViewId {
   return quickViews.some((view) => view.id === value)
 }
 
-function projectToViewModel(project: ProjectRead): ProjectViewModel {
+function projectToDomain(project: ProjectRead): Project {
   return {
     id: String(project.id),
     user_id: String(project.user_id),
@@ -103,7 +103,7 @@ function projectToViewModel(project: ProjectRead): ProjectViewModel {
 }
 
 function getBudgetSelection(
-  budgetLine: BudgetLineSummaryViewModel,
+  budgetLine: BudgetLine,
 ): BudgetSelectionState {
   return {
     selected_quote_transaction_id: budgetLine.selected_quote_transaction_id,
@@ -222,7 +222,7 @@ export function TransactionsPage() {
   })
   const suppliersQuery = useSuppliersQuery({ enabled: projectId !== null })
   const project = useMemo(
-    () => (projectQuery.data ? projectToViewModel(projectQuery.data) : null),
+    () => (projectQuery.data ? projectToDomain(projectQuery.data) : null),
     [projectQuery.data],
   )
   const [activeQuickView, setActiveQuickView] = useState<QuickViewId>(() =>
@@ -254,7 +254,7 @@ export function TransactionsPage() {
   const [activeDocumentTransactionId, setActiveDocumentTransactionId] =
     useState<string | null>(null)
   const suppliers = useMemo(
-    () => suppliersToViewModel(suppliersQuery.data),
+    () => suppliersToDomain(suppliersQuery.data),
     [suppliersQuery.data],
   )
   const transactionRows = useMemo(

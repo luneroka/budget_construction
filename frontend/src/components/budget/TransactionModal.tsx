@@ -50,17 +50,17 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import type {
-  BudgetLineSummaryViewModel,
+  BudgetLine,
   InvoiceStatus,
   InvoiceType,
   PaymentMethod,
-  ProductSummaryViewModel,
-  ProjectViewModel,
+  Product,
+  Project,
   QuoteStatus,
-  SupplierRowViewModel,
+  Supplier,
   TransactionType,
-  TransactionViewModel,
-} from '@/demo/types'
+  Transaction,
+} from '@/types'
 import { downloadDocument } from '@/lib/documents'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { notifyError, notifySuccess } from '@/lib/toasts'
@@ -121,26 +121,26 @@ type CreatedTransactionForDocument = {
 const QUICK_ADD_SUPPLIER_VALUE = '__quick_add_supplier__'
 
 export type ViewedTransactionContext = {
-  transaction: TransactionViewModel
-  product: ProductSummaryViewModel
-  budgetLine: BudgetLineSummaryViewModel
+  transaction: Transaction
+  product: Product
+  budgetLine: BudgetLine
 }
 
 type TransactionModalProps = {
-  project: ProjectViewModel
-  product: ProductSummaryViewModel
-  budgetLine?: BudgetLineSummaryViewModel
+  project: Project
+  product: Product
+  budgetLine?: BudgetLine
   initialStructure?: ProductStructureChoice
-  suppliers: SupplierRowViewModel[]
+  suppliers: Supplier[]
   onClose: () => void
 }
 
 type TransactionReviewModalProps = {
-  project: ProjectViewModel
+  project: Project
   context: ViewedTransactionContext
   initialMode?: 'view' | 'edit'
   readOnly?: boolean
-  suppliers: SupplierRowViewModel[]
+  suppliers: Supplier[]
   isBudgetSelected: boolean
   canToggleBudgetSelection: boolean
   onToggleBudgetSelection: () => void
@@ -306,7 +306,7 @@ function createInitialFormState(
 }
 
 function createInitialUpdateFormState(
-  transaction: TransactionViewModel,
+  transaction: Transaction,
 ): TransactionUpdateFormState {
   return {
     supplier_id: transaction.supplier_id ?? '',
@@ -371,7 +371,7 @@ function canSelectCreatedTransactionAsBudget(form: TransactionFormState) {
 }
 
 function buildTransactionUpdate(
-  transaction: TransactionViewModel,
+  transaction: Transaction,
   form: TransactionUpdateFormState,
 ): TransactionUpdate {
   const payload: TransactionUpdate = {
@@ -489,9 +489,9 @@ function TransactionContextSummary({
   product,
   budgetLine,
 }: {
-  project: ProjectViewModel
-  product: ProductSummaryViewModel
-  budgetLine?: BudgetLineSummaryViewModel
+  project: Project
+  product: Product
+  budgetLine?: BudgetLine
 }) {
   const breadcrumbParts = [
     product.category_name,
@@ -579,7 +579,7 @@ function SupplierSelectField({
 }: {
   id: string
   value: string
-  suppliers: SupplierRowViewModel[]
+  suppliers: Supplier[]
   disabled?: boolean
   className?: string
   onChange: (supplierId: string) => void

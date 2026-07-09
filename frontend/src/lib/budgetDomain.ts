@@ -1,8 +1,8 @@
 import type {
-  BudgetLineSummaryViewModel,
-  ProductSummaryViewModel,
-  TransactionViewModel,
-} from '@/demo/types'
+  BudgetLine,
+  Product,
+  Transaction,
+} from '@/types'
 
 export type BudgetSelectionState = {
   selected_quote_transaction_id: string | null
@@ -11,7 +11,7 @@ export type BudgetSelectionState = {
 
 export type SubcategoryGroup = {
   name: string
-  products: ProductSummaryViewModel[]
+  products: Product[]
   selected_budget_amount_ttc: number
   actual_cost_amount_ttc: number
   paid_invoice_amount_ttc: number
@@ -25,7 +25,7 @@ export function varianceClass(value: number) {
   return 'text-muted-foreground'
 }
 
-function getSelectedBudgetParts(line: BudgetLineSummaryViewModel) {
+function getSelectedBudgetParts(line: BudgetLine) {
   const selectedQuote = line.transactions.find(
     (transaction) => transaction.id === line.selected_quote_transaction_id,
   )
@@ -40,7 +40,7 @@ function getSelectedBudgetParts(line: BudgetLineSummaryViewModel) {
   }
 }
 
-export function formatSelectedBudgetSource(line: BudgetLineSummaryViewModel) {
+export function formatSelectedBudgetSource(line: BudgetLine) {
   const { selectedQuote, selectedDiyEstimate } = getSelectedBudgetParts(line)
   const parts = [
     selectedQuote ? '1 devis' : null,
@@ -50,7 +50,7 @@ export function formatSelectedBudgetSource(line: BudgetLineSummaryViewModel) {
   return parts.length > 0 ? parts.join(' + ') : 'Aucun budget sélectionné'
 }
 
-export function canToggleBudgetSelection(transaction: TransactionViewModel) {
+export function canToggleBudgetSelection(transaction: Transaction) {
   if (transaction.transaction_type === 'diy_estimate') return true
   return (
     transaction.transaction_type === 'quote' &&
@@ -59,7 +59,7 @@ export function canToggleBudgetSelection(transaction: TransactionViewModel) {
 }
 
 export function isSelectedBudgetTransaction(
-  transaction: TransactionViewModel,
+  transaction: Transaction,
   selection: BudgetSelectionState,
 ) {
   return (
@@ -69,9 +69,9 @@ export function isSelectedBudgetTransaction(
 }
 
 export function groupProductsBySubcategory(
-  products: ProductSummaryViewModel[],
+  products: Product[],
 ): SubcategoryGroup[] {
-  const groups = new Map<string, ProductSummaryViewModel[]>()
+  const groups = new Map<string, Product[]>()
 
   products.forEach((product) => {
     const currentProducts = groups.get(product.subcategory_name) ?? []
@@ -105,14 +105,14 @@ export function groupProductsBySubcategory(
   }))
 }
 
-export function getWholeProductBudgetLine(product: ProductSummaryViewModel) {
+export function getWholeProductBudgetLine(product: Product) {
   const [line] = product.budget_lines
   return product.budget_lines.length === 1 && line?.item_type === 'product'
     ? line
     : null
 }
 
-export function isProductEmpty(product: ProductSummaryViewModel) {
+export function isProductEmpty(product: Product) {
   return (
     product.budget_lines.length === 0 ||
     product.budget_lines.every(

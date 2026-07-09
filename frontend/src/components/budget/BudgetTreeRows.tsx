@@ -23,16 +23,16 @@ import type {
   TransactionAction,
 } from '@/components/budget/types'
 import type {
-  BudgetCategoryViewModel,
-  BudgetLineSummaryViewModel,
-  ProductSummaryViewModel,
-} from '@/demo/types'
+  BudgetCategory,
+  BudgetLine,
+  Product,
+} from '@/types'
 import { formatCurrency } from '@/lib/format'
 import {
   formatSelectedBudgetSource,
   type SubcategoryGroup,
   varianceClass,
-} from '@/lib/budgetViewModel'
+} from '@/lib/budgetDomain'
 import { cn } from '@/lib/utils'
 
 const categoryIcons: Record<string, LucideIcon> = {
@@ -62,7 +62,7 @@ export function CategoryHeader({
   isOpen,
   onToggle,
 }: {
-  category: BudgetCategoryViewModel
+  category: BudgetCategory
   isOpen: boolean
   onToggle: () => void
 }) {
@@ -121,8 +121,8 @@ export function ProductContextRows({
   onAddTransaction,
   onDecomposeProduct,
 }: {
-  product: ProductSummaryViewModel
-  line: BudgetLineSummaryViewModel | null
+  product: Product
+  line: BudgetLine | null
   readOnly?: boolean
   onAddBreakdown: (action: BreakdownAction) => void
   onAddTransaction: (action: TransactionAction) => void
@@ -188,7 +188,7 @@ export function EmptyProductRow({
   readOnly,
   onAddFirstTransaction,
 }: {
-  product: ProductSummaryViewModel
+  product: Product
   readOnly?: boolean
   onAddFirstTransaction: (action: BreakdownAction) => void
 }) {
@@ -228,8 +228,8 @@ export function BudgetLineContextRow({
   readOnly,
   onAddTransaction,
 }: {
-  line: BudgetLineSummaryViewModel
-  product: ProductSummaryViewModel
+  line: BudgetLine
+  product: Product
   readOnly?: boolean
   onAddTransaction: (action: TransactionAction) => void
 }) {
@@ -317,7 +317,7 @@ export function SubcategoryRow({
 export const ProductRow = forwardRef<
   HTMLTableRowElement,
   {
-  product: ProductSummaryViewModel
+  product: Product
   isFocused?: boolean
   isOpen: boolean
   onToggle: () => void
@@ -381,8 +381,8 @@ export function BudgetLineRow({
   onRequestDelete,
   onToggle,
 }: {
-  line: BudgetLineSummaryViewModel
-  product: ProductSummaryViewModel
+  line: BudgetLine
+  product: Product
   isOpen: boolean
   readOnly?: boolean
   onRequestDelete: (context: BudgetLineDeleteState) => void

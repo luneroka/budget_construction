@@ -16,15 +16,15 @@ import type {
   TransactionRead,
 } from '@/api/types'
 import type {
-  BudgetCategoryViewModel,
-  BudgetLineSummaryViewModel,
-  BudgetWorkspaceViewModel,
-  FinancialSummaryViewModel,
-  ProductSummaryViewModel,
-  ProjectViewModel,
-  SupplierRowViewModel,
-  TransactionViewModel,
-} from '@/demo/types'
+  BudgetCategory,
+  BudgetLine,
+  BudgetWorkspace,
+  FinancialSummary,
+  Product,
+  Project,
+  Supplier,
+  Transaction,
+} from '@/types'
 import { verifyProjectFinancialSummary } from '@/lib/budgetWorkspaceVerification'
 
 function decimalToNumber(
@@ -71,10 +71,10 @@ function totalsToNumbers(totals: FinancialTotalsRead) {
   }
 }
 
-function projectToViewModel(
+function projectToDomain(
   project: ProjectRead,
   summary: ProjectFinancialSummaryRead,
-): ProjectViewModel {
+): Project {
   return {
     id: String(project.id),
     user_id: String(project.user_id),
@@ -91,9 +91,9 @@ function projectToViewModel(
   }
 }
 
-function budgetLineToViewModel(
+function budgetLineToDomain(
   budgetLine: ProductFinancialSummaryRead['budget_lines'][number],
-): BudgetLineSummaryViewModel {
+): BudgetLine {
   return {
     budget_line_id: String(budgetLine.budget_line_id),
     name: budgetLine.name,
@@ -111,23 +111,23 @@ function budgetLineToViewModel(
   }
 }
 
-function productToViewModel(
+function productToDomain(
   product: ProductFinancialSummaryRead,
-): ProductSummaryViewModel {
+): Product {
   return {
     product_id: String(product.product_id),
     product_name: product.product_name,
     subcategory_name: product.subcategory_name,
     category_name: product.category_name,
     ...totalsToNumbers(product),
-    budget_lines: product.budget_lines.map(budgetLineToViewModel),
+    budget_lines: product.budget_lines.map(budgetLineToDomain),
   }
 }
 
 function buildCategories(
-  products: ProductSummaryViewModel[],
+  products: Product[],
   budgetLines: BudgetLineRead[],
-): BudgetCategoryViewModel[] {
+): BudgetCategory[] {
   const categoryIdsByName = new Map<string, string>()
   budgetLines.forEach((budgetLine) => {
     categoryIdsByName.set(
@@ -136,7 +136,7 @@ function buildCategories(
     )
   })
 
-  const categories = new Map<string, BudgetCategoryViewModel>()
+  const categories = new Map<string, BudgetCategory>()
 
   products.forEach((product) => {
     const category = categories.get(product.category_name) ?? {
@@ -161,7 +161,7 @@ export function buildBudgetWorkspaceFromApi(
   project: ProjectRead,
   summary: ProjectFinancialSummaryRead,
   budgetLines: BudgetLineRead[],
-): BudgetWorkspaceViewModel {
+): BudgetWorkspace {
   if (import.meta.env.DEV) {
     const verificationIssues = verifyProjectFinancialSummary(summary)
     if (verificationIssues.length > 0) {
@@ -172,14 +172,14 @@ export function buildBudgetWorkspaceFromApi(
     }
   }
 
-  const products = summary.products.map(productToViewModel)
-  const financialSummary: FinancialSummaryViewModel = {
+  const products = summary.products.map(productToDomain)
+  const financialSummary: FinancialSummary = {
     ...totalsToNumbers(summary),
     products,
   }
 
   return {
-    project: projectToViewModel(project, summary),
+    project: projectToDomain(project, summary),
     templates: project.template_id
       ? [
           {
@@ -195,11 +195,11 @@ export function buildBudgetWorkspaceFromApi(
   }
 }
 
-export function transactionToViewModel(
+export function transactionToDomain(
   transaction: TransactionRead,
-  budgetLine: BudgetLineSummaryViewModel,
+  budgetLine: BudgetLine,
   suppliers: SupplierRead[],
-): TransactionViewModel {
+): Transaction {
   const supplier = suppliers.find(
     (candidate) => candidate.id === transaction.supplier_id,
   )
@@ -234,9 +234,9 @@ export function transactionToViewModel(
   }
 }
 
-export function suppliersToViewModel(
+export function suppliersToDomain(
   suppliers: SupplierRead[] | undefined,
-): SupplierRowViewModel[] {
+): Supplier[] {
   return (suppliers ?? []).map((supplier) => ({
     id: String(supplier.id),
     user_id: String(supplier.user_id),

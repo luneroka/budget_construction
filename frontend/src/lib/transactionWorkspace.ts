@@ -1,9 +1,9 @@
 import type { ApiDecimal, ProjectTransactionRead } from '@/api/types'
 import type {
-  BudgetLineSummaryViewModel,
-  ProductSummaryViewModel,
-  TransactionViewModel,
-} from '@/demo/types'
+  BudgetLine,
+  Product,
+  Transaction,
+} from '@/types'
 import { formatCurrency } from '@/lib/format'
 import type { ViewedTransactionContext } from '@/components/budget/TransactionModal'
 
@@ -42,7 +42,7 @@ export const visibleQuickViews = quickViews.filter(
 )
 
 export const transactionTypeLabels: Record<
-  TransactionViewModel['transaction_type'],
+  Transaction['transaction_type'],
   string
 > = {
   quote: 'Devis',
@@ -55,13 +55,13 @@ export function decimalToNumber(value: ApiDecimal | number | null | undefined) {
   return typeof value === 'number' ? value : Number(value)
 }
 
-export function getTransactionStatus(transaction: TransactionViewModel) {
+export function getTransactionStatus(transaction: Transaction) {
   return transaction.quote_status ?? transaction.invoice_status
 }
 
 export function getBudgetLabel(
-  product: ProductSummaryViewModel,
-  budgetLine: BudgetLineSummaryViewModel,
+  product: Product,
+  budgetLine: BudgetLine,
 ) {
   const productName = product.product_name.trim()
   const budgetLineName = budgetLine.name.trim()
@@ -73,7 +73,7 @@ export function getBudgetLabel(
   return budgetLine.name
 }
 
-export function isBudgetSelected(transaction: TransactionViewModel) {
+export function isBudgetSelected(transaction: Transaction) {
   return transaction.select_as_budget
 }
 
@@ -103,7 +103,7 @@ export function buildTransactionRow(
   transaction: ProjectTransactionRead,
 ): TransactionWorkspaceRow {
   const transactionId = String(transaction.id)
-  const budgetLine: BudgetLineSummaryViewModel = {
+  const budgetLine: BudgetLine = {
     budget_line_id: String(transaction.budget_line_id),
     name: transaction.budget_line_name,
     item_type: transaction.budget_line_item_type,
@@ -130,7 +130,7 @@ export function buildTransactionRow(
     invoice_count: 0,
     transactions: [],
   }
-  const product: ProductSummaryViewModel = {
+  const product: Product = {
     product_id: String(transaction.product_id),
     product_name: transaction.product_name,
     subcategory_name: transaction.subcategory_name,
@@ -143,7 +143,7 @@ export function buildTransactionRow(
     selected_budget_variance_ttc: 0,
     budget_lines: [budgetLine],
   }
-  const viewModel: TransactionViewModel = {
+  const viewModel: Transaction = {
     id: transactionId,
     budget_line_id: String(transaction.budget_line_id),
     supplier_id:

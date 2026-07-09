@@ -28,16 +28,16 @@ import type {
 } from '@/components/budget/types'
 import { PageHeader } from '@/components/shared/PageHeader'
 import type {
-  BudgetLineSummaryViewModel,
-  TransactionViewModel,
-} from '@/demo/types'
+  BudgetLine,
+  Transaction,
+} from '@/types'
 import {
   type BudgetSelectionState,
   canToggleBudgetSelection,
   isSelectedBudgetTransaction,
-} from '@/lib/budgetViewModel'
+} from '@/lib/budgetDomain'
 import {
-  suppliersToViewModel,
+  suppliersToDomain,
   useBudgetWorkspaceQuery,
 } from '@/lib/budgetWorkspaceApiAdapter'
 import { downloadDocument } from '@/lib/documents'
@@ -75,7 +75,7 @@ export function BudgetPage() {
   const [selectedStructureChoice, setSelectedStructureChoice] =
     useState<ProductStructureChoice>('single')
   const suppliers = useMemo(
-    () => suppliersToViewModel(suppliersQuery.data),
+    () => suppliersToDomain(suppliersQuery.data),
     [suppliersQuery.data],
   )
 
@@ -94,7 +94,7 @@ export function BudgetPage() {
   }, [productFocusParam, setSearchParams])
 
   function getBudgetSelection(
-    line: BudgetLineSummaryViewModel,
+    line: BudgetLine,
   ): BudgetSelectionState {
     return {
       selected_quote_transaction_id: line.selected_quote_transaction_id,
@@ -104,20 +104,20 @@ export function BudgetPage() {
   }
 
   function getLineWithBudgetSelection(
-    line: BudgetLineSummaryViewModel,
-  ): BudgetLineSummaryViewModel {
+    line: BudgetLine,
+  ): BudgetLine {
     return line
   }
 
   function toggleBudgetSelection(
-    _line?: BudgetLineSummaryViewModel,
+    _line?: BudgetLine,
     _transaction?: Parameters<typeof isSelectedBudgetTransaction>[0],
   ) {
     // Budget selection is backend-owned. Chunk 4 will wire mutations.
   }
 
   const transactionDocumentTypeLabels: Record<
-    TransactionViewModel['transaction_type'],
+    Transaction['transaction_type'],
     string
   > = {
     quote: 'Devis',
@@ -126,7 +126,7 @@ export function BudgetPage() {
   }
 
   function formatTransactionDocumentTitle(
-    transaction: TransactionViewModel,
+    transaction: Transaction,
   ): string {
     const typeLabel =
       transactionDocumentTypeLabels[transaction.transaction_type]
@@ -139,7 +139,7 @@ export function BudgetPage() {
   }
 
   async function openTransactionDocumentsViewer(
-    transaction: TransactionViewModel,
+    transaction: Transaction,
   ) {
     setViewerLoading(true)
     setViewerError(null)

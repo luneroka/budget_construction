@@ -31,20 +31,20 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import type {
-  SupplierContactViewModel,
-  SupplierRowViewModel,
-} from '@/demo/types'
+  SupplierContact,
+  Supplier,
+} from '@/types'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import { useAppState } from '@/state/appState'
 
-function supplierToViewModel(supplier: SupplierRead): SupplierRowViewModel {
+function supplierToDomain(supplier: SupplierRead): Supplier {
   return {
     id: String(supplier.id),
     user_id: String(supplier.user_id),
     name: supplier.name,
     siret: supplier.siret,
     comment: supplier.comment ?? '',
-    contacts: supplier.contacts.map<SupplierContactViewModel>((contact) => ({
+    contacts: supplier.contacts.map<SupplierContact>((contact) => ({
       id: String(contact.id),
       supplier_id: String(contact.supplier_id),
       name: contact.name,
@@ -70,8 +70,8 @@ function numberFromId(id: string): number {
 }
 
 function primaryContact(
-  supplier: SupplierRowViewModel,
-): SupplierContactViewModel | undefined {
+  supplier: Supplier,
+): SupplierContact | undefined {
   return (
     supplier.contacts.find((contact) => contact.is_primary) ??
     supplier.contacts[0]
@@ -97,13 +97,13 @@ export function SuppliersPage() {
   const [search, setSearch] = useState('')
   const [modalMode, setModalMode] = useState<SupplierModalMode | null>(null)
   const [selectedSupplier, setSelectedSupplier] =
-    useState<SupplierRowViewModel | null>(null)
+    useState<Supplier | null>(null)
   const suppliersQuery = useSuppliersQuery({ enabled: true })
   const createSupplierMutation = useCreateSupplierMutation()
   const updateSupplierMutation = useUpdateSupplierMutation()
   const deleteSupplierMutation = useDeleteSupplierMutation()
   const suppliers = useMemo(
-    () => (suppliersQuery.data ?? []).map(supplierToViewModel),
+    () => (suppliersQuery.data ?? []).map(supplierToDomain),
     [suppliersQuery.data],
   )
   const normalizedSearch = search.trim().toLowerCase()
@@ -141,7 +141,7 @@ export function SuppliersPage() {
     setModalMode('create')
   }
 
-  function openDetailModal(supplier: SupplierRowViewModel) {
+  function openDetailModal(supplier: Supplier) {
     setSelectedSupplier(supplier)
     setModalMode('view')
   }
@@ -151,7 +151,7 @@ export function SuppliersPage() {
     setSelectedSupplier(null)
   }
 
-  async function saveSupplier(savedSupplier: SupplierRowViewModel) {
+  async function saveSupplier(savedSupplier: Supplier) {
     try {
       const isCreating = selectedSupplier === null
       const saved = isCreating
@@ -178,7 +178,7 @@ export function SuppliersPage() {
     }
   }
 
-  async function deleteSupplier(supplier: SupplierRowViewModel) {
+  async function deleteSupplier(supplier: Supplier) {
     try {
       const supplierId = numberFromId(supplier.id)
       await deleteSupplierMutation.mutateAsync(supplierId)

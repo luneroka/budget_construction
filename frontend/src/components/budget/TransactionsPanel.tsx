@@ -15,39 +15,39 @@ import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Badge } from '@/components/ui/badge'
 import { TableCell, TableRow } from '@/components/ui/table'
 import type {
-  BudgetLineSummaryViewModel,
-  ProductSummaryViewModel,
-  TransactionViewModel,
-} from '@/demo/types'
+  BudgetLine,
+  Product,
+  Transaction,
+} from '@/types'
 import { formatCurrency, formatDate } from '@/lib/format'
-import { transactionToViewModel } from '@/lib/budgetWorkspaceApiAdapter'
+import { transactionToDomain } from '@/lib/budgetWorkspaceApiAdapter'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import {
   canToggleBudgetSelection,
   formatSelectedBudgetSource,
   isSelectedBudgetTransaction,
   type BudgetSelectionState,
-} from '@/lib/budgetViewModel'
+} from '@/lib/budgetDomain'
 import { cn } from '@/lib/utils'
 
 const transactionGridClass =
   'grid min-w-[55rem] grid-cols-[5rem_8rem_minmax(10rem,1fr)_7rem_6.25rem_7rem_6rem_4rem] items-center'
 
 type TransactionsPanelProps = {
-  transactions: TransactionViewModel[]
-  budgetLine: BudgetLineSummaryViewModel
+  transactions: Transaction[]
+  budgetLine: BudgetLine
   budgetSelection: BudgetSelectionState
   projectId?: number
-  product: ProductSummaryViewModel
+  product: Product
   readOnly?: boolean
   onToggleBudgetSelection: (
-    budgetLine: BudgetLineSummaryViewModel,
-    transaction: TransactionViewModel,
+    budgetLine: BudgetLine,
+    transaction: Transaction,
   ) => void
   onRequestDeleteTransaction: (context: ViewedTransactionContext) => void
   onEditTransaction: (context: ViewedTransactionContext) => void
   onViewTransaction: (context: ViewedTransactionContext) => void
-  onViewTransactionDocuments: (transaction: TransactionViewModel) => void
+  onViewTransactionDocuments: (transaction: Transaction) => void
 }
 
 function TransactionSectionDivider({ label }: { label: string }) {
@@ -251,7 +251,7 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
     if (!shouldUseApi) return props.transactions
 
     return (transactionsQuery.data ?? []).map((transaction) =>
-      transactionToViewModel(
+      transactionToDomain(
         transaction,
         props.budgetLine,
         suppliersQuery.data ?? [],
@@ -282,8 +282,8 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
     unselectBudgetCandidateMutation.isPending
 
   async function handleToggleBudgetSelection(
-    budgetLine: BudgetLineSummaryViewModel,
-    transaction: TransactionViewModel,
+    budgetLine: BudgetLine,
+    transaction: Transaction,
   ) {
     if (!shouldUseApi || props.projectId === undefined) {
       props.onToggleBudgetSelection(budgetLine, transaction)

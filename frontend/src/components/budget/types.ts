@@ -1,24 +1,24 @@
 import type { ViewedTransactionContext } from '@/components/budget/TransactionModal'
 import type {
-  BudgetLineSummaryViewModel,
-  ProductSummaryViewModel,
-  TransactionViewModel,
-} from '@/demo/types'
+  BudgetLine,
+  Product,
+  Transaction,
+} from '@/types'
 
 export type ProductStructureChoice = 'single' | 'breakdown'
 
 export type TransactionAction = {
-  budgetLine?: BudgetLineSummaryViewModel
-  product: ProductSummaryViewModel
+  budgetLine?: BudgetLine
+  product: Product
   initialStructure?: ProductStructureChoice
 }
 
 export type ViewTransactionDocumentsAction = {
-  transaction: TransactionViewModel
+  transaction: Transaction
 }
 
 export type BreakdownAction = {
-  product: ProductSummaryViewModel
+  product: Product
 }
 
 export type ActiveAction =
@@ -35,6 +35,6 @@ export type TransactionReviewState = {
 export type TransactionDeleteState = ViewedTransactionContext
 
 export type BudgetLineDeleteState = {
-  line: BudgetLineSummaryViewModel
-  product: ProductSummaryViewModel
+  line: BudgetLine
+  product: Product
 }

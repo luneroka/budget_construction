@@ -1,12 +1,12 @@
-import type { FinancialSummaryViewModel } from '@/demo/types'
+import type { FinancialSummary } from '@/types'
 import { formatCurrency } from '@/lib/format'
-import { varianceClass } from '@/lib/budgetViewModel'
+import { varianceClass } from '@/lib/budgetDomain'
 import { cn } from '@/lib/utils'
 
 export function BudgetSummaryCards({
   summary,
 }: {
-  summary: FinancialSummaryViewModel
+  summary: FinancialSummary
 }) {
   return (
     <div className="mb-10 grid grid-cols-2 gap-3 lg:grid-cols-4">

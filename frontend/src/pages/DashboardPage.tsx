@@ -61,12 +61,12 @@ import {
   formatDashboardPercentage,
 } from '@/components/dashboard/utils'
 import { formatCurrency, formatMonth } from '@/lib/format'
-import { suppliersToViewModel } from '@/lib/budgetWorkspaceApiAdapter'
+import { suppliersToDomain } from '@/lib/budgetWorkspaceApiAdapter'
 import {
   canToggleBudgetSelection,
   isSelectedBudgetTransaction,
   type BudgetSelectionState,
-} from '@/lib/budgetViewModel'
+} from '@/lib/budgetDomain'
 import {
   buildTransactionRow,
   type QuickViewId,
@@ -74,9 +74,9 @@ import {
 import { notifyError } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
 import { useAppState } from '@/state/appState'
-import type { ProjectViewModel } from '@/demo/types'
+import type { Project } from '@/types'
 
-function projectToViewModel(project: ProjectRead): ProjectViewModel {
+function projectToDomain(project: ProjectRead): Project {
   return {
     id: String(project.id),
     user_id: String(project.user_id),
@@ -179,7 +179,7 @@ export function DashboardPage({
     const selectedProject = projectsQuery.data?.find(
       (candidate) => candidate.id === projectId,
     )
-    return selectedProject ? projectToViewModel(selectedProject) : null
+    return selectedProject ? projectToDomain(selectedProject) : null
   }, [projectId, projectsQuery.data])
   const dashboardDescription = project?.location
     ? `Vue financière synthétique du projet ${project.name} à ${project.location}.`
@@ -187,7 +187,7 @@ export function DashboardPage({
       ? `Vue financière synthétique du projet ${project.name}.`
       : 'Vue financière synthétique du projet sélectionné.'
   const suppliers = useMemo(
-    () => suppliersToViewModel(suppliersQuery.data),
+    () => suppliersToDomain(suppliersQuery.data),
     [suppliersQuery.data],
   )
   const financialOverview = financialOverviewQuery.data

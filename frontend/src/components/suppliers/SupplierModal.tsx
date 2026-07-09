@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
-import type { SupplierRowViewModel } from '@/demo/types'
+import type { Supplier } from '@/types'
 
 export type SupplierModalMode = 'create' | 'view' | 'edit'
 
@@ -27,10 +27,10 @@ type SupplierFormState = {
 
 type SupplierModalProps = {
   mode: SupplierModalMode
-  supplier: SupplierRowViewModel | null
+  supplier: Supplier | null
   onClose: () => void
-  onSave: (supplier: SupplierRowViewModel) => Promise<void> | void
-  onDelete?: (supplier: SupplierRowViewModel) => Promise<void> | void
+  onSave: (supplier: Supplier) => Promise<void> | void
+  onDelete?: (supplier: Supplier) => Promise<void> | void
 }
 
 function emptyContact(supplierId: string, isPrimary = false): ContactDraft {
@@ -44,7 +44,7 @@ function emptyContact(supplierId: string, isPrimary = false): ContactDraft {
 }
 
 function supplierToForm(
-  supplier: SupplierRowViewModel | null,
+  supplier: Supplier | null,
 ): SupplierFormState {
   const supplierId = supplier?.id ?? `supplier-${crypto.randomUUID()}`
 

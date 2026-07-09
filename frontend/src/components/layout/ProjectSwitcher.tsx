@@ -13,14 +13,14 @@ import {
   useProjectsQuery,
 } from '@/api/projects'
 import type { ProjectRead } from '@/api/types'
-import type { ProjectViewModel } from '@/demo/types'
+import type { Project } from '@/types'
 import { Button } from '@/components/ui/button'
 import { useProjectOnboarding } from '@/hooks/useProjectOnboarding'
 import { formatCurrency } from '@/lib/format'
 import { useAppState } from '@/state/appState'
 import { ProjectOnboardingDialog } from './ProjectOnboardingDialog'
 
-function toProjectViewModel(project: ProjectRead): ProjectViewModel {
+function toProject(project: ProjectRead): Project {
   return {
     id: String(project.id),
     user_id: String(project.user_id),
@@ -41,7 +41,7 @@ export function ProjectSwitcher() {
   const [isProjectListOpen, setIsProjectListOpen] = useState(false)
   const projects = useMemo(() => {
     if (projectsQuery.data) {
-      return projectsQuery.data.map(toProjectViewModel)
+      return projectsQuery.data.map(toProject)
     }
 
     return []

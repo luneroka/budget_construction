@@ -18,24 +18,24 @@ import type {
 } from '@/components/budget/types'
 import { Table, TableBody } from '@/components/ui/table'
 import type {
-  BudgetCategoryViewModel,
-  BudgetLineSummaryViewModel,
-  TransactionViewModel,
-} from '@/demo/types'
+  BudgetCategory,
+  BudgetLine,
+  Transaction,
+} from '@/types'
 import { useBudgetExpansion } from '@/hooks/useBudgetExpansion'
-import type { BudgetSelectionState } from '@/lib/budgetViewModel'
+import type { BudgetSelectionState } from '@/lib/budgetDomain'
 import {
   getWholeProductBudgetLine,
   groupProductsBySubcategory,
   isProductEmpty,
-} from '@/lib/budgetViewModel'
+} from '@/lib/budgetDomain'
 
 type BudgetTreeProps = {
-  categories: BudgetCategoryViewModel[]
-  getBudgetSelection: (line: BudgetLineSummaryViewModel) => BudgetSelectionState
+  categories: BudgetCategory[]
+  getBudgetSelection: (line: BudgetLine) => BudgetSelectionState
   getLineWithBudgetSelection: (
-    line: BudgetLineSummaryViewModel,
-  ) => BudgetLineSummaryViewModel
+    line: BudgetLine,
+  ) => BudgetLine
   projectId?: number
   focusedProductId?: string | null
   readOnly?: boolean
@@ -44,14 +44,14 @@ type BudgetTreeProps = {
   onAddTransaction: (action: TransactionAction) => void
   onDecomposeProduct: (action: BreakdownAction) => void
   onToggleBudgetSelection: (
-    line: BudgetLineSummaryViewModel,
-    transaction: TransactionViewModel,
+    line: BudgetLine,
+    transaction: Transaction,
   ) => void
   onRequestDeleteBudgetLine: (context: BudgetLineDeleteState) => void
   onRequestDeleteTransaction: (context: ViewedTransactionContext) => void
   onEditTransaction: (context: ViewedTransactionContext) => void
   onViewTransaction: (context: ViewedTransactionContext) => void
-  onViewTransactionDocuments: (transaction: TransactionViewModel) => void
+  onViewTransactionDocuments: (transaction: Transaction) => void
 }
 
 export function BudgetTree({
