@@ -4,6 +4,21 @@ import { apiConfig } from './config'
 import { apiDelete, apiGet, apiPatch, apiPost } from './client'
 import type { SupplierCreate, SupplierRead, SupplierUpdate } from './types'
 
+type SupplierPayloadContactSource = {
+  id: string
+  name: string | null
+  phone_number: string | null
+  email: string | null
+  is_primary: boolean
+}
+
+type SupplierPayloadSource = {
+  name: string
+  siret: string | null
+  comment: string | null
+  contacts: SupplierPayloadContactSource[]
+}
+
 export const supplierQueryKeys = {
   all: ['suppliers'] as const,
   lists: () => [...supplierQueryKeys.all, 'list'] as const,
@@ -67,4 +82,100 @@ export function useDeleteSupplierMutation() {
   return useMutation({
     mutationFn: deleteSupplier,
   })
+}
+
+function nullableText(value: string | null): string | null {
+  const normalized = value?.trim() ?? ''
+  return normalized === '' ? null : normalized
+}
+
+function nullableBusinessIdentifier(value: string | null): string | null {
+  const normalized = value?.replace(/\s+/g, '') ?? ''
+  return normalized === '' ? null : normalized
+}
+
+function contactsToCreatePayload(
+  supplier: SupplierPayloadSource,
+): SupplierCreate['contacts'] {
+  return supplier.contacts.map((contact) => ({
+    name: nullableText(contact.name),
+    phone_number: nullableText(contact.phone_number),
+    email: nullableText(contact.email),
+    is_primary: supplier.contacts.length === 1 ? true : contact.is_primary,
+  }))
+}
+
+function contactsToUpdatePayload(
+  supplier: SupplierPayloadSource,
+): NonNullable<SupplierUpdate['contacts']> {
+  return supplier.contacts.map((contact) => {
+    const contactId = Number(contact.id)
+
+    return {
+      id: Number.isInteger(contactId) ? contactId : null,
+      name: nullableText(contact.name),
+      phone_number: nullableText(contact.phone_number),
+      email: nullableText(contact.email),
+      is_primary: supplier.contacts.length === 1 ? true : contact.is_primary,
+    }
+  })
+}
+
+export function supplierToCreatePayload(
+  supplier: SupplierPayloadSource,
+): SupplierCreate {
+  return {
+    name: supplier.name,
+    siret: nullableBusinessIdentifier(supplier.siret),
+    comment: nullableText(supplier.comment),
+    contacts: contactsToCreatePayload(supplier),
+  }
+}
+
+export function quickSupplierToCreatePayload(name: string): SupplierCreate {
+  const normalizedName = name.trim()
+
+  return {
+    name: normalizedName,
+    siret: null,
+    comment: null,
+    contacts: [
+      {
+        name: normalizedName,
+        is_primary: true,
+      },
+    ],
+  }
+}
+
+export function supplierToUpdatePayload(
+  supplier: SupplierPayloadSource,
+): SupplierUpdate {
+  return {
+    name: supplier.name,
+    siret: nullableBusinessIdentifier(supplier.siret),
+    comment: nullableText(supplier.comment),
+    contacts: contactsToUpdatePayload(supplier),
+  }
+}
+
+export function sortSuppliers(suppliers: SupplierRead[]): SupplierRead[] {
+  return [...suppliers].sort((first, second) =>
+    first.name.localeCompare(second.name, 'fr', { sensitivity: 'base' }),
+  )
+}
+
+export function upsertSupplier(
+  currentSuppliers: SupplierRead[] | undefined,
+  supplier: SupplierRead,
+): SupplierRead[] {
+  const current = currentSuppliers ?? []
+  const hasSupplier = current.some((candidate) => candidate.id === supplier.id)
+  const next = hasSupplier
+    ? current.map((candidate) =>
+        candidate.id === supplier.id ? supplier : candidate,
+      )
+    : [...current, supplier]
+
+  return sortSuppliers(next)
 }

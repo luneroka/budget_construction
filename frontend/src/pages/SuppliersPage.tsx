@@ -6,12 +6,15 @@ import { getApiErrorMessage } from '@/api/client'
 import { trashQueryKeys } from '@/api/trash'
 import {
   supplierQueryKeys,
+  supplierToCreatePayload,
+  supplierToUpdatePayload,
   useCreateSupplierMutation,
   useDeleteSupplierMutation,
   useSuppliersQuery,
   useUpdateSupplierMutation,
+  upsertSupplier,
 } from '@/api/suppliers'
-import type { SupplierCreate, SupplierRead, SupplierUpdate } from '@/api/types'
+import type { SupplierRead } from '@/api/types'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { TableToolbar } from '@/components/shared/TableToolbar'
 import {
@@ -64,86 +67,6 @@ function numberFromId(id: string): number {
   }
 
   return value
-}
-
-function nullableText(value: string | null): string | null {
-  const normalized = value?.trim() ?? ''
-  return normalized === '' ? null : normalized
-}
-
-function nullableBusinessIdentifier(value: string | null): string | null {
-  const normalized = value?.replace(/\s+/g, '') ?? ''
-  return normalized === '' ? null : normalized
-}
-
-function contactsToCreatePayload(
-  supplier: SupplierRowViewModel,
-): SupplierCreate['contacts'] {
-  return supplier.contacts.map((contact) => ({
-    name: nullableText(contact.name),
-    phone_number: nullableText(contact.phone_number),
-    email: nullableText(contact.email),
-    is_primary: supplier.contacts.length === 1 ? true : contact.is_primary,
-  }))
-}
-
-function contactsToUpdatePayload(
-  supplier: SupplierRowViewModel,
-): NonNullable<SupplierUpdate['contacts']> {
-  return supplier.contacts.map((contact) => {
-    const contactId = Number(contact.id)
-
-    return {
-      id: Number.isInteger(contactId) ? contactId : null,
-      name: nullableText(contact.name),
-      phone_number: nullableText(contact.phone_number),
-      email: nullableText(contact.email),
-      is_primary: supplier.contacts.length === 1 ? true : contact.is_primary,
-    }
-  })
-}
-
-function supplierToCreatePayload(
-  supplier: SupplierRowViewModel,
-): SupplierCreate {
-  return {
-    name: supplier.name,
-    siret: nullableBusinessIdentifier(supplier.siret),
-    comment: nullableText(supplier.comment),
-    contacts: contactsToCreatePayload(supplier),
-  }
-}
-
-function supplierToUpdatePayload(
-  supplier: SupplierRowViewModel,
-): SupplierUpdate {
-  return {
-    name: supplier.name,
-    siret: nullableBusinessIdentifier(supplier.siret),
-    comment: nullableText(supplier.comment),
-    contacts: contactsToUpdatePayload(supplier),
-  }
-}
-
-function sortSuppliers(suppliers: SupplierRead[]): SupplierRead[] {
-  return [...suppliers].sort((first, second) =>
-    first.name.localeCompare(second.name, 'fr', { sensitivity: 'base' }),
-  )
-}
-
-function upsertSupplier(
-  currentSuppliers: SupplierRead[] | undefined,
-  supplier: SupplierRead,
-): SupplierRead[] {
-  const current = currentSuppliers ?? []
-  const hasSupplier = current.some((candidate) => candidate.id === supplier.id)
-  const next = hasSupplier
-    ? current.map((candidate) =>
-        candidate.id === supplier.id ? supplier : candidate,
-      )
-    : [...current, supplier]
-
-  return sortSuppliers(next)
 }
 
 function primaryContact(
