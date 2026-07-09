@@ -372,8 +372,10 @@ export function TransactionsPage() {
   ])
 
   useEffect(() => {
-    if (isQuickViewId(quickViewParam) && quickViewParam !== activeQuickView) {
-      setActiveQuickView(quickViewParam)
+    const nextQuickView = isQuickViewId(quickViewParam) ? quickViewParam : 'all'
+
+    if (nextQuickView !== activeQuickView) {
+      setActiveQuickView(nextQuickView)
     }
   }, [activeQuickView, quickViewParam])
 
@@ -653,7 +655,7 @@ export function TransactionsPage() {
         description="Vue chronologique de toutes les transactions du projet."
       />
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap gap-1.5">
         {visibleQuickViews.map((view) => {
           const isActive = activeQuickView === view.id
 
@@ -662,11 +664,18 @@ export function TransactionsPage() {
               key={view.id}
               size="sm"
               variant={isActive ? 'gold' : 'outline'}
-              className="rounded-full"
+              hidden={view.id === 'missing_documents'}
+              className={cn(
+                'h-7 gap-1.5 rounded-full px-2.5 text-xs',
+                view.id === 'missing_documents' && '!hidden',
+              )}
               onClick={() => selectQuickView(view.id)}
             >
               {view.label}
-              <Badge variant={isActive ? 'default' : 'muted'}>
+              <Badge
+                variant={isActive ? 'default' : 'muted'}
+                className="px-1.5 py-0 text-[10px] leading-4"
+              >
                 {quickViewCounts[view.id] ?? 0}
               </Badge>
             </Button>
@@ -674,8 +683,8 @@ export function TransactionsPage() {
         })}
       </div>
 
-      <div className="mt-4 grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="space-y-1.5">
+      <div className="mt-2 grid gap-2 bg-muted/15 py-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="space-y-1">
           <label
             className="text-xs font-medium text-muted-foreground"
             htmlFor="transactions-type-filter"
@@ -684,6 +693,7 @@ export function TransactionsPage() {
           </label>
           <Select
             id="transactions-type-filter"
+            className="h-8 px-2 text-xs"
             value={typeFilter}
             onChange={(event) =>
               setTypeFilter(event.target.value as TransactionTypeFilter)
@@ -697,7 +707,7 @@ export function TransactionsPage() {
             ))}
           </Select>
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <label
             className="text-xs font-medium text-muted-foreground"
             htmlFor="transactions-category-filter"
@@ -706,6 +716,7 @@ export function TransactionsPage() {
           </label>
           <Select
             id="transactions-category-filter"
+            className="h-8 px-2 text-xs"
             value={categoryFilter}
             onChange={(event) => setCategoryFilter(event.target.value)}
           >
@@ -717,7 +728,7 @@ export function TransactionsPage() {
             ))}
           </Select>
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <label
             className="text-xs font-medium text-muted-foreground"
             htmlFor="transactions-supplier-filter"
@@ -726,6 +737,7 @@ export function TransactionsPage() {
           </label>
           <Select
             id="transactions-supplier-filter"
+            className="h-8 px-2 text-xs"
             value={supplierFilter}
             onChange={(event) => setSupplierFilter(event.target.value)}
           >
@@ -740,7 +752,7 @@ export function TransactionsPage() {
             ))}
           </Select>
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <label
             className="text-xs font-medium text-muted-foreground"
             htmlFor="transactions-date-filter"
@@ -749,6 +761,7 @@ export function TransactionsPage() {
           </label>
           <Select
             id="transactions-date-filter"
+            className="h-8 px-2 text-xs"
             value={dateFilter}
             onChange={(event) =>
               setDateFilter(event.target.value as DateFilter)
