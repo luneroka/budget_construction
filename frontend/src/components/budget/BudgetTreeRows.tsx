@@ -1,20 +1,7 @@
-import {
-  ChevronDown,
-  DoorOpen,
-  Droplets,
-  Hammer,
-  HardHat,
-  Layers3,
-  Paintbrush,
-  PaintRoller,
-  Plus,
-  Shovel,
-  Trash2,
-  Trees,
-  type LucideIcon,
-} from 'lucide-react'
+import { ChevronDown, Hammer, Layers3, Plus, Trash2 } from 'lucide-react'
 import { forwardRef } from 'react'
 
+import { categoryIcons } from '@/components/budget/budgetCategoryIcons'
 import { Button } from '@/components/ui/button'
 import { TableCell, TableRow } from '@/components/ui/table'
 import type {
@@ -22,11 +9,7 @@ import type {
   BreakdownAction,
   TransactionAction,
 } from '@/components/budget/types'
-import type {
-  BudgetCategory,
-  BudgetLine,
-  Product,
-} from '@/types'
+import type { BudgetCategory, BudgetLine, Product } from '@/types'
 import { formatCurrency } from '@/lib/format'
 import {
   formatSelectedBudgetSource,
@@ -34,16 +17,6 @@ import {
   varianceClass,
 } from '@/lib/budgetDomain'
 import { cn } from '@/lib/utils'
-
-const categoryIcons: Record<string, LucideIcon> = {
-  'Terrain & Préparation': Shovel,
-  Viabilisation: Droplets,
-  'Gros œuvre': HardHat,
-  Menuiseries: DoorOpen,
-  'Second œuvre': PaintRoller,
-  Finitions: Paintbrush,
-  Extérieurs: Trees,
-}
 
 function ToggleIcon({ isOpen }: { isOpen: boolean }) {
   return (
@@ -317,10 +290,10 @@ export function SubcategoryRow({
 export const ProductRow = forwardRef<
   HTMLTableRowElement,
   {
-  product: Product
-  isFocused?: boolean
-  isOpen: boolean
-  onToggle: () => void
+    product: Product
+    isFocused?: boolean
+    isOpen: boolean
+    onToggle: () => void
   }
 >(function ProductRow({ product, isFocused, isOpen, onToggle }, ref) {
   return (

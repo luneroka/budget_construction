@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { getApiErrorMessage } from '@/api/client'
@@ -7,7 +7,6 @@ import {
   getTransactionDocuments,
 } from '@/api/documents'
 import { useSuppliersQuery } from '@/api/suppliers'
-import { BudgetSummaryCards } from '@/components/budget/BudgetSummaryCards'
 import { BudgetTree } from '@/components/budget/BudgetTree'
 import { DeleteBudgetLineDialog } from '@/components/budget/DeleteBudgetLineDialog'
 import { DeleteTransactionDialog } from '@/components/budget/DeleteTransactionDialog'
@@ -27,10 +26,7 @@ import type {
   TransactionAction,
 } from '@/components/budget/types'
 import { PageHeader } from '@/components/shared/PageHeader'
-import type {
-  BudgetLine,
-  Transaction,
-} from '@/types'
+import type { BudgetLine, Transaction } from '@/types'
 import {
   type BudgetSelectionState,
   canToggleBudgetSelection,
@@ -50,6 +46,8 @@ export function BudgetPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const productFocusParam = searchParams.get('product_id')
   const [focusedProductId, setFocusedProductId] = useState<string | null>(null)
+  const [selectedCategoryId, setSelectedCategoryId] = useState('all')
+  const [selectedSubcategoryName, setSelectedSubcategoryName] = useState('all')
   const selectedProjectNumericId = Number(selectedProjectId)
   const projectId = Number.isInteger(selectedProjectNumericId)
     ? selectedProjectNumericId
@@ -78,6 +76,13 @@ export function BudgetPage() {
     () => suppliersToDomain(suppliersQuery.data),
     [suppliersQuery.data],
   )
+  const selectCategory = useCallback((categoryId: string) => {
+    setSelectedCategoryId(categoryId)
+    setSelectedSubcategoryName('all')
+  }, [])
+  const selectSubcategory = useCallback((subcategoryName: string) => {
+    setSelectedSubcategoryName(subcategoryName)
+  }, [])
 
   useEffect(() => {
     if (!productFocusParam) return
@@ -93,9 +98,7 @@ export function BudgetPage() {
     )
   }, [productFocusParam, setSearchParams])
 
-  function getBudgetSelection(
-    line: BudgetLine,
-  ): BudgetSelectionState {
+  function getBudgetSelection(line: BudgetLine): BudgetSelectionState {
     return {
       selected_quote_transaction_id: line.selected_quote_transaction_id,
       selected_diy_estimate_transaction_id:
@@ -103,9 +106,7 @@ export function BudgetPage() {
     }
   }
 
-  function getLineWithBudgetSelection(
-    line: BudgetLine,
-  ): BudgetLine {
+  function getLineWithBudgetSelection(line: BudgetLine): BudgetLine {
     return line
   }
 
@@ -125,9 +126,7 @@ export function BudgetPage() {
     invoice: 'Facture',
   }
 
-  function formatTransactionDocumentTitle(
-    transaction: Transaction,
-  ): string {
+  function formatTransactionDocumentTitle(transaction: Transaction): string {
     const typeLabel =
       transactionDocumentTypeLabels[transaction.transaction_type]
     const supplier = transaction.supplier_name ?? 'Autoconstruction'
@@ -138,9 +137,7 @@ export function BudgetPage() {
     return `${typeLabel} • ${supplier} • ${amount}`
   }
 
-  async function openTransactionDocumentsViewer(
-    transaction: Transaction,
-  ) {
+  async function openTransactionDocumentsViewer(transaction: Transaction) {
     setViewerLoading(true)
     setViewerError(null)
 
@@ -231,7 +228,7 @@ export function BudgetPage() {
     )
   }
 
-  const { categories, financialSummary, project } = workspace
+  const { categories, project } = workspace
 
   function openTransactionAction(action: TransactionAction) {
     setActiveAction({ kind: 'transaction', ...action })
@@ -256,14 +253,16 @@ export function BudgetPage() {
         description="Espace de travail principal pour ajouter des transactions (devis, factures...) au sein de la hiérarchie de produits."
       />
 
-      <BudgetSummaryCards summary={financialSummary} />
-
       <BudgetTree
         categories={categories}
         focusedProductId={focusedProductId}
+        selectedCategoryId={selectedCategoryId}
+        selectedSubcategoryName={selectedSubcategoryName}
         getBudgetSelection={getBudgetSelection}
         getLineWithBudgetSelection={getLineWithBudgetSelection}
         projectId={projectId}
+        onSelectCategory={selectCategory}
+        onSelectSubcategory={selectSubcategory}
         onAddBreakdown={(action) =>
           setActiveAction({ kind: 'breakdown', ...action })
         }
