@@ -14,6 +14,15 @@ export type ForgotPasswordResponse = {
   message: string
 }
 
+export type ResetPasswordRequest = {
+  token: string
+  new_password: string
+}
+
+export type ResetPasswordResponse = {
+  message: string
+}
+
 export async function login(credentials: LoginCredentials): Promise<TokenRead> {
   const form = new URLSearchParams()
   form.set('username', credentials.email)
@@ -33,6 +42,15 @@ export async function forgotPassword(
 ): Promise<ForgotPasswordResponse> {
   return apiPost<ForgotPasswordResponse, ForgotPasswordRequest>(
     '/auth/forgot-password',
+    request,
+  )
+}
+
+export async function resetPassword(
+  request: ResetPasswordRequest,
+): Promise<ResetPasswordResponse> {
+  return apiPost<ResetPasswordResponse, ResetPasswordRequest>(
+    '/auth/reset-password',
     request,
   )
 }

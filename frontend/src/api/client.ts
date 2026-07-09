@@ -46,6 +46,8 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
   due_date_not_allowed:
     'La date d’échéance est disponible uniquement pour les devis et les factures.',
   email_already_exists: 'Un compte existe déjà avec cet email.',
+  'Invalid or expired token':
+    'Le lien de réinitialisation est invalide ou a expiré.',
   external_service_error:
     'Un service externe est momentanément indisponible. Réessayez plus tard.',
   file_content_invalid:

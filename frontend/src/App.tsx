@@ -15,6 +15,7 @@ import { SettingsPage } from '@/pages/SettingsPage'
 import { SuppliersPage } from '@/pages/SuppliersPage'
 import { TransactionsPage } from '@/pages/TransactionsPage'
 import { TrashPage } from '@/pages/TrashPage'
+import { UserSettingsPage } from '@/pages/UserSettingsPage'
 
 export default function App() {
   return (
@@ -61,6 +62,7 @@ export default function App() {
             <Route path="documents" element={<DocumentsPage />} />
             <Route path="trash" element={<TrashPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="settings/user" element={<UserSettingsPage />} />
             <Route
               path="settings/projects"
               element={<ProjectsSettingsPage />}

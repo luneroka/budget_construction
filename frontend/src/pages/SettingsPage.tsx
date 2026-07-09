@@ -1,4 +1,4 @@
-import { FileSpreadsheet, FolderKanban, SlidersHorizontal } from 'lucide-react'
+import { FileSpreadsheet, FolderKanban, UserCog } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -12,15 +12,20 @@ export function SettingsPage() {
         description="Gestion des paramètres de l'application et des projets."
       />
       <div className="grid gap-4 md:grid-cols-2">
-        <SectionCard
-          title="Paramètres généraux"
-          description="Réglages de l'application."
-          icon={SlidersHorizontal}
+        <Link
+          to="/settings/user"
+          className="block rounded-lg transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          <p className="text-sm text-muted-foreground">
-            Cette section sera complétée ultérieurement.
-          </p>
-        </SectionCard>
+          <SectionCard
+            title="Paramètres utilisateur"
+            description="Compte, email et sécurité."
+            icon={UserCog}
+          >
+            <p className="text-sm font-medium text-primary">
+              Ouvrir les paramètres utilisateur
+            </p>
+          </SectionCard>
+        </Link>
         <Link
           to="/settings/projects"
           className="block rounded-lg transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
