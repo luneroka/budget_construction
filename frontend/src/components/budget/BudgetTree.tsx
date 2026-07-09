@@ -80,7 +80,7 @@ function CategoryCard({
     <button
       type="button"
       className={cn(
-        'rounded-lg border bg-card p-3 text-left transition-colors hover:border-primary/60 hover:bg-primary/5',
+        'rounded-lg border bg-card px-2.5 py-2 text-left transition-colors hover:border-primary/60 hover:bg-primary/5',
         isSelected
           ? 'border-primary bg-primary/10 ring-1 ring-primary/20'
           : 'border-border',
@@ -88,46 +88,47 @@ function CategoryCard({
       onClick={onSelect}
       aria-pressed={isSelected}
     >
-      <div className="flex items-start justify-between gap-3">
-        <span className="flex min-w-0 items-center gap-2">
-          <span
-            className={cn(
-              'flex h-9 w-9 shrink-0 items-center justify-center rounded-md',
-              isSelected
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-primary/10 text-primary',
-            )}
-            aria-hidden="true"
-          >
-            <Icon className="h-5 w-5" />
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold text-foreground">
-              {category.name}
-            </span>
-            <span className="mt-0.5 block text-xs text-muted-foreground">
-              {category.productCount} produits
-            </span>
+      <div className="flex min-w-0 items-center gap-2">
+        <span
+          className={cn(
+            'flex h-7 w-7 shrink-0 items-center justify-center rounded-md',
+            isSelected
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-primary/10 text-primary',
+          )}
+          aria-hidden="true"
+        >
+          <Icon className="h-4 w-4" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold leading-5 text-foreground">
+            {category.name}
           </span>
         </span>
+        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[0.7rem] font-medium text-muted-foreground">
+          {category.productCount}
+        </span>
       </div>
-      <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-        <span>
+      <div className="mt-2 grid grid-cols-[1fr_1fr_auto] items-end gap-2 border-t border-border/60 pt-1.5 text-[0.7rem] leading-4">
+        <span className="min-w-0">
           <span className="block text-muted-foreground">Budget</span>
-          <span className="font-semibold text-foreground">
+          <span className="block truncate font-semibold text-foreground">
             {formatCurrency(category.selectedBudgetAmountTtc)}
           </span>
         </span>
-        <span>
+        <span className="min-w-0">
           <span className="block text-muted-foreground">Facturé</span>
-          <span className="font-semibold text-foreground">
+          <span className="block truncate font-semibold text-foreground">
             {formatCurrency(category.actualCostAmountTtc)}
           </span>
         </span>
-        <span>
+        <span className="min-w-0 text-right">
           <span className="block text-muted-foreground">Écart</span>
           <span
-            className={cn('font-semibold', varianceClass(category.varianceTtc))}
+            className={cn(
+              'block truncate font-semibold',
+              varianceClass(category.varianceTtc),
+            )}
           >
             {formatCurrency(category.varianceTtc)}
           </span>
@@ -277,7 +278,7 @@ export function BudgetTree({
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {categoryCards.map((category) => (
           <CategoryCard
             key={category.id}
