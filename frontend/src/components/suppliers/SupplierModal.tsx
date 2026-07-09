@@ -5,6 +5,11 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
+import {
+  buildPhoneNumber,
+  formatPhoneNumber,
+  splitPhoneNumber,
+} from '@/lib/phone'
 import type { Supplier } from '@/types'
 
 export type SupplierModalMode = 'create' | 'view' | 'edit'
@@ -12,6 +17,7 @@ export type SupplierModalMode = 'create' | 'view' | 'edit'
 type ContactDraft = {
   id: string
   name: string
+  phone_country_code: string
   phone_number: string
   email: string
   is_primary: boolean
@@ -37,15 +43,14 @@ function emptyContact(supplierId: string, isPrimary = false): ContactDraft {
   return {
     id: `${supplierId}-contact-${crypto.randomUUID()}`,
     name: '',
+    phone_country_code: '+33',
     phone_number: '',
     email: '',
     is_primary: isPrimary,
   }
 }
 
-function supplierToForm(
-  supplier: Supplier | null,
-): SupplierFormState {
+function supplierToForm(supplier: Supplier | null): SupplierFormState {
   const supplierId = supplier?.id ?? `supplier-${crypto.randomUUID()}`
 
   if (supplier === null) {
@@ -63,13 +68,18 @@ function supplierToForm(
     name: supplier.name,
     siret: supplier.siret ?? '',
     comment: supplier.comment ?? '',
-    contacts: supplier.contacts.map<ContactDraft>((contact) => ({
-      id: contact.id,
-      name: contact.name ?? '',
-      phone_number: contact.phone_number ?? '',
-      email: contact.email ?? '',
-      is_primary: contact.is_primary || supplier.contacts.length === 1,
-    })),
+    contacts: supplier.contacts.map<ContactDraft>((contact) => {
+      const phone = splitPhoneNumber(contact.phone_number)
+
+      return {
+        id: contact.id,
+        name: contact.name ?? '',
+        phone_country_code: phone.countryCode,
+        phone_number: phone.localNumber,
+        email: contact.email ?? '',
+        is_primary: contact.is_primary || supplier.contacts.length === 1,
+      }
+    }),
   }
 }
 
@@ -199,22 +209,27 @@ export function SupplierModal({
     setFormError(null)
 
     try {
+      const contacts = form.contacts.map((contact) => ({
+        id: contact.id,
+        supplier_id: supplierId,
+        name: normalizeOptional(contact.name),
+        phone_number: buildPhoneNumber(
+          contact.phone_country_code,
+          contact.phone_number,
+        ),
+        email: normalizeOptional(contact.email),
+        is_primary: form.contacts.length === 1 ? true : contact.is_primary,
+        created_at: null,
+        updated_at: null,
+      }))
+
       await onSave({
         id: supplierId,
         user_id: supplier?.user_id ?? '0',
         name: form.name.trim(),
         siret: normalizeBusinessIdentifier(form.siret),
         comment: normalizeOptional(form.comment) ?? '',
-        contacts: form.contacts.map((contact) => ({
-          id: contact.id,
-          supplier_id: supplierId,
-          name: normalizeOptional(contact.name),
-          phone_number: normalizeOptional(contact.phone_number),
-          email: normalizeOptional(contact.email),
-          is_primary: form.contacts.length === 1 ? true : contact.is_primary,
-          created_at: null,
-          updated_at: null,
-        })),
+        contacts,
         created_at: supplier?.created_at ?? null,
         updated_at: null,
         deleted_at: supplier?.deleted_at ?? null,
@@ -334,7 +349,7 @@ export function SupplierModal({
                         <span className="font-medium">
                           {readValue(contact.name)}
                         </span>
-                        <span>{readValue(contact.phone_number)}</span>
+                        <span>{formatPhoneNumber(contact.phone_number)}</span>
                         <span>{readValue(contact.email)}</span>
                         <span className="text-xs text-muted-foreground">
                           {contact.is_primary ? 'Principal' : ''}
@@ -422,7 +437,7 @@ export function SupplierModal({
                     {form.contacts.map((contact) => (
                       <div
                         key={contact.id}
-                        className="grid gap-2 py-1 lg:grid-cols-[minmax(12rem,1.1fr)_minmax(10rem,0.9fr)_minmax(17rem,1.45fr)_92px_40px]"
+                        className="grid gap-2 py-1 lg:grid-cols-[minmax(12rem,1.1fr)_72px_minmax(10rem,0.9fr)_minmax(17rem,1.45fr)_92px_40px]"
                       >
                         <Input
                           className="h-9 text-sm"
@@ -437,8 +452,19 @@ export function SupplierModal({
                         />
                         <Input
                           className="h-9 text-sm"
+                          aria-label="Indicatif téléphonique"
+                          placeholder="+33"
+                          value={contact.phone_country_code}
+                          onChange={(event) =>
+                            updateContact(contact.id, {
+                              phone_country_code: event.target.value,
+                            })
+                          }
+                        />
+                        <Input
+                          className="h-9 text-sm"
                           aria-label="Téléphone du contact"
-                          placeholder="Téléphone"
+                          placeholder="7 90 90 90 90"
                           value={contact.phone_number}
                           onChange={(event) =>
                             updateContact(contact.id, {

@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { apiConfig } from './config'
 import { apiDelete, apiGet, apiPatch, apiPost } from './client'
 import type { SupplierCreate, SupplierRead, SupplierUpdate } from './types'
+import { normalizePhoneNumber } from '@/lib/phone'
 
 type SupplierPayloadContactSource = {
   id: string
@@ -99,7 +100,7 @@ function contactsToCreatePayload(
 ): SupplierCreate['contacts'] {
   return supplier.contacts.map((contact) => ({
     name: nullableText(contact.name),
-    phone_number: nullableText(contact.phone_number),
+    phone_number: normalizePhoneNumber(contact.phone_number),
     email: nullableText(contact.email),
     is_primary: supplier.contacts.length === 1 ? true : contact.is_primary,
   }))
@@ -114,7 +115,7 @@ function contactsToUpdatePayload(
     return {
       id: Number.isInteger(contactId) ? contactId : null,
       name: nullableText(contact.name),
-      phone_number: nullableText(contact.phone_number),
+      phone_number: normalizePhoneNumber(contact.phone_number),
       email: nullableText(contact.email),
       is_primary: supplier.contacts.length === 1 ? true : contact.is_primary,
     }

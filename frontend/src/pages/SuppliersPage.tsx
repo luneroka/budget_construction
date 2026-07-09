@@ -30,11 +30,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type {
-  SupplierContact,
-  Supplier,
-} from '@/types'
+import type { SupplierContact, Supplier } from '@/types'
 import { notifyError, notifySuccess } from '@/lib/toasts'
+import { formatPhoneNumber, normalizePhoneNumber } from '@/lib/phone'
 import { useAppState } from '@/state/appState'
 
 function supplierToDomain(supplier: SupplierRead): Supplier {
@@ -69,9 +67,7 @@ function numberFromId(id: string): number {
   return value
 }
 
-function primaryContact(
-  supplier: Supplier,
-): SupplierContact | undefined {
+function primaryContact(supplier: Supplier): SupplierContact | undefined {
   return (
     supplier.contacts.find((contact) => contact.is_primary) ??
     supplier.contacts[0]
@@ -88,7 +84,11 @@ async function copyEmailToClipboard(email: string) {
 }
 
 function phoneHref(phoneNumber: string) {
-  return `tel:${phoneNumber.replace(/[^\d+]/g, '')}`
+  try {
+    return `tel:${normalizePhoneNumber(phoneNumber) ?? ''}`
+  } catch {
+    return `tel:${phoneNumber.replace(/[^\d+]/g, '')}`
+  }
 }
 
 export function SuppliersPage() {
@@ -96,8 +96,9 @@ export function SuppliersPage() {
   const { selectedProjectId } = useAppState()
   const [search, setSearch] = useState('')
   const [modalMode, setModalMode] = useState<SupplierModalMode | null>(null)
-  const [selectedSupplier, setSelectedSupplier] =
-    useState<Supplier | null>(null)
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
+    null,
+  )
   const suppliersQuery = useSuppliersQuery({ enabled: true })
   const createSupplierMutation = useCreateSupplierMutation()
   const updateSupplierMutation = useUpdateSupplierMutation()
@@ -259,7 +260,7 @@ export function SuppliersPage() {
                 className="-mx-2 -my-1 inline-flex rounded-md px-2 py-1 text-gold underline underline-offset-4 transition-colors hover:bg-gold/15 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 href={phoneHref(contact.phone_number)}
               >
-                {contact.phone_number}
+                {formatPhoneNumber(contact.phone_number)}
               </a>
             ) : (
               '-'

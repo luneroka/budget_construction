@@ -79,6 +79,30 @@ def test_supplier_update_validates_siret() -> None:
         SupplierUpdate(siret='invalid')
 
 
+def test_supplier_contact_normalizes_phone_number() -> None:
+    contact = SupplierContactCreate(
+        phone_number=' 07.89-87 67 65 ',
+        is_primary=True,
+    )
+
+    assert contact.phone_number == '0789876765'
+
+
+def test_supplier_contact_allows_leading_country_code_plus() -> None:
+    contact = SupplierContactCreate(
+        phone_number=' +33 (7) 78.98.67.76 ',
+        is_primary=True,
+    )
+
+    assert contact.phone_number == '+33778986776'
+
+
+@pytest.mark.parametrize('phone_number', ['07+89 87 67 65', '07 89 ABC'])
+def test_supplier_contact_rejects_invalid_phone_number(phone_number: str) -> None:
+    with pytest.raises(ValidationError):
+        SupplierContactCreate(phone_number=phone_number, is_primary=True)
+
+
 def test_supplier_create_requires_one_primary_contact() -> None:
     with pytest.raises(ValidationError):
         SupplierCreate(

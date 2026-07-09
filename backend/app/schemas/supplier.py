@@ -28,13 +28,37 @@ def normalize_siret(value: Any) -> str | None:
     return siret
 
 
+def normalize_phone_number(value: Any) -> str | None:
+    if value is None:
+        return None
+
+    if not isinstance(value, str):
+        raise ValueError('phone_number must be a string')
+
+    phone_number = value.strip()
+    if phone_number == '':
+        return None
+
+    has_leading_plus = phone_number.startswith('+')
+    rest = phone_number[1:] if has_leading_plus else phone_number
+    if '+' in rest:
+        raise ValueError('phone_number can only contain + as the first character')
+    if any(character.isalpha() for character in rest):
+        raise ValueError('phone_number can only contain digits and punctuation')
+
+    prefix = '+' if has_leading_plus else ''
+    digits = ''.join(character for character in rest if character.isdigit())
+    normalized = f'{prefix}{digits}'
+    return normalized if normalized not in {'', '+'} else None
+
+
 class SupplierContactBase(BaseModel):
     name: str | None = None
     phone_number: str | None = None
     email: EmailStr | None = None
     is_primary: bool = False
 
-    @field_validator('name', 'phone_number', mode='before')
+    @field_validator('name', mode='before')
     @classmethod
     def normalize_optional_text(cls, value: Any) -> str | None:
         if value is None:
@@ -43,6 +67,11 @@ class SupplierContactBase(BaseModel):
             raise ValueError('value must be a string')
         normalized = value.strip()
         return normalized or None
+
+    @field_validator('phone_number', mode='before')
+    @classmethod
+    def validate_phone_number(cls, value: Any) -> str | None:
+        return normalize_phone_number(value)
 
     @model_validator(mode='after')
     def validate_not_empty(self) -> Self:
