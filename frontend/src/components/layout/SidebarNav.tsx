@@ -23,10 +23,10 @@ const primaryItems: SidebarItem[] = [
   { label: 'Transactions', to: '/transactions', icon: ArrowLeftRight },
   { label: 'Fournisseurs', to: '/suppliers', icon: Users },
   { label: 'Documents', to: '/documents', icon: FileText },
-  { label: 'Corbeille', to: '/trash', icon: Trash2 },
 ]
 
 const secondaryItems: SidebarItem[] = [
+  { label: 'Corbeille', to: '/trash', icon: Trash2 },
   { label: 'Paramètres', to: '/settings', icon: Settings },
 ]
 

@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { AlertCircle, Check, FolderPlus, Loader2, X } from 'lucide-react'
 import { createPortal } from 'react-dom'
 
@@ -52,11 +52,6 @@ export function ProjectOnboardingDialog({
 }: ProjectOnboardingDialogProps) {
   const [form, setForm] = useState<FormState>(initialForm)
   const [formError, setFormError] = useState<string | null>(null)
-
-  const selectedTemplate = useMemo(
-    () => templates.find((template) => String(template.id) === form.templateId),
-    [form.templateId, templates],
-  )
 
   useEffect(() => {
     if (!open) {
@@ -136,7 +131,7 @@ export function ProjectOnboardingDialog({
                 id="project-onboarding-title"
                 className="font-heading text-xl font-semibold"
               >
-                Initialiser un budget de construction
+                Initialiser un projet de construction
               </h2>
             </div>
           </div>
@@ -155,27 +150,15 @@ export function ProjectOnboardingDialog({
           ) : null}
         </div>
 
-        <div className="border-b border-border px-5 py-3">
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            <ProgressStep label="Projet" state="done" />
-            <ProgressStep
-              label="Modèle"
-              state={selectedTemplate ? 'done' : 'current'}
-            />
-            <ProgressStep
-              label="Initialisation"
-              state={isCreating ? 'current' : 'pending'}
-            />
-          </div>
-        </div>
-
         <div className="overflow-y-auto px-5 py-5">
           <div className="grid gap-5">
             <section className="grid gap-3">
               <div>
-                <h3 className="text-sm font-semibold">Informations du projet</h3>
+                <h3 className="text-sm font-semibold">
+                  Informations principales du projet
+                </h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Les dates et détails avancés pourront être complétés plus tard.
+                  Les détails avancés pourront être complétés plus tard.
                 </p>
               </div>
 
@@ -202,7 +185,7 @@ export function ProjectOnboardingDialog({
                   <Textarea
                     id="project-description"
                     value={form.description}
-                    placeholder="Objectif, périmètre ou notes principales"
+                    placeholder="Décrire l'objectif et le périmètre du projet..."
                     disabled={isCreating}
                     className="min-h-20"
                     onChange={(event) =>
@@ -237,7 +220,8 @@ export function ProjectOnboardingDialog({
               <div>
                 <h3 className="text-sm font-semibold">Modèle de budget</h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Le backend prépare le projet à partir du modèle sélectionné.
+                  Les éléments qui composent le budget seront automatiquement
+                  ajoutés à partir du modèle sélectionné.
                 </p>
               </div>
 
@@ -339,26 +323,5 @@ export function ProjectOnboardingDialog({
       </form>
     </div>,
     document.body,
-  )
-}
-
-type ProgressStepProps = {
-  label: string
-  state: 'done' | 'current' | 'pending'
-}
-
-function ProgressStep({ label, state }: ProgressStepProps) {
-  return (
-    <span
-      className={`flex items-center justify-center rounded-md border px-2 py-2 font-medium ${
-        state === 'done'
-          ? 'border-success/35 bg-success/10 text-success'
-          : state === 'current'
-            ? 'border-accent/35 bg-accent/10 text-accent'
-            : 'border-border bg-background text-muted-foreground'
-      }`}
-    >
-      {label}
-    </span>
   )
 }

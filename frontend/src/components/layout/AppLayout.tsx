@@ -18,7 +18,7 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen flex font-body">
-      <aside className="w-64 bg-sidebar text-sidebar-foreground flex flex-col  shrink-0 sticky top-0 h-screen">
+      <aside className="w-58 bg-sidebar text-sidebar-foreground flex flex-col  shrink-0 sticky top-0 h-screen">
         <ProjectSwitcher />
         <SidebarNav />
         <div className="border-t border-sidebar-border p-4">

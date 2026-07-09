@@ -299,7 +299,7 @@ export function ProjectsSettingsPage() {
       <SettingsBackButton />
       <PageHeader
         title="Projets"
-        description="Gestion du projet actuel, de son modèle et des actions sensibles."
+        description="Visualisation et gestion des projets."
         actions={
           <Button variant="gold" onClick={projectOnboarding.open}>
             <FolderPlus aria-hidden />
@@ -632,46 +632,53 @@ export function ProjectsSettingsPage() {
             )}
           </SectionCard>
 
-          <SectionCard
-            title="Zone de danger"
-            description="Actions sensibles sur le projet actuel."
-            icon={AlertTriangle}
-          >
-            <div className="project-settings-grid-three grid gap-3">
-              <DangerAction
-                title="Archiver le projet"
-                description="Masquer le projet sans le supprimer."
-                disabled
-                icon={<Archive aria-hidden />}
-              />
-              <DangerAction
-                title="Dupliquer le projet"
-                description="Créer une copie complète du budget."
-                disabled
-                icon={<Copy aria-hidden />}
-              />
-              <div className="flex min-h-36 flex-col justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-4">
-                <div>
-                  <div className="flex items-center gap-2 text-destructive">
-                    <AlertTriangle className="h-4 w-4" aria-hidden />
-                    <p className="font-medium">Supprimer le projet</p>
+          {/*
+            Hidden until users are ready to understand the consequences of removal.
+            Before exposing this again, add safeguards: soft-delete, recoverable
+            projects, a clearer flow, and additional confirmation dialogs.
+          */}
+          {false ? (
+            <SectionCard
+              title="Zone de danger"
+              description="Actions sensibles sur le projet actuel."
+              icon={AlertTriangle}
+            >
+              <div className="project-settings-grid-three grid gap-3">
+                <DangerAction
+                  title="Archiver le projet"
+                  description="Masquer le projet sans le supprimer."
+                  disabled
+                  icon={<Archive aria-hidden />}
+                />
+                <DangerAction
+                  title="Dupliquer le projet"
+                  description="Créer une copie complète du budget."
+                  disabled
+                  icon={<Copy aria-hidden />}
+                />
+                <div className="flex min-h-36 flex-col justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-destructive">
+                      <AlertTriangle className="h-4 w-4" aria-hidden />
+                      <p className="font-medium">Supprimer le projet</p>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Le projet ainsi que toutes ses données seront supprimés.
+                    </p>
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Le projet ainsi que toutes ses données seront supprimés.
-                  </p>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setShowDeleteDialog(true)}
+                  >
+                    <Trash2 aria-hidden />
+                    Supprimer
+                  </Button>
                 </div>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => setShowDeleteDialog(true)}
-                >
-                  <Trash2 aria-hidden />
-                  Supprimer
-                </Button>
               </div>
-            </div>
-          </SectionCard>
+            </SectionCard>
+          ) : null}
         </div>
       ) : null}
 
@@ -687,27 +694,31 @@ export function ProjectsSettingsPage() {
         onSubmit={projectOnboarding.submit}
       />
 
-      {showDeleteDialog && currentProject ? (
-        <ConfirmationDialog
-          title="Supprimer ce projet ?"
-          description="Cette action supprime le projet ainsi que toutes ses données."
-          error={deleteError}
-          isPending={deleteProjectMutation.isPending}
-          confirmLabel="Supprimer le projet"
-          pendingLabel="Suppression..."
-          onCancel={() => {
-            if (deleteProjectMutation.isPending) return
-            setShowDeleteDialog(false)
-            setDeleteError(null)
-          }}
-          onConfirm={handleDeleteProject}
-        >
-          <p className="font-medium text-foreground">{currentProject.name}</p>
-          <p className="mt-1 text-muted-foreground">
-            {pluralize(productsCount, 'produit')} ·{' '}
-            {pluralize(transactionsCount, 'transaction')}
-          </p>
-        </ConfirmationDialog>
+      {false ? (
+        showDeleteDialog && currentProject ? (
+          <ConfirmationDialog
+            title="Supprimer ce projet ?"
+            description="Cette action supprime le projet ainsi que toutes ses données."
+            error={deleteError}
+            isPending={deleteProjectMutation.isPending}
+            confirmLabel="Supprimer le projet"
+            pendingLabel="Suppression..."
+            onCancel={() => {
+              if (deleteProjectMutation.isPending) return
+              setShowDeleteDialog(false)
+              setDeleteError(null)
+            }}
+            onConfirm={handleDeleteProject}
+          >
+            <p className="font-medium text-foreground">
+              {currentProject?.name ?? ''}
+            </p>
+            <p className="mt-1 text-muted-foreground">
+              {pluralize(productsCount, 'produit')} ·{' '}
+              {pluralize(transactionsCount, 'transaction')}
+            </p>
+          </ConfirmationDialog>
+        ) : null
       ) : null}
     </section>
   )

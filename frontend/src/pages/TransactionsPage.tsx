@@ -650,11 +650,7 @@ export function TransactionsPage() {
     <section>
       <PageHeader
         title="Transactions"
-        description={
-          project
-            ? `${project.name} · Vue chronologique de toutes les transactions du projet.`
-            : 'Vue chronologique de toutes les transactions du projet.'
-        }
+        description="Vue chronologique de toutes les transactions du projet."
       />
 
       <div className="mt-4 flex flex-wrap gap-2">

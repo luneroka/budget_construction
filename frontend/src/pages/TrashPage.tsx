@@ -258,7 +258,7 @@ export function TrashPage() {
     <section>
       <PageHeader
         title="Corbeille"
-        description="Éléments supprimés du projet actif."
+        description="Voir et gérer tous les éléments supprimés (transactions, fournisseurs et documents)."
       />
 
       {trashError ? (

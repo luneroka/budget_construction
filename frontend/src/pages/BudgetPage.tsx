@@ -78,24 +78,6 @@ export function BudgetPage() {
     () => suppliersToViewModel(suppliersQuery.data),
     [suppliersQuery.data],
   )
-  const visibleCounts = useMemo(() => {
-    if (!workspace) {
-      return {
-        categories: 0,
-        products: 0,
-        transactions: 0,
-      }
-    }
-
-    return {
-      categories: workspace.categories.length,
-      products: workspace.financialSummary.products.length,
-      transactions:
-        workspace.financialSummary.quote_count +
-        workspace.financialSummary.diy_estimate_count +
-        workspace.financialSummary.invoice_count,
-    }
-  }, [workspace])
 
   useEffect(() => {
     if (!productFocusParam) return
@@ -271,7 +253,7 @@ export function BudgetPage() {
     <section>
       <PageHeader
         title="Budget"
-        description={`${project.name} · ${visibleCounts.categories} catégories, ${visibleCounts.products} produits et ${visibleCounts.transactions} transactions.`}
+        description="Espace de travail principal pour ajouter des transactions (devis, factures...) au sein de la hiérarchie de produits."
       />
 
       <BudgetSummaryCards summary={financialSummary} />
