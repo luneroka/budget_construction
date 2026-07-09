@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: Optional[int] = None
     resend_api_key: Optional[str] = None
     resend_from: Optional[str] = None
+    support_email: Optional[str] = None
     app_url: Optional[str] = None
     r2_endpoint_url: Optional[str] = None
     r2_access_key_id: Optional[str] = None

@@ -5,6 +5,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/auth/authContext'
 import { Button } from '@/components/ui/button'
 import { ProjectSwitcher } from './ProjectSwitcher'
+import { ReportIssueDrawer } from './ReportIssueDrawer'
 import { SidebarNav } from './SidebarNav'
 
 export function AppLayout() {
@@ -96,6 +97,7 @@ export function AppLayout() {
           <Outlet />
         </div>
       </main>
+      <ReportIssueDrawer />
     </div>
   )
 }

@@ -22,6 +22,7 @@ from app.routers import (
     transactions,
     documents,
     exports,
+    issue_reports,
     trash,
     admin,
 )
@@ -60,6 +61,7 @@ app.include_router(projects.router)
 app.include_router(budget_lines.router)
 app.include_router(budget_lines.product_router)
 app.include_router(exports.router)
+app.include_router(issue_reports.router)
 app.include_router(transactions.project_router)
 app.include_router(transactions.router)
 app.include_router(transactions.product_router)

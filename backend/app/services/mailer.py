@@ -1,31 +1,49 @@
+import base64
 import logging
 from html import escape
-from typing import Any
+from typing import Any, TypedDict
 
 import httpx
 
 from app.core.settings import settings
+from app.models.user import User
+from app.schemas.issue_report import IssueReportCategory, IssueReportMetadata
 
 RESEND_API_URL = 'https://api.resend.com/emails'
 logger = logging.getLogger(__name__)
 
 
+class EmailAttachment(TypedDict):
+    filename: str
+    content_type: str
+    content: bytes
+
+
+def _resend_config_available() -> bool:
+    if not settings.resend_api_key or not settings.resend_from:
+        return False
+    return True
+
+
+def _resend_headers() -> dict[str, str]:
+    return {
+        'Authorization': f'Bearer {settings.resend_api_key}',
+        'Content-Type': 'application/json',
+    }
+
+
 async def send_reset_password_email(
     to_email: str, reset_link: str, subject: str = 'Réinitialisation du mot de passe'
 ) -> bool:
-    api_key = settings.resend_api_key
     from_email = settings.resend_from
 
-    if not api_key or not from_email:
+    if not _resend_config_available():
         logger.error(
             'Cannot send password reset email: Resend configuration is missing'
         )
         return False
 
-    headers: dict[str, str] = {
-        'Authorization': f'Bearer {api_key}',
-        'Content-Type': 'application/json',
-    }
+    headers = _resend_headers()
 
     safe_reset_link = escape(reset_link, quote=True)
 
@@ -130,4 +148,107 @@ Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mai
             return True
     except Exception:
         logger.exception('Failed to send password reset email through Resend')
+        return False
+
+
+async def send_issue_report_email(
+    *,
+    category: IssueReportCategory,
+    description: str,
+    metadata: IssueReportMetadata,
+    user: User,
+    attachments: list[EmailAttachment],
+) -> bool:
+    if not _resend_config_available():
+        logger.error('Cannot send issue report email: Resend configuration is missing')
+        return False
+
+    recipient_email = settings.support_email or settings.resend_from
+    if settings.support_email is None:
+        logger.info(
+            'SUPPORT_EMAIL is not configured; using RESEND_FROM for issue reports'
+        )
+
+    category_label = str(category).replace('_', ' ').title()
+    attachment_names = [attachment['filename'] for attachment in attachments]
+    metadata_rows: list[tuple[str, str]] = [
+        ('Page', metadata.route),
+        ('Project', metadata.project_name or 'None'),
+        ('User', f'{user.name} <{user.email}>'),
+        ('User ID', str(user.id)),
+        ('Browser', metadata.user_agent),
+        ('Timestamp', metadata.timestamp.isoformat()),
+        (
+            'Attachments',
+            ', '.join(attachment_names) if attachment_names else 'None',
+        ),
+    ]
+
+    html_metadata = ''.join(
+        '<tr>'
+        f'<th align="left" style="padding:6px 10px; border-bottom:1px solid #dde3ea;">{escape(label)}</th>'
+        f'<td style="padding:6px 10px; border-bottom:1px solid #dde3ea;">{escape(value)}</td>'
+        '</tr>'
+        for label, value in metadata_rows
+    )
+    text_metadata = '\n'.join(f'{label}: {value}' for label, value in metadata_rows)
+    subject = f'Budget Construction issue report: {category_label}'
+
+    html = f"""\
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><title>{escape(subject)}</title></head>
+  <body style="font-family:Arial, sans-serif; color:#1b2433;">
+    <h1 style="font-size:20px;">{escape(subject)}</h1>
+    <p style="white-space:pre-wrap;">{escape(description)}</p>
+    <h2 style="font-size:16px;">Metadata</h2>
+    <table cellspacing="0" cellpadding="0" style="border-collapse:collapse;">{html_metadata}</table>
+  </body>
+</html>
+"""
+
+    text = f"""\
+{subject}
+
+{description}
+
+Metadata
+{text_metadata}
+"""
+
+    payload: dict[str, Any] = {
+        'from': settings.resend_from,
+        'to': [recipient_email],
+        'reply_to': user.email,
+        'subject': subject,
+        'html': html,
+        'text': text,
+    }
+
+    if attachments:
+        payload['attachments'] = [
+            {
+                'filename': attachment['filename'],
+                'content': base64.b64encode(attachment['content']).decode('ascii'),
+                'content_type': attachment['content_type'],
+            }
+            for attachment in attachments
+        ]
+
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                RESEND_API_URL, json=payload, headers=_resend_headers(), timeout=10.0
+            )
+
+            if resp.status_code not in (200, 202):
+                logger.error(
+                    'Resend rejected issue report email with status code %s',
+                    resp.status_code,
+                )
+                return False
+
+            return True
+    except Exception:
+        logger.exception('Failed to send issue report email through Resend')
         return False
