@@ -1,4 +1,4 @@
-import { Download, ExternalLink } from 'lucide-react'
+import { Download } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 
@@ -66,12 +66,6 @@ export function DocumentViewerDialog({
               title={title}
               className="h-full w-full border-0 bg-black"
             />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent p-4 text-white/80">
-              <div className="flex items-center gap-2 text-xs">
-                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                Ouvrir dans un nouvel onglet si l’aperçu ne s’affiche pas.
-              </div>
-            </div>
           </div>
         )}
       </div>

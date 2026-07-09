@@ -2,6 +2,7 @@ import { Badge, type BadgeVariant } from '@/components/ui/badge'
 
 type StatusBadgeProps = {
   status: string
+  disabled?: boolean
 }
 
 const statusVariants: Record<string, BadgeVariant> = {
@@ -56,9 +57,13 @@ const statusLabels: Record<string, string> = {
   upload_error: 'Erreur',
 }
 
-export function StatusBadge({ status }: StatusBadgeProps) {
+export function StatusBadge({ status, disabled = false }: StatusBadgeProps) {
   return (
-    <Badge variant={statusVariants[status] ?? 'muted'}>
+    <Badge
+      variant={statusVariants[status] ?? 'muted'}
+      className={disabled ? 'opacity-45 saturate-50' : undefined}
+      aria-disabled={disabled || undefined}
+    >
       {statusLabels[status] ?? status}
     </Badge>
   )

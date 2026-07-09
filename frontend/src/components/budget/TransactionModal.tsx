@@ -1559,7 +1559,10 @@ export function TransactionReviewModal({
             <div>
               <p className="text-xs font-medium">Type</p>
               <div className="mt-1 flex h-9 items-center rounded-md border border-input bg-muted/30 px-3">
-                <StatusBadge status={transaction.transaction_type} />
+                <StatusBadge
+                  status={transaction.transaction_type}
+                  disabled={isEditing}
+                />
               </div>
             </div>
             <Field label="Statut" htmlFor="review-transaction-status">
