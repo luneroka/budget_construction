@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { Hammer, Layers3, type LucideIcon } from 'lucide-react'
 
 import type { ViewedTransactionContext } from '@/components/budget/TransactionModal'
@@ -16,8 +16,9 @@ import type {
   BreakdownAction,
   TransactionAction,
 } from '@/components/budget/types'
+import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
-import type { BudgetCategory, BudgetLine, Transaction } from '@/types'
+import type { BudgetCategory, BudgetLine, Product, Transaction } from '@/types'
 import { useBudgetExpansion } from '@/hooks/useBudgetExpansion'
 import type { BudgetSelectionState } from '@/lib/budgetDomain'
 import {
@@ -64,6 +65,27 @@ type CategoryNavigationCard = {
 
 const ALL_CATEGORIES_ID = 'all'
 const ALL_SUBCATEGORIES_ID = 'all'
+
+function normalizeSearchText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase()
+    .trim()
+}
+
+function productMatchesSearch(product: Product, normalizedSearch: string) {
+  if (!normalizedSearch) return true
+
+  const searchableValues = [
+    product.product_name,
+    ...product.budget_lines.map((line) => line.name),
+  ]
+
+  return searchableValues.some((value) =>
+    normalizeSearchText(value).includes(normalizedSearch),
+  )
+}
 
 function CategoryCard({
   category,
@@ -168,6 +190,15 @@ export function BudgetTree({
     openProduct,
   } = useBudgetExpansion()
   const focusedProductRef = useRef<HTMLTableRowElement | null>(null)
+  const [productSearch, setProductSearch] = useState('')
+  const [searchOpenProductIds, setSearchOpenProductIds] = useState<Set<string>>(
+    () => new Set(),
+  )
+  const normalizedProductSearch = useMemo(
+    () => normalizeSearchText(productSearch),
+    [productSearch],
+  )
+  const isSearchActive = normalizedProductSearch.length > 0
   const allProducts = useMemo(
     () => categories.flatMap((category) => category.products),
     [categories],
@@ -217,7 +248,7 @@ export function BudgetTree({
     () => groupProductsBySubcategory(categoryProducts),
     [categoryProducts],
   )
-  const visibleProducts = useMemo(() => {
+  const filteredProducts = useMemo(() => {
     if (selectedSubcategoryName === ALL_SUBCATEGORIES_ID)
       return categoryProducts
 
@@ -225,6 +256,26 @@ export function BudgetTree({
       (product) => product.subcategory_name === selectedSubcategoryName,
     )
   }, [categoryProducts, selectedSubcategoryName])
+  const visibleProducts = useMemo(
+    () =>
+      filteredProducts.filter((product) =>
+        productMatchesSearch(product, normalizedProductSearch),
+      ),
+    [filteredProducts, normalizedProductSearch],
+  )
+
+  useEffect(() => {
+    setSearchOpenProductIds(new Set())
+  }, [normalizedProductSearch])
+
+  function toggleSearchProduct(productId: string) {
+    setSearchOpenProductIds((current) => {
+      const next = new Set(current)
+      if (next.has(productId)) next.delete(productId)
+      else next.add(productId)
+      return next
+    })
+  }
 
   useEffect(() => {
     if (
@@ -321,6 +372,19 @@ export function BudgetTree({
         ))}
       </div>
 
+      <div className="max-w-sm">
+        <label className="sr-only" htmlFor="budget-product-search">
+          Rechercher un produit
+        </label>
+        <Input
+          id="budget-product-search"
+          type="search"
+          value={productSearch}
+          placeholder="Rechercher un produit..."
+          onChange={(event) => setProductSearch(event.target.value)}
+        />
+      </div>
+
       <div className="overflow-hidden rounded-lg border border-border bg-card">
         <Table>
           <TableBody>
@@ -330,12 +394,16 @@ export function BudgetTree({
                   colSpan={7}
                   className="px-4 py-6 text-sm text-muted-foreground"
                 >
-                  Aucun produit dans cette sélection.
+                  {isSearchActive
+                    ? 'Aucun produit ne correspond à votre recherche.'
+                    : 'Aucun produit dans cette sélection.'}
                 </TableCell>
               </TableRow>
             ) : (
               visibleProducts.map((product) => {
-                const isProductOpen = openProducts.has(product.product_id)
+                const isProductOpen = isSearchActive
+                  ? searchOpenProductIds.has(product.product_id)
+                  : openProducts.has(product.product_id)
                 const wholeProductLine = getWholeProductBudgetLine(product)
                 const selectedWholeProductLine = wholeProductLine
                   ? getLineWithBudgetSelection(wholeProductLine)
@@ -353,7 +421,11 @@ export function BudgetTree({
                       product={product}
                       isFocused={focusedProductId === product.product_id}
                       isOpen={isProductOpen}
-                      onToggle={() => toggleProduct(product.product_id)}
+                      onToggle={() =>
+                        isSearchActive
+                          ? toggleSearchProduct(product.product_id)
+                          : toggleProduct(product.product_id)
+                      }
                     />
                     {isProductOpen ? (
                       isEmptyProduct ? (
