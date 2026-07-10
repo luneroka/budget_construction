@@ -1,6 +1,6 @@
 from datetime import date
 from decimal import Decimal
-from typing import cast
+from typing import BinaryIO, cast
 
 from httpx import AsyncClient
 import pytest
@@ -231,3 +231,124 @@ async def test_document_download_url_passes_requested_inline_option(
             'inline': False,
         },
     ]
+
+
+@pytest.mark.parametrize(
+    ('method', 'path_suffix'),
+    [
+        ('GET', ''),
+        ('GET', '/download-url'),
+        ('DELETE', ''),
+        ('DELETE', '/permanent'),
+    ],
+)
+async def test_document_id_cannot_access_or_delete_another_users_file(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+    method: str,
+    path_suffix: str,
+) -> None:
+    owner_token = await create_authenticated_user(
+        client,
+        email=f'document-owner-{method}-{path_suffix.replace("/", "-")}@example.com',
+    )
+    attacker_token = await create_authenticated_user(
+        client,
+        email=f'document-attacker-{method}-{path_suffix.replace("/", "-")}@example.com',
+    )
+    owner = await user_by_email(
+        db_session,
+        f'document-owner-{method}-{path_suffix.replace("/", "-")}@example.com',
+    )
+    document = await create_document_fixture(
+        db_session,
+        owner,
+        transaction_type=TransactionType.invoice,
+        description='Private invoice',
+        filename=f'private-{method}-{path_suffix.replace("/", "-")}.pdf',
+    )
+    storage_calls: list[str] = []
+
+    def record_download(
+        object_key: str,
+        filename: str | None = None,
+        expires_in: int = 300,
+        inline: bool = False,
+    ) -> str:
+        del object_key, filename, expires_in, inline
+        storage_calls.append('download')
+        return 'unexpected'
+
+    def record_delete(object_key: str) -> None:
+        del object_key
+        storage_calls.append('delete')
+
+    monkeypatch.setattr(
+        'app.routers.documents.generate_download_url',
+        record_download,
+    )
+    monkeypatch.setattr(
+        'app.routers.documents.delete_file_from_r2',
+        record_delete,
+    )
+
+    response = await client.request(
+        method,
+        f'/documents/{document.id}{path_suffix}',
+        headers={'Authorization': f'Bearer {attacker_token}'},
+    )
+
+    assert owner_token
+    assert response.status_code == 404
+    assert storage_calls == []
+    persisted_document = await db_session.get(Document, document.id)
+    assert persisted_document is not None
+    assert persisted_document.deleted_at is None
+
+
+async def test_document_upload_rejects_another_users_transaction_before_storage(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await create_authenticated_user(
+        client,
+        email='document-upload-owner@example.com',
+    )
+    attacker_token = await create_authenticated_user(
+        client,
+        email='document-upload-attacker@example.com',
+    )
+    owner = await user_by_email(db_session, 'document-upload-owner@example.com')
+    document = await create_document_fixture(
+        db_session,
+        owner,
+        transaction_type=TransactionType.invoice,
+        description='Private upload target',
+        filename='private-upload-target.pdf',
+    )
+    upload_calls: list[str] = []
+
+    def record_upload(
+        file: BinaryIO,
+        object_key: str,
+        content_type: str,
+    ) -> str:
+        del file, object_key, content_type
+        upload_calls.append('upload')
+        return 'unexpected'
+
+    monkeypatch.setattr(
+        'app.routers.documents.upload_file_to_r2',
+        record_upload,
+    )
+
+    response = await client.post(
+        f'/transactions/{document.transaction_id}/documents',
+        headers={'Authorization': f'Bearer {attacker_token}'},
+        files={'file': ('attack.pdf', b'%PDF-1.7\nforeign target', 'application/pdf')},
+    )
+
+    assert response.status_code == 404
+    assert upload_calls == []

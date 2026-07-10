@@ -5,6 +5,7 @@ from app.core.security import (
     create_password_reset_token,
     decode_password_reset_token,
     hash_password,
+    password_reset_token_matches_password,
     verify_password,
 )
 from app.repositories import user as user_repository
@@ -50,7 +51,9 @@ async def generate_password_reset_token(
 
     # Use user id as subject to avoid exposing email in token
     return create_password_reset_token(
-        subject=str(user.id), expires_minutes=expires_minutes
+        subject=str(user.id),
+        hashed_password=user.hashed_password,
+        expires_minutes=expires_minutes,
     )
 
 
@@ -73,6 +76,9 @@ async def reset_password(db: AsyncSession, token: str, new_password: str) -> boo
     user = await user_repository.get_user_by_id(db, user_id)
 
     if user is None or not user.is_active:
+        return False
+
+    if not password_reset_token_matches_password(payload, user.hashed_password):
         return False
 
     hashed = hash_password(new_password)

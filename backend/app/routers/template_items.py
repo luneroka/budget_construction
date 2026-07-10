@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
-from app.dependencies.auth import get_current_user
+from app.dependencies.auth import get_current_admin_user, get_current_user
 from app.repositories import template as template_repository
 from app.repositories import template_item as template_item_repository
 from app.routers.integrity import raise_integrity_conflict
@@ -36,7 +36,12 @@ async def _require_template(db: AsyncSession, template_id: int) -> None:
         )
 
 
-@router.post('/', response_model=TemplateItemRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    '/',
+    response_model=TemplateItemRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_admin_user)],
+)
 async def create_template_item(
     template_id: int,
     template_item_data: TemplateItemCreate,
@@ -64,6 +69,7 @@ async def create_template_item(
     '/bulk',
     response_model=list[TemplateItemRead],
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_admin_user)],
 )
 async def create_template_items_bulk(
     template_id: int,
@@ -118,7 +124,11 @@ async def get_template_item(
     return template_item
 
 
-@router.patch('/{template_item_id}', response_model=TemplateItemRead)
+@router.patch(
+    '/{template_item_id}',
+    response_model=TemplateItemRead,
+    dependencies=[Depends(get_current_admin_user)],
+)
 async def update_template_item(
     template_id: int,
     template_item_id: int,
@@ -144,7 +154,11 @@ async def update_template_item(
         await raise_integrity_conflict(db, error)
 
 
-@router.delete('/{template_item_id}', status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    '/{template_item_id}',
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_current_admin_user)],
+)
 async def delete_template_item(
     template_id: int,
     template_item_id: int,

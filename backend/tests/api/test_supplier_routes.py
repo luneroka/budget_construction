@@ -1,6 +1,7 @@
 from typing import cast
 
 from httpx import AsyncClient
+import pytest
 
 PASSWORD = 'Password123!'
 JsonValue = None | bool | int | float | str | list['JsonValue'] | dict[str, 'JsonValue']
@@ -156,3 +157,45 @@ async def test_supplier_create_rejects_multiple_primary_contacts(
     )
 
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize('method', ['GET', 'PATCH', 'DELETE'])
+async def test_supplier_id_cannot_access_or_mutate_another_users_supplier(
+    client: AsyncClient,
+    method: str,
+) -> None:
+    owner_token = await create_authenticated_user(
+        client,
+        email=f'supplier-owner-{method}@example.com',
+    )
+    attacker_token = await create_authenticated_user(
+        client,
+        email=f'supplier-attacker-{method}@example.com',
+    )
+    create_payload: dict[str, JsonValue] = {
+        'name': f'Private Supplier {method}',
+        'contacts': [{'name': 'Private Contact', 'is_primary': True}],
+    }
+    create_response = await client.post(
+        '/suppliers/',
+        headers={'Authorization': f'Bearer {owner_token}'},
+        json=create_payload,
+    )
+    assert create_response.status_code == 201
+    supplier_id = create_response.json()['id']
+
+    response = await client.request(
+        method,
+        f'/suppliers/{supplier_id}',
+        headers={'Authorization': f'Bearer {attacker_token}'},
+        json={'name': 'Attacker rename'} if method == 'PATCH' else None,
+    )
+
+    assert response.status_code == 404
+
+    owner_response = await client.get(
+        f'/suppliers/{supplier_id}',
+        headers={'Authorization': f'Bearer {owner_token}'},
+    )
+    assert owner_response.status_code == 200
+    assert owner_response.json()['name'] == f'Private Supplier {method}'

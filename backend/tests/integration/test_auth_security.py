@@ -184,3 +184,31 @@ async def test_reset_token_for_missing_or_inactive_user_is_not_generated(
     reset_token = await auth_service.generate_password_reset_token(db_session, email)
 
     assert reset_token is None
+
+
+async def test_password_reset_token_cannot_be_replayed(
+    db_session: AsyncSession,
+) -> None:
+    user = await create_user(
+        db_session,
+        email='single-use-reset-token@example.com',
+    )
+    reset_token = await auth_service.generate_password_reset_token(
+        db_session,
+        user.email,
+    )
+    assert reset_token is not None
+
+    first_reset = await auth_service.reset_password(
+        db_session,
+        reset_token,
+        'NewPassword123!',
+    )
+    replayed_reset = await auth_service.reset_password(
+        db_session,
+        reset_token,
+        'AttackerChosenPassword123!',
+    )
+
+    assert first_reset is True
+    assert replayed_reset is False

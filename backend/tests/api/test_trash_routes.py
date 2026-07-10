@@ -288,6 +288,39 @@ async def test_restore_supplier_only_restores_supplier(
     assert transaction.supplier_id == supplier_id
 
 
+@pytest.mark.parametrize('operation', ['restore', 'permanent-delete'])
+async def test_supplier_trash_mutations_require_an_owned_project(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    operation: str,
+) -> None:
+    access_token, _, _, _, supplier_id = await create_trash_context(
+        db_session,
+        email=f'supplier-project-scope-{operation}@example.com',
+    )
+    _, foreign_project_id, *_ = await create_trash_context(
+        db_session,
+        email=f'foreign-supplier-project-scope-{operation}@example.com',
+    )
+
+    url = f'/projects/{foreign_project_id}/trash/suppliers/{supplier_id}'
+    if operation == 'restore':
+        response = await client.post(
+            f'{url}/restore',
+            headers=auth_headers(access_token),
+        )
+    else:
+        response = await client.delete(
+            url,
+            headers=auth_headers(access_token),
+        )
+
+    assert response.status_code == 404
+    supplier = await db_session.get(Supplier, supplier_id)
+    assert supplier is not None
+    assert supplier.deleted_at is not None
+
+
 async def test_restore_transaction_is_not_available_from_another_project(
     client: AsyncClient,
     db_session: AsyncSession,
@@ -325,9 +358,12 @@ async def test_hard_delete_document_removes_metadata_and_file(
     )
     deleted_file_paths: list[str] = []
 
+    def record_deleted_file(file_path: str) -> None:
+        deleted_file_paths.append(file_path)
+
     monkeypatch.setattr(
         'app.routers.trash.delete_file_from_r2',
-        lambda file_path: deleted_file_paths.append(file_path),
+        record_deleted_file,
     )
 
     response = await client.delete(
@@ -353,9 +389,12 @@ async def test_hard_delete_transaction_removes_transaction_documents_and_files(
     )
     deleted_file_paths: list[str] = []
 
+    def record_deleted_file(file_path: str) -> None:
+        deleted_file_paths.append(file_path)
+
     monkeypatch.setattr(
         'app.routers.trash.delete_file_from_r2',
-        lambda file_path: deleted_file_paths.append(file_path),
+        record_deleted_file,
     )
 
     response = await client.delete(
@@ -417,9 +456,12 @@ async def test_empty_trash_permanently_deletes_all_project_trash(
     )
     deleted_file_paths: list[str] = []
 
+    def record_deleted_file(file_path: str) -> None:
+        deleted_file_paths.append(file_path)
+
     monkeypatch.setattr(
         'app.routers.trash.delete_file_from_r2',
-        lambda file_path: deleted_file_paths.append(file_path),
+        record_deleted_file,
     )
 
     response = await client.delete(

@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta, UTC
+from hashlib import sha256
+import hmac
 from typing import TypeVar, cast
 
 from jose import JWTError, jwt
@@ -49,13 +51,26 @@ def create_access_token(subject: str) -> str:
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def create_password_reset_token(subject: str, expires_minutes: int = 15) -> str:
+def _password_reset_marker(hashed_password: str) -> str:
+    return hmac.new(
+        SECRET_KEY.encode(),
+        hashed_password.encode(),
+        sha256,
+    ).hexdigest()
+
+
+def create_password_reset_token(
+    subject: str,
+    hashed_password: str,
+    expires_minutes: int = 15,
+) -> str:
     expire = datetime.now(UTC) + timedelta(minutes=expires_minutes)
 
     payload: JWTPayload = {
         'sub': subject,
         'exp': expire,
         'purpose': PASSWORD_RESET_TOKEN_PURPOSE,
+        'pwd': _password_reset_marker(hashed_password),
     }
 
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
@@ -67,6 +82,17 @@ def decode_password_reset_token(token: str) -> DecodedToken:
 
 def decode_access_token(token: str) -> DecodedToken:
     return _decode_token(token, expected_purpose=ACCESS_TOKEN_PURPOSE)
+
+
+def password_reset_token_matches_password(
+    payload: DecodedToken,
+    hashed_password: str,
+) -> bool:
+    marker = payload.get('pwd')
+    return isinstance(marker, str) and hmac.compare_digest(
+        marker,
+        _password_reset_marker(hashed_password),
+    )
 
 
 def _decode_token(token: str, expected_purpose: str) -> DecodedToken:

@@ -255,6 +255,8 @@ async def hard_delete_supplier(
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
+    await _ensure_project(db, project_id, current_user.id)
+
     supplier = await trash_repository.get_deleted_supplier_for_permanent_delete(
         db,
         project_id,
@@ -326,6 +328,8 @@ async def restore_supplier(
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
+    await _ensure_project(db, project_id, current_user.id)
+
     supplier = await trash_repository.restore_supplier(
         db,
         project_id,
