@@ -1,11 +1,14 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+import logging
+
+from fastapi import FastAPI, HTTPException, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.settings import settings
-from app.db.session import init_db
+from app.db.session import engine, init_db
 from app.errors import http_exception_handler, request_validation_exception_handler
 from app.routers import (
     auth,
@@ -26,6 +29,8 @@ from app.routers import (
     trash,
     admin,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -48,6 +53,26 @@ app.add_middleware(
 )
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 app.add_exception_handler(RequestValidationError, request_validation_exception_handler)
+
+
+@app.get('/health/live', include_in_schema=False)
+async def liveness_check() -> dict[str, str]:
+    return {'status': 'ok'}
+
+
+@app.get('/health/ready', include_in_schema=False)
+async def readiness_check() -> dict[str, str]:
+    try:
+        async with engine.connect() as connection:
+            await connection.execute(text('SELECT 1'))
+    except Exception as exc:
+        logger.exception('Readiness check failed')
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail='Database is unavailable',
+        ) from exc
+
+    return {'status': 'ok'}
 
 app.include_router(auth.router)
 app.include_router(users.router)

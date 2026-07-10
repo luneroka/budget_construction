@@ -34,6 +34,16 @@
 6.  Configure the domain and HTTPS.
 7.  Validate production.
 
+## Delivery Status
+
+- [x] Chunk 0 — deployment architecture review completed on 2026-07-10.
+- [x] Chunk 1 — production repository preparation completed on 2026-07-10.
+- [ ] Chunk 2 — VPS provisioning.
+- [ ] Chunk 3 — server hardening and Docker setup.
+- [ ] Chunk 4 — first deployment and container validation.
+- [ ] Chunk 5 — domain, DNS, and HTTPS configuration.
+- [ ] Chunk 6 — production smoke test.
+
 # CODEX Prompt -- Chunk 0
 
 Review the repository from a production deployment perspective.
@@ -228,3 +238,86 @@ Remaining manual VPS steps.
 ## Rollback
 
 <!-- Placeholder for rollback procedure. -->
+
+## Disaster Recovery
+
+<!-- Placeholder for the disaster-recovery plan: incident ownership,
+backup locations and retention, recovery-time/recovery-point objectives,
+database and R2 restoration procedures, and recovery validation. -->
+
+## Chunk 1 Result (2026-07-10)
+
+### 1. Files changed
+
+- Added `docker-compose.prod.yml` with production-only PostgreSQL, one-shot
+  Alembic migration, FastAPI, frontend asset-build, and Caddy services. Only
+  Caddy exposes ports `80` and `443`; all service logs use Docker's bounded
+  local log driver.
+- Added `Caddyfile` for automatic HTTPS, static SPA fallback, security
+  response headers, and `/api` prefix stripping before proxying to FastAPI.
+- Updated `backend/Dockerfile` to install runtime dependencies only, run as a
+  non-root user, and use the production FastAPI runner with two workers;
+  added `backend/.dockerignore`.
+- Updated `frontend/Dockerfile` with retained `development`, `build`, and
+  `assets` stages. The existing development Compose file now explicitly targets
+  the development stage, preserving the local workflow.
+- Added `.env.production.example`; corrected the Vite variable and documented
+  local CORS/configuration in `.env.example`; protected production env and
+  backup artifacts in `.gitignore`.
+- Added strict production settings validation plus `/health/live` and
+  database-backed `/health/ready` endpoints in the backend. These are
+  operational configuration only; no domain/business behavior changed.
+- Replaced the empty `README.md` with local development, production,
+  configuration, validation, backup/restore, upgrade, and rollback guidance.
+
+### 2. Production architecture
+
+`caddy` is the sole public container. It obtains and stores Let's Encrypt state
+in named volumes, serves the React build from the `frontend_assets` volume, and
+forwards `/api/*` to the internal FastAPI service after removing `/api`.
+
+`db` stores PostgreSQL data in `postgres_data` and must pass `pg_isready`.
+`migrate` runs `alembic upgrade head` exactly once after that check; `backend`
+starts only after it succeeds and exposes liveness/readiness checks for Caddy
+and operations. The backend connects outward to R2 and Resend over HTTPS.
+
+### 3. Remaining manual VPS steps
+
+1. Provision and harden the Hetzner Ubuntu server, install Docker/Compose,
+   configure SSH access, firewall, updates, and Docker log rotation.
+2. Point the production domain's A/AAAA records at the VPS and allow inbound
+   TCP `80` and `443` before first Caddy startup.
+3. Copy `.env.production.example` to the server as `.env.production`, replace
+   every placeholder with real secret values, and set permissions to `600`.
+   Verify the R2 credentials are bucket-scoped and the Resend sender domain is
+   verified.
+4. Run `docker compose --env-file .env.production -f
+   docker-compose.prod.yml config`, then `up -d --build`, and check the
+   migration service, container health, TLS, application smoke tests, and
+   public health endpoints.
+5. Configure encrypted off-host PostgreSQL backups and retention, then perform
+   and record a restore test before production acceptance.
+
+### Validation performed
+
+- `docker compose --env-file .env.production.example -f
+  docker-compose.prod.yml config --quiet` completed successfully (with
+  `ENV_FILE=.env.production.example` for the checked-in example path).
+- Backend Ruff and Python compilation checks passed, including production
+  settings validation against `.env.production.example`.
+- The frontend production build passed. Vite reported an existing advisory
+  that the generated JavaScript bundle exceeds 500 kB; this is a performance
+  follow-up and does not block deployment correctness.
+- Production backend and frontend container images built successfully. No
+  containers were started or deployed.
+
+## Deployment History
+
+| Date | Version | Description |
+|------|---------|-------------|
+| 2026-07-10 | v1.0.0-rc1 | Release Candidate created. Production architecture reviewed, production repository prepared, database audit completed, security audit completed. |
+
+| Date | Version | Description |
+|------|---------|-------------|
+| | | |
+| | | |

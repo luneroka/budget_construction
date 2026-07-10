@@ -13,6 +13,9 @@ venv/
 # Environment
 .env
 .env.test
+.env.production
+*.sql.gz
+backups/
 
 # Docker
 postgres_data/

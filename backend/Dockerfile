@@ -4,10 +4,13 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock /app/
 
-RUN uv sync --locked
+RUN groupadd --system app && useradd --system --gid app --home-dir /app app \
+    && uv sync --locked --no-dev --no-install-project
 
-COPY . /app/
+COPY --chown=app:app . /app/
 
 EXPOSE 8000
 
-CMD ["uv", "run", "fastapi", "dev", "app/main.py", "--host", "0.0.0.0"]
+USER app
+
+CMD ["uv", "run", "--no-sync", "fastapi", "run", "app/main.py", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]

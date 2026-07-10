@@ -1,0 +1,101 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  migrate:
+    build:
+      context: ./backend
+    env_file: ${ENV_FILE:-.env.production}
+    command: ["uv", "run", "--no-sync", "alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    build:
+      context: ./backend
+    env_file: ${ENV_FILE:-.env.production}
+    expose:
+      - "8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  frontend:
+    build:
+      context: ./frontend
+      target: assets
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    volumes:
+      - frontend_assets:/output
+    restart: "no"
+
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - frontend_assets:/srv:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:2019/config/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  postgres_data:
+  frontend_assets:
+  caddy_data:
+  caddy_config:
