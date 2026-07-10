@@ -12,8 +12,10 @@ from sqlalchemy import (
     Enum,
     Numeric,
     ForeignKey,
+    Index,
     Text,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -115,6 +117,13 @@ class Transaction(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     __table_args__ = (
+        Index(
+            'ix_transactions_active_budget_line_issued_date_id',
+            'budget_line_id',
+            'issued_date',
+            'id',
+            postgresql_where=text('deleted_at IS NULL'),
+        ),
         CheckConstraint('amount_ht >= 0', name='ck_transactions_amount_ht_positive'),
         CheckConstraint(
             'vat_rate IS NULL OR vat_rate >= 0',

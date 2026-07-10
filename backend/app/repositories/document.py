@@ -162,18 +162,10 @@ async def get_documents_by_transaction_id(
     return list(result.scalars().all())
 
 
-async def soft_delete_document(
-    db: AsyncSession, document_id: int, user_id: int
-) -> Document | None:
-    document = await get_document_by_id(db, document_id, user_id)
-
-    if document is None:
-        return None
-
+async def soft_delete_document(db: AsyncSession, document: Document) -> Document:
     document.deleted_at = datetime.now(UTC).replace(tzinfo=None)
 
     await db.commit()
-    await db.refresh(document)
 
     return document
 

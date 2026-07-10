@@ -329,8 +329,7 @@ async def soft_delete_document(
 
     await document_repository.soft_delete_document(
         db=db,
-        document_id=document_id,
-        user_id=current_user.id,
+        document=document,
     )
 
 

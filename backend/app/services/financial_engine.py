@@ -7,7 +7,12 @@ from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload, with_loader_criteria
+from sqlalchemy.orm import (
+    contains_eager,
+    joinedload,
+    selectinload,
+    with_loader_criteria,
+)
 
 from app.models.budget_line import BudgetLine
 from app.models.category import Category
@@ -560,9 +565,9 @@ class FinancialEngine:
             .join(Subcategory, Product.subcategory_id == Subcategory.id)
             .join(Category, Subcategory.category_id == Category.id)
             .options(
-                joinedload(TemplateItem.product)
-                .joinedload(Product.subcategory)
-                .joinedload(Subcategory.category)
+                contains_eager(TemplateItem.product)
+                .contains_eager(Product.subcategory)
+                .contains_eager(Subcategory.category)
             )
             .where(
                 TemplateItem.template_id == project.template_id,

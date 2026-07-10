@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import contains_eager, joinedload
 
 from app.models.category import Category
 from app.models.product import Product
@@ -44,9 +44,13 @@ async def get_products_by_subcategory_id(
 async def get_products_with_hierarchy(db: AsyncSession) -> list[Product]:
     result = await db.execute(
         select(Product)
-        .options(joinedload(Product.subcategory).joinedload(Subcategory.category))
         .join(Subcategory, Product.subcategory_id == Subcategory.id)
         .join(Category, Subcategory.category_id == Category.id)
+        .options(
+            contains_eager(Product.subcategory).contains_eager(
+                Subcategory.category
+            )
+        )
         .where(
             Product.is_active.is_(True),
             Subcategory.is_active.is_(True),

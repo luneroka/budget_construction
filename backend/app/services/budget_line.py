@@ -60,13 +60,6 @@ class BudgetLineService:
         if existing_line is not None:
             return existing_line
 
-        await self._validate_item_mode(
-            db,
-            project_id=project_id,
-            product_id=product_id,
-            item_type=item_type,
-        )
-
         budget_line = BudgetLine(
             project_id=project_id,
             template_item_id=template_item.id,
@@ -511,30 +504,6 @@ class BudgetLineService:
             'A project product must use either one whole-product budget item or '
             'multiple breakdown items, not both'
         )
-
-    async def _validate_item_mode(
-        self,
-        db: AsyncSession,
-        *,
-        project_id: int,
-        product_id: int,
-        item_type: BudgetLineType,
-    ) -> None:
-        query = select(BudgetLine.item_type).where(
-            BudgetLine.project_id == project_id,
-            BudgetLine.product_id == product_id,
-            BudgetLine.deleted_at.is_(None),
-        )
-        if item_type == BudgetLineType.breakdown:
-            query = query.where(BudgetLine.item_type == BudgetLineType.product)
-        query = query.limit(1)
-
-        result = await db.execute(query)
-        if result.scalar_one_or_none() is not None:
-            raise BudgetLineValidationError(
-                'A project product must use either one whole-product budget item or '
-                'multiple breakdown items, not both'
-            )
 
 
 budget_line_service = BudgetLineService()

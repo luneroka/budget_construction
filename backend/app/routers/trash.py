@@ -184,14 +184,15 @@ async def empty_project_trash(
         project_id,
         current_user.id,
     )
-    for transaction in targets.transactions:
-        await _permanently_delete_transaction(db, transaction)
-
-    for document in targets.documents:
-        await _permanently_delete_document(db, document.id, document.file_path)
-
-    for supplier in targets.suppliers:
-        await _permanently_delete_supplier(db, supplier)
+    _delete_document_files(
+        [
+            document.file_path
+            for transaction in targets.transactions
+            for document in transaction.documents
+        ]
+        + [document.file_path for document in targets.documents]
+    )
+    await trash_repository.permanently_delete_targets(db, targets)
 
 
 @router.delete(

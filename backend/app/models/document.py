@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, UTC
-from sqlalchemy import ForeignKey, DateTime, String, func
+from sqlalchemy import ForeignKey, DateTime, Index, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -41,6 +41,15 @@ class Document(Base):
         nullable=False,
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    __table_args__ = (
+        Index(
+            'ix_documents_active_user_created_at',
+            'user_id',
+            'created_at',
+            postgresql_where=text('deleted_at IS NULL'),
+        ),
+    )
 
     transaction = relationship('Transaction', back_populates='documents')
     user = relationship('User')

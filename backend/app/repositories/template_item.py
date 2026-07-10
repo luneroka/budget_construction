@@ -137,6 +137,28 @@ async def _validate_item_data(
         raise TemplateItemValidationError('Product not found or inactive')
 
 
+async def _validate_products_active(
+    db: AsyncSession,
+    product_ids: set[int],
+) -> None:
+    if not product_ids:
+        return
+
+    result = await db.execute(
+        select(Product.id)
+        .join(Subcategory, Product.subcategory_id == Subcategory.id)
+        .join(Category, Subcategory.category_id == Category.id)
+        .where(
+            Product.id.in_(product_ids),
+            Product.is_active.is_(True),
+            Subcategory.is_active.is_(True),
+            Category.is_active.is_(True),
+        )
+    )
+    if set(result.scalars().all()) != product_ids:
+        raise TemplateItemValidationError('Product not found or inactive')
+
+
 async def _ensure_product_not_in_template(
     db: AsyncSession,
     *,
@@ -236,16 +258,13 @@ async def create_template_items_bulk(
         return None
 
     _validate_unique_product_ids(template_items_create)
+    product_ids = {item.product_id for item in template_items_create}
 
-    for item in template_items_create:
-        await _validate_item_data(
-            db,
-            product_id=item.product_id,
-        )
+    await _validate_products_active(db, product_ids)
     await _ensure_products_not_in_template(
         db,
         template_id=template_id,
-        product_ids={item.product_id for item in template_items_create},
+        product_ids=product_ids,
     )
 
     template_items = [

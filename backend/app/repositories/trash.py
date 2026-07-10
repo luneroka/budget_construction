@@ -138,7 +138,6 @@ async def restore_transaction(
 ) -> Transaction | None:
     result = await db.execute(
         select(Transaction)
-        .options(selectinload(Transaction.documents))
         .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
         .join(Project, BudgetLine.project_id == Project.id)
         .where(
@@ -372,17 +371,26 @@ async def permanently_delete_targets(
     targets: TrashPermanentDeleteTargets,
 ) -> None:
     try:
-        for transaction in targets.transactions:
-            await _clear_selected_budget_candidate_if_matches(
-                db,
-                transaction.budget_line_id,
-                transaction.id,
+        transaction_ids = [transaction.id for transaction in targets.transactions]
+        if transaction_ids:
+            await db.execute(
+                update(BudgetLine)
+                .where(BudgetLine.selected_quote_transaction_id.in_(transaction_ids))
+                .values(selected_quote_transaction_id=None)
+            )
+            await db.execute(
+                update(BudgetLine)
+                .where(
+                    BudgetLine.selected_diy_estimate_transaction_id.in_(transaction_ids)
+                )
+                .values(selected_diy_estimate_transaction_id=None)
             )
 
-        for supplier in targets.suppliers:
+        supplier_ids = [supplier.id for supplier in targets.suppliers]
+        if supplier_ids:
             await db.execute(
                 update(Transaction)
-                .where(Transaction.supplier_id == supplier.id)
+                .where(Transaction.supplier_id.in_(supplier_ids))
                 .values(supplier_id=None)
             )
 
@@ -422,31 +430,4 @@ async def permanently_delete_supplier(db: AsyncSession, supplier: Supplier) -> N
     await permanently_delete_targets(
         db,
         TrashPermanentDeleteTargets(suppliers=[supplier]),
-    )
-
-
-async def _clear_selected_budget_candidate_if_matches(
-    db: AsyncSession,
-    budget_line_id: int,
-    transaction_id: int,
-) -> None:
-    await db.execute(
-        update(BudgetLine)
-        .where(
-            BudgetLine.id == budget_line_id,
-            BudgetLine.selected_quote_transaction_id == transaction_id,
-        )
-        .values(
-            selected_quote_transaction_id=None,
-        )
-    )
-    await db.execute(
-        update(BudgetLine)
-        .where(
-            BudgetLine.id == budget_line_id,
-            BudgetLine.selected_diy_estimate_transaction_id == transaction_id,
-        )
-        .values(
-            selected_diy_estimate_transaction_id=None,
-        )
     )

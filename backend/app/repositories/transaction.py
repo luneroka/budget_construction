@@ -4,7 +4,7 @@ from typing import cast
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import contains_eager, joinedload, selectinload
 
 from app.models.document import Document
 from app.models.project import Project
@@ -521,11 +521,11 @@ async def get_transactions_by_project(
         select(Transaction)
         .options(
             selectinload(Transaction.documents),
-            selectinload(Transaction.supplier),
-            selectinload(Transaction.budget_line)
-            .selectinload(BudgetLine.product)
-            .selectinload(Product.subcategory)
-            .selectinload(Subcategory.category),
+            joinedload(Transaction.supplier),
+            contains_eager(Transaction.budget_line)
+            .joinedload(BudgetLine.product)
+            .joinedload(Product.subcategory)
+            .joinedload(Subcategory.category),
         )
         .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
         .where(
@@ -693,7 +693,6 @@ async def get_transaction_by_id_for_user(
 ) -> Transaction | None:
     result = await db.execute(
         select(Transaction)
-        .options(selectinload(Transaction.documents))
         .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
         .join(Project, BudgetLine.project_id == Project.id)
         .where(
