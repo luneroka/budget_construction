@@ -1,0 +1,230 @@
+# Production Deployment Runbook
+
+## Target Architecture
+
+- Provider: Hetzner Cloud
+- VPS: CX23 (2 vCPU, 4 GB RAM, 40 GB SSD, Intel/AMD)
+- OS: Ubuntu 24.04 LTS
+- Reverse proxy: Caddy
+- Containers: Docker Compose
+- Backend: FastAPI
+- Database: PostgreSQL (Docker)
+- Storage: Cloudflare R2
+- HTTPS: Let's Encrypt (via Caddy)
+
+## Responsibilities
+
+| Phase   | Owner | Description                                                         |
+| ------- | ----- | ------------------------------------------------------------------- |
+| Chunk 0 | Codex | Review deployment architecture only. No code changes.               |
+| Chunk 1 | Codex | Prepare the repository for production deployment.                   |
+| Chunk 2 | You   | Provision the Hetzner VPS (account, CX23, Ubuntu, SSH).             |
+| Chunk 3 | You   | Secure and prepare the server (updates, firewall, Docker, Compose). |
+| Chunk 4 | Both  | Deploy the application and validate containers.                     |
+| Chunk 5 | Both  | Configure the domain, DNS and HTTPS.                                |
+| Chunk 6 | You   | Execute the production smoke test and validate the application.     |
+
+## Sequence
+
+1.  Chunk 0 (Codex): deployment architecture review.
+2.  Chunk 1 (Codex): production repository preparation.
+3.  Provision the VPS.
+4.  Secure the server.
+5.  Deploy the application.
+6.  Configure the domain and HTTPS.
+7.  Validate production.
+
+# CODEX Prompt -- Chunk 0
+
+Review the repository from a production deployment perspective.
+
+Do NOT modify any files.
+
+Audit: - Dockerfiles - docker-compose - environment variables - backend
+configuration - frontend configuration - networking - persistent
+volumes - PostgreSQL - Cloudflare R2 - SMTP - health checks - reverse
+proxy strategy
+
+Output: 1. Current architecture. 2. Production gaps. 3. Recommended
+architecture. 4. Files that will need modification during Chunk 1. 5.
+Deployment checklist.
+
+## Chunk 0 Audit (2026-07-10)
+
+Scope: repository review only. No application or deployment files were changed
+for this audit; this runbook section is the requested audit output.
+
+### 1. Current architecture
+
+The repository contains a development-only Compose stack:
+
+- `frontend` builds `frontend/Dockerfile`, bind-mounts the source tree, and
+  runs the Vite development server on host port `5173`.
+- `backend` builds `backend/Dockerfile`, bind-mounts the source tree, and runs
+  `fastapi dev` on host port `8000`. It reads `.env` and has its development
+  `APP_URL` forcibly set to `http://localhost:5173`.
+- `db` uses `postgres:15`, persists data to the named `db_data` volume, and is
+  exposed on host port `5434`. `db-test` is also part of the default stack and
+  is exposed on `5435` with fixed test credentials.
+- The backend uses async SQLAlchemy/asyncpg and validates connectivity at
+  application startup with a simple query. Alembic migrations exist but are
+  not invoked by Compose or the container startup command.
+- The frontend's API URL is a build-time Vite variable,
+  `VITE_API_BASE_URL`, defaulting to `http://127.0.0.1:8000`. The existing
+  `.env.example` instead documents `VITE_API_URL`, which is not consumed.
+- CORS is configured for local Vite origins only. No Caddy configuration,
+  proxy routing, TLS configuration, or production networking policy exists.
+- Documents are stored remotely in Cloudflare R2 through boto3 using an
+  account endpoint, access key, secret, and bucket. Downloads use five-minute
+  presigned URLs. PostgreSQL stores document metadata; no document files are
+  stored in the VPS volume.
+- Email is sent through Resend's HTTPS API (not SMTP), using `RESEND_API_KEY`
+  and `RESEND_FROM`; issue reports optionally use `SUPPORT_EMAIL`. Password
+  reset URLs derive from `APP_URL`.
+- JWT signing settings are required at backend import time, but their settings
+  model defaults are optional. The checked-in example supplies them.
+
+### 2. Production gaps
+
+| Area                | Finding and consequence                                                                                                                                                                                                                                                     |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Images              | Both Dockerfiles run development servers; the backend uses `fastapi dev`, and the frontend neither builds static assets nor serves them from a production web server. The backend also has no `.dockerignore`.                                                              |
+| Compose/networking  | The current file bind-mounts source code, exposes frontend, API, production DB, and test DB ports, and starts a test database in normal deployments. It has no isolated production network or restart policy.                                                               |
+| Reverse proxy/TLS   | No Caddyfile or certificate-state volumes exist. Direct port exposure would bypass the intended HTTPS entry point.                                                                                                                                                          |
+| Database            | PostgreSQL has persistence, but no health check, migration job, resource/log rotation policy, backup/restore procedure, or tested restore. `depends_on` only means the DB container started, not that it is ready.                                                          |
+| Health/operations   | There is no unauthenticated liveness/readiness endpoint and no container health checks. `/openapi.json` being available is not a database readiness check.                                                                                                                  |
+| Configuration       | Production CORS origins are not configurable in the example, `VITE_API_URL` is a stale variable name, and `APP_URL` can be incorrectly overridden by Compose. Required secrets and production-safe defaults are not documented as such.                                     |
+| R2                  | The basic client implementation is appropriate, but the deployment has no documented least-privilege R2 credentials, bucket policy/CORS decision, lifecycle policy, or upload/download smoke test. R2 configuration is only checked when a document operation is attempted. |
+| Email               | Resend is configured in code, but domain verification, sender identity, support inbox, and production reset-link verification are not in the runbook. The requested SMTP audit therefore finds SMTP is not used.                                                            |
+| Resilience/security | There is no documented secret-management process, database backup target/retention, image-update procedure, firewall policy, or log/monitoring plan. A 4 GB VPS also needs conservative service limits and log rotation.                                                    |
+
+### 3. Recommended architecture
+
+Use a separate `docker-compose.prod.yml` that does not reuse development
+bind mounts, dev commands, or host port mappings.
+
+```text
+Internet (80/443 only)
+        |
+      Caddy ── serves built React SPA
+        |\
+        | \─ /api/* (strip /api) ──> FastAPI :8000 (internal only)
+        |
+        └── automatic Let's Encrypt certificates
+
+FastAPI ──> PostgreSQL :5432 (internal only; named persistent volume)
+        ├──> Cloudflare R2 (HTTPS)
+        └──> Resend API (HTTPS)
+```
+
+- Build the frontend once and let Caddy serve the static SPA with a fallback to
+  `index.html`. Configure `VITE_API_BASE_URL=/api` at build time. Caddy should
+  use `handle_path /api/*` so the backend keeps its existing root-level route
+  paths. Do not expose the backend or database to the host.
+- Run FastAPI with a production ASGI command (not reload/dev mode), as a
+  non-root user, with one or two workers appropriate to the CX23. Add a
+  lightweight liveness endpoint and a readiness endpoint that checks the DB.
+- Give PostgreSQL a `pg_isready` health check. Run Alembic as an explicit,
+  one-shot `migrate` service/job before enabling the API, and make the API
+  depend on a healthy DB. Never run seed scripts in production startup.
+- Use same-origin browser traffic through Caddy. Set CORS explicitly to the
+  production HTTPS origin (and only any intentional additional origins); it
+  should not retain localhost defaults in production.
+- Persist Caddy's `/data` and `/config` plus PostgreSQL data. Back up the
+  PostgreSQL database off-host daily (encrypted, retained, and restore-tested);
+  Docker volumes alone are not backups. R2 documents remain external and need
+  their own lifecycle/retention decision.
+- Store real production values only in an ignored server-side `.env.production`
+  (or an equivalent secret manager), chmod it to `600`, and commit only a
+  redacted `.env.production.example`. Generate a high-entropy JWT secret;
+  set a HTTPS `APP_URL`; use scoped R2 credentials; and use a verified Resend
+  sender/domain.
+
+### 4. Files that need modification in Chunk 1
+
+| File                            | Required Chunk 1 change                                                                                                                                                                       |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docker-compose.prod.yml` (new) | Production services for Caddy, frontend/static assets, backend, migration job, and PostgreSQL; internal networking, named volumes, health checks, restart policies, and no host DB/API ports. |
+| `backend/Dockerfile`            | Production image/command, dependency-only runtime, non-root user, and no dev server.                                                                                                          |
+| `backend/.dockerignore` (new)   | Exclude `.env*`, virtual environments, caches, tests, and local artifacts from the build context.                                                                                             |
+| `frontend/Dockerfile`           | Multi-stage production build that accepts `VITE_API_BASE_URL` and produces static assets for Caddy.                                                                                           |
+| `Caddyfile` (new)               | HTTPS site, SPA fallback, `/api` reverse proxy with prefix stripping, and safe proxy headers.                                                                                                 |
+| `.env.production.example` (new) | Correct variable names and all required production configuration, with placeholders only. Include `VITE_API_BASE_URL=/api`, production CORS origin, R2, Resend, and database settings.        |
+| `.env.example`                  | Correct the stale `VITE_API_URL` name, or clearly limit this file to local development and point production users to the new example.                                                         |
+| `backend/app/core/settings.py`  | Make production CORS configuration explicit and fail clearly for required production settings rather than relying on localhost defaults.                                                      |
+| `backend/app/main.py`           | Add liveness/readiness endpoints and production metadata/configuration needed by the Compose health check.                                                                                    |
+| `README.md`                     | It is currently empty; add the deployment, backup/restore, upgrade, rollback, and validation instructions required by Chunk 1.                                                                |
+| `.gitignore`                    | Ensure server production env files and any backup artifacts cannot be committed (the existing `.env` rule does not cover a root `.env.production` by name).                                   |
+
+No changes to business routers, domain services, migration history, or R2
+storage semantics are required for Chunk 1.
+
+### 5. Deployment checklist
+
+- [ ] Provision Ubuntu 24.04 CX23; configure SSH keys, a non-root sudo user,
+      unattended security updates, and a firewall allowing only SSH, HTTP, and
+      HTTPS. Install Docker Engine and the Compose plugin.
+- [ ] Configure Docker log rotation and automatic image cleanup to prevent disk exhaustion over time.
+- [ ] Register the production domain and create DNS A/AAAA records for the
+      VPS. Confirm ports 80 and 443 are reachable before starting Caddy.
+- [ ] Complete Chunk 1 and review the generated production Compose
+      configuration with `docker compose --env-file .env.production -f
+docker-compose.prod.yml config`.
+- [ ] Create the production secret file outside version control with a strong
+      `SECRET_KEY`, correct database password/URL, HTTPS `APP_URL`, exact CORS
+      origin, and R2/Resend credentials. Restrict its file permissions.
+- [ ] Create the R2 bucket and least-privilege API token; verify upload,
+      presigned download, deletion, and the intended bucket lifecycle/retention.
+- [ ] Verify the Resend domain/sender and support recipient; test password
+      reset and an issue-report email from the public HTTPS site.
+- [ ] Start PostgreSQL, wait for its health check, run Alembic migration once,
+      then start the API, frontend, and Caddy. Confirm no backend or DB port is
+      reachable from the public internet.
+- [ ] Verify `/api/health/live` and `/api/health/ready`, login, authenticated
+      API calls, SPA refresh/deep links, document upload/download, email flows,
+      and automatic HTTPS renewal.
+- [ ] Schedule encrypted off-host PostgreSQL backups with retention; perform
+      and document a restore test before accepting production traffic.
+- [ ] Record the deployed image revision, retain the prior image/revision for
+      rollback, and monitor container health, disk space, DB volume growth, Caddy
+      certificate renewal, and external-service failures.
+
+# CODEX Prompt -- Chunk 1
+
+Prepare the repository for production deployment.
+
+Edit only the repository.
+
+Implement: - docker-compose.prod.yml - production-ready Dockerfiles
+where needed - Caddyfile - .env.production.example - health checks -
+production configuration - README deployment section
+
+Do NOT deploy anything. Do NOT modify business logic.
+
+At the end output: 1. Files changed. 2. Production architecture. 3.
+Remaining manual VPS steps.
+
+**Note:** The repository `README.md` is currently empty. Chunk 1 must create a complete README including instructions for local development, production deployment, architecture overview, environment variables, backup/restore, upgrade procedure, and rollback procedure.
+
+## VPS Information
+
+## VPS Information
+
+- Provider:
+- Plan:
+- Region:
+- Primary IPv4:
+- Ubuntu version:
+- Hostname:
+- SSH public key:
+- Docker version:
+- Docker Compose version:
+- VPS creation date:
+
+## Deployment Commands
+
+<!-- Placeholder for deployment commands. -->
+
+## Rollback
+
+<!-- Placeholder for rollback procedure. -->
