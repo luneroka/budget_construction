@@ -220,15 +220,18 @@ Remaining manual VPS steps.
 
 ## VPS Information
 
-- Provider:
-- Plan:
-- Region:
-- Primary IPv4:
+- Provider: Hotzner
+- Plan: CX23 (2 vCPU, 4 GB RAM, 40 GB SSD, Intel/AMD)
+- Region: Germany
+- Primary IPv4: Yes
 - Ubuntu version:
+- Domain:
 - Hostname:
 - SSH public key:
 - Docker version:
 - Docker Compose version:
+- PostgreSQL version:
+- Caddy version:
 - VPS creation date:
 
 ## Deployment Commands
@@ -292,7 +295,7 @@ and operations. The backend connects outward to R2 and Resend over HTTPS.
    Verify the R2 credentials are bucket-scoped and the Resend sender domain is
    verified.
 4. Run `docker compose --env-file .env.production -f
-   docker-compose.prod.yml config`, then `up -d --build`, and check the
+docker-compose.prod.yml config`, then `up -d --build`, and check the
    migration service, container health, TLS, application smoke tests, and
    public health endpoints.
 5. Configure encrypted off-host PostgreSQL backups and retention, then perform
@@ -301,7 +304,7 @@ and operations. The backend connects outward to R2 and Resend over HTTPS.
 ### Validation performed
 
 - `docker compose --env-file .env.production.example -f
-  docker-compose.prod.yml config --quiet` completed successfully (with
+docker-compose.prod.yml config --quiet` completed successfully (with
   `ENV_FILE=.env.production.example` for the checked-in example path).
 - Backend Ruff and Python compilation checks passed, including production
   settings validation against `.env.production.example`.
@@ -313,11 +316,11 @@ and operations. The backend connects outward to R2 and Resend over HTTPS.
 
 ## Deployment History
 
-| Date | Version | Description |
-|------|---------|-------------|
+| Date       | Version    | Description                                                                                                                                      |
+| ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 2026-07-10 | v1.0.0-rc1 | Release Candidate created. Production architecture reviewed, production repository prepared, database audit completed, security audit completed. |
 
 | Date | Version | Description |
-|------|---------|-------------|
-| | | |
-| | | |
+| ---- | ------- | ----------- |
+|      |         |             |
+|      |         |             |

@@ -1,14 +1,13 @@
-# Transactions Workspace & Dashboard Strategy
+# Transactions Workspace Strategy
 
 ## Objective
 
-Define the long-term UX strategy for transaction management and dashboard interactions.
+Define the long-term UX strategy for transaction management.
 
-This document serves as both:
-
-- the implementation reference for Codex
-- the functional specification
-- the progress tracker
+This document is the functional specification for the Transactions page and
+the wider Dashboard/Budget/Transactions navigation model. The implementation
+roadmap below (Chunks 1-2) is complete; the document is retained as the
+living UX spec for this area.
 
 Unlike the Budget Workspace, this document focuses on **user workflows** rather than backend integration.
 
@@ -22,7 +21,7 @@ Each page answers a different question.
 
 ## Dashboard
 
-The detailed Dashboard strategy now lives in docs/ui/dashboard_design.md. This document focuses exclusively on the Transactions workspace.
+The detailed Dashboard strategy now lives in docs/ui/dashboard_spec.md. This document focuses exclusively on the Transactions workspace.
 
 ## Budget
 
@@ -279,9 +278,7 @@ Deliverable
 
 Operational transaction workspace.
 
-Status
-
-- [x] Completed
+Status: Completed.
 
 ---
 
@@ -303,9 +300,7 @@ Deliverable
 
 Transactions page becomes a fast operational workspace with predefined views, secondary filters and efficient backend querying.
 
-Status
-
-- [x] Completed
+Status: Completed.
 
 ---
 

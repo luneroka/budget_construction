@@ -40,6 +40,8 @@ Generate a professional project report.
 
 # Chunk 1 — Accounting CSV Export
 
+Status: Completed.
+
 ## Goal
 
 Provide accountants with a clean CSV export of project transactions.
@@ -113,6 +115,8 @@ A production-ready CSV export suitable for accounting.
 
 # Chunk 2 — Dashboard PNG Export
 
+Status: Completed.
+
 ## Goal
 
 Allow users to export the current Dashboard as a single image.
@@ -139,6 +143,9 @@ One-click Dashboard PNG export.
 ---
 
 # Chunk 3 — Executive PDF Report
+
+Status: Not started. The Settings > Exports PDF card exists as a disabled
+placeholder in the UI.
 
 ## Goal
 

@@ -97,11 +97,7 @@ Develop KPI cards to display key financial metrics prominently on the Dashboard.
 **Deliverable**  
 Interactive KPI cards integrated into the Dashboard.
 
-**Status**
-
-- [ ] Not Started
-- [ ] In Progress
-- [ ] Completed
+**Status**: Completed.
 
 ---
 
@@ -125,11 +121,7 @@ Create charts to visualize financial data and project trends on the Dashboard.
 **Deliverable**  
 Functional and visually appealing charts on the Dashboard.
 
-**Status**
-
-- [ ] Not Started
-- [ ] In Progress
-- [ ] Completed
+**Status**: Completed.
 
 ---
 
@@ -153,11 +145,7 @@ Implement operational widgets to surface actionable items within the Dashboard.
 **Deliverable**  
 Action Center with operational widgets integrated into the Dashboard.
 
-**Status**
-
-- [ ] Not Started
-- [ ] In Progress
-- [ ] Completed
+**Status**: Completed.
 
 ---
 
@@ -192,11 +180,7 @@ Turn the Dashboard into an operational cockpit by allowing users to process Acti
 
 An Action Center supporting both immediate processing through the Transaction modal and navigation to the complete operational workspaces.
 
-**Status**
-
-- [ ] Not Started
-- [ ] In Progress
-- [ ] Completed
+**Status**: Completed.
 
 ---
 
@@ -213,20 +197,16 @@ Refine the Dashboard to ensure a production-ready, user-friendly experience.
 
 **Tasks**
 
-- Implement empty states for widgets and charts.
-- Add loading states for data fetching.
-- Ensure responsive behavior across devices.
-- Enhance accessibility compliance.
-- Optimize performance for fast load times.
+- [x] Implement empty states for widgets and charts.
+- [x] Add loading states for data fetching.
+- [ ] Ensure responsive behavior across devices.
+- [ ] Enhance accessibility compliance.
+- [ ] Optimize performance for fast load times.
 
 **Deliverable**  
 A polished and robust Dashboard experience.
 
-**Status**
-
-- [ ] Not Started
-- [ ] In Progress
-- [ ] Completed
+**Status**: In Progress. Loading skeletons (`DashboardKpiSkeleton`, `DashboardChartSkeleton`) and empty-state messaging are implemented; responsive, accessibility, and performance passes are still open.
 
 ---
 
