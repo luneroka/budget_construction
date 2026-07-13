@@ -4,6 +4,8 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock /app/
 
+ENV UV_PYTHON_INSTALL_DIR=/app/.uv-python
+
 RUN groupadd --system app && useradd --system --gid app --home-dir /app app \
     && uv sync --locked --no-dev --no-install-project
 
