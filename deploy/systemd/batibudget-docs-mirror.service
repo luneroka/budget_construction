@@ -1,0 +1,14 @@
+[Unit]
+Description=Bati Budget one-way R2 documents mirror (delete protection)
+# rclone talks to R2 directly over HTTPS; no dependency on the app
+# containers or docker.service, unlike the database backup.
+
+[Service]
+Type=oneshot
+User=deploy
+# Adjust if the repository lives elsewhere on the VPS.
+WorkingDirectory=/home/deploy/budget_construction
+ExecStart=/home/deploy/budget_construction/scripts/backup_documents.sh
+# The script reads its config (source/destination buckets, dedicated R2
+# token, alert email) from .env.production in WorkingDirectory; no
+# EnvironmentFile is needed.

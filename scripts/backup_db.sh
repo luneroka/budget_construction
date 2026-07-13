@@ -36,88 +36,14 @@ COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 DB_SERVICE="${DB_SERVICE:-db}"
 BACKUP_DIR="${BACKUP_DIR:-$REPO_ROOT/backups}"
 
-log() { printf '%s backup_db: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"; }
+SCRIPT_TAG="backup_db"
+ALERT_JOB_LABEL="Database backup"
+ALERT_SYSTEMD_UNIT="batibudget-db-backup.service"
+# shellcheck source=lib/backup_common.sh
+source "$REPO_ROOT/scripts/lib/backup_common.sh"
 
-# Read a single KEY=value from ENV_FILE without shell-evaluating the file
-# (the file legitimately contains values with spaces and shell metacharacters).
-read_env() { [ -f "$ENV_FILE" ] && grep -E "^$1=" "$ENV_FILE" | head -n1 | cut -d= -f2- || true; }
-# Environment wins; fall back to ENV_FILE.
-resolve() { local v="${!1:-}"; [ -n "$v" ] && printf '%s' "$v" || read_env "$1"; }
-
-RESEND_API_KEY="$(resolve RESEND_API_KEY)"
-RESEND_FROM="$(resolve RESEND_FROM)"
-BACKUP_ALERT_EMAIL="$(resolve BACKUP_ALERT_EMAIL)"
-[ -n "$BACKUP_ALERT_EMAIL" ] || BACKUP_ALERT_EMAIL="$(resolve SUPPORT_EMAIL)"
-
-json_escape() {
-  local s="$1"
-  s="${s//\\/\\\\}"
-  s="${s//\"/\\\"}"
-  s="${s//$'\n'/\\n}"
-  printf '%s' "$s"
-}
-
-# Best-effort failure alert -- must never itself crash or block the script,
-# and must never be the reason a failed backup looks like it "handled" the
-# error. Every command in here is defensive on purpose.
-send_failure_alert() {
-  local reason="$1"
-  if [ -z "$RESEND_API_KEY" ] || [ -z "$RESEND_FROM" ] || [ -z "$BACKUP_ALERT_EMAIL" ]; then
-    log "WARNING: alert email not configured (RESEND_API_KEY/RESEND_FROM/BACKUP_ALERT_EMAIL) -- skipping"
-    return 0
-  fi
-  if ! command -v curl >/dev/null 2>&1; then
-    log "WARNING: curl not found -- cannot send failure alert"
-    return 0
-  fi
-
-  local host subject body payload http_status
-  host="$(hostname 2>/dev/null || printf 'unknown-host')"
-  subject="[Bâti Budget] Database backup FAILED on $host"
-  body="The nightly database backup failed and needs attention.
-
-Host: $host
-Time (UTC): $(date -u +%Y-%m-%dT%H:%M:%SZ)
-Reason: $reason
-
-Check the logs on the VPS:
-  journalctl -u batibudget-db-backup.service -n 100
-
-No backup was uploaded for this run. Previous backups are unaffected."
-
-  payload="$(printf '{"from":"%s","to":["%s"],"subject":"%s","text":"%s"}' \
-    "$(json_escape "$RESEND_FROM")" \
-    "$(json_escape "$BACKUP_ALERT_EMAIL")" \
-    "$(json_escape "$subject")" \
-    "$(json_escape "$body")")"
-
-  http_status="$(curl -sS -m 15 -o /dev/null -w '%{http_code}' -X POST \
-    https://api.resend.com/emails \
-    -H "Authorization: Bearer $RESEND_API_KEY" \
-    -H 'Content-Type: application/json' \
-    -d "$payload" 2>/dev/null || printf 'curl_failed')"
-
-  case "$http_status" in
-    200|202) log "failure alert emailed to $BACKUP_ALERT_EMAIL" ;;
-    *) log "WARNING: failed to send failure alert (Resend responded: $http_status)" ;;
-  esac
-  return 0
-}
-
-die() {
-  log "ERROR: $*" >&2
-  send_failure_alert "$*" || true
-  exit 1
-}
-
-# Catches any command failure NOT already routed through die() (e.g. a
-# pipeline failing under pipefail). set -E makes this fire inside functions
-# and command substitutions too.
-on_error() {
-  local line="$1" cmd="$2"
-  send_failure_alert "command failed at line $line: $cmd" || true
-}
-trap 'on_error "$LINENO" "$BASH_COMMAND"' ERR
+resolve_alert_config
+setup_error_trap
 
 BACKUP_ENCRYPTION_PASSPHRASE="$(resolve BACKUP_ENCRYPTION_PASSPHRASE)"
 [ -n "$BACKUP_ENCRYPTION_PASSPHRASE" ] || die "BACKUP_ENCRYPTION_PASSPHRASE is not set"

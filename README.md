@@ -131,8 +131,13 @@ restore procedure are in the "Disaster Recovery" section of
 ./scripts/restore_db.sh backups/db-<UTC>.sql.gz.enc --yes  # restore
 ```
 
-Test restores regularly on a separate database/container. R2 documents need a
-separate lifecycle and retention policy.
+Test restores regularly on a separate database/container.
+
+R2 has no native versioning, so R2 documents are protected by a separate
+daily one-way mirror instead: `scripts/backup_documents.sh` copies (never
+deletes) the live documents bucket into a dedicated backup bucket, with
+retention enforced by an R2 Object Lifecycle Rule on that bucket. See
+"Documents mirror" in the runbook's Disaster Recovery section.
 
 ## Upgrade and rollback
 

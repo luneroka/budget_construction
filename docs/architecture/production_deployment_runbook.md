@@ -520,11 +520,10 @@ below).
 
 - **PostgreSQL** — covered by the daily encrypted backup below (on-host copy
   plus an off-host copy in Cloudflare R2).
-- **Cloudflare R2 documents** — the uploaded document files themselves are
-  already off-host in R2 and are not re-copied by this job; only the
-  PostgreSQL metadata that references them is backed up. Deciding on R2
-  object versioning / lifecycle for the documents bucket remains a separate
-  open item.
+- **Cloudflare R2 documents** — covered by a separate daily one-way mirror
+  (`scripts/backup_documents.sh`, see "Documents mirror" below), in addition
+  to the PostgreSQL metadata that references them (backed up as part of the
+  database above).
 - **Secrets** — `.env.production` is **not** in any backup (by design). It
   must be recreated from the values in your password manager during a
   rebuild. The `BACKUP_ENCRYPTION_PASSPHRASE` in particular must be stored
@@ -563,6 +562,47 @@ simulated failure with an intentionally invalid Resend key logged a warning
 and still exited non-zero, with no partial backup file left behind. No
 success/heartbeat email is sent -- only failures page you, by design.
 
+### Documents mirror (2026-07-13)
+
+**R2 has no object or bucket versioning.** This was checked directly against
+Cloudflare's current docs and release notes: the only "versioning" reference
+is a compatibility shim from 2022 that makes `GetBucketVersioning` return a
+plausible-looking S3 response without actually versioning anything, and
+there is an open, unresolved community feature request for real versioning.
+So a permanent delete of an R2 object -- whether from an app bug or a
+compromised account -- is genuinely unrecoverable by any R2-native means.
+
+**The substitute:** `scripts/backup_documents.sh` runs `rclone copy` (never
+`rclone sync`) from the live documents bucket (`R2_BUCKET_NAME`) to a
+separate, dedicated mirror bucket (`DOCS_BACKUP_R2_BUCKET`) daily.
+`rclone copy` is one-way and additive-only -- it uploads new/changed objects
+but **never** deletes anything from the destination, even when the source
+object is deleted or the sync direction would suggest it should. This means
+a deleted (or overwritten) document remains recoverable from the mirror
+bucket even after it's gone from the live bucket. Retention on the mirror
+side is enforced natively by an **R2 Object Lifecycle Rule** on the mirror
+bucket itself (age-based expiration, not something this script does), so the
+mirror doesn't grow forever while still giving a real undelete window.
+Uses a dedicated R2 API token scoped to Object Read & Write on only the live
+documents bucket and the mirror bucket (not the database-backups bucket).
+Failure alerting works identically to `backup_db.sh` (same shared library,
+`scripts/lib/backup_common.sh`, factored out of both scripts to avoid
+duplicating the Resend-alert logic).
+
+Since rclone performs a server-side copy between two buckets on the same R2
+account, this does not consume VPS disk space or meaningfully use its
+bandwidth for the file contents. Scheduled at 04:15 UTC daily (`Persistent`),
+offset 45 minutes after the 03:30 database backup so the two jobs don't
+contend for VPS resources.
+
+**Recommended lifecycle rule on the mirror bucket:** age-based expiration at
+30 days (matches the retention window originally intended for versioning).
+Set this directly on the mirror bucket via the Cloudflare dashboard --
+R2 → select the mirror bucket → Settings → Object Lifecycle Rules → Add
+rule → "Delete objects" after 30 days of the object's age. This can also be
+set via `wrangler r2 bucket lifecycle add` or the S3 `putBucketLifecycleConfiguration`
+API if preferred.
+
 ### One-time VPS setup
 
 1. **Create a dedicated R2 backups bucket** (e.g. `budget-construction-backups`)
@@ -599,6 +639,16 @@ success/heartbeat email is sent -- only failures page you, by design.
    (The unit files assume the repo is at `/home/deploy/budget_construction`
    and run as user `deploy`; edit them if your paths differ.) A plain cron
    entry calling the script daily works too if you prefer cron over systemd.
+6. **Documents mirror, separately:** create a dedicated
+   `budget-construction-documents-backup` bucket, an API token scoped to
+   Object Read & Write on **only** the live documents bucket + this mirror
+   bucket, an Object Lifecycle Rule on the mirror bucket (30-day age-based
+   expiration -- Settings → Object Lifecycle Rules → Add rule on the mirror
+   bucket), then fill the `DOCS_BACKUP_R2_*` values in `.env.production`, run
+   `./scripts/backup_documents.sh` by hand once and confirm with `rclone ls`
+   the same way as step 4, then enable
+   `deploy/systemd/batibudget-docs-mirror.{service,timer}` the same way as
+   step 5.
 
 ### Restore procedure
 
@@ -620,8 +670,24 @@ Full VPS-loss recovery outline: provision + harden a new server (Chunks 2-3),
 clone the repo, recreate `.env.production` from your password manager
 (including `BACKUP_ENCRYPTION_PASSPHRASE`), `docker compose ... up -d db`,
 `./scripts/restore_db.sh --from-r2 <latest> --create --yes`, then start
-`migrate`/`backend`/`frontend`/`caddy`. R2 document files are untouched by the
-outage and need no restore.
+`migrate`/`backend`/`frontend`/`caddy`. R2 document files are untouched by a
+VPS-loss outage and need no restore in that scenario.
+
+**Recovering a single deleted/overwritten document** (not a VPS-loss
+scenario -- an accidental or malicious delete of one R2 object): the object
+still exists in the mirror bucket (`DOCS_BACKUP_R2_BUCKET`) until its
+lifecycle rule expires it. Copy it back manually, e.g.:
+```sh
+RCLONE_CONFIG_R2_TYPE=s3 RCLONE_CONFIG_R2_PROVIDER=Cloudflare \
+RCLONE_CONFIG_R2_ENDPOINT="$(grep ^DOCS_BACKUP_R2_ENDPOINT= .env.production | cut -d= -f2-)" \
+RCLONE_CONFIG_R2_ACCESS_KEY_ID="$(grep ^DOCS_BACKUP_R2_ACCESS_KEY_ID= .env.production | cut -d= -f2-)" \
+RCLONE_CONFIG_R2_SECRET_ACCESS_KEY="$(grep ^DOCS_BACKUP_R2_SECRET_ACCESS_KEY= .env.production | cut -d= -f2-)" \
+rclone copy "R2:$(grep ^DOCS_BACKUP_R2_BUCKET= .env.production | cut -d= -f2-)/<object-key>" \
+  "R2:$(grep ^R2_BUCKET_NAME= .env.production | cut -d= -f2-)/"
+```
+The `<object-key>` is the document's `file_path` column in the `documents`
+table (or the equivalent for a permanently-deleted row, from a database
+backup taken before the deletion).
 
 ### Restore validation
 
@@ -795,16 +861,27 @@ next task:
   non-zero without masking the original error. No further action needed;
   see "Disaster Recovery" above for the full plan.
 - **New finding (Low) — local dev `.env` contains real production backup
-  credentials.** While testing the alert path, `BACKUP_ENCRYPTION_PASSPHRASE`
-  and the real `BACKUP_R2_*` values (matching production) were found copied
-  into the local development machine's root `.env`. This mirrors the
-  dev/prod R2 & Resend separation issue already sidelined earlier, but is a
-  notch more sensitive since these specific credentials can delete/overwrite
-  the actual off-host backups. No harm occurred (`rclone` isn't installed on
-  that machine, so no network call was possible), but recommend removing
-  those lines from the local `.env` -- the backup scripts only need to run
-  on the VPS, never in local dev. Sidelined per project owner's existing
-  call on the broader dev/prod credential-separation item.
+  credentials — fixed same day.** While testing the alert path,
+  `BACKUP_ENCRYPTION_PASSPHRASE` and the real `BACKUP_R2_*` values (matching
+  production) were found copied into the local development machine's root
+  `.env`. No harm occurred (`rclone` isn't installed on that machine, so no
+  network call was possible); the project owner removed the lines from the
+  local `.env` immediately after this was flagged. The broader dev/prod R2 &
+  Resend credential-separation item (app-level, not backup-specific) remains
+  sidelined per the project owner's earlier call.
+- **R2 documents bucket lifecycle/retention (open since Chunk 0
+  audit) — closed 2026-07-13.** R2 has no native object/bucket versioning
+  (verified against current Cloudflare docs/release notes), so the original
+  plan to enable versioning + noncurrent-version expiration was not possible
+  as such. Substituted `scripts/backup_documents.sh`: a daily one-way
+  `rclone copy` (never `sync`, so it never deletes from the destination) of
+  the live documents bucket into a dedicated mirror bucket, with retention
+  enforced by an R2-native Object Lifecycle Rule on the mirror bucket. See
+  "Documents mirror" under Disaster Recovery above for the full design and
+  the "New finding" note above for what was double-checked before landing on
+  this approach. VPS setup (create the mirror bucket/token/lifecycle rule,
+  fill env vars, enable the timer) is still pending -- same one-time-setup
+  pattern as the database backup.
 - **Logging (Medium) — fixed.** `backend/app/main.py` and
   `backend/app/db/session.py` no longer use `print()`. `main.py` now calls
   `logging.basicConfig` with level `DEBUG` in non-production and `INFO` in
