@@ -218,13 +218,12 @@ Remaining manual VPS steps.
 
 ## VPS Information
 
-## VPS Information
-
-- Provider: Hotzner
-- Plan: CX23 (2 vCPU, 4 GB RAM, 40 GB SSD, Intel/AMD)
+- Provider: Hetzner
+- Plan: CPX12 (2 vCPU, 2 GB RAM, 40 GB SSD, AMD)
 - Region: Germany
-- Primary IPv4: Yes
-- Ubuntu version:
+- Primary IPv4: 167.233.213.9
+- Primary IPv6: 2a01:4f8:c015:aeae::1
+- Ubuntu version: 24.04.4 LTS (Noble Numbat)
 - Domain:
 - Hostname:
 - SSH public key:
@@ -232,7 +231,24 @@ Remaining manual VPS steps.
 - Docker Compose version:
 - PostgreSQL version:
 - Caddy version:
-- VPS creation date:
+- VPS creation date: 2026-07-13
+
+**Note:** The instance actually provisioned is a CPX12 (2 vCPU, 2 GB
+RAM), not the CX23 (2 vCPU, 4 GB RAM) specified in the "Target
+Architecture" section above. The Cost-Optimized (CX) tier was
+unavailable at signup time, so the Shared vCPU AMD (CPX) tier was used
+instead. This means the VPS has half the RAM (2 GB vs 4 GB) budgeted in
+the target architecture — worth accounting for when tuning FastAPI
+worker count, Postgres memory settings, and swap/log rotation.
+
+**Note:** At first login, the system message reported 0 updates
+immediately available, but also that the package index itself was more
+than a week old — i.e. Ubuntu's default weekly `apt` refresh hadn't run
+yet on this brand-new instance, so "0 updates" reflects a stale index,
+not a confirmed up-to-date system. Chunk 3 must therefore start with
+`apt update` (to refresh the index) followed by `apt upgrade` (to apply
+whatever it then reports), before any firewall, Docker, or Compose
+setup.
 
 ## Deployment Commands
 
