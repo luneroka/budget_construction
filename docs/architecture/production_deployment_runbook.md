@@ -618,10 +618,18 @@ taken, restored into a scratch database, and every table matched the original
 row-for-row. A restore with the wrong passphrase was confirmed to fail loudly
 (non-zero exit, no partial/garbage load) rather than silently corrupt.
 
-**Still to validate on production specifically:** run steps 4-5 above on the
-VPS (first real R2 upload + timer), and once there are real R2 backups,
-perform one restore drill from an R2-downloaded backup into a scratch
-database on the VPS to confirm the off-host path end-to-end.
+**Production validation completed 2026-07-13.** The dedicated
+`budget-construction-backups` R2 bucket and a bucket-scoped API token were
+created, rclone installed, and `.env.production` filled with the `BACKUP_*`
+settings (passphrase saved off-VPS in the password manager). A real backup
+was taken and confirmed present in R2 via `rclone ls`. A full restore drill
+was then run **pulling that backup back down from R2** (not the local copy)
+into a scratch `restore_drill` database on the VPS; `users` row counts
+matched the live production database exactly, and the scratch database was
+dropped afterward. `batibudget-db-backup.timer` is installed and enabled
+(`systemctl list-timers` confirms it, next run 2026-07-14 03:31 UTC). The
+backup system is fully operational: encrypted, off-host, scheduled, and its
+restore path proven against production data.
 
 
 ## Chunk 1 Result (2026-07-10)
@@ -701,6 +709,7 @@ docker-compose.prod.yml config --quiet` completed successfully (with
 | 2026-07-13 | rc1     | First production deployment: all containers running and healthy, database migrated, HTTPS live at batibudget.com. Chunks 5 (DNS/HTTPS polish) and 6 (smoke test) still pending. |
 | 2026-07-13 | v1.0.0  | Chunks 5 and 6 completed: batibudget.fr/www redirect fixed to use Caddy-issued HTTPS instead of OVH's HTTP-only redirect; catalog and "Maison Plain-Pied" template seeded; first admin user created; production smoke test passed (core app flow, document upload/download via R2, email flows via Resend). Off-host database backups still outstanding. |
 | 2026-07-13 | v1.1.0  | Rotating refresh-token auth deployed (commit `b348585`): short-lived in-memory access token + httpOnly `SameSite=Lax` refresh cookie, 30-day sliding session, atomic rotation with reuse-detection, server-side revocation on logout/password-reset. Migration `a1b2c3d4e5f6` (`refresh_tokens` table) applied cleanly; all containers healthy; health endpoints green. Also shipped: backend Dockerfile split into dev/prod stages and a dev-only cross-site cookie fix (no prod impact). Pre-deploy DB dump taken (on-host). Off-host backups still outstanding. |
+| 2026-07-13 | v1.2.0  | Automated encrypted off-host database backups deployed (commit `bd5bab9`): dedicated R2 backups bucket + scoped token created, rclone installed, `.env.production` configured, `batibudget-db-backup.timer` enabled (daily 03:30 UTC + `Persistent=true`). Verified on the VPS: real backup uploaded and confirmed present in R2 via `rclone ls`; full restore drill pulling that backup back from R2 matched production `users` row count exactly. **Original launch punch list (backups, in particular) is now fully closed.** |
 |            |         |                                                                                                                                                             |
 
 ## Production Configuration Review (2026-07-13)
@@ -758,15 +767,15 @@ next task:
 
 - **Dev/prod R2 & Resend separation (High)** — sidelined by the project
   owner for now; not a blocker for current work. Revisit later.
-- **Backups (High) — implemented 2026-07-13.** Automated encrypted
-  PostgreSQL backups to Cloudflare R2 with retention, plus a tested restore
-  path (`scripts/backup_db.sh`, `scripts/restore_db.sh`, systemd units under
-  `deploy/systemd/`). The backup→restore cycle was verified end-to-end
-  locally (row-for-row match; wrong-passphrase fails loudly). See the
-  "Disaster Recovery" section above for the full plan and the one-time VPS
-  setup still required (create the R2 backups bucket + scoped token, install
-  rclone, fill `.env.production`, enable the timer, and do a first real
-  R2 backup + restore drill on the VPS).
+- **Backups (High) — implemented and fully deployed 2026-07-13.** Automated
+  encrypted PostgreSQL backups to Cloudflare R2 with retention, plus a tested
+  restore path (`scripts/backup_db.sh`, `scripts/restore_db.sh`, systemd
+  units under `deploy/systemd/`). Verified end-to-end both locally
+  (row-for-row match; wrong-passphrase fails loudly) and on the VPS itself
+  (real R2 upload confirmed via `rclone ls`; a restore drill pulling the
+  backup back down from R2 matched production row counts exactly).
+  `batibudget-db-backup.timer` is enabled, next run 2026-07-14 03:31 UTC. No
+  further action needed; see "Disaster Recovery" above for the full plan.
 - **Logging (Medium) — fixed.** `backend/app/main.py` and
   `backend/app/db/session.py` no longer use `print()`. `main.py` now calls
   `logging.basicConfig` with level `DEBUG` in non-production and `INFO` in
