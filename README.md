@@ -1,6 +1,6 @@
-# Budget Construction
+# Bâti Budget
 
-Budget Construction is a React/Vite frontend backed by a FastAPI API,
+Bâti Budget is a React/Vite frontend backed by a FastAPI API,
 PostgreSQL, Cloudflare R2 document storage, and Resend email delivery.
 
 ## Tech Stack
@@ -74,7 +74,8 @@ settings are:
 | `DOMAIN`, `ACME_EMAIL` | Caddy hostname and Let's Encrypt contact address. |
 | `POSTGRES_*`, `DATABASE_URL` | Internal PostgreSQL credentials and async API connection URL. |
 | `APP_ENVIRONMENT=production` | Enables strict production configuration validation. |
-| `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT signing configuration; generate a high-entropy secret. |
+| `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT signing configuration; generate a high-entropy secret (≥32 characters). |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | Sliding session length in days for the httpOnly refresh cookie (default 30). |
 | `APP_URL`, `CORS_ALLOWED_ORIGINS` | Public HTTPS URL and JSON array of permitted browser origins. |
 | `R2_*` | Bucket-scoped Cloudflare R2 credentials. |
 | `RESEND_*`, `SUPPORT_EMAIL` | Verified Resend sender and issue-report recipient. |
@@ -82,6 +83,21 @@ settings are:
 
 The API refuses to start with incomplete production settings, an empty CORS
 allow-list, a non-HTTPS `APP_URL`, or `DATABASE_ECHO=true`.
+
+## Authentication
+
+Login (`POST /auth/login`) returns a short-lived JWT access token
+(`ACCESS_TOKEN_EXPIRE_MINUTES`, default 30) in the response body, which the
+frontend keeps in memory only (never `localStorage`), and sets a separate,
+long-lived refresh token as an `httpOnly`, `SameSite=Lax` cookie
+(`REFRESH_TOKEN_EXPIRE_DAYS`, default 30, sliding). `POST /auth/refresh`
+exchanges a valid refresh cookie for a new access token and rotates the
+refresh token; the previous one is invalidated. `POST /auth/logout` revokes
+the current refresh token. If a rotated-out or already-revoked refresh token
+is ever presented again, the entire session family is revoked as a
+theft signal, not just that one token. Resetting a password revokes all of a
+user's refresh tokens. Refresh tokens are stored hashed (SHA-256) in the
+`refresh_tokens` table, never in plaintext.
 
 ## Validation and operations
 
@@ -93,8 +109,10 @@ curl -fsS https://your-domain.example/api/health/ready
 docker compose --env-file .env.production -f docker-compose.prod.yml ps
 ```
 
-Also test login, a browser refresh on a nested route, document upload and
-download, password reset delivery, and issue-report email delivery.
+Also test login, a browser refresh on a nested route, that the session
+survives an access-token expiry (silent renewal via `/auth/refresh`), logout,
+document upload and download, password reset delivery, and issue-report
+email delivery.
 
 Back up PostgreSQL daily to encrypted storage outside the VPS. A Docker volume
 is not a backup. To create a manual logical backup:

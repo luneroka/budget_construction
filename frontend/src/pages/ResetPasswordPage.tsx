@@ -62,7 +62,7 @@ export function ResetPasswordPage() {
     <main className="flex min-h-screen items-center justify-center bg-background px-6 py-10">
       <section className="w-full max-w-sm">
         <div className="mb-8">
-          <p className="text-sm font-medium text-gold">Budget Construction</p>
+          <p className="text-sm font-medium text-gold">Bâti Budget</p>
           <h1 className="mt-2 font-heading text-3xl font-bold text-foreground">
             Nouveau mot de passe
           </h1>

@@ -87,7 +87,7 @@ Transactions become the primary entity.
 
 # User Workflows
 
-## Workflow A — Budget Construction
+## Workflow A — Bâti Budget
 
 User wants to:
 

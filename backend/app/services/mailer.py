@@ -63,7 +63,7 @@ async def send_reset_password_email(
             <tr>
               <td style="background:#1f2f52; padding:24px 28px;">
                 <p style="margin:0 0 6px; color:#d4a73d; font-size:13px; font-weight:700; letter-spacing:0.02em;">
-                  Budget Construction
+                  Bâti Budget
                 </p>
                 <h1 style="margin:0; color:#f8fafc; font-family:Georgia, 'Times New Roman', serif; font-size:28px; line-height:1.2; font-weight:700;">
                   Réinitialisation du mot de passe
@@ -101,7 +101,7 @@ async def send_reset_password_email(
             <tr>
               <td style="background:#f1f5f9; border-top:1px solid #dde3ea; padding:18px 28px;">
                 <p style="margin:0; font-size:12px; line-height:1.5; color:#64748b;">
-                  Cet e-mail a été envoyé automatiquement par Budget Construction.
+                  Cet e-mail a été envoyé automatiquement par Bâti Budget.
                 </p>
               </td>
             </tr>
@@ -116,7 +116,7 @@ async def send_reset_password_email(
     text = f"""\
 Bonjour,
 
-Nous avons reçu une demande de réinitialisation du mot de passe de votre compte Budget Construction.
+Nous avons reçu une demande de réinitialisation du mot de passe de votre compte Bâti Budget.
 
 Pour définir un nouveau mot de passe, ouvrez ce lien :
 {reset_link}
@@ -192,7 +192,7 @@ async def send_issue_report_email(
         for label, value in metadata_rows
     )
     text_metadata = '\n'.join(f'{label}: {value}' for label, value in metadata_rows)
-    subject = f'Budget Construction issue report: {category_label}'
+    subject = f'Bâti Budget issue report: {category_label}'
 
     html = f"""\
 <!doctype html>
