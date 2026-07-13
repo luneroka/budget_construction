@@ -790,6 +790,7 @@ docker-compose.prod.yml config --quiet` completed successfully (with
 | 2026-07-13 | v1.0.0  | Chunks 5 and 6 completed: batibudget.fr/www redirect fixed to use Caddy-issued HTTPS instead of OVH's HTTP-only redirect; catalog and "Maison Plain-Pied" template seeded; first admin user created; production smoke test passed (core app flow, document upload/download via R2, email flows via Resend). Off-host database backups still outstanding. |
 | 2026-07-13 | v1.1.0  | Rotating refresh-token auth deployed (commit `b348585`): short-lived in-memory access token + httpOnly `SameSite=Lax` refresh cookie, 30-day sliding session, atomic rotation with reuse-detection, server-side revocation on logout/password-reset. Migration `a1b2c3d4e5f6` (`refresh_tokens` table) applied cleanly; all containers healthy; health endpoints green. Also shipped: backend Dockerfile split into dev/prod stages and a dev-only cross-site cookie fix (no prod impact). Pre-deploy DB dump taken (on-host). Off-host backups still outstanding. |
 | 2026-07-13 | v1.2.0  | Automated encrypted off-host database backups deployed (commit `bd5bab9`): dedicated R2 backups bucket + scoped token created, rclone installed, `.env.production` configured, `batibudget-db-backup.timer` enabled (daily 03:30 UTC + `Persistent=true`). Verified on the VPS: real backup uploaded and confirmed present in R2 via `rclone ls`; full restore drill pulling that backup back from R2 matched production `users` row count exactly. **Original launch punch list (backups, in particular) is now fully closed.** |
+| 2026-07-13 | v1.3.0  | Backup failure alerting (commit `1f5cdf2`) and R2 documents mirror (commit `a95c858`) deployed. Any `backup_db.sh`/`backup_documents.sh` failure now emails `BACKUP_ALERT_EMAIL` via Resend (verified with a real accepted alert and a simulated-outage case). R2 has no native versioning (confirmed against current Cloudflare docs), so `scripts/backup_documents.sh` substitutes a daily one-way `rclone copy` (never `sync`) of the live documents bucket into a dedicated `budget-construction-documents-backup` mirror bucket, retained via a 30-day R2 Object Lifecycle Rule. VPS setup completed: mirror bucket + scoped token + lifecycle rule created, a real uploaded document confirmed mirrored (`Copied (server-side copy)`), `batibudget-docs-mirror.timer` enabled (daily 04:16 UTC, alongside the 03:33 DB backup). **Closes the original Chunk 0 audit's open R2 lifecycle/retention item.** |
 |            |         |                                                                                                                                                             |
 
 ## Production Configuration Review (2026-07-13)
@@ -879,9 +880,15 @@ next task:
   enforced by an R2-native Object Lifecycle Rule on the mirror bucket. See
   "Documents mirror" under Disaster Recovery above for the full design and
   the "New finding" note above for what was double-checked before landing on
-  this approach. VPS setup (create the mirror bucket/token/lifecycle rule,
-  fill env vars, enable the timer) is still pending -- same one-time-setup
-  pattern as the database backup.
+  this approach. **VPS setup completed and validated same day:** the
+  `budget-construction-documents-backup` bucket, scoped token, and 30-day
+  Object Lifecycle Rule were created; `DOCS_BACKUP_R2_*` filled in
+  `.env.production`; a real document was uploaded through the live app and
+  confirmed present in the mirror bucket after running the script
+  (`rclone` log showed `Copied (server-side copy)`, confirming no VPS
+  bandwidth/disk is used for the transfer); `batibudget-docs-mirror.timer`
+  is enabled (`systemctl list-timers` confirms it alongside the DB backup
+  timer, next run 2026-07-14 04:16 UTC). This closes the item.
 - **Logging (Medium) — fixed.** `backend/app/main.py` and
   `backend/app/db/session.py` no longer use `print()`. `main.py` now calls
   `logging.basicConfig` with level `DEBUG` in non-production and `INFO` in
