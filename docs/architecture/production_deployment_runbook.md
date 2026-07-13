@@ -44,8 +44,8 @@
 - [x] Chunk 2 — VPS provisioning completed on 2026-07-13.
 - [x] Chunk 3 — server hardening and Docker setup completed on 2026-07-13.
 - [x] Chunk 4 — first deployment and container validation completed on 2026-07-13.
-- [ ] Chunk 5 — domain, DNS, and HTTPS configuration.
-- [ ] Chunk 6 — production smoke test.
+- [x] Chunk 5 — domain, DNS, and HTTPS configuration completed on 2026-07-13.
+- [x] Chunk 6 — production smoke test completed on 2026-07-13.
 
 # CODEX Prompt -- Chunk 0
 
@@ -365,13 +365,79 @@ DNS for `batibudget.com` (A/AAAA records pointed at the VPS) was configured
 during this chunk, ahead of its nominal Chunk 5 slot, because
 `.env.production` needed a real `DOMAIN` value and Caddy's automatic HTTPS
 needed DNS live before `caddy` could start. Caddy obtained its Let's Encrypt
-certificate successfully on the first attempt, no workaround needed. Two
-related domains were also configured at this time, outside the runbook's
-original scope: `batibudget.fr` and `www.batibudget.fr` now permanently
-(301) redirect to `https://batibudget.com` via OVH's redirection product.
-`www.batibudget.com` itself still shows OVH's default placeholder page —
-Chunk 5 should decide whether it should also serve the app or redirect to
-the apex domain.
+certificate successfully on the first attempt, no workaround needed. See the
+Chunk 5 Result section below for how the related `batibudget.fr`/`www`
+domains were subsequently handled. `www.batibudget.com` itself still shows
+OVH's default placeholder page and was left unresolved — a future chunk
+should decide whether it should also serve the app or redirect to the apex
+domain.
+
+## Chunk 5 Result (2026-07-13)
+
+Domain, DNS, and HTTPS configuration completed, partly ahead of schedule
+during Chunk 4 (see note above) and finished afterward:
+
+1. `batibudget.com` — apex A/AAAA records point at the VPS; Caddy obtained
+   and serves a Let's Encrypt certificate automatically (see Chunk 4 Result).
+2. `batibudget.fr` and `www.batibudget.fr` — set up to redirect to
+   `https://batibudget.com`, with one detour worth recording:
+   - First attempt used OVH's built-in domain "Web Redirection" product
+     (visible, permanent/301). This worked correctly over plain HTTP, but
+     **OVH's redirect service has no TLS listener on port 443 at all** —
+     `https://batibudget.fr` failed to connect outright rather than
+     redirecting. Since most browsers try HTTPS first by default, this
+     redirect would have silently failed for most visitors.
+   - **Fix:** removed the OVH redirection entries, pointed
+     `batibudget.fr`/`www.batibudget.fr`'s A/AAAA records directly at the
+     VPS instead (via OVH's "redirect to an IP" DNS wizard, which sidesteps
+     a "target already configured" conflict that blocked adding the A
+     record through the plain DNS zone editor directly), and added a second
+     Caddy site block (commit `d3f33aa`) that gets its own Let's Encrypt
+     certificate for both hostnames and issues the redirect itself:
+     `redir https://batibudget.com{uri} permanent`.
+   - **Deployment gotcha:** after pushing the new `Caddyfile` and `git
+     pull`-ing on the VPS, `caddy reload` reported `"config is unchanged"`
+     and `cat`-ing the file inside the running container showed the *old*
+     content. Cause: Docker's single-file bind mount
+     (`./Caddyfile:/etc/caddy/Caddyfile:ro`) locks onto a specific inode at
+     container-creation time; `git pull` replaces files via write-temp-then-
+     rename rather than editing in place, which swaps in a new inode at that
+     path and orphans the one Docker had mounted. A plain `restart` doesn't
+     fix this since Compose only recreates containers when it detects a
+     config change. **Fix:** `docker compose up -d --force-recreate caddy`
+     to force a fresh bind mount. Worth remembering for any future
+     `Caddyfile`-only change: `--force-recreate` is required, not just
+     `restart` or `caddy reload`.
+   - Verified end-to-end after the fix: `https://batibudget.fr` and
+     `https://www.batibudget.fr` both return `301` to
+     `https://batibudget.com/`, then `200`, with valid Caddy-issued certs.
+
+## Chunk 6 Result (2026-07-13)
+
+Production smoke test performed manually against the live site by the
+project owner. Verified:
+
+- Core app flow: registration via `POST /api/auth/register` (no signup form
+  exists in the frontend yet — this was called directly), login, promotion
+  to admin via direct SQL, authenticated API calls, project creation from
+  the "Maison Plain-Pied" template (see the template seed script added
+  earlier this session, commit `deeead3`), SPA navigation.
+- Document upload and download, exercising the Cloudflare R2 integration.
+- Email flows (password reset and/or issue report), exercising the Resend
+  integration.
+- `/api/health/live` and `/api/health/ready` were already verified during
+  Chunk 4's container validation.
+- Automatic HTTPS renewal was not directly testable (certificates were just
+  issued), but Caddy's logs confirm the renewal-scheduling mechanism is
+  active — it computed renewal windows for every certificate immediately
+  after issuance.
+
+**Not yet covered, flagged as open work:** encrypted off-host PostgreSQL
+backups with a tested restore procedure. The `Rollback` and
+`Disaster Recovery` sections below are still placeholders. The original
+Chunk 0 deployment checklist treats backups as required "before accepting
+production traffic," so this should be prioritized next despite the
+application itself now being validated end-to-end.
 
 ## Deployment Commands
 
@@ -462,4 +528,5 @@ docker-compose.prod.yml config --quiet` completed successfully (with
 | Date       | Version | Description                                                                                                                                            |
 | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-07-13 | rc1     | First production deployment: all containers running and healthy, database migrated, HTTPS live at batibudget.com. Chunks 5 (DNS/HTTPS polish) and 6 (smoke test) still pending. |
+| 2026-07-13 | v1.0.0  | Chunks 5 and 6 completed: batibudget.fr/www redirect fixed to use Caddy-issued HTTPS instead of OVH's HTTP-only redirect; catalog and "Maison Plain-Pied" template seeded; first admin user created; production smoke test passed (core app flow, document upload/download via R2, email flows via Resend). Off-host database backups still outstanding. |
 |            |         |                                                                                                                                                             |
