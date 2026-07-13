@@ -441,17 +441,86 @@ application itself now being validated end-to-end.
 
 ## Deployment Commands
 
-<!-- Placeholder for deployment commands. -->
+Standard deploy of a new revision, run as `deploy` in `~/budget_construction`
+on the VPS. This procedure was used and verified for the refresh-token
+release on 2026-07-13.
+
+```sh
+cd ~/budget_construction
+
+# 1. Record the current revision as a rollback target.
+git rev-parse HEAD | tee ~/last-deploy-revision.txt
+git pull origin main
+
+# 2. Back up the database first (still on-host only until off-host backups
+#    are automated). Always do this before a deploy that runs a migration.
+mkdir -p backups
+docker compose --env-file .env.production -f docker-compose.prod.yml exec -T db \
+  sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+  | gzip > backups/pre-deploy-$(date +%F).sql.gz
+ls -lh backups/   # confirm the dump is non-empty
+
+# 3. Build and start. Compose's dependency order handles it safely:
+#    db (stays up, data preserved) -> migrate (alembic upgrade head)
+#    -> backend (only after migrate succeeds) -> frontend (re-copies the
+#    SPA bundle) -> caddy.
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+
+# 4. Verify.
+docker compose --env-file .env.production -f docker-compose.prod.yml ps -a
+docker compose --env-file .env.production -f docker-compose.prod.yml logs migrate | tail -5
+curl -fsS https://batibudget.com/api/health/live && echo
+curl -fsS https://batibudget.com/api/health/ready && echo
+```
+
+Expect `migrate` and `frontend` to show `Exited (0)` (one-shot services);
+`db`, `backend`, and `caddy` should be `Up ... (healthy)`. Then do a browser
+smoke test: log in, reload a few times (confirms the refresh-token session
+survives), and log out.
 
 ## Rollback
 
-<!-- Placeholder for rollback procedure. -->
+Code-only rollback (the common case — a bad application revision, database
+schema intact):
+
+```sh
+cd ~/budget_construction
+git checkout "$(cat ~/last-deploy-revision.txt)"
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+```
+
+Migrations in this project are additive (e.g. the `refresh_tokens` table is
+unused by older code), so a code rollback generally needs **no** database
+downgrade — the newer schema is harmless to the older code. Only restore a
+backup if the database itself is actually damaged (see Disaster Recovery).
+Do not run `alembic downgrade` in production unless the specific migration
+has a reviewed downgrade and a tested restore plan.
+
+To restore the pre-deploy database dump onto a fresh/empty database:
+
+```sh
+gunzip -c backups/pre-deploy-YYYY-MM-DD.sql.gz \
+  | docker compose --env-file .env.production -f docker-compose.prod.yml exec -T db \
+      sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+**Note:** as of 2026-07-13 the code-only rollback path is documented and
+low-risk but has not been exercised against production; the restore command
+above has not been run end-to-end either. Both should be validated as part
+of the outstanding backup/restore task below.
 
 ## Disaster Recovery
 
 <!-- Placeholder for the disaster-recovery plan: incident ownership,
 backup locations and retention, recovery-time/recovery-point objectives,
-database and R2 restoration procedures, and recovery validation. -->
+database and R2 restoration procedures, and recovery validation.
+
+STILL OUTSTANDING (next task): automated, encrypted, OFF-HOST PostgreSQL
+backups with retention and a tested restore. The only backups that exist
+today are manual pre-deploy dumps under ./backups on the VPS itself, which
+do not survive loss of the VPS. R2 documents also need their own retention
+decision. -->
+
 
 ## Chunk 1 Result (2026-07-10)
 
@@ -529,6 +598,7 @@ docker-compose.prod.yml config --quiet` completed successfully (with
 | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-07-13 | rc1     | First production deployment: all containers running and healthy, database migrated, HTTPS live at batibudget.com. Chunks 5 (DNS/HTTPS polish) and 6 (smoke test) still pending. |
 | 2026-07-13 | v1.0.0  | Chunks 5 and 6 completed: batibudget.fr/www redirect fixed to use Caddy-issued HTTPS instead of OVH's HTTP-only redirect; catalog and "Maison Plain-Pied" template seeded; first admin user created; production smoke test passed (core app flow, document upload/download via R2, email flows via Resend). Off-host database backups still outstanding. |
+| 2026-07-13 | v1.1.0  | Rotating refresh-token auth deployed (commit `b348585`): short-lived in-memory access token + httpOnly `SameSite=Lax` refresh cookie, 30-day sliding session, atomic rotation with reuse-detection, server-side revocation on logout/password-reset. Migration `a1b2c3d4e5f6` (`refresh_tokens` table) applied cleanly; all containers healthy; health endpoints green. Also shipped: backend Dockerfile split into dev/prod stages and a dev-only cross-site cookie fix (no prod impact). Pre-deploy DB dump taken (on-host). Off-host backups still outstanding. |
 |            |         |                                                                                                                                                             |
 
 ## Production Configuration Review (2026-07-13)
