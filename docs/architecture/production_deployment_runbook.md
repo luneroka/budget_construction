@@ -43,7 +43,7 @@
 - [x] Chunk 1 — production repository preparation completed on 2026-07-10.
 - [x] Chunk 2 — VPS provisioning completed on 2026-07-13.
 - [x] Chunk 3 — server hardening and Docker setup completed on 2026-07-13.
-- [ ] Chunk 4 — first deployment and container validation.
+- [x] Chunk 4 — first deployment and container validation completed on 2026-07-13.
 - [ ] Chunk 5 — domain, DNS, and HTTPS configuration.
 - [ ] Chunk 6 — production smoke test.
 
@@ -227,13 +227,13 @@ Remaining manual VPS steps.
 - Primary IPv4: 167.233.213.9
 - Primary IPv6: 2a01:4f8:c015:aeae::1
 - Ubuntu version: 24.04.4 LTS (Noble Numbat)
-- Domain:
+- Domain: batibudget.com
 - Hostname:
 - SSH public key:
 - Docker version: 29.6.1 (build 8900f1d)
 - Docker Compose version: v5.3.1
-- PostgreSQL version:
-- Caddy version:
+- PostgreSQL version: 15 (postgres:15-alpine)
+- Caddy version: 2 (caddy:2-alpine)
 - VPS creation date: 2026-07-13
 
 **Note:** The instance actually provisioned is a CPX12 (2 vCPU, 2 GB
@@ -286,6 +286,92 @@ Server hardening and Docker setup completed manually via SSH, in this order:
 
 No application containers were deployed in this chunk. The server is
 hardened, firewalled, swap-enabled, and Docker-ready for Chunk 4.
+
+## Chunk 4 Result (2026-07-13)
+
+Application deployed and validated on the VPS via SSH, in this order:
+
+1. Cloned the repository to `~/budget_construction` on the VPS as `deploy`
+   (public repo, plain `git clone` over HTTPS).
+2. Created `.env.production` from `.env.production.example` with real secrets
+   (domain `batibudget.com`, generated `POSTGRES_PASSWORD`/`SECRET_KEY`, R2
+   and Resend credentials), `chmod 600`. **Incident:** early secret values
+   were inadvertently pasted into this chat session via a screenshot; every
+   exposed secret (Postgres password, JWT secret, R2 API token, Resend API
+   key) was rotated before deployment continued. Lesson for future chunks:
+   never screenshot or paste `.env.production` contents anywhere outside the
+   server — verify with `grep`/line counts only.
+3. Validated `docker compose --env-file .env.production -f
+   docker-compose.prod.yml config --quiet` — passed silently.
+4. Built the `migrate`, `backend`, and `frontend` images.
+5. Started services in dependency order — `db` → `migrate` → `backend` →
+   `frontend` → `caddy` — verifying health or exit status at each step
+   individually rather than a single `up -d`, since this was the first
+   production start.
+6. Verified full-stack health: `docker compose ps -a` shows `db`/`backend`/
+   `caddy` healthy and `migrate`/`frontend` exited `(0)`; `curl -I
+   https://batibudget.com` returns `200`; `/api/health/live` and
+   `/api/health/ready` both return `{"status":"ok"}`; the SPA loads correctly
+   in a browser with a valid certificate; `backend`'s port `8000` is
+   confirmed unreachable from the public internet.
+7. Captured a RAM baseline under live load: `free -h` showed ~830 MB used,
+   ~1.1 GB available out of 1.9 GB total, with swap barely touched (63 MB of
+   2 GB — no sustained memory pressure). `docker stats --no-stream` showed
+   `backend` ~322 MB, `db` ~36 MB, `caddy` ~18 MB. No change was needed to
+   the 2-worker FastAPI configuration decided in the Step 1 pre-flight
+   review; the 2 GB RAM budget (vs. the 4 GB originally targeted) held up
+   fine under this load.
+
+### Deviations and fixes made to the repository during this chunk
+
+The following issues were only discoverable by actually building and running
+the production image — they didn't surface in Chunk 1's build-only
+validation. All were fixed via commits directly to `main`:
+
+1. **`ENV UV_NO_CACHE=1`** (commit `a283a37`) — `uv run --no-sync` still
+   attempted to create a cache directory at `/app/.cache/uv`, which the
+   non-root `app` user couldn't write to.
+2. **`RUN chown -R app:app /app`** (commit `a84e15e`) — `/app/.venv` was
+   created by `uv sync` while still running as `root` (before the `app` user
+   existed), so it stayed root-owned even after the later `COPY --chown`
+   step, which only covers files copied from the build context, not
+   directories created by earlier `RUN` steps.
+3. **`ENV UV_PYTHON_INSTALL_DIR=/app/.uv-python`** (commit `1abe845`) — this
+   base image ships no system Python; `uv sync` auto-downloads one to satisfy
+   `requires-python`, and it defaulted to installing under root's home
+   directory (`/root`, permission `700`), unreachable for `app` even after
+   the chown fix above.
+4. **`ln -s /app/.venv/bin/python3 /usr/local/bin/python`** (commit
+   `51aa81b`) — the container healthcheck runs `python -c "..."` directly
+   (not via `uv run`), and with no system Python on `PATH`, the healthcheck
+   failed even though the FastAPI app itself started and ran correctly.
+5. **Analytics SQL packaging** (commit `ad7df40`) — 5 migrations load SQL
+   files from a path computed as 3 directories above the migration file,
+   which resolves to the repo root in local dev but only to `/` inside the
+   container, since the backend image's build context is scoped to
+   `./backend` and never includes the repo-root `analytics/` directory.
+   **Deviation:** rather than changing the build context to the repo root
+   (which would require relocating `.dockerignore` and would bloat the build
+   context on this resource-constrained VPS), the SQL files were duplicated
+   into `backend/analytics/sql/` and the path depth adjusted accordingly.
+   **Known tradeoff, flagged for follow-up:** `analytics/sql/` now exists in
+   two places (repo root and `backend/`); a future cleanup should either
+   symlink them or move to a repo-root build context to avoid the two
+   copies drifting apart.
+
+### Note on Chunk 5 overlap
+
+DNS for `batibudget.com` (A/AAAA records pointed at the VPS) was configured
+during this chunk, ahead of its nominal Chunk 5 slot, because
+`.env.production` needed a real `DOMAIN` value and Caddy's automatic HTTPS
+needed DNS live before `caddy` could start. Caddy obtained its Let's Encrypt
+certificate successfully on the first attempt, no workaround needed. Two
+related domains were also configured at this time, outside the runbook's
+original scope: `batibudget.fr` and `www.batibudget.fr` now permanently
+(301) redirect to `https://batibudget.com` via OVH's redirection product.
+`www.batibudget.com` itself still shows OVH's default placeholder page —
+Chunk 5 should decide whether it should also serve the app or redirect to
+the apex domain.
 
 ## Deployment Commands
 
@@ -373,7 +459,7 @@ docker-compose.prod.yml config --quiet` completed successfully (with
 | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 2026-07-10 | v1.0.0-rc1 | Release Candidate created. Production architecture reviewed, production repository prepared, database audit completed, security audit completed. |
 
-| Date | Version | Description |
-| ---- | ------- | ----------- |
-|      |         |             |
-|      |         |             |
+| Date       | Version | Description                                                                                                                                            |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-13 | rc1     | First production deployment: all containers running and healthy, database migrated, HTTPS live at batibudget.com. Chunks 5 (DNS/HTTPS polish) and 6 (smoke test) still pending. |
+|            |         |                                                                                                                                                             |
