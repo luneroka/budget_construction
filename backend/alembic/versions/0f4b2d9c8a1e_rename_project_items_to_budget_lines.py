@@ -19,7 +19,7 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
-ANALYTICS_SQL_DIR = Path(__file__).resolve().parents[3] / 'analytics' / 'sql'
+ANALYTICS_SQL_DIR = Path(__file__).resolve().parents[2] / 'analytics' / 'sql'
 ANALYTICS_SQL_FILES = (
     'vw_transactions_fact.sql',
     'vw_project_summary.sql',

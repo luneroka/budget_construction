@@ -18,7 +18,7 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
-ANALYTICS_SQL_DIR = Path(__file__).resolve().parents[3] / 'analytics' / 'sql'
+ANALYTICS_SQL_DIR = Path(__file__).resolve().parents[2] / 'analytics' / 'sql'
 
 UPGRADE_SQL_FILES = (
     'schema.sql',
