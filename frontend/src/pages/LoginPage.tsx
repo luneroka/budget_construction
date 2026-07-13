@@ -143,9 +143,7 @@ export function LoginPage() {
               onClick={handleForgotPassword}
             >
               <KeyRound aria-hidden />
-              {isRequestingReset
-                ? 'Envoi du lien...'
-                : 'Mot de passe oublié ?'}
+              {isRequestingReset ? 'Envoi du lien...' : 'Mot de passe oublié ?'}
             </Button>
 
             {errorMessage ? (

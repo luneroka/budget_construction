@@ -69,17 +69,17 @@ or FastAPI.
 `.env.production` is a secret file and must never be committed. Important
 settings are:
 
-| Variable | Purpose |
-| --- | --- |
-| `DOMAIN`, `ACME_EMAIL` | Caddy hostname and Let's Encrypt contact address. |
-| `POSTGRES_*`, `DATABASE_URL` | Internal PostgreSQL credentials and async API connection URL. |
-| `APP_ENVIRONMENT=production` | Enables strict production configuration validation. |
-| `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT signing configuration; generate a high-entropy secret (≥32 characters). |
-| `REFRESH_TOKEN_EXPIRE_DAYS` | Sliding session length in days for the httpOnly refresh cookie (default 30). |
-| `APP_URL`, `CORS_ALLOWED_ORIGINS` | Public HTTPS URL and JSON array of permitted browser origins. |
-| `R2_*` | Bucket-scoped Cloudflare R2 credentials. |
-| `RESEND_*`, `SUPPORT_EMAIL` | Verified Resend sender and issue-report recipient. |
-| `VITE_API_BASE_URL=/api` | Build-time, same-origin API path used by the browser. |
+| Variable                                                 | Purpose                                                                      |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `DOMAIN`, `ACME_EMAIL`                                   | Caddy hostname and Let's Encrypt contact address.                            |
+| `POSTGRES_*`, `DATABASE_URL`                             | Internal PostgreSQL credentials and async API connection URL.                |
+| `APP_ENVIRONMENT=production`                             | Enables strict production configuration validation.                          |
+| `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT signing configuration; generate a high-entropy secret (≥32 characters).  |
+| `REFRESH_TOKEN_EXPIRE_DAYS`                              | Sliding session length in days for the httpOnly refresh cookie (default 30). |
+| `APP_URL`, `CORS_ALLOWED_ORIGINS`                        | Public HTTPS URL and JSON array of permitted browser origins.                |
+| `R2_*`                                                   | Bucket-scoped Cloudflare R2 credentials.                                     |
+| `RESEND_*`, `SUPPORT_EMAIL`                              | Verified Resend sender and issue-report recipient.                           |
+| `VITE_API_BASE_URL=/api`                                 | Build-time, same-origin API path used by the browser.                        |
 
 The API refuses to start with incomplete production settings, an empty CORS
 allow-list, a non-HTTPS `APP_URL`, or `DATABASE_ECHO=true`.
