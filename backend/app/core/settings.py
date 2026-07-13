@@ -56,6 +56,8 @@ class Settings(BaseSettings):
             raise ValueError(
                 'Missing required production settings: ' + ', '.join(missing)
             )
+        if self.secret_key and len(self.secret_key) < 32:
+            raise ValueError('SECRET_KEY must be at least 32 characters in production')
         if not self.cors_allowed_origins:
             raise ValueError('CORS_ALLOWED_ORIGINS must be set in production')
         if self.database_echo:

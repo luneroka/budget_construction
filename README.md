@@ -36,7 +36,7 @@ includes `db-test`; do not use it for production.
 Prerequisites: an Ubuntu 24.04 server with Docker Engine and the Compose
 plugin, a domain whose A/AAAA records point at the server, and inbound ports
 80/443 open. Follow the full operational checklist in
-[`docs/architecture/deployment_runbook.md`](docs/architecture/deployment_runbook.md).
+[`docs/architecture/production_deployment_runbook.md`](docs/architecture/production_deployment_runbook.md).
 
 1. Clone the repository on the server and copy `.env.production.example` to
    `.env.production`. Set every placeholder with production values, then run

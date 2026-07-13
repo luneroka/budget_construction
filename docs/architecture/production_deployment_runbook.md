@@ -530,3 +530,85 @@ docker-compose.prod.yml config --quiet` completed successfully (with
 | 2026-07-13 | rc1     | First production deployment: all containers running and healthy, database migrated, HTTPS live at batibudget.com. Chunks 5 (DNS/HTTPS polish) and 6 (smoke test) still pending. |
 | 2026-07-13 | v1.0.0  | Chunks 5 and 6 completed: batibudget.fr/www redirect fixed to use Caddy-issued HTTPS instead of OVH's HTTP-only redirect; catalog and "Maison Plain-Pied" template seeded; first admin user created; production smoke test passed (core app flow, document upload/download via R2, email flows via Resend). Off-host database backups still outstanding. |
 |            |         |                                                                                                                                                             |
+
+## Production Configuration Review (2026-07-13)
+
+Post-launch review of environment variables, secrets, PostgreSQL, R2, CORS,
+HTTPS, Docker, and logging, with a focus on dev/prod separation. Repository
+review only; no application or deployment files were changed except this
+entry and a broken README link (see below).
+
+### Confirmed correct — no action needed
+
+- **Secrets never committed.** `.env` and `.env.production` are `.gitignore`d
+  (`.gitignore:14-16`) and have no history in `git log --all`. `gitleaks`
+  runs on every push/PR (`.github/workflows/secret-scan.yml`).
+- **CORS.** Dev defaults to localhost-only origins
+  (`backend/app/core/settings.py:22-29`); production requires an explicit
+  `CORS_ALLOWED_ORIGINS` and fails startup otherwise
+  (`validate_production_configuration`, same file, lines 36-66).
+- **Production settings validation.** Startup fails clearly if any required
+  production secret is missing, `APP_URL` isn't `https://`, or
+  `DATABASE_ECHO=true` — no silent fallback to insecure defaults.
+- **Docker isolation.** `docker-compose.prod.yml` exposes only Caddy's
+  `80`/`443`; `db` and `backend` have no host ports. `db` has a
+  `pg_isready` health check, `backend` has an HTTP liveness health check,
+  `migrate` runs once and gates `backend` startup. All three use the bounded
+  `local` log driver (10 MB × 3), consistent with the daemon-level rotation
+  set up in Chunk 3.
+- **Image separation.** `backend/Dockerfile` runs as a non-root user with a
+  production ASGI command (no dev/reload server). `frontend/Dockerfile` has
+  distinct `development`/`build`/`assets` stages; the dev Compose file pins
+  `target: development` and the prod Compose file pins `target: assets` —
+  the dev and prod images share no runtime code path.
+- **Firewall.** UFW allows only SSH/80/443 (Chunk 3); `backend:8000` was
+  confirmed unreachable from the public internet (Chunk 4).
+- **R2 object keys** use `uuid4` filenames (`backend/app/routers/documents.py:169`),
+  so accidental key collisions between environments are not a concern —
+  bucket-level separation (below) is what matters.
+
+### Findings
+
+| Severity | Area | Finding | Recommendation |
+| --- | --- | --- | --- |
+| **High** | Dev/prod separation | The local root `.env` holds what appear to be **live, non-sandboxed** R2 and Resend credentials (real access keys, real `RESEND_API_KEY`), not dedicated dev/test ones. `backend/app/services/storage.py` has no environment-prefixing — a bug or accidental script run in local dev could write to, list, or delete objects in whatever bucket that key can reach, and/or send real email through the same Resend account. GitHub Actions already does this correctly (fake `test-bucket`/`test`/`test` credentials in `backend-tests.yml`); local dev does not. | Provision a dedicated dev-tier R2 bucket + a token scoped only to it, and use a Resend sandbox/test key (or a clearly separate low-volume sending identity) for local `.env`. Separately, confirm on the VPS that `.env.production`'s `R2_BUCKET_NAME` differs from the local `.env`'s `budget-construction-documents` — don't paste the value into chat, just diff/grep on the server per the Chunk 4 lesson learned. |
+| **High** | Backups | Off-host encrypted PostgreSQL backups with a tested restore are still not scheduled (carried over from Chunk 6). `README.md` documents the manual `pg_dump` command but nothing runs it automatically. | Highest-priority remaining item before this is fully production-safe — schedule it (cron + off-host target) and record a restore test in the "Disaster Recovery" section below, which is still a placeholder. |
+| **Medium** | Logging | `backend/app/main.py:38,42` and `backend/app/db/session.py:17` use bare `print()` for startup/shutdown and dump a raw query result to stdout, instead of the `logging` module used everywhere else (e.g. `main.py:69`). No log-level configuration exists, so verbosity can't be tuned per environment, and `print()` output has no timestamp/module context, which limits the usefulness of the 10 MB × 3 log rotation for postmortems. | Route the lifespan/init-db messages through `logging` at an appropriate level (`info`), and consider a basic `logging.basicConfig` keyed off `APP_ENVIRONMENT`. Not urgent, but cheap to fix. |
+| **Low** | Docs | `README.md:39` links to `docs/architecture/deployment_runbook.md`, which doesn't exist — the actual file is `production_deployment_runbook.md`. | Fixed as part of this review (see below). |
+| **Low** | Config hygiene | Local `.env`'s `POSTGRES_PASSWORD` and `ACCESS_TOKEN_EXPIRE_MINUTES=10080` (1 week) are dev-only choices that would be weak if ever copied verbatim into `.env.production`. Chunk 4 notes the production `POSTGRES_PASSWORD`/`SECRET_KEY` were independently generated, so this is not currently a live issue. | No action needed now; worth a quick confirmation that production's `ACCESS_TOKEN_EXPIRE_MINUTES` wasn't also copied from the dev value. |
+| **Low** | `SECRET_KEY` validation | Production validation only checks `SECRET_KEY` is non-empty, not that it has meaningful length/entropy (`settings.py:41-58`). | Optional: add a minimum-length check (e.g. ≥32 chars) so a short placeholder can't accidentally pass validation in the future. |
+| **Informational** | Known open items | `analytics/sql/` duplication (repo root vs `backend/analytics/sql/`, Chunk 4) and `www.batibudget.com` still showing OVH's placeholder page (Chunk 4) remain unresolved from earlier chunks — no change since last recorded. | Carried forward; no new recommendation beyond what's already recorded above. |
+
+### Follow-up (2026-07-13, same day)
+
+Decisions and fixes made after the review above, before moving on to the
+next task:
+
+- **Dev/prod R2 & Resend separation (High)** — sidelined by the project
+  owner for now; not a blocker for current work. Revisit later.
+- **Backups (High)** — deferred, but explicitly picked up as the next task
+  (automatic PostgreSQL backups, restore verification, full restore test
+  before production acceptance). Not done in this entry.
+- **Logging (Medium) — fixed.** `backend/app/main.py` and
+  `backend/app/db/session.py` no longer use `print()`. `main.py` now calls
+  `logging.basicConfig` with level `DEBUG` in non-production and `INFO` in
+  production (keyed off `APP_ENVIRONMENT`), and both files log through the
+  `logging` module instead.
+- **`SECRET_KEY` validation (Low) — fixed.** `validate_production_configuration`
+  in `backend/app/core/settings.py` now rejects a production `SECRET_KEY`
+  shorter than 32 characters. Verified: a 5-character key raises
+  `ValueError` at startup; a 64-character key passes.
+- **Config hygiene / `ACCESS_TOKEN_EXPIRE_MINUTES` (Low) — verified, not a bug.**
+  Checked directly on the VPS (`grep ACCESS_TOKEN_EXPIRE_MINUTES
+  ~/budget_construction/.env.production`): production is set to `30`
+  minutes, not copied from the local `.env`'s `10080`. However, 30 minutes
+  combined with the current auth model (JWT access token in browser
+  `localStorage`, no refresh token, no server-side revocation — see
+  `frontend/src/auth/tokenStorage.ts` and `backend/app/routers/auth.py`)
+  forces frequent re-logins with no path to a longer session without
+  weakening security further. **Decision:** implement a proper refresh-token
+  flow (short-lived in-memory access token + rotating httpOnly-cookie
+  refresh token, 30-day sliding session, DB-backed revocation and reuse
+  detection) to get both a long session and a shorter-lived, revocable
+  access token. Scoped but not yet implemented — planned as a follow-up
+  task after the backup work above.

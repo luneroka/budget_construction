@@ -30,16 +30,20 @@ from app.routers import (
     admin,
 )
 
+logging.basicConfig(
+    level=logging.DEBUG if settings.app_environment != 'production' else logging.INFO,
+    format='%(asctime)s %(levelname)s %(name)s: %(message)s',
+)
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print('Server starting .....')
+    logger.info('Server starting')
     await init_db()
     yield
 
-    print('Server stopping .....')
+    logger.info('Server stopping')
 
 
 app = FastAPI(lifespan=lifespan)
