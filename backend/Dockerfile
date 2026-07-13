@@ -13,6 +13,8 @@ EXPOSE 8000
 
 ENV UV_NO_CACHE=1
 
+RUN chown -R app:app /app
+
 USER app
 
 CMD ["uv", "run", "--no-sync", "fastapi", "run", "app/main.py", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
