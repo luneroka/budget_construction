@@ -23,3 +23,7 @@
 		file_server
 	}
 }
+
+batibudget.fr, www.batibudget.fr {
+	redir https://batibudget.com{uri} permanent
+}
