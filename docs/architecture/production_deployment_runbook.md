@@ -610,5 +610,71 @@ next task:
   flow (short-lived in-memory access token + rotating httpOnly-cookie
   refresh token, 30-day sliding session, DB-backed revocation and reuse
   detection) to get both a long session and a shorter-lived, revocable
-  access token. Scoped but not yet implemented — planned as a follow-up
-  task after the backup work above.
+  access token.
+
+  **Implemented same day.** `POST /auth/login` now also issues a rotating
+  refresh token as an `httpOnly`/`SameSite=Lax` cookie (`Secure` in
+  production only); the JWT access token stays at 30 minutes and is kept
+  in-memory on the frontend instead of `localStorage`. New endpoints:
+  `POST /auth/refresh` (rotates the refresh token, returns a new access
+  token) and `POST /auth/logout` (revokes it). Refresh tokens are opaque
+  random values stored hashed (SHA-256) in a new `refresh_tokens` table
+  (migration `a1b2c3d4e5f6`), grouped by a `family_id`; reusing an
+  already-rotated-out or revoked token revokes the whole family (theft
+  signal), and a password reset revokes all of a user's refresh tokens.
+  `REFRESH_TOKEN_EXPIRE_DAYS` (default 30) is documented in both env
+  examples. Verified: migration applied cleanly against the dev Postgres
+  container; full backend suite (186 tests, including 7 new refresh-token
+  tests covering rotation, reuse-detection, logout, and password-reset
+  revocation) and `ruff check` pass; frontend `tsc -b && vite build`
+  passes; manual `curl` smoke test against the running dev stack confirmed
+  login sets the cookie, refresh rotates it, reuse revokes the family,
+  logout revokes it, and cross-origin CORS/credentials headers
+  (`localhost:5173` → `localhost:8000`) are correct. Not verified in an
+  actual browser (no browser-automation tool available in this session) —
+  recommend a manual click-through of login/idle/refresh/logout before
+  relying on this in production.
+
+  **Concurrency bug found and fixed during testing.** The first browser
+  test logged the user out on page reload. Root cause: React `StrictMode`
+  double-invokes effects in dev, firing two concurrent `POST /auth/refresh`
+  calls with the same cookie; the rotation logic used a non-atomic
+  read-then-write, so one request's failure tripped reuse-detection and
+  revoked the whole family — including the other request's freshly issued
+  token. This would also occur in production with two browser tabs sharing
+  the cookie, so it was fixed at the root: rotation now claims the token via
+  an atomic conditional `UPDATE ... WHERE revoked_at IS NULL`, with a
+  10-second reuse grace window (a token reused within 10s of its own
+  rotation is treated as a concurrent legitimate request, not theft). A new
+  `revoked_reason` column ensures the grace window applies only to
+  rotation-revoked tokens — an explicit logout or password reset is never
+  silently forgiven. The frontend mount-bootstrap is also `useRef`-guarded
+  against StrictMode's double-invoke (defense in depth). Re-verified with a
+  live 5×-repeated concurrent-request race against the dev server (all
+  succeed, no lockout) and the backend suite is now 187 tests. Total
+  auth-related pyright/ruff clean.
+
+- **Dev Dockerfile broke on rebuild (found while testing above) — fixed.**
+  Forcing a real dev image rebuild surfaced a latent breakage:
+  `backend/Dockerfile` had been reworked into a production-only image during
+  Chunk 4 (non-root `USER app`, `--no-dev`, Python under `/app/.uv-python`,
+  `fastapi run`), but the dev `docker-compose.yml` reuses that same
+  Dockerfile with a `./backend:/app` bind mount, which shadows the managed
+  Python and collides with the non-root venv → `Permission denied` on
+  `/app/.venv/bin/python3`. It had stayed hidden because the old pre-Chunk-1
+  image was still cached and running (hot-reloading bind-mounted source).
+  **Fix:** split `backend/Dockerfile` into a `development` stage (full deps,
+  root, uv-managed Python under `/root` so the bind mount doesn't shadow it,
+  `fastapi dev` with hot reload) and a `production` stage (unchanged from
+  before, kept **last** so no-target builds still resolve to it — so
+  `docker-compose.prod.yml` is untouched and prod behavior is unchanged).
+  `docker-compose.yml` now sets `target: development` on the backend. This
+  mirrors the frontend Dockerfile's existing multi-stage pattern.
+  **Rebuild note:** the stale `backend_venv` named volume had to be removed
+  (`docker volume rm budget_construction_backend_venv`) so it repopulates
+  from the new image; `db_data` was left untouched. Verified: dev stack
+  rebuilds and starts cleanly, DB data (incl. the refresh-token migration)
+  survived, and login/refresh/concurrent-refresh all pass on the rebuilt
+  stack. **Production impact:** none at build time (prod still builds the
+  `production` stage by default), but the next prod deploy will rebuild from
+  this Dockerfile — expected and safe.

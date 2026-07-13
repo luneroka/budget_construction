@@ -10,6 +10,7 @@ from app.models.template_item import TemplateItem
 from app.models.budget_line import BudgetLine
 from app.models.transaction import Transaction
 from app.models.document import Document
+from app.models.refresh_token import RefreshToken
 
 __all__ = [
     'User',
@@ -24,4 +25,5 @@ __all__ = [
     'BudgetLine',
     'Transaction',
     'Document',
+    'RefreshToken',
 ]

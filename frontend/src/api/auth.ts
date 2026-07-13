@@ -37,6 +37,15 @@ export async function login(credentials: LoginCredentials): Promise<TokenRead> {
   return response.data
 }
 
+export async function refreshAccessToken(): Promise<TokenRead> {
+  const response = await apiClient.post<TokenRead>('/auth/refresh')
+  return response.data
+}
+
+export async function logoutRequest(): Promise<void> {
+  await apiClient.post('/auth/logout')
+}
+
 export async function forgotPassword(
   request: ForgotPasswordRequest,
 ): Promise<ForgotPasswordResponse> {

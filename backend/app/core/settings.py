@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     secret_key: Optional[str] = None
     algorithm: Optional[str] = None
     access_token_expire_minutes: Optional[int] = None
+    refresh_token_expire_days: int = 30
     resend_api_key: Optional[str] = None
     resend_from: Optional[str] = None
     support_email: Optional[str] = None

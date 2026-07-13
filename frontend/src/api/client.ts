@@ -145,6 +145,8 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
 
 let accessToken: string | null = null
 let unauthorizedHandler: (() => void) | null = null
+let refreshHandler: (() => Promise<string | null>) | null = null
+let refreshInFlight: Promise<string | null> | null = null
 
 export function setApiAccessToken(token: string | null) {
   accessToken = token
@@ -154,8 +156,15 @@ export function setApiUnauthorizedHandler(handler: (() => void) | null) {
   unauthorizedHandler = handler
 }
 
+// Called on a 401 to obtain a fresh access token via the httpOnly refresh
+// cookie. Returns the new token, or null if the session can't be renewed.
+export function setApiRefreshHandler(handler: (() => Promise<string | null>) | null) {
+  refreshHandler = handler
+}
+
 export const apiClient = axios.create({
   baseURL: apiConfig.baseUrl,
+  withCredentials: true,
   headers: {
     Accept: 'application/json',
   },
@@ -169,14 +178,39 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
+type RetryableRequestConfig = AxiosRequestConfig & { _retried?: boolean }
+
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: unknown) => {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-      unauthorizedHandler?.()
+  async (error: unknown) => {
+    if (!axios.isAxiosError(error) || error.response?.status !== 401) {
+      return Promise.reject(error)
     }
 
-    return Promise.reject(error)
+    const requestConfig = error.config as RetryableRequestConfig | undefined
+    const isAuthEndpoint = requestConfig?.url?.startsWith('/auth/') ?? true
+
+    if (!refreshHandler || isAuthEndpoint || !requestConfig || requestConfig._retried) {
+      unauthorizedHandler?.()
+      return Promise.reject(error)
+    }
+
+    requestConfig._retried = true
+    refreshInFlight ??= refreshHandler().finally(() => {
+      refreshInFlight = null
+    })
+
+    const newToken = await refreshInFlight
+
+    if (!newToken) {
+      unauthorizedHandler?.()
+      return Promise.reject(error)
+    }
+
+    requestConfig.headers = requestConfig.headers ?? {}
+    requestConfig.headers.Authorization = `Bearer ${newToken}`
+
+    return apiClient(requestConfig)
   },
 )
 

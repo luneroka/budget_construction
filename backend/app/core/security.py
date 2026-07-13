@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, UTC
 from hashlib import sha256
 import hmac
+import secrets
 from typing import TypeVar, cast
 
 from jose import JWTError, jwt
@@ -27,6 +28,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = _require_setting(
     'ACCESS_TOKEN_EXPIRE_MINUTES',
     settings.access_token_expire_minutes,
 )
+REFRESH_TOKEN_EXPIRE_DAYS = settings.refresh_token_expire_days
 
 pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
@@ -104,3 +106,11 @@ def _decode_token(token: str, expected_purpose: str) -> DecodedToken:
         raise JWTError('Invalid token purpose')
 
     return payload
+
+
+def generate_refresh_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def hash_refresh_token(raw_token: str) -> str:
+    return sha256(raw_token.encode()).hexdigest()

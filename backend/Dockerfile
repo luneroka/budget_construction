@@ -1,4 +1,26 @@
-FROM ghcr.io/astral-sh/uv:debian-slim
+# Development stage: full dependencies (including dev tools), hot-reloading
+# dev server. Runs as root so the bind-mounted /app stays writable, and lets
+# uv install its managed Python under /root (outside /app) so the compose
+# bind mount does not shadow the interpreter. Used by docker-compose.yml.
+FROM ghcr.io/astral-sh/uv:debian-slim AS development
+
+WORKDIR /app
+
+COPY pyproject.toml uv.lock /app/
+
+RUN uv sync --locked --no-install-project
+
+COPY . /app/
+
+EXPOSE 8000
+
+CMD ["uv", "run", "--no-sync", "fastapi", "dev", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
+
+
+# Production stage: runtime dependencies only, non-root user, production
+# server. This is the last stage, so builds without an explicit target
+# (docker-compose.prod.yml) resolve to it. Used by docker-compose.prod.yml.
+FROM ghcr.io/astral-sh/uv:debian-slim AS production
 
 WORKDIR /app
 
