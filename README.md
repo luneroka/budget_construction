@@ -118,7 +118,9 @@ Back up PostgreSQL daily to encrypted storage outside the VPS. A Docker volume
 is not a backup. `scripts/backup_db.sh` streams an encrypted
 (`pg_dump | gzip | openssl AES-256`) backup to `./backups` and off-host to a
 Cloudflare R2 bucket, with retention pruning; `scripts/restore_db.sh` restores
-one (optionally pulling it from R2). Configure the `BACKUP_*` variables in
+one (optionally pulling it from R2). Any backup failure emails
+`BACKUP_ALERT_EMAIL` via the app's existing Resend config, so a broken
+nightly job doesn't go unnoticed. Configure the `BACKUP_*` variables in
 `.env.production` (see `.env.production.example`) and schedule the backup with
 the systemd units in `deploy/systemd/`. The full plan, one-time VPS setup, and
 restore procedure are in the "Disaster Recovery" section of

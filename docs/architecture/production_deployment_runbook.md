@@ -549,6 +549,20 @@ file is never promoted to a real backup, and the script exits non-zero on any
 error so the systemd job is marked failed. All backup config lives in
 `.env.production` (see `.env.production.example`).
 
+**Failure alerting (2026-07-13).** Any failure -- a bad DB connection, a
+missing dependency, an R2 upload error -- sends an email via Resend (reusing
+the app's own `RESEND_API_KEY`/`RESEND_FROM`, no separate config) to
+`BACKUP_ALERT_EMAIL` (defaults to `SUPPORT_EMAIL`), via `set -Eeuo pipefail`
+plus an `ERR` trap so it fires for both explicit checks (`die()`) and
+unexpected pipeline failures. The alert itself is fully best-effort: if
+Resend is unreachable or misconfigured, the script logs a warning and still
+exits non-zero rather than masking the original failure or crashing on the
+alert path itself. Verified locally: a clean run sends no email; a real
+failure (missing `rclone`) sent and Resend accepted a real alert email; a
+simulated failure with an intentionally invalid Resend key logged a warning
+and still exited non-zero, with no partial backup file left behind. No
+success/heartbeat email is sent -- only failures page you, by design.
+
 ### One-time VPS setup
 
 1. **Create a dedicated R2 backups bucket** (e.g. `budget-construction-backups`)
@@ -774,8 +788,23 @@ next task:
   (row-for-row match; wrong-passphrase fails loudly) and on the VPS itself
   (real R2 upload confirmed via `rclone ls`; a restore drill pulling the
   backup back down from R2 matched production row counts exactly).
-  `batibudget-db-backup.timer` is enabled, next run 2026-07-14 03:31 UTC. No
-  further action needed; see "Disaster Recovery" above for the full plan.
+  `batibudget-db-backup.timer` is enabled, next run 2026-07-14 03:31 UTC.
+  **Failure alerting added same day:** any backup failure emails
+  `BACKUP_ALERT_EMAIL` via the app's existing Resend config; verified with a
+  real accepted alert and a simulated-Resend-outage case that still exits
+  non-zero without masking the original error. No further action needed;
+  see "Disaster Recovery" above for the full plan.
+- **New finding (Low) — local dev `.env` contains real production backup
+  credentials.** While testing the alert path, `BACKUP_ENCRYPTION_PASSPHRASE`
+  and the real `BACKUP_R2_*` values (matching production) were found copied
+  into the local development machine's root `.env`. This mirrors the
+  dev/prod R2 & Resend separation issue already sidelined earlier, but is a
+  notch more sensitive since these specific credentials can delete/overwrite
+  the actual off-host backups. No harm occurred (`rclone` isn't installed on
+  that machine, so no network call was possible), but recommend removing
+  those lines from the local `.env` -- the backup scripts only need to run
+  on the VPS, never in local dev. Sidelined per project owner's existing
+  call on the broader dev/prod credential-separation item.
 - **Logging (Medium) — fixed.** `backend/app/main.py` and
   `backend/app/db/session.py` no longer use `print()`. `main.py` now calls
   `logging.basicConfig` with level `DEBUG` in non-production and `INFO` in
