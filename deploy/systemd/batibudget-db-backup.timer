@@ -1,0 +1,13 @@
+[Unit]
+Description=Run the Bati Budget database backup daily
+
+[Timer]
+# Daily at 03:30 (server local time). Adjust as needed.
+OnCalendar=*-*-* 03:30:00
+# Run a missed backup on next boot if the VPS was down at the scheduled time.
+Persistent=true
+# Avoid every scheduled job firing at the exact same second.
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

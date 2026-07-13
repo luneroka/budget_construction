@@ -115,12 +115,18 @@ document upload and download, password reset delivery, and issue-report
 email delivery.
 
 Back up PostgreSQL daily to encrypted storage outside the VPS. A Docker volume
-is not a backup. To create a manual logical backup:
+is not a backup. `scripts/backup_db.sh` streams an encrypted
+(`pg_dump | gzip | openssl AES-256`) backup to `./backups` and off-host to a
+Cloudflare R2 bucket, with retention pruning; `scripts/restore_db.sh` restores
+one (optionally pulling it from R2). Configure the `BACKUP_*` variables in
+`.env.production` (see `.env.production.example`) and schedule the backup with
+the systemd units in `deploy/systemd/`. The full plan, one-time VPS setup, and
+restore procedure are in the "Disaster Recovery" section of
+[`docs/architecture/production_deployment_runbook.md`](docs/architecture/production_deployment_runbook.md).
 
 ```sh
-docker compose --env-file .env.production -f docker-compose.prod.yml exec -T db \
-  sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
-  | gzip > backups/budget-construction-YYYY-MM-DD.sql.gz
+./scripts/backup_db.sh                                   # backup now
+./scripts/restore_db.sh backups/db-<UTC>.sql.gz.enc --yes  # restore
 ```
 
 Test restores regularly on a separate database/container. R2 documents need a

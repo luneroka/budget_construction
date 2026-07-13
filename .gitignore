@@ -15,6 +15,7 @@ venv/
 .env.test
 .env.production
 *.sql.gz
+*.sql.gz.enc
 backups/
 
 # Docker

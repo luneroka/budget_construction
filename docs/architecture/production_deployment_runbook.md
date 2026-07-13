@@ -511,15 +511,117 @@ of the outstanding backup/restore task below.
 
 ## Disaster Recovery
 
-<!-- Placeholder for the disaster-recovery plan: incident ownership,
-backup locations and retention, recovery-time/recovery-point objectives,
-database and R2 restoration procedures, and recovery validation.
+Automated encrypted PostgreSQL backups were implemented on 2026-07-13
+(`scripts/backup_db.sh` / `scripts/restore_db.sh`). The backup/restore cycle
+was tested end-to-end against a full database copy (see "Restore validation"
+below).
 
-STILL OUTSTANDING (next task): automated, encrypted, OFF-HOST PostgreSQL
-backups with retention and a tested restore. The only backups that exist
-today are manual pre-deploy dumps under ./backups on the VPS itself, which
-do not survive loss of the VPS. R2 documents also need their own retention
-decision. -->
+### What is and isn't protected
+
+- **PostgreSQL** — covered by the daily encrypted backup below (on-host copy
+  plus an off-host copy in Cloudflare R2).
+- **Cloudflare R2 documents** — the uploaded document files themselves are
+  already off-host in R2 and are not re-copied by this job; only the
+  PostgreSQL metadata that references them is backed up. Deciding on R2
+  object versioning / lifecycle for the documents bucket remains a separate
+  open item.
+- **Secrets** — `.env.production` is **not** in any backup (by design). It
+  must be recreated from the values in your password manager during a
+  rebuild. The `BACKUP_ENCRYPTION_PASSPHRASE` in particular must be stored
+  off the VPS, or every backup is unrecoverable.
+
+### Objectives
+
+- **RPO (max data loss):** ~24 h — backups run daily. Lower it by making the
+  timer more frequent (e.g. `OnCalendar=*-*-* *:00:00` for hourly).
+- **RTO (time to restore):** minutes — the database is small; a restore is a
+  single decrypt-and-load pipeline.
+
+### How the backup works
+
+`scripts/backup_db.sh` streams `pg_dump | gzip | openssl AES-256` to a
+timestamped `db-<UTC>.sql.gz.enc` under `./backups`, then uploads it to the
+`BACKUP_R2_BUCKET` via `rclone` and prunes copies older than the retention
+windows (local `BACKUP_LOCAL_RETENTION_DAYS`, default 7; remote
+`BACKUP_REMOTE_RETENTION_DAYS`, default 30). Plaintext never touches disk. A
+`pg_dump` failure aborts the whole pipeline (via `pipefail`) so a truncated
+file is never promoted to a real backup, and the script exits non-zero on any
+error so the systemd job is marked failed. All backup config lives in
+`.env.production` (see `.env.production.example`).
+
+### One-time VPS setup
+
+1. **Create a dedicated R2 backups bucket** (e.g. `budget-construction-backups`)
+   and an API token scoped to **only** that bucket (do not reuse the documents
+   bucket or its token).
+2. **Install rclone** (used for the R2 upload/prune):
+   `sudo -v ; curl https://rclone.org/install.sh | sudo bash`. `openssl` and
+   `gzip` are already present on Ubuntu.
+3. **Fill the backup settings in `.env.production`** (see the "Database
+   backups" block in `.env.production.example`): a strong
+   `BACKUP_ENCRYPTION_PASSPHRASE` (**also save it in your password manager,
+   off the VPS**), `BACKUP_R2_BUCKET`, `BACKUP_R2_ENDPOINT` (same account
+   endpoint as `R2_ENDPOINT_URL`), and the scoped
+   `BACKUP_R2_ACCESS_KEY_ID` / `BACKUP_R2_SECRET_ACCESS_KEY`.
+4. **Run one backup by hand and confirm it lands in R2:**
+   ```sh
+   cd ~/budget_construction
+   ./scripts/backup_db.sh
+   # then, using the same rclone env, confirm the object exists:
+   RCLONE_CONFIG_R2_TYPE=s3 RCLONE_CONFIG_R2_PROVIDER=Cloudflare \
+   RCLONE_CONFIG_R2_ENDPOINT="$(grep ^BACKUP_R2_ENDPOINT= .env.production | cut -d= -f2-)" \
+   RCLONE_CONFIG_R2_ACCESS_KEY_ID="$(grep ^BACKUP_R2_ACCESS_KEY_ID= .env.production | cut -d= -f2-)" \
+   RCLONE_CONFIG_R2_SECRET_ACCESS_KEY="$(grep ^BACKUP_R2_SECRET_ACCESS_KEY= .env.production | cut -d= -f2-)" \
+   rclone ls "R2:$(grep ^BACKUP_R2_BUCKET= .env.production | cut -d= -f2-)"
+   ```
+5. **Schedule it** with the provided systemd units:
+   ```sh
+   sudo cp deploy/systemd/batibudget-db-backup.service /etc/systemd/system/
+   sudo cp deploy/systemd/batibudget-db-backup.timer /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now batibudget-db-backup.timer
+   systemctl list-timers batibudget-db-backup.timer   # confirm next run
+   ```
+   (The unit files assume the repo is at `/home/deploy/budget_construction`
+   and run as user `deploy`; edit them if your paths differ.) A plain cron
+   entry calling the script daily works too if you prefer cron over systemd.
+
+### Restore procedure
+
+To restore a backup into a database, use `scripts/restore_db.sh`. For a real
+recovery you restore into a **fresh, empty** database (a new `postgres_data`
+volume), then bring the app up against it.
+
+```sh
+cd ~/budget_construction
+# Restore the latest local backup into the production database name.
+# (Target must be empty; add --create if the database does not exist yet.)
+./scripts/restore_db.sh backups/db-<UTC>.sql.gz.enc --yes
+
+# Or pull a specific backup straight from R2 first:
+./scripts/restore_db.sh --from-r2 db-<UTC>.sql.gz.enc --yes
+```
+
+Full VPS-loss recovery outline: provision + harden a new server (Chunks 2-3),
+clone the repo, recreate `.env.production` from your password manager
+(including `BACKUP_ENCRYPTION_PASSPHRASE`), `docker compose ... up -d db`,
+`./scripts/restore_db.sh --from-r2 <latest> --create --yes`, then start
+`migrate`/`backend`/`frontend`/`caddy`. R2 document files are untouched by the
+outage and need no restore.
+
+### Restore validation
+
+The backup-and-restore cycle was verified end-to-end on 2026-07-13 against a
+full copy of a populated database (dev stack, 14 tables incl. `users`,
+`projects`, `transactions`, `budget_lines`, `refresh_tokens`): a backup was
+taken, restored into a scratch database, and every table matched the original
+row-for-row. A restore with the wrong passphrase was confirmed to fail loudly
+(non-zero exit, no partial/garbage load) rather than silently corrupt.
+
+**Still to validate on production specifically:** run steps 4-5 above on the
+VPS (first real R2 upload + timer), and once there are real R2 backups,
+perform one restore drill from an R2-downloaded backup into a scratch
+database on the VPS to confirm the off-host path end-to-end.
 
 
 ## Chunk 1 Result (2026-07-10)
@@ -656,9 +758,15 @@ next task:
 
 - **Dev/prod R2 & Resend separation (High)** — sidelined by the project
   owner for now; not a blocker for current work. Revisit later.
-- **Backups (High)** — deferred, but explicitly picked up as the next task
-  (automatic PostgreSQL backups, restore verification, full restore test
-  before production acceptance). Not done in this entry.
+- **Backups (High) — implemented 2026-07-13.** Automated encrypted
+  PostgreSQL backups to Cloudflare R2 with retention, plus a tested restore
+  path (`scripts/backup_db.sh`, `scripts/restore_db.sh`, systemd units under
+  `deploy/systemd/`). The backup→restore cycle was verified end-to-end
+  locally (row-for-row match; wrong-passphrase fails loudly). See the
+  "Disaster Recovery" section above for the full plan and the one-time VPS
+  setup still required (create the R2 backups bucket + scoped token, install
+  rclone, fill `.env.production`, enable the timer, and do a first real
+  R2 backup + restore drill on the VPS).
 - **Logging (Medium) — fixed.** `backend/app/main.py` and
   `backend/app/db/session.py` no longer use `print()`. `main.py` now calls
   `logging.basicConfig` with level `DEBUG` in non-production and `INFO` in

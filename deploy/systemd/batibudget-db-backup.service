@@ -1,0 +1,14 @@
+[Unit]
+Description=Bati Budget encrypted PostgreSQL backup to Cloudflare R2
+# Only run once Docker (and thus the db container) is available.
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=deploy
+# Adjust if the repository lives elsewhere on the VPS.
+WorkingDirectory=/home/deploy/budget_construction
+ExecStart=/home/deploy/budget_construction/scripts/backup_db.sh
+# The script reads its config (passphrase, R2 credentials, retention) from
+# .env.production in WorkingDirectory; no EnvironmentFile is needed.
