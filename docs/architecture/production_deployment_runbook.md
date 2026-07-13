@@ -4,6 +4,9 @@
 
 - Provider: Hetzner Cloud
 - VPS: CX23 (2 vCPU, 4 GB RAM, 40 GB SSD, Intel/AMD)
+- **Actual:** CPX12 (2 vCPU, 2 GB RAM) was provisioned instead — the
+  Cost-Optimized (CX) tier was unavailable at signup time. See "VPS
+  Information" below for details.
 - OS: Ubuntu 24.04 LTS
 - Reverse proxy: Caddy
 - Containers: Docker Compose
@@ -38,8 +41,8 @@
 
 - [x] Chunk 0 — deployment architecture review completed on 2026-07-10.
 - [x] Chunk 1 — production repository preparation completed on 2026-07-10.
-- [ ] Chunk 2 — VPS provisioning.
-- [ ] Chunk 3 — server hardening and Docker setup.
+- [x] Chunk 2 — VPS provisioning completed on 2026-07-13.
+- [x] Chunk 3 — server hardening and Docker setup completed on 2026-07-13.
 - [ ] Chunk 4 — first deployment and container validation.
 - [ ] Chunk 5 — domain, DNS, and HTTPS configuration.
 - [ ] Chunk 6 — production smoke test.
@@ -227,8 +230,8 @@ Remaining manual VPS steps.
 - Domain:
 - Hostname:
 - SSH public key:
-- Docker version:
-- Docker Compose version:
+- Docker version: 29.6.1 (build 8900f1d)
+- Docker Compose version: v5.3.1
 - PostgreSQL version:
 - Caddy version:
 - VPS creation date: 2026-07-13
@@ -249,6 +252,40 @@ not a confirmed up-to-date system. Chunk 3 must therefore start with
 `apt update` (to refresh the index) followed by `apt upgrade` (to apply
 whatever it then reports), before any firewall, Docker, or Compose
 setup.
+
+## Chunk 3 Result (2026-07-13)
+
+Server hardening and Docker setup completed manually via SSH, in this order:
+
+1. `apt update && apt upgrade -y`, followed by a reboot to load kernel
+   `6.8.0-134-generic`.
+2. Created non-root sudo user `deploy` (`adduser deploy`,
+   `usermod -aG sudo deploy`).
+3. Copied the SSH key/`authorized_keys` from `root` to `deploy` via
+   `rsync --archive --chown=deploy:deploy ~/.ssh /home/deploy`; verified
+   key-based login and `sudo` access as `deploy` before proceeding.
+4. Hardened `/etc/ssh/sshd_config`: `PermitRootLogin no` and
+   `PasswordAuthentication no`, then `systemctl restart ssh`. Verified
+   `deploy` key login still works and direct `root` SSH login is refused.
+5. Configured UFW: allowed OpenSSH, `80/tcp`, and `443/tcp` (IPv4 and
+   IPv6), then `ufw enable`. No other inbound ports are reachable.
+6. **Deviation from target architecture:** added a 2 GB swap file
+   (`/swapfile`, persisted in `/etc/fstab`) as a safety margin against
+   out-of-memory conditions, since the provisioned CPX12 has 2 GB RAM
+   versus the 4 GB assumed for the CX23 in the Target Architecture
+   section. Confirmed active via `free -h`.
+7. Installed and enabled `unattended-upgrades` for automatic security
+   patching.
+8. Installed Docker Engine and the Compose plugin via Docker's official
+   install script; added `deploy` to the `docker` group; verified with
+   `docker run hello-world` (no `sudo` required).
+9. Configured Docker log rotation in `/etc/docker/daemon.json`
+   (`json-file` driver, `max-size: 10m`, `max-file: 3`) to prevent
+   unbounded log growth on the 40 GB disk; restarted Docker and
+   re-verified with `docker run hello-world`.
+
+No application containers were deployed in this chunk. The server is
+hardened, firewalled, swap-enabled, and Docker-ready for Chunk 4.
 
 ## Deployment Commands
 
