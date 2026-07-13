@@ -15,7 +15,8 @@ EXPOSE 8000
 
 ENV UV_NO_CACHE=1
 
-RUN chown -R app:app /app
+RUN chown -R app:app /app \
+    && ln -s /app/.venv/bin/python3 /usr/local/bin/python
 
 USER app
 
