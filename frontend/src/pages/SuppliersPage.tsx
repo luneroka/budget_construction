@@ -251,10 +251,17 @@ export function SuppliersPage() {
           <TableCell>
             <button
               type="button"
-              className="-mx-3 -my-2 inline-flex min-w-48 max-w-full rounded-md px-3 py-2 text-left font-medium text-foreground transition-colors hover:bg-gold/15 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="group -mx-3 -my-2 inline-flex min-w-48 max-w-full flex-col items-start rounded-md px-3 py-2 text-left transition-colors hover:bg-gold/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               onClick={() => openDetailModal(supplier)}
             >
-              <span className="truncate">{supplier.name}</span>
+              <span className="w-full truncate font-medium text-foreground group-hover:text-gold">
+                {supplier.name}
+              </span>
+              {supplier.comment.trim() !== '' ? (
+                <span className="w-full truncate text-xs text-muted-foreground">
+                  {supplier.comment}
+                </span>
+              ) : null}
             </button>
           </TableCell>
           <TableCell>{contact?.name ?? '-'}</TableCell>
