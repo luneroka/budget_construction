@@ -251,14 +251,14 @@ async def test_project_financial_summary_returns_dashboard_totals(
     assert summary['quote_amount_ttc'] == '2900.00'
     assert summary['validated_quote_amount_ttc'] == '1000.00'
     assert summary['diy_estimate_amount_ttc'] == '450.00'
-    assert summary['actual_cost_amount_ttc'] == '925.00'
+    assert summary['actual_cost_amount_ttc'] == '625.00'
     assert summary['paid_invoice_amount_ttc'] == '625.00'
     assert summary['unpaid_invoice_amount_ttc'] == '250.00'
     assert summary['on_hold_invoice_amount_ttc'] == '50.00'
-    assert summary['remaining_budget_amount_ttc'] == '525.00'
-    assert summary['selected_budget_variance_ttc'] == '525.00'
-    assert summary['selected_quote_budget_variance_ttc'] == '75.00'
-    assert summary['budget_completion_percentage'] == '63.79'
+    assert summary['remaining_budget_amount_ttc'] == '825.00'
+    assert summary['selected_budget_variance_ttc'] == '825.00'
+    assert summary['selected_quote_budget_variance_ttc'] == '375.00'
+    assert summary['budget_completion_percentage'] == '43.10'
     assert summary['quote_count'] == 3
     assert summary['validated_quote_count'] == 1
     assert summary['diy_estimate_count'] == 2
@@ -314,10 +314,10 @@ async def test_project_dashboard_financial_overview_returns_kpi_projection(
         'project_id': context.project_id,
         'generated_at': overview['generated_at'],
         'selected_budget_amount_ttc': '1450.00',
-        'actual_cost_amount_ttc': '925.00',
-        'remaining_budget_amount_ttc': '525.00',
-        'selected_budget_variance_ttc': '525.00',
-        'budget_completion_percentage': '63.79',
+        'actual_cost_amount_ttc': '625.00',
+        'remaining_budget_amount_ttc': '825.00',
+        'selected_budget_variance_ttc': '825.00',
+        'budget_completion_percentage': '43.10',
     }
 
 
@@ -336,7 +336,7 @@ async def test_project_dashboard_spending_over_time_returns_monthly_projection(
     assert response.json() == [
         {
             'month': '2026-06',
-            'actual_cost_amount_ttc': '925.00',
+            'actual_cost_amount_ttc': '625.00',
         }
     ]
 
@@ -358,7 +358,7 @@ async def test_project_dashboard_budget_vs_actual_returns_category_projection(
             'category_id': response.json()[0]['category_id'],
             'category_name': 'Financial Summary Category',
             'selected_budget_amount_ttc': '1450.00',
-            'actual_cost_amount_ttc': '925.00',
+            'actual_cost_amount_ttc': '625.00',
         }
     ]
 
@@ -379,7 +379,7 @@ async def test_project_dashboard_category_distribution_returns_actual_projection
         {
             'category_id': response.json()[0]['category_id'],
             'category_name': 'Financial Summary Category',
-            'actual_cost_amount_ttc': '925.00',
+            'actual_cost_amount_ttc': '625.00',
         }
     ]
 
@@ -405,7 +405,7 @@ async def test_project_dashboard_supplier_distribution_returns_actual_projection
         {
             'supplier_id': context.supplier_id,
             'supplier_name': 'Acme Construction',
-            'actual_cost_amount_ttc': '400.00',
+            'actual_cost_amount_ttc': '100.00',
         },
     ]
 
@@ -545,7 +545,7 @@ async def test_project_financial_summary_breaks_down_by_product(
     assert foundation['selected_quote_budget_amount_ttc'] == '1000.00'
     assert foundation['selected_diy_budget_amount_ttc'] == '150.00'
     assert foundation['diy_estimate_amount_ttc'] == '150.00'
-    assert foundation['actual_cost_amount_ttc'] == '400.00'
+    assert foundation['actual_cost_amount_ttc'] == '100.00'
     assert foundation['invoice_count'] == 3
     assert len(cast(list[dict[str, object]], foundation['budget_lines'])) == 1
 

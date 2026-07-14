@@ -89,9 +89,10 @@ class FinancialTotals:
             return
 
         if transaction.transaction_type == TransactionType.invoice:
-            self.actual_cost_amount_ttc += amount
             self.invoice_count += 1
             self.add_invoice_status_amount(transaction)
+            if transaction.invoice_status == InvoiceStatus.paid:
+                self.actual_cost_amount_ttc += amount
 
     def add_invoice_status_amount(self, transaction: Transaction) -> None:
         if transaction.invoice_status == InvoiceStatus.paid:
@@ -240,7 +241,10 @@ class FinancialEngine:
 
         monthly_totals: dict[str, Decimal] = {}
         for transaction in iter_project_transactions(project_financials):
-            if transaction.transaction_type != TransactionType.invoice:
+            if (
+                transaction.transaction_type != TransactionType.invoice
+                or transaction.invoice_status != InvoiceStatus.paid
+            ):
                 continue
 
             month = transaction.issued_date.strftime('%Y-%m')
@@ -312,7 +316,10 @@ class FinancialEngine:
 
         supplier_totals: dict[tuple[int | None, str], Decimal] = {}
         for transaction in iter_project_transactions(project_financials):
-            if transaction.transaction_type != TransactionType.invoice:
+            if (
+                transaction.transaction_type != TransactionType.invoice
+                or transaction.invoice_status != InvoiceStatus.paid
+            ):
                 continue
 
             supplier = transaction.supplier

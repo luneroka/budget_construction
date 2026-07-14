@@ -74,7 +74,7 @@ export function CategoryHeader({
         </span>
       </span>
       <span className="text-right text-xs">
-        <span className="block text-primary-foreground/65">Facturé</span>
+        <span className="block text-primary-foreground/65">Payé</span>
         <span className="font-semibold">
           {formatCurrency(category.actual_cost_amount_ttc)}
         </span>
@@ -266,7 +266,7 @@ export function SubcategoryRow({
             </span>
           </span>
           <span className="text-right text-xs">
-            <span className="block text-primary/65">Facturé</span>
+            <span className="block text-primary/65">Payé</span>
             <span className="font-semibold text-primary/80">
               {formatCurrency(group.actual_cost_amount_ttc)}
             </span>
@@ -329,7 +329,7 @@ export const ProductRow = forwardRef<
             </span>
           </span>
           <span className="hidden text-right text-xs">
-            <span className="block text-muted-foreground">Facturé</span>
+            <span className="block text-muted-foreground">Payé</span>
             <span className="font-semibold text-foreground">
               {formatCurrency(product.actual_cost_amount_ttc)}
             </span>
@@ -412,7 +412,7 @@ export function BudgetLineRow({
             </span>
           </span>
           <span className="hidden text-right text-xs">
-            <span className="block text-muted-foreground">Facturé</span>
+            <span className="block text-muted-foreground">Payé</span>
             <span className="font-semibold text-foreground">
               {formatCurrency(line.actual_cost_amount_ttc)}
             </span>
