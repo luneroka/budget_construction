@@ -791,6 +791,7 @@ docker-compose.prod.yml config --quiet` completed successfully (with
 | 2026-07-13 | v1.1.0  | Rotating refresh-token auth deployed (commit `b348585`): short-lived in-memory access token + httpOnly `SameSite=Lax` refresh cookie, 30-day sliding session, atomic rotation with reuse-detection, server-side revocation on logout/password-reset. Migration `a1b2c3d4e5f6` (`refresh_tokens` table) applied cleanly; all containers healthy; health endpoints green. Also shipped: backend Dockerfile split into dev/prod stages and a dev-only cross-site cookie fix (no prod impact). Pre-deploy DB dump taken (on-host). Off-host backups still outstanding. |
 | 2026-07-13 | v1.2.0  | Automated encrypted off-host database backups deployed (commit `bd5bab9`): dedicated R2 backups bucket + scoped token created, rclone installed, `.env.production` configured, `batibudget-db-backup.timer` enabled (daily 03:30 UTC + `Persistent=true`). Verified on the VPS: real backup uploaded and confirmed present in R2 via `rclone ls`; full restore drill pulling that backup back from R2 matched production `users` row count exactly. **Original launch punch list (backups, in particular) is now fully closed.** |
 | 2026-07-13 | v1.3.0  | Backup failure alerting (commit `1f5cdf2`) and R2 documents mirror (commit `a95c858`) deployed. Any `backup_db.sh`/`backup_documents.sh` failure now emails `BACKUP_ALERT_EMAIL` via Resend (verified with a real accepted alert and a simulated-outage case). R2 has no native versioning (confirmed against current Cloudflare docs), so `scripts/backup_documents.sh` substitutes a daily one-way `rclone copy` (never `sync`) of the live documents bucket into a dedicated `budget-construction-documents-backup` mirror bucket, retained via a 30-day R2 Object Lifecycle Rule. VPS setup completed: mirror bucket + scoped token + lifecycle rule created, a real uploaded document confirmed mirrored (`Copied (server-side copy)`), `batibudget-docs-mirror.timer` enabled (daily 04:16 UTC, alongside the 03:33 DB backup). **Closes the original Chunk 0 audit's open R2 lifecycle/retention item.** |
+| 2026-07-14 | v1.3.1  | Fixed `www.batibudget.com`, unresolved since Chunk 4: its DNS still pointed at an OVH redirect/parking IP that reset the TLS handshake (perceived as the site "crashing"), and Caddy had no site block for the host regardless. Added it to the existing `.fr` redirect block (commit `5189774`), project owner repointed DNS at the VPS in OVH, deployed with `--force-recreate caddy`. Verified: `301` to `https://batibudget.com/` then `200`, valid certificate. |
 |            |         |                                                                                                                                                             |
 
 ## Production Configuration Review (2026-07-13)
@@ -889,6 +890,24 @@ next task:
   bandwidth/disk is used for the transfer); `batibudget-docs-mirror.timer`
   is enabled (`systemctl list-timers` confirms it alongside the DB backup
   timer, next run 2026-07-14 04:16 UTC). This closes the item.
+- **`www.batibudget.com` unresolved redirect (open since Chunk 4) — closed
+  2026-07-14.** Diagnosed with `dig`/`curl -v`: the `www` A record still
+  pointed at an OVH IP (`213.186.33.5`, the same OVH redirect/parking
+  service already identified as broken for `batibudget.fr` in Chunk 5),
+  which reset the TLS handshake outright rather than serving anything --
+  this is what the project owner saw as the site "crashing." Also, the
+  Caddyfile had no site block for this host at all, so even correct DNS
+  wouldn't have produced a redirect. **Fix (commit `5189774`):** added
+  `www.batibudget.com` to the existing `batibudget.fr`/`www.batibudget.fr`
+  redirect site block; validated with `caddy validate` against the real
+  `caddy:2-alpine` image before deploying. **DNS fix (project owner, OVH
+  dashboard):** removed the OVH web-redirection entry for `www` and pointed
+  its A/AAAA records directly at the VPS, same pattern as the `.fr` fix.
+  **Deployed** with `docker compose ... up -d --force-recreate caddy` (per
+  the Chunk 5 bind-mount-inode lesson -- plain `restart`/`reload` would not
+  have picked up the Caddyfile change). Verified end-to-end:
+  `https://www.batibudget.com` now returns `301` to `https://batibudget.com/`
+  then `200`, with a valid Caddy-issued certificate.
 - **Logging (Medium) — fixed.** `backend/app/main.py` and
   `backend/app/db/session.py` no longer use `print()`. `main.py` now calls
   `logging.basicConfig` with level `DEBUG` in non-production and `INFO` in
