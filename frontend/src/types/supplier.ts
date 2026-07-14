@@ -15,6 +15,10 @@ export type Supplier = {
   name: string
   siret: string | null
   comment: string
+  street: string | null
+  complement: string | null
+  postal_code: string | null
+  city: string | null
   contacts: SupplierContact[]
   created_at: string | null
   updated_at: string | null

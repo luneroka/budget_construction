@@ -159,6 +159,80 @@ async def test_supplier_create_rejects_multiple_primary_contacts(
     assert response.status_code == 422
 
 
+async def test_supplier_address_round_trips_through_create_and_update(
+    client: AsyncClient,
+) -> None:
+    access_token = await create_authenticated_user(
+        client,
+        email='supplier-address-user@example.com',
+    )
+    create_payload: dict[str, JsonValue] = {
+        'name': 'Supplier With Address',
+        'street': '12 Rue des Lilas',
+        'complement': 'Bâtiment B',
+        'postal_code': '75012',
+        'city': 'Paris',
+        'contacts': [{'name': 'Only Contact', 'is_primary': True}],
+    }
+
+    create_response = await client.post(
+        '/suppliers/',
+        headers={'Authorization': f'Bearer {access_token}'},
+        json=create_payload,
+    )
+
+    assert create_response.status_code == 201
+    created_supplier = cast(dict[str, object], create_response.json())
+    assert created_supplier['street'] == '12 Rue des Lilas'
+    assert created_supplier['complement'] == 'Bâtiment B'
+    assert created_supplier['postal_code'] == '75012'
+    assert created_supplier['city'] == 'Paris'
+
+    supplier_id = created_supplier['id']
+    assert isinstance(supplier_id, int)
+    update_payload: dict[str, JsonValue] = {
+        'street': '5 Avenue Foch',
+        'complement': None,
+        'postal_code': '69001',
+        'city': 'Lyon',
+    }
+
+    update_response = await client.patch(
+        f'/suppliers/{supplier_id}',
+        headers={'Authorization': f'Bearer {access_token}'},
+        json=update_payload,
+    )
+
+    assert update_response.status_code == 200
+    updated_supplier = cast(dict[str, object], update_response.json())
+    assert updated_supplier['street'] == '5 Avenue Foch'
+    assert updated_supplier['complement'] is None
+    assert updated_supplier['postal_code'] == '69001'
+    assert updated_supplier['city'] == 'Lyon'
+
+
+async def test_supplier_create_rejects_invalid_postal_code(
+    client: AsyncClient,
+) -> None:
+    access_token = await create_authenticated_user(
+        client,
+        email='supplier-address-validation-user@example.com',
+    )
+    invalid_payload: dict[str, JsonValue] = {
+        'name': 'Invalid Postal Code Supplier',
+        'postal_code': 'invalid',
+        'contacts': [{'name': 'Only Contact', 'is_primary': True}],
+    }
+
+    response = await client.post(
+        '/suppliers/',
+        headers={'Authorization': f'Bearer {access_token}'},
+        json=invalid_payload,
+    )
+
+    assert response.status_code == 422
+
+
 @pytest.mark.parametrize('method', ['GET', 'PATCH', 'DELETE'])
 async def test_supplier_id_cannot_access_or_mutate_another_users_supplier(
     client: AsyncClient,

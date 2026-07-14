@@ -28,6 +28,34 @@ def normalize_siret(value: Any) -> str | None:
     return siret
 
 
+def normalize_optional_string(value: Any) -> str | None:
+    if value is None:
+        return None
+
+    if not isinstance(value, str):
+        raise ValueError('value must be a string')
+
+    normalized = value.strip()
+    return normalized or None
+
+
+def normalize_postal_code(value: Any) -> str | None:
+    if value is None:
+        return None
+
+    if not isinstance(value, str):
+        raise ValueError('postal_code must be a string')
+
+    postal_code = value.strip()
+    if postal_code == '':
+        return None
+
+    if not (len(postal_code) == 5 and postal_code.isdigit()):
+        raise ValueError('postal_code must be a 5-digit French postal code')
+
+    return postal_code
+
+
 def normalize_phone_number(value: Any) -> str | None:
     if value is None:
         return None
@@ -113,11 +141,25 @@ class SupplierBase(BaseModel):
     name: str
     siret: str | None = None
     comment: str | None = None
+    street: str | None = None
+    complement: str | None = None
+    postal_code: str | None = None
+    city: str | None = None
 
     @field_validator('siret', mode='before')
     @classmethod
     def validate_siret(cls, value: Any) -> str | None:
         return normalize_siret(value)
+
+    @field_validator('street', 'complement', 'city', mode='before')
+    @classmethod
+    def validate_address_text(cls, value: Any) -> str | None:
+        return normalize_optional_string(value)
+
+    @field_validator('postal_code', mode='before')
+    @classmethod
+    def validate_postal_code(cls, value: Any) -> str | None:
+        return normalize_postal_code(value)
 
 
 class SupplierCreate(SupplierBase):
@@ -133,12 +175,26 @@ class SupplierUpdate(BaseModel):
     name: str | None = None
     siret: str | None = None
     comment: str | None = None
+    street: str | None = None
+    complement: str | None = None
+    postal_code: str | None = None
+    city: str | None = None
     contacts: list[SupplierContactUpdate] | None = Field(default=None, min_length=1)
 
     @field_validator('siret', mode='before')
     @classmethod
     def validate_siret(cls, value: Any) -> str | None:
         return normalize_siret(value)
+
+    @field_validator('street', 'complement', 'city', mode='before')
+    @classmethod
+    def validate_address_text(cls, value: Any) -> str | None:
+        return normalize_optional_string(value)
+
+    @field_validator('postal_code', mode='before')
+    @classmethod
+    def validate_postal_code(cls, value: Any) -> str | None:
+        return normalize_postal_code(value)
 
     @model_validator(mode='after')
     def validate_contacts(self) -> Self:

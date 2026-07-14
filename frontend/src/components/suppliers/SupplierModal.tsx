@@ -28,6 +28,10 @@ type SupplierFormState = {
   name: string
   siret: string
   comment: string
+  street: string
+  complement: string
+  postal_code: string
+  city: string
   contacts: ContactDraft[]
 }
 
@@ -59,6 +63,10 @@ function supplierToForm(supplier: Supplier | null): SupplierFormState {
       name: '',
       siret: '',
       comment: '',
+      street: '',
+      complement: '',
+      postal_code: '',
+      city: '',
       contacts: [emptyContact(supplierId, true)],
     }
   }
@@ -68,6 +76,10 @@ function supplierToForm(supplier: Supplier | null): SupplierFormState {
     name: supplier.name,
     siret: supplier.siret ?? '',
     comment: supplier.comment ?? '',
+    street: supplier.street ?? '',
+    complement: supplier.complement ?? '',
+    postal_code: supplier.postal_code ?? '',
+    city: supplier.city ?? '',
     contacts: supplier.contacts.map<ContactDraft>((contact) => {
       const phone = splitPhoneNumber(contact.phone_number)
 
@@ -229,6 +241,10 @@ export function SupplierModal({
         name: form.name.trim(),
         siret: normalizeBusinessIdentifier(form.siret),
         comment: normalizeOptional(form.comment) ?? '',
+        street: normalizeOptional(form.street),
+        complement: normalizeOptional(form.complement),
+        postal_code: normalizeOptional(form.postal_code),
+        city: normalizeOptional(form.city),
         contacts,
         created_at: supplier?.created_at ?? null,
         updated_at: null,
@@ -338,6 +354,34 @@ export function SupplierModal({
 
                 <section className="rounded-md border border-border p-4">
                   <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+                    Adresse
+                  </h3>
+                  <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <dt className="text-xs text-muted-foreground">Rue</dt>
+                      <dd>{readValue(supplier?.street)}</dd>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <dt className="text-xs text-muted-foreground">
+                        Complément d'adresse
+                      </dt>
+                      <dd>{readValue(supplier?.complement)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">
+                        Code postal
+                      </dt>
+                      <dd>{readValue(supplier?.postal_code)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Ville</dt>
+                      <dd>{readValue(supplier?.city)}</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section className="rounded-md border border-border p-4">
+                  <h3 className="text-xs font-semibold uppercase text-muted-foreground">
                     Contacts
                   </h3>
                   <div className="mt-3 grid gap-2">
@@ -414,6 +458,80 @@ export function SupplierModal({
                         setForm({ ...form, comment: event.target.value })
                       }
                     />
+                  </div>
+                </section>
+
+                <section className="space-y-3 rounded-md border border-border p-4">
+                  <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+                    Adresse
+                  </h3>
+                  <div>
+                    <label
+                      className="text-xs font-medium"
+                      htmlFor="supplier-street"
+                    >
+                      Rue
+                    </label>
+                    <Input
+                      id="supplier-street"
+                      className="mt-1 h-9 text-sm"
+                      value={form.street}
+                      onChange={(event) =>
+                        setForm({ ...form, street: event.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label
+                      className="text-xs font-medium"
+                      htmlFor="supplier-complement"
+                    >
+                      Complément d'adresse
+                    </label>
+                    <Input
+                      id="supplier-complement"
+                      className="mt-1 h-9 text-sm"
+                      value={form.complement}
+                      onChange={(event) =>
+                        setForm({ ...form, complement: event.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label
+                        className="text-xs font-medium"
+                        htmlFor="supplier-postal-code"
+                      >
+                        Code postal
+                      </label>
+                      <Input
+                        id="supplier-postal-code"
+                        className="mt-1 h-9 text-sm"
+                        inputMode="numeric"
+                        maxLength={5}
+                        value={form.postal_code}
+                        onChange={(event) =>
+                          setForm({ ...form, postal_code: event.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label
+                        className="text-xs font-medium"
+                        htmlFor="supplier-city"
+                      >
+                        Ville
+                      </label>
+                      <Input
+                        id="supplier-city"
+                        className="mt-1 h-9 text-sm"
+                        value={form.city}
+                        onChange={(event) =>
+                          setForm({ ...form, city: event.target.value })
+                        }
+                      />
+                    </div>
                   </div>
                 </section>
 

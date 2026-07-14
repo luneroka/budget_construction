@@ -151,6 +151,10 @@ export type SupplierCreate = {
   name: string
   siret?: string | null
   comment?: string | null
+  street?: string | null
+  complement?: string | null
+  postal_code?: string | null
+  city?: string | null
   contacts: SupplierContactCreate[]
 }
 
@@ -158,6 +162,10 @@ export type SupplierUpdate = {
   name?: string | null
   siret?: string | null
   comment?: string | null
+  street?: string | null
+  complement?: string | null
+  postal_code?: string | null
+  city?: string | null
   contacts?: SupplierContactUpdate[] | null
 }
 
@@ -167,6 +175,10 @@ export type SupplierRead = {
   name: string
   siret: string | null
   comment: string | null
+  street: string | null
+  complement: string | null
+  postal_code: string | null
+  city: string | null
   contacts: SupplierContactRead[]
   created_at: ApiDateTime
   updated_at: ApiDateTime

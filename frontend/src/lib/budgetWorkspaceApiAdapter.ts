@@ -243,6 +243,10 @@ export function suppliersToDomain(
     name: supplier.name,
     siret: supplier.siret,
     comment: supplier.comment ?? '',
+    street: supplier.street,
+    complement: supplier.complement,
+    postal_code: supplier.postal_code,
+    city: supplier.city,
     contacts: supplier.contacts.map((contact) => ({
       id: String(contact.id),
       supplier_id: String(contact.supplier_id),

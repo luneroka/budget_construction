@@ -17,6 +17,10 @@ type SupplierPayloadSource = {
   name: string
   siret: string | null
   comment: string | null
+  street: string | null
+  complement: string | null
+  postal_code: string | null
+  city: string | null
   contacts: SupplierPayloadContactSource[]
 }
 
@@ -129,6 +133,10 @@ export function supplierToCreatePayload(
     name: supplier.name,
     siret: nullableBusinessIdentifier(supplier.siret),
     comment: nullableText(supplier.comment),
+    street: nullableText(supplier.street),
+    complement: nullableText(supplier.complement),
+    postal_code: nullableText(supplier.postal_code),
+    city: nullableText(supplier.city),
     contacts: contactsToCreatePayload(supplier),
   }
 }
@@ -140,6 +148,10 @@ export function quickSupplierToCreatePayload(name: string): SupplierCreate {
     name: normalizedName,
     siret: null,
     comment: null,
+    street: null,
+    complement: null,
+    postal_code: null,
+    city: null,
     contacts: [
       {
         name: normalizedName,
@@ -156,6 +168,10 @@ export function supplierToUpdatePayload(
     name: supplier.name,
     siret: nullableBusinessIdentifier(supplier.siret),
     comment: nullableText(supplier.comment),
+    street: nullableText(supplier.street),
+    complement: nullableText(supplier.complement),
+    postal_code: nullableText(supplier.postal_code),
+    city: nullableText(supplier.city),
     contacts: contactsToUpdatePayload(supplier),
   }
 }
