@@ -24,6 +24,6 @@
 	}
 }
 
-batibudget.fr, www.batibudget.fr {
+batibudget.fr, www.batibudget.fr, www.batibudget.com {
 	redir https://batibudget.com{uri} permanent
 }
