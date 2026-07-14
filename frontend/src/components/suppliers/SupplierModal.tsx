@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { Check, Copy, Pencil, Plus, Trash2, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -10,6 +10,7 @@ import {
   formatPhoneNumber,
   splitPhoneNumber,
 } from '@/lib/phone'
+import { notifyError, notifySuccess } from '@/lib/toasts'
 import type { Supplier } from '@/types'
 
 export type SupplierModalMode = 'create' | 'view' | 'edit'
@@ -107,6 +108,32 @@ function normalizeBusinessIdentifier(value: string): string | null {
 
 function readValue(value: string | null | undefined): string {
   return value?.trim() ? value : '-'
+}
+
+function formatAddressForClipboard(supplier: Supplier): string {
+  const lines: string[] = []
+
+  if (supplier.street?.trim()) lines.push(supplier.street.trim())
+  if (supplier.complement?.trim()) lines.push(supplier.complement.trim())
+
+  const postalCity = [supplier.postal_code?.trim(), supplier.city?.trim().toUpperCase()]
+    .filter((part) => part)
+    .join(' ')
+  if (postalCity) lines.push(postalCity)
+
+  return lines.join('\n')
+}
+
+async function copyAddressToClipboard(supplier: Supplier) {
+  const address = formatAddressForClipboard(supplier)
+  if (address === '') return
+
+  try {
+    await navigator.clipboard.writeText(address)
+    notifySuccess('Adresse copiée dans le presse-papiers.')
+  } catch {
+    notifyError('Impossible de copier l’adresse.')
+  }
 }
 
 export function SupplierModal({
@@ -353,9 +380,22 @@ export function SupplierModal({
                 </section>
 
                 <section className="rounded-md border border-border p-4">
-                  <h3 className="text-xs font-semibold uppercase text-muted-foreground">
-                    Adresse
-                  </h3>
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+                      Adresse
+                    </h3>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={
+                        !supplier || formatAddressForClipboard(supplier) === ''
+                      }
+                      onClick={() => supplier && void copyAddressToClipboard(supplier)}
+                    >
+                      <Copy aria-hidden />
+                      Copier l'adresse
+                    </Button>
+                  </div>
                   <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
                     <div className="sm:col-span-2">
                       <dt className="text-xs text-muted-foreground">Rue</dt>
