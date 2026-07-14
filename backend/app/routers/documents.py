@@ -16,7 +16,7 @@ from app.services.storage import (
     delete_file_from_r2,
 )
 
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
 MIME_EXTENSIONS = {
     'application/pdf': {'pdf'},
     'image/jpeg': {'jpg', 'jpeg'},

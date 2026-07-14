@@ -15,6 +15,7 @@ from app.models.project import Project
 from app.models.subcategory import Subcategory
 from app.models.transaction import Transaction, TransactionType
 from app.models.user import User
+from app.routers.documents import MAX_FILE_SIZE
 
 PASSWORD = 'Password123!'
 
@@ -101,6 +102,47 @@ async def create_document_fixture(
     await db_session.commit()
     await db_session.refresh(document)
     return document
+
+
+async def create_transaction_fixture(
+    db_session: AsyncSession,
+    user: User,
+    *,
+    label: str,
+) -> Transaction:
+    category = Category(name=f'Category {label}', sort_order=1)
+    subcategory = Subcategory(
+        category=category,
+        name=f'Subcategory {label}',
+        sort_order=1,
+    )
+    product = Product(
+        subcategory=subcategory,
+        name=f'Product {label}',
+        sort_order=1,
+    )
+    project = Project(user=user, name=f'Project {label}')
+    budget_line = BudgetLine(
+        project=project,
+        product=product,
+        name=f'Budget line {label}',
+        item_type=BudgetLineType.product,
+    )
+    transaction = Transaction(
+        budget_line=budget_line,
+        transaction_type=TransactionType.invoice,
+        amount_ht=Decimal('100.00'),
+        vat_rate=Decimal('20.00'),
+        amount_vat=Decimal('20.00'),
+        amount_ttc=Decimal('120.00'),
+        issued_date=date(2026, 1, 1),
+        description=f'Transaction {label}',
+    )
+
+    db_session.add(transaction)
+    await db_session.commit()
+    await db_session.refresh(transaction)
+    return transaction
 
 
 async def test_document_list_returns_current_user_documents_with_transaction_metadata(
@@ -352,3 +394,69 @@ async def test_document_upload_rejects_another_users_transaction_before_storage(
 
     assert response.status_code == 404
     assert upload_calls == []
+
+
+async def test_document_upload_rejects_file_over_size_limit(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    access_token = await create_authenticated_user(
+        client,
+        email='document-upload-oversize-user@example.com',
+    )
+    user = await user_by_email(db_session, 'document-upload-oversize-user@example.com')
+    transaction = await create_transaction_fixture(db_session, user, label='oversize')
+
+    oversized_content = b'0' * (MAX_FILE_SIZE + 1)
+
+    response = await client.post(
+        f'/transactions/{transaction.id}/documents',
+        headers={'Authorization': f'Bearer {access_token}'},
+        files={'file': ('too-big.pdf', oversized_content, 'application/pdf')},
+    )
+
+    assert response.status_code == 400
+    assert response.json()['detail']['code'] == 'file_too_large'
+
+
+async def test_document_upload_accepts_file_at_size_limit(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    access_token = await create_authenticated_user(
+        client,
+        email='document-upload-at-limit-user@example.com',
+    )
+    user = await user_by_email(db_session, 'document-upload-at-limit-user@example.com')
+    transaction = await create_transaction_fixture(db_session, user, label='at-limit')
+
+    signature = b'%PDF-1.7\n'
+    at_limit_content = signature + b'0' * (MAX_FILE_SIZE - len(signature))
+    assert len(at_limit_content) == MAX_FILE_SIZE
+
+    upload_calls: list[int] = []
+
+    def record_upload(
+        file: BinaryIO,
+        object_key: str,
+        content_type: str,
+    ) -> str:
+        del content_type
+        file.seek(0, 2)
+        upload_calls.append(file.tell())
+        return object_key
+
+    monkeypatch.setattr(
+        'app.routers.documents.upload_file_to_r2',
+        record_upload,
+    )
+
+    response = await client.post(
+        f'/transactions/{transaction.id}/documents',
+        headers={'Authorization': f'Bearer {access_token}'},
+        files={'file': ('at-limit.pdf', at_limit_content, 'application/pdf')},
+    )
+
+    assert response.status_code == 201
+    assert upload_calls == [MAX_FILE_SIZE]

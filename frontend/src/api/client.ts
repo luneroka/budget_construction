@@ -58,7 +58,7 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
     'L’extension du fichier ne correspond pas à son contenu.',
   file_extension_unsupported: 'Ce type de fichier n’est pas pris en charge.',
   file_name_missing: 'Le nom du fichier est manquant.',
-  file_too_large: 'Le fichier est trop volumineux.',
+  file_too_large: 'Le fichier est trop volumineux (max. 20 Mo).',
   forbidden: "Vous n'avez pas accès à cette ressource.",
   inactive_user: 'Ce compte est désactivé.',
   internal_server_error:
