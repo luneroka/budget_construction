@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
+import sentry_sdk
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_access_token
@@ -43,6 +44,10 @@ async def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Inactive user',
         )
+
+    # No-op if Sentry isn't initialized. Lets a captured exception show
+    # which user was affected, without relying on them to report it.
+    sentry_sdk.set_user({'id': str(user.id), 'email': user.email})
 
     return user
 

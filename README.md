@@ -80,9 +80,25 @@ settings are:
 | `R2_*`                                                   | Bucket-scoped Cloudflare R2 credentials.                                     |
 | `RESEND_*`, `SUPPORT_EMAIL`                              | Verified Resend sender and issue-report recipient.                           |
 | `VITE_API_BASE_URL=/api`                                 | Build-time, same-origin API path used by the browser.                        |
+| `SENTRY_DSN`                                              | Optional; captures unhandled backend exceptions. Unset = safe no-op.         |
 
 The API refuses to start with incomplete production settings, an empty CORS
 allow-list, a non-HTTPS `APP_URL`, or `DATABASE_ECHO=true`.
+
+## Error monitoring
+
+Unhandled backend exceptions are caught by a generic exception handler
+(`app/main.py`), logged, and reported to [Sentry](https://sentry.io) if
+`SENTRY_DSN` is set — including which user was affected
+(`sentry_sdk.set_user`, set once they're authenticated). This is
+independent of the VPS's own container logs, which are discarded on every
+deploy, so it's the primary way to notice and investigate a bug without
+waiting for a user to report it. Leaving `SENTRY_DSN` unset is a safe
+no-op — the app behaves identically, it just isn't reported anywhere.
+Expected errors (4xx, validation errors) are not sent to Sentry, only
+genuinely unexpected ones. The container healthcheck (`/health/live`,
+`/health/ready`, hit every 15s) is filtered out of the access log so it
+doesn't drown out real traffic in the log budget.
 
 ## Authentication
 

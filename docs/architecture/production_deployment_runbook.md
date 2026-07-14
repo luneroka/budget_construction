@@ -1029,3 +1029,82 @@ next task:
   stack. **Production impact:** none at build time (prod still builds the
   `production` stage by default), but the next prod deploy will rebuild from
   this Dockerfile — expected and safe.
+
+## Production Logging & Error Reporting Review (2026-07-14)
+
+Task: verify backend logging and error reporting are sufficient to
+investigate unexpected exceptions without relying solely on user reports.
+
+### Findings
+
+- **Unhandled exceptions were already logged** (Starlette re-raises after
+  its default handling, so uvicorn's error logger captured a traceback),
+  but with two real gaps against the stated goal:
+- **High — logs don't survive a deploy.** `docker-compose.prod.yml`'s
+  `local` logging driver ties log storage to the specific container
+  instance; every `up -d --build` (i.e. every feature deploy) recreates the
+  container and discards its prior logs. Effective retention was "since the
+  last deploy," not the nominal 10MB×3 window.
+- **Medium — no proactive alerting on server errors.** No generic
+  `Exception` handler, no notification; a bug would only surface via
+  someone manually checking logs or a user reporting it -- the exact thing
+  being avoided.
+- **Medium — healthcheck noise.** `/health/live` polled every 15s
+  (5,760 requests/day) generated constant access-log noise, diluting the
+  (already deploy-truncated) log budget.
+- **Low — no request correlation ID.**
+
+### Decision
+
+Project owner already runs Sentry for another project. Chosen: Sentry for
+exception capture/alerting (persists independent of VPS/deploys, richer
+context and dedup than a hand-rolled solution) + the healthcheck log filter
+(cheap, orthogonal). Deferred: switching the Docker logging driver to
+`journald` for *general* app logs (not just exceptions) -- only worth it if
+routine log history (not just errors) needs to survive deploys later.
+
+### Implementation
+
+- `sentry-sdk` added (`backend/pyproject.toml`); `SENTRY_DSN` is an optional
+  setting (`app/core/settings.py`) -- unset is a safe no-op, not a hard
+  requirement, so a missing DSN never blocks the app from starting.
+  `app/core/sentry.py::init_sentry()` calls `sentry_sdk.init()` only when
+  a DSN is present, with `traces_sample_rate=0.0` (error capture only, no
+  performance tracing for now) and `send_default_pii=False` (user context is
+  attached explicitly and deliberately instead, see below).
+- `app/main.py`: a generic `@app.exception_handler(Exception)` catches
+  anything not already handled by the existing `StarletteHTTPException`/
+  `RequestValidationError` handlers (Starlette dispatches by most-specific
+  match, so those two are unaffected). It logs with full context, calls
+  `sentry_sdk.capture_exception(exc)` explicitly, and returns the app's
+  normal structured error body (`internal_server_error`) instead of a raw
+  traceback. **Verified via web research before implementing:** Sentry's
+  FastAPI/Starlette integration does NOT auto-capture an exception once a
+  custom handler intercepts it -- the explicit `capture_exception` call is
+  required, not optional.
+- `app/dependencies/auth.py::get_current_user` calls
+  `sentry_sdk.set_user({'id': ..., 'email': ...})` once a request is
+  authenticated, so a captured exception shows which user was affected
+  without needing them to report it. No-op when Sentry isn't initialized.
+- `HealthCheckAccessLogFilter` (`app/main.py`) drops `/health/live` and
+  `/health/ready` from the `uvicorn.access` logger by inspecting
+  `record.args[2]` (verified this is the correct uvicorn access-log record
+  shape via research before implementing, rather than assuming).
+- 6 new tests (`tests/integration/test_error_handling.py`): unhandled
+  exception returns a clean structured 500 (not a leaked traceback) and is
+  actually sent to `sentry_sdk.capture_exception`; expected `HTTPException`s
+  are confirmed to still route to their own handler, not this one (no
+  collision); the log filter is tested directly for both excluded and
+  included paths plus a defensive malformed-record case.
+- **Testing note:** the exception-handler tests needed
+  `ASGITransport(..., raise_app_exceptions=False)` -- Starlette's
+  `ServerErrorMiddleware` sends the response and then re-raises the
+  exception by design (so the ASGI server can still log it), which a real
+  uvicorn-served client never sees, but httpx's `ASGITransport` surfaces to
+  the test caller by default since there's no server absorbing it.
+
+Full backend suite: 193 passed. `ruff`/`pyright` clean on all touched files.
+
+**Still open:** creating the actual Sentry project/DSN and deploying to the
+VPS (needs the project owner's Sentry account). See the next entry once
+that's done.

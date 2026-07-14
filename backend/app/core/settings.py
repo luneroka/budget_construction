@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     r2_access_key_id: Optional[str] = None
     r2_secret_access_key: Optional[str] = None
     r2_bucket_name: Optional[str] = None
+    sentry_dsn: Optional[str] = None
     cors_allowed_origins: list[str] = Field(
         default_factory=lambda: [
             'http://localhost:5173',

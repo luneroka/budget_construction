@@ -115,6 +115,7 @@ dependencies = [
     { name = "passlib", extra = ["bcrypt"] },
     { name = "pydantic-settings" },
     { name = "python-jose", extra = ["cryptography"] },
+    { name = "sentry-sdk" },
     { name = "sqlalchemy" },
 ]
 
@@ -141,6 +142,7 @@ requires-dist = [
     { name = "passlib", extras = ["bcrypt"], specifier = ">=1.7.4" },
     { name = "pydantic-settings", specifier = ">=2.11.0" },
     { name = "python-jose", extras = ["cryptography"], specifier = ">=3.5.0" },
+    { name = "sentry-sdk", specifier = ">=2.60.0" },
     { name = "sqlalchemy", specifier = ">=2.0.49" },
 ]
 
