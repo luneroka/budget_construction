@@ -792,6 +792,7 @@ docker-compose.prod.yml config --quiet` completed successfully (with
 | 2026-07-13 | v1.2.0  | Automated encrypted off-host database backups deployed (commit `bd5bab9`): dedicated R2 backups bucket + scoped token created, rclone installed, `.env.production` configured, `batibudget-db-backup.timer` enabled (daily 03:30 UTC + `Persistent=true`). Verified on the VPS: real backup uploaded and confirmed present in R2 via `rclone ls`; full restore drill pulling that backup back from R2 matched production `users` row count exactly. **Original launch punch list (backups, in particular) is now fully closed.** |
 | 2026-07-13 | v1.3.0  | Backup failure alerting (commit `1f5cdf2`) and R2 documents mirror (commit `a95c858`) deployed. Any `backup_db.sh`/`backup_documents.sh` failure now emails `BACKUP_ALERT_EMAIL` via Resend (verified with a real accepted alert and a simulated-outage case). R2 has no native versioning (confirmed against current Cloudflare docs), so `scripts/backup_documents.sh` substitutes a daily one-way `rclone copy` (never `sync`) of the live documents bucket into a dedicated `budget-construction-documents-backup` mirror bucket, retained via a 30-day R2 Object Lifecycle Rule. VPS setup completed: mirror bucket + scoped token + lifecycle rule created, a real uploaded document confirmed mirrored (`Copied (server-side copy)`), `batibudget-docs-mirror.timer` enabled (daily 04:16 UTC, alongside the 03:33 DB backup). **Closes the original Chunk 0 audit's open R2 lifecycle/retention item.** |
 | 2026-07-14 | v1.3.1  | Fixed `www.batibudget.com`, unresolved since Chunk 4: its DNS still pointed at an OVH redirect/parking IP that reset the TLS handshake (perceived as the site "crashing"), and Caddy had no site block for the host regardless. Added it to the existing `.fr` redirect block (commit `5189774`), project owner repointed DNS at the VPS in OVH, deployed with `--force-recreate caddy`. Verified: `301` to `https://batibudget.com/` then `200`, valid certificate. |
+| 2026-07-14 | v1.4.0  | Sentry error monitoring deployed (commit `801a1a2`): unhandled exceptions are caught, logged, and reported with user context via a generic exception handler; healthcheck requests filtered out of the access log. Verified with real test exceptions in both `development` and `production` Sentry environments after a `.env.production` DSN + backend rebuild. Incidental fix: `gitleaks-action` CI was failing on an unauthenticated GitHub API rate limit (not a real secret leak); fixed by passing `GITHUB_TOKEN` to the step. |
 |            |         |                                                                                                                                                             |
 
 ## Production Configuration Review (2026-07-13)
@@ -1105,6 +1106,23 @@ routine log history (not just errors) needs to survive deploys later.
 
 Full backend suite: 193 passed. `ruff`/`pyright` clean on all touched files.
 
-**Still open:** creating the actual Sentry project/DSN and deploying to the
-VPS (needs the project owner's Sentry account). See the next entry once
-that's done.
+### VPS deployment (2026-07-14)
+
+A dedicated Sentry project was created for this app (not shared with the
+project owner's other project). Before touching production, the DSN was
+verified locally by sending a real test exception directly via `sentry_sdk`
+from inside the dev backend container -- confirmed received, tagged
+`environment: development`. `SENTRY_DSN` was then added to
+`.env.production`, and the backend rebuilt (`up -d --build backend`; no
+migration needed, this only adds a dependency). `/api/health/live` returned
+`{"status":"ok"}` and the container reported healthy. A second test
+exception was sent through the actual `init_sentry()` production code path
+(not a standalone script) and confirmed received in the Sentry dashboard,
+tagged `environment: production`. Closed.
+
+Incidental fix same day: `gitleaks-action@v2` started failing CI
+(`.github/workflows/secret-scan.yml`) with "missing gitleaks license" --
+not a real secret leak, but the action's anonymous GitHub API call (to
+check free-tier eligibility for public repos) hit a rate limit with no
+token configured. Fixed by passing `GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}`
+to the step; verified the next push's workflow run succeeded.
