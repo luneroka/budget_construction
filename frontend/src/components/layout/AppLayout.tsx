@@ -93,7 +93,7 @@ export function AppLayout() {
             <Menu aria-hidden />
           </Button>
         </div>
-        <div className="p-4 sm:p-6 min-[1600px]:p-8">
+        <div className="p-4 pb-24 sm:p-6 sm:pb-24 min-[1600px]:p-8 min-[1600px]:pb-24">
           <Outlet />
         </div>
       </main>
