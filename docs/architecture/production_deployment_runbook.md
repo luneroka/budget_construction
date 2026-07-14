@@ -847,8 +847,27 @@ entry and a broken README link (see below).
 Decisions and fixes made after the review above, before moving on to the
 next task:
 
-- **Dev/prod R2 & Resend separation (High)** — sidelined by the project
-  owner for now; not a blocker for current work. Revisit later.
+- **Dev/prod R2 & Resend separation (High) — R2 half closed 2026-07-14;
+  Resend intentionally not separated.** The project owner decided Resend
+  mixing dev/prod emails is acceptable and does not want it separated — that
+  part of this item is closed as "won't do," not outstanding. R2 was
+  separated: confirmed local dev `.env` was using the exact same bucket
+  (`budget-construction-documents`, same account) as production, not just a
+  similarly-named one. Created a dedicated `budget-construction-documents-dev`
+  bucket and an API token scoped to **only** that bucket, updated local
+  `.env` (production untouched). **Lesson learned:** the first token's
+  secret was copied truncated (32 chars instead of the expected 64),
+  producing a `SignatureDoesNotMatch` error that manifested as a 502 in the
+  app — since Cloudflare shows a token secret exactly once, a bad copy
+  requires creating a fresh token, not fixing the old one. Also relearned
+  mid-fix: `docker compose restart` does **not** reload `env_file` values
+  into a running container (it reuses the environment baked in at container
+  creation) -- `docker compose up -d` (or `--force-recreate`) is required
+  after any `.env` change, matching the exact same class of lesson already
+  documented for `Caddyfile` bind-mount changes. Verified with a full
+  upload/head/delete round trip directly against the dev bucket via the
+  app's own `storage.py` functions, then confirmed again through the real
+  app UI.
 - **Backups (High) — implemented and fully deployed 2026-07-13.** Automated
   encrypted PostgreSQL backups to Cloudflare R2 with retention, plus a tested
   restore path (`scripts/backup_db.sh`, `scripts/restore_db.sh`, systemd
