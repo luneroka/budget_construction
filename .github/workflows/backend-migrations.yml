@@ -1,0 +1,70 @@
+name: Backend migrations
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  backend-migrations:
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5435/budget_construction_test
+      SECRET_KEY: test_secret_key
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      ENVIRONMENT: test
+      R2_ENDPOINT_URL: http://localhost:9000
+      R2_ACCESS_KEY_ID: test
+      R2_SECRET_ACCESS_KEY: test
+      R2_BUCKET_NAME: test-bucket
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: budget_construction_test
+        ports:
+          - 5435:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d budget_construction_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install backend dependencies
+        run: uv sync --dev
+
+      # The real check this job exists for: apply every migration in order
+      # against a genuinely empty database, exactly like the production
+      # `migrate` service does on deploy. backend-tests.yml never exercises
+      # Alembic at all -- its test schema comes from Base.metadata.create_all(),
+      # built from the current models -- so a broken/mistyped/misordered
+      # migration would otherwise only be discovered live, during a deploy.
+      - name: Run alembic upgrade head against a fresh database
+        run: uv run alembic upgrade head
+
+      # Schema for these tests is still rebuilt from the models per test
+      # (tests/conftest.py), not from the migration run above -- the
+      # per-test reset the suite relies on for isolation needs to stay fast,
+      # and app code commits mid-test, so a plain transaction rollback isn't
+      # enough for isolation on its own. This step is a "nothing else
+      # regressed" gate alongside the migration check above, not a second
+      # migration check.
+      - name: Run pytest
+        run: uv run pytest

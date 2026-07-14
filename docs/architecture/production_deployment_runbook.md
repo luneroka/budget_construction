@@ -1126,3 +1126,34 @@ not a real secret leak, but the action's anonymous GitHub API call (to
 check free-tier eligibility for public repos) hit a rate limit with no
 token configured. Fixed by passing `GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}`
 to the step; verified the next push's workflow run succeeded.
+
+## Backend Migration CI (2026-07-14)
+
+`.github/workflows/backend-tests.yml` never exercised Alembic -- its test
+schema is built by `Base.metadata.create_all()` directly from the current
+SQLAlchemy models (`tests/conftest.py`), so all migration files were
+untested by CI; the only place `alembic upgrade head` actually ran was the
+production `migrate` service, on a real deploy. This isn't hypothetical for
+this project: the Chunk 4 deploy already hit a migration-adjacent bug (SQL
+file path resolution breaking only inside the Docker build context) that no
+test caught, surfacing only at deploy time.
+
+Added `.github/workflows/backend-migrations.yml`: fresh Postgres service,
+`alembic upgrade head` against a genuinely empty database, then the existing
+pytest suite as a combined health gate. Verified empirically before adding
+it (so it wouldn't immediately go red on a pre-existing issue): a from-scratch
+`alembic upgrade head` against a throwaway database applies all 43
+migrations cleanly, and the full rehearsal sequence (fresh DB -> alembic
+upgrade -> pytest) passes end-to-end locally (193 tests).
+
+**Known limitation, accepted deliberately:** pytest's schema is still
+rebuilt from the models per test (unchanged), not from the migration run in
+the same job -- the per-test isolation the suite relies on needs a fast
+reset, and app code commits mid-test so a plain transaction rollback isn't
+enough for isolation on its own; running full Alembic history per test
+would be far too slow (43 migrations x ~2 resets x 193 tests). The new
+job's value is the standalone `alembic upgrade head` step: it catches
+migrations that fail to apply at all (syntax, ordering, broken SQL/paths),
+which is exactly the class of bug that slipped through before. It does not
+catch migrations that apply cleanly but produce a schema subtly different
+from what the models assume.
