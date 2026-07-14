@@ -591,8 +591,8 @@ duplicating the Resend-alert logic).
 
 Since rclone performs a server-side copy between two buckets on the same R2
 account, this does not consume VPS disk space or meaningfully use its
-bandwidth for the file contents. Scheduled at 04:15 UTC daily (`Persistent`),
-offset 45 minutes after the 03:30 database backup so the two jobs don't
+bandwidth for the file contents. Scheduled at 06:45 UTC daily (`Persistent`),
+offset 45 minutes after the 06:00 UTC database backup so the two jobs don't
 contend for VPS resources.
 
 **Recommended lifecycle rule on the mirror bucket:** age-based expiration at
@@ -868,6 +868,19 @@ next task:
   upload/head/delete round trip directly against the dev bucket via the
   app's own `storage.py` functions, then confirmed again through the real
   app UI.
+- **Backup schedule retimed for both users' timezones (2026-07-14).** The
+  project owner is in France, the app's user is in Guadeloupe (UTC-4, no
+  DST). Backup timing has no correctness/performance reason to avoid usage
+  windows -- `pg_dump` takes a consistent MVCC snapshot without blocking
+  reads or writes, and the tiny database dumps in well under a second -- but
+  moved anyway for peace of mind, at zero cost. `batibudget-db-backup.timer`
+  moved from 03:30 to **06:00 UTC** (= 2am Guadeloupe every day of the
+  year, since Guadeloupe has no DST) and `batibudget-docs-mirror.timer`
+  from 04:15 to **06:45 UTC**, preserving the original 45-minute gap
+  between the two jobs. Requires re-copying the updated unit files to
+  `/etc/systemd/system/` on the VPS, `daemon-reload`, and restarting both
+  timers to recompute their next elapse time (a plain `daemon-reload` alone
+  does not do this).
 - **Backups (High) — implemented and fully deployed 2026-07-13.** Automated
   encrypted PostgreSQL backups to Cloudflare R2 with retention, plus a tested
   restore path (`scripts/backup_db.sh`, `scripts/restore_db.sh`, systemd

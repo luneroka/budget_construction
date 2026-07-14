@@ -2,9 +2,10 @@
 Description=Run the Bati Budget documents mirror daily
 
 [Timer]
-# Daily at 04:15 (server local time), offset from the 03:30 database backup
+# Daily at 06:45 UTC, offset 45 minutes from the 06:00 UTC database backup
 # so the two jobs don't contend for the VPS's limited bandwidth/CPU at once.
-OnCalendar=*-*-* 04:15:00
+# See batibudget-db-backup.timer for why 06:00 UTC was chosen.
+OnCalendar=*-*-* 06:45:00
 # Run a missed mirror on next boot if the VPS was down at the scheduled time.
 Persistent=true
 # Avoid every scheduled job firing at the exact same second.

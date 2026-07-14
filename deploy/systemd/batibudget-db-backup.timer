@@ -2,8 +2,12 @@
 Description=Run the Bati Budget database backup daily
 
 [Timer]
-# Daily at 03:30 (server local time). Adjust as needed.
-OnCalendar=*-*-* 03:30:00
+# Daily at 06:00 UTC = 2am Guadeloupe (UTC-4, no DST, so this is exact
+# every day of the year) / 7-8am France depending on DST. Not required for
+# correctness (pg_dump takes a consistent MVCC snapshot without blocking
+# reads/writes, so it's safe to run any time), chosen only so it never
+# overlaps either user's usage window. Adjust as needed.
+OnCalendar=*-*-* 06:00:00
 # Run a missed backup on next boot if the VPS was down at the scheduled time.
 Persistent=true
 # Avoid every scheduled job firing at the exact same second.
