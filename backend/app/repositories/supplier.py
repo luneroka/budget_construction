@@ -1,13 +1,14 @@
 from datetime import datetime, UTC
 from typing import Sequence, cast
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.sql import Select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.supplier import Supplier
 from app.models.supplier_contact import SupplierContact
+from app.models.supplier_document import SupplierDocument
 from app.schemas.supplier import (
     SupplierContactCreate,
     SupplierContactUpdate,
@@ -117,7 +118,16 @@ async def soft_delete_supplier(
     if supplier is None:
         return None
 
-    supplier.deleted_at = datetime.now(UTC).replace(tzinfo=None)
+    deleted_at = datetime.now(UTC).replace(tzinfo=None)
+    await db.execute(
+        update(SupplierDocument)
+        .where(
+            SupplierDocument.supplier_id == supplier.id,
+            SupplierDocument.deleted_at.is_(None),
+        )
+        .values(deleted_at=deleted_at, updated_at=deleted_at)
+    )
+    supplier.deleted_at = deleted_at
 
     await db.commit()
 

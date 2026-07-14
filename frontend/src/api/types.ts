@@ -417,6 +417,7 @@ export type DocumentRead = {
 }
 
 export type DocumentListRead = DocumentRead & {
+  type: 'document'
   project_id: number
   transaction_type: TransactionType
   transaction_description: string | null
@@ -424,6 +425,27 @@ export type DocumentListRead = DocumentRead & {
   product_name: string | null
   amount_ttc: ApiDecimal | null
 }
+
+export type SupplierDocumentRead = {
+  id: number
+  supplier_id: number
+  user_id: number
+  original_filename: string
+  stored_filename: string
+  file_path: string
+  mime_type: string
+  file_size: number
+  created_at: ApiDateTime
+  updated_at: ApiDateTime
+  deleted_at: ApiDateTime | null
+}
+
+export type SupplierDocumentListRead = SupplierDocumentRead & {
+  type: 'supplier_document'
+  supplier_name: string
+}
+
+export type DocumentsListItem = DocumentListRead | SupplierDocumentListRead
 
 export type DocumentDownloadUrl = {
   url: string
@@ -465,5 +487,21 @@ export type TrashSupplierRead = {
   deleted_at: ApiDateTime
 }
 
+export type TrashSupplierDocumentRead = {
+  type: 'supplier_document'
+  id: number
+  project_id: number
+  supplier_id: number
+  name: string
+  supplier_name: string
+  supplier_deleted_at: ApiDateTime | null
+  deleted_at: ApiDateTime
+  can_restore: boolean
+  restore_blocked_reason: string | null
+}
+
 export type TrashItemRead =
-  TrashTransactionRead | TrashDocumentRead | TrashSupplierRead
+  | TrashTransactionRead
+  | TrashDocumentRead
+  | TrashSupplierRead
+  | TrashSupplierDocumentRead

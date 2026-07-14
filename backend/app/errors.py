@@ -101,6 +101,9 @@ ERROR_DEFINITIONS: dict[str, ErrorDefinition] = {
     'document_not_found': {
         'message': 'Document not found',
     },
+    'document_parent_supplier_restore_required': {
+        'message': 'Restore the parent supplier first',
+    },
     'document_parent_transaction_restore_required': {
         'message': 'Restore the parent transaction first',
     },

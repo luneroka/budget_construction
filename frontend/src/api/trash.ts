@@ -4,6 +4,7 @@ import { apiConfig } from './config'
 import { apiDelete, apiGet, apiPost } from './client'
 import type {
   DocumentRead,
+  SupplierDocumentRead,
   SupplierRead,
   TransactionRead,
   TrashItemRead,
@@ -65,6 +66,25 @@ export function hardDeleteTrashDocument(
   documentId: number,
 ): Promise<void> {
   return apiDelete<void>(`/projects/${projectId}/trash/documents/${documentId}`)
+}
+
+export function restoreTrashSupplierDocument(
+  projectId: number,
+  documentId: number,
+): Promise<SupplierDocumentRead> {
+  return apiPost<SupplierDocumentRead, undefined>(
+    `/projects/${projectId}/trash/supplier-documents/${documentId}/restore`,
+    undefined,
+  )
+}
+
+export function hardDeleteTrashSupplierDocument(
+  projectId: number,
+  documentId: number,
+): Promise<void> {
+  return apiDelete<void>(
+    `/projects/${projectId}/trash/supplier-documents/${documentId}`,
+  )
 }
 
 export function hardDeleteTrashSupplier(
@@ -132,6 +152,30 @@ export function useRestoreTrashSupplierMutation() {
       projectId: number
       supplierId: number
     }) => restoreTrashSupplier(projectId, supplierId),
+  })
+}
+
+export function useRestoreTrashSupplierDocumentMutation() {
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      documentId,
+    }: {
+      projectId: number
+      documentId: number
+    }) => restoreTrashSupplierDocument(projectId, documentId),
+  })
+}
+
+export function useHardDeleteTrashSupplierDocumentMutation() {
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      documentId,
+    }: {
+      projectId: number
+      documentId: number
+    }) => hardDeleteTrashSupplierDocument(projectId, documentId),
   })
 }
 

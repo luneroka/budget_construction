@@ -45,4 +45,22 @@ class TrashSupplierRead(BaseModel):
     deleted_at: datetime
 
 
-TrashItemRead = TrashTransactionRead | TrashDocumentRead | TrashSupplierRead
+class TrashSupplierDocumentRead(BaseModel):
+    type: Literal['supplier_document']
+    id: int
+    project_id: int
+    supplier_id: int
+    name: str
+    supplier_name: str
+    supplier_deleted_at: datetime | None = None
+    deleted_at: datetime
+    can_restore: bool
+    restore_blocked_reason: str | None = None
+
+
+TrashItemRead = (
+    TrashTransactionRead
+    | TrashDocumentRead
+    | TrashSupplierRead
+    | TrashSupplierDocumentRead
+)

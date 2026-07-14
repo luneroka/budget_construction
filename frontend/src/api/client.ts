@@ -38,6 +38,8 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
   document_must_be_deleted_before_permanent_delete:
     'Le document doit d’abord être supprimé avant sa suppression définitive.',
   document_not_found: 'Ce document est introuvable.',
+  document_parent_supplier_restore_required:
+    'Restaurez d’abord le fournisseur parent.',
   document_parent_transaction_restore_required:
     'Restaurez d’abord la transaction parente.',
   document_upload_failed: 'Le document n’a pas pu être téléversé.',

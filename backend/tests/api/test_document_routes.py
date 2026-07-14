@@ -15,7 +15,7 @@ from app.models.project import Project
 from app.models.subcategory import Subcategory
 from app.models.transaction import Transaction, TransactionType
 from app.models.user import User
-from app.routers.documents import MAX_FILE_SIZE
+from app.services.document_validation import MAX_FILE_SIZE
 
 PASSWORD = 'Password123!'
 

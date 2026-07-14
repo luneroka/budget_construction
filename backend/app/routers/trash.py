@@ -9,15 +9,18 @@ from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
 from app.models.document import Document
 from app.models.supplier import Supplier
+from app.models.supplier_document import SupplierDocument
 from app.models.transaction import Transaction
 from app.models.user import User
 from app.repositories import trash as trash_repository
 from app.schemas.document import DocumentRead
 from app.schemas.supplier import SupplierRead
+from app.schemas.supplier_document import SupplierDocumentRead
 from app.schemas.transaction import TransactionRead
 from app.schemas.trash import (
     TrashDocumentRead,
     TrashItemRead,
+    TrashSupplierDocumentRead,
     TrashSupplierRead,
     TrashTransactionRead,
 )
@@ -87,7 +90,20 @@ async def _permanently_delete_supplier(
     db: AsyncSession,
     supplier: Supplier,
 ) -> None:
+    _delete_document_files([document.file_path for document in supplier.documents])
     await trash_repository.permanently_delete_supplier(db, supplier)
+
+
+async def _permanently_delete_supplier_document(
+    db: AsyncSession,
+    document_id: int,
+    document_file_path: str,
+) -> None:
+    _delete_document_files([document_file_path])
+    document = await db.get(SupplierDocument, document_id)
+    if document is None:
+        return
+    await trash_repository.permanently_delete_supplier_document(db, document)
 
 
 @router.get('/', response_model=list[TrashItemRead])
@@ -111,6 +127,10 @@ async def get_project_trash(
     supplier_rows = await trash_repository.get_deleted_suppliers(
         db,
         project_id,
+        current_user.id,
+    )
+    supplier_document_rows = await trash_repository.get_deleted_supplier_documents(
+        db,
         current_user.id,
     )
 
@@ -168,6 +188,26 @@ async def get_project_trash(
             )
         )
 
+    for supplier_document, supplier in supplier_document_rows:
+        assert supplier_document.deleted_at is not None
+        parent_is_deleted = supplier.deleted_at is not None
+        items.append(
+            TrashSupplierDocumentRead(
+                type='supplier_document',
+                id=supplier_document.id,
+                project_id=project_id,
+                supplier_id=supplier_document.supplier_id,
+                name=supplier_document.original_filename,
+                supplier_name=supplier.name,
+                supplier_deleted_at=supplier.deleted_at,
+                deleted_at=supplier_document.deleted_at,
+                can_restore=not parent_is_deleted,
+                restore_blocked_reason=(
+                    'Restore the parent supplier first' if parent_is_deleted else None
+                ),
+            )
+        )
+
     return sorted(items, key=lambda item: item.deleted_at, reverse=True)
 
 
@@ -191,6 +231,12 @@ async def empty_project_trash(
             for document in transaction.documents
         ]
         + [document.file_path for document in targets.documents]
+        + [
+            document.file_path
+            for supplier in targets.suppliers
+            for document in supplier.documents
+        ]
+        + [document.file_path for document in targets.supplier_documents]
     )
     await trash_repository.permanently_delete_targets(db, targets)
 
@@ -272,6 +318,34 @@ async def hard_delete_supplier(
     await _permanently_delete_supplier(db, supplier)
 
 
+@router.delete(
+    '/supplier-documents/{document_id}',
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def hard_delete_supplier_document(
+    project_id: int,
+    document_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    await _ensure_project(db, project_id, current_user.id)
+
+    document = (
+        await trash_repository.get_deleted_supplier_document_for_permanent_delete(
+            db,
+            document_id,
+            current_user.id,
+        )
+    )
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Document not found',
+        )
+
+    await _permanently_delete_supplier_document(db, document.id, document.file_path)
+
+
 @router.post('/transactions/{transaction_id}/restore', response_model=TransactionRead)
 async def restore_transaction(
     project_id: int,
@@ -304,6 +378,38 @@ async def restore_document(
         document = await trash_repository.restore_document(
             db,
             project_id,
+            document_id,
+            current_user.id,
+        )
+    except trash_repository.TrashRestoreError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        ) from error
+
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Document not found',
+        )
+    return document
+
+
+@router.post(
+    '/supplier-documents/{document_id}/restore',
+    response_model=SupplierDocumentRead,
+)
+async def restore_supplier_document(
+    project_id: int,
+    document_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    await _ensure_project(db, project_id, current_user.id)
+
+    try:
+        document = await trash_repository.restore_supplier_document(
+            db,
             document_id,
             current_user.id,
         )

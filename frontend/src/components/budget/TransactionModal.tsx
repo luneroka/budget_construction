@@ -62,6 +62,11 @@ import type {
   Transaction,
 } from '@/types'
 import { downloadDocument } from '@/lib/documents'
+import {
+  documentInputAccept,
+  formatFileSize,
+  getSelectedFile,
+} from '@/lib/files'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
@@ -185,9 +190,6 @@ const paymentMethodLabels: Record<PaymentMethod, string> = {
   wire: 'Virement',
 }
 
-const documentInputAccept =
-  'application/pdf,image/jpeg,image/png,image/heic,.pdf,.jpg,.jpeg,.png,.heic'
-
 function todayAsInputValue() {
   return new Date().toISOString().slice(0, 10)
 }
@@ -225,16 +227,6 @@ function parseAmountInput(value: string) {
 
 function formatCalculatedAmount(value: number) {
   return (Math.round(value * 100) / 100).toFixed(2)
-}
-
-function formatFileSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} o`
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} Ko`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
-}
-
-function getSelectedFile(event: SyntheticEvent<HTMLInputElement>) {
-  return event.currentTarget.files?.[0] ?? null
 }
 
 function recalculateAmounts<T extends AmountFields>(

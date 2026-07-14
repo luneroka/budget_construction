@@ -14,11 +14,13 @@ from app.models.document import Document
 from app.models.product import Product
 from app.models.project import Project
 from app.models.supplier import Supplier
+from app.models.supplier_document import SupplierDocument
 from app.models.transaction import Transaction
 
 DeletedTransactionRow = Row[tuple[Transaction, str | None, str]]
 DeletedDocumentRow = Row[tuple[Document, Transaction, str | None]]
 DeletedSupplierRow = Row[tuple[Supplier, int]]
+DeletedSupplierDocumentRow = Row[tuple[SupplierDocument, Supplier]]
 
 
 class TrashRestoreError(ValueError):
@@ -32,10 +34,12 @@ class TrashPermanentDeleteTargets:
         transactions: list[Transaction] | None = None,
         documents: list[Document] | None = None,
         suppliers: list[Supplier] | None = None,
+        supplier_documents: list[SupplierDocument] | None = None,
     ) -> None:
         self.transactions = transactions or []
         self.documents = documents or []
         self.suppliers = suppliers or []
+        self.supplier_documents = supplier_documents or []
 
 
 async def project_exists_for_user(
@@ -128,6 +132,22 @@ async def get_deleted_suppliers(
         .order_by(Supplier.deleted_at.desc(), Supplier.id.desc())
     )
     return list(result.all())
+
+
+async def get_deleted_supplier_documents(
+    db: AsyncSession,
+    user_id: int,
+) -> Sequence[DeletedSupplierDocumentRow]:
+    result = await db.execute(
+        select(SupplierDocument, Supplier)
+        .join(Supplier, SupplierDocument.supplier_id == Supplier.id)
+        .where(
+            SupplierDocument.user_id == user_id,
+            SupplierDocument.deleted_at.is_not(None),
+        )
+        .order_by(SupplierDocument.deleted_at.desc(), SupplierDocument.id.desc())
+    )
+    return cast(Sequence[DeletedSupplierDocumentRow], list(result.all()))
 
 
 async def restore_transaction(
@@ -236,11 +256,59 @@ async def restore_supplier(
         return None
 
     restored_at = datetime.now(UTC).replace(tzinfo=None)
-    supplier.deleted_at = None
-    supplier.updated_at = restored_at
+    try:
+        await db.execute(
+            update(SupplierDocument)
+            .where(
+                SupplierDocument.supplier_id == supplier.id,
+                SupplierDocument.deleted_at.is_not(None),
+            )
+            .values(deleted_at=None, updated_at=restored_at)
+        )
+        supplier.deleted_at = None
+        supplier.updated_at = restored_at
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
+
+    restored_result = await db.execute(
+        select(Supplier)
+        .options(selectinload(Supplier.contacts))
+        .where(Supplier.id == supplier.id)
+    )
+    return restored_result.scalar_one()
+
+
+async def restore_supplier_document(
+    db: AsyncSession,
+    document_id: int,
+    user_id: int,
+) -> SupplierDocument | None:
+    result = await db.execute(
+        select(SupplierDocument, Supplier)
+        .join(Supplier, SupplierDocument.supplier_id == Supplier.id)
+        .where(
+            SupplierDocument.id == document_id,
+            SupplierDocument.user_id == user_id,
+            SupplierDocument.deleted_at.is_not(None),
+        )
+    )
+    row = result.one_or_none()
+    if row is None:
+        return None
+
+    document, supplier = row
+    if supplier.deleted_at is not None:
+        raise TrashRestoreError('Restore the parent supplier first')
+
+    restored_at = datetime.now(UTC).replace(tzinfo=None)
+    document.deleted_at = None
+    document.updated_at = restored_at
+
     await db.commit()
-    await db.refresh(supplier)
-    return supplier
+    await db.refresh(document)
+    return document
 
 
 async def get_deleted_transaction_for_permanent_delete(
@@ -298,11 +366,26 @@ async def get_deleted_supplier_for_permanent_delete(
 ) -> Supplier | None:
     result = await db.execute(
         select(Supplier)
-        .options(selectinload(Supplier.contacts))
+        .options(selectinload(Supplier.contacts), selectinload(Supplier.documents))
         .where(
             Supplier.id == supplier_id,
             Supplier.user_id == user_id,
             Supplier.deleted_at.is_not(None),
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_deleted_supplier_document_for_permanent_delete(
+    db: AsyncSession,
+    document_id: int,
+    user_id: int,
+) -> SupplierDocument | None:
+    result = await db.execute(
+        select(SupplierDocument).where(
+            SupplierDocument.id == document_id,
+            SupplierDocument.user_id == user_id,
+            SupplierDocument.deleted_at.is_not(None),
         )
     )
     return result.scalar_one_or_none()
@@ -351,18 +434,32 @@ async def get_project_permanent_delete_targets(
 
     supplier_result = await db.execute(
         select(Supplier)
-        .options(selectinload(Supplier.contacts))
+        .options(selectinload(Supplier.contacts), selectinload(Supplier.documents))
         .where(
             Supplier.user_id == user_id,
             Supplier.deleted_at.is_not(None),
         )
     )
     suppliers = list(supplier_result.scalars().unique().all())
+    supplier_ids = {supplier.id for supplier in suppliers}
+
+    supplier_document_result = await db.execute(
+        select(SupplierDocument).where(
+            SupplierDocument.user_id == user_id,
+            SupplierDocument.deleted_at.is_not(None),
+        )
+    )
+    supplier_documents = [
+        document
+        for document in supplier_document_result.scalars().all()
+        if document.supplier_id not in supplier_ids
+    ]
 
     return TrashPermanentDeleteTargets(
         transactions=transactions,
         documents=documents,
         suppliers=suppliers,
+        supplier_documents=supplier_documents,
     )
 
 
@@ -397,6 +494,9 @@ async def permanently_delete_targets(
         for document in targets.documents:
             await db.delete(document)
 
+        for supplier_document in targets.supplier_documents:
+            await db.delete(supplier_document)
+
         for transaction in targets.transactions:
             await db.delete(transaction)
 
@@ -430,4 +530,13 @@ async def permanently_delete_supplier(db: AsyncSession, supplier: Supplier) -> N
     await permanently_delete_targets(
         db,
         TrashPermanentDeleteTargets(suppliers=[supplier]),
+    )
+
+
+async def permanently_delete_supplier_document(
+    db: AsyncSession, supplier_document: SupplierDocument
+) -> None:
+    await permanently_delete_targets(
+        db,
+        TrashPermanentDeleteTargets(supplier_documents=[supplier_document]),
     )

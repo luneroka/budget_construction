@@ -205,7 +205,8 @@ export function ProjectsSettingsPage() {
   }, [transactionsQuery.data])
   const documentsCount =
     documentsQuery.data?.filter(
-      (document) => document.project_id === activeProjectId,
+      (document) =>
+        document.type === 'document' && document.project_id === activeProjectId,
     ).length ?? 0
   const statsLoading =
     financialSummaryQuery.isLoading ||

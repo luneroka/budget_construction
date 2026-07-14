@@ -3,14 +3,17 @@ import { useQueryClient } from '@tanstack/react-query'
 import { RotateCcw, Trash2 } from 'lucide-react'
 
 import { invalidateTrashAffectedQueries } from '@/api/budget-workspace-cache'
+import { invalidateSupplierDocumentQueries } from '@/api/supplier-documents'
 import { getApiErrorMessage } from '@/api/client'
 import {
   useEmptyProjectTrashMutation,
   useHardDeleteTrashDocumentMutation,
+  useHardDeleteTrashSupplierDocumentMutation,
   useHardDeleteTrashSupplierMutation,
   useHardDeleteTrashTransactionMutation,
   useProjectTrashQuery,
   useRestoreTrashDocumentMutation,
+  useRestoreTrashSupplierDocumentMutation,
   useRestoreTrashSupplierMutation,
   useRestoreTrashTransactionMutation,
 } from '@/api/trash'
@@ -41,6 +44,7 @@ const typeLabels: Record<TrashItemRead['type'], string> = {
   transaction: 'Transaction',
   document: 'Document',
   supplier: 'Fournisseur',
+  supplier_document: 'RIB',
 }
 
 const filterOptions: Array<{ value: TrashFilter; label: string }> = [
@@ -48,6 +52,7 @@ const filterOptions: Array<{ value: TrashFilter; label: string }> = [
   { value: 'transaction', label: 'Transactions' },
   { value: 'document', label: 'Documents' },
   { value: 'supplier', label: 'Fournisseurs' },
+  { value: 'supplier_document', label: 'RIB' },
 ]
 const destructiveGhostButtonClass =
   'text-destructive hover:bg-destructive hover:text-destructive-foreground'
@@ -77,6 +82,10 @@ function itemContext(item: TrashItemRead): string {
     ].join(' · ')
   }
 
+  if (item.type === 'supplier_document') {
+    return item.supplier_name
+  }
+
   return `${item.linked_transaction_count} transaction${
     item.linked_transaction_count > 1 ? 's' : ''
   } liée${item.linked_transaction_count > 1 ? 's' : ''}`
@@ -87,6 +96,10 @@ function itemStatus(item: TrashItemRead): string {
     return 'Restauration indisponible. Restaurez d’abord la transaction parente.'
   }
 
+  if (item.type === 'supplier_document' && !item.can_restore) {
+    return 'Restauration indisponible. Restaurez d’abord le fournisseur parent.'
+  }
+
   return 'Restaurable'
 }
 
@@ -95,11 +108,11 @@ function hardDeleteDescription(item: TrashItemRead): string {
     return 'Cette opération supprimera définitivement cette transaction ainsi que ses documents associés.'
   }
 
-  if (item.type === 'document') {
+  if (item.type === 'document' || item.type === 'supplier_document') {
     return 'Cette opération supprimera définitivement ce document ainsi que son fichier stocké.'
   }
 
-  return 'Cette opération supprimera définitivement ce fournisseur et ses contacts. Les transactions liées seront conservées sans fournisseur.'
+  return 'Cette opération supprimera définitivement ce fournisseur, ses contacts et ses documents. Les transactions liées seront conservées sans fournisseur.'
 }
 
 function countTrashItems(items: TrashItemRead[]): TrashCounts {
@@ -108,7 +121,7 @@ function countTrashItems(items: TrashItemRead[]): TrashCounts {
       ...counts,
       [item.type]: counts[item.type] + 1,
     }),
-    { transaction: 0, document: 0, supplier: 0 },
+    { transaction: 0, document: 0, supplier: 0, supplier_document: 0 },
   )
 }
 
@@ -143,9 +156,13 @@ export function TrashPage() {
   const restoreTransactionMutation = useRestoreTrashTransactionMutation()
   const restoreDocumentMutation = useRestoreTrashDocumentMutation()
   const restoreSupplierMutation = useRestoreTrashSupplierMutation()
+  const restoreSupplierDocumentMutation =
+    useRestoreTrashSupplierDocumentMutation()
   const hardDeleteTransactionMutation = useHardDeleteTrashTransactionMutation()
   const hardDeleteDocumentMutation = useHardDeleteTrashDocumentMutation()
   const hardDeleteSupplierMutation = useHardDeleteTrashSupplierMutation()
+  const hardDeleteSupplierDocumentMutation =
+    useHardDeleteTrashSupplierDocumentMutation()
   const emptyTrashMutation = useEmptyProjectTrashMutation()
   const normalizedSearch = search.trim().toLowerCase()
   const filteredItems = useMemo(
@@ -174,11 +191,16 @@ export function TrashPage() {
     hardDeleteTransactionMutation.isPending ||
     hardDeleteDocumentMutation.isPending ||
     hardDeleteSupplierMutation.isPending ||
+    hardDeleteSupplierDocumentMutation.isPending ||
     emptyTrashMutation.isPending
 
   async function restoreItem(item: TrashItemRead) {
     if (projectId === null) return
-    if (item.type === 'document' && !item.can_restore) return
+    if (
+      (item.type === 'document' || item.type === 'supplier_document') &&
+      !item.can_restore
+    )
+      return
 
     const itemKey = `${item.type}-${item.id}`
     setActiveItemKey(itemKey)
@@ -202,6 +224,14 @@ export function TrashPage() {
           item.transaction_id,
         )
         notifySuccess('Document restauré.')
+      } else if (item.type === 'supplier_document') {
+        await restoreSupplierDocumentMutation.mutateAsync({
+          projectId,
+          documentId: item.id,
+        })
+        invalidateTrashAffectedQueries(queryClient, projectId)
+        invalidateSupplierDocumentQueries(queryClient, item.supplier_id)
+        notifySuccess('RIB restauré.')
       } else {
         await restoreSupplierMutation.mutateAsync({
           projectId,
@@ -243,6 +273,14 @@ export function TrashPage() {
           item.transaction_id,
         )
         notifySuccess('Document supprimé définitivement.')
+      } else if (item.type === 'supplier_document') {
+        await hardDeleteSupplierDocumentMutation.mutateAsync({
+          projectId,
+          documentId: item.id,
+        })
+        invalidateTrashAffectedQueries(queryClient, projectId)
+        invalidateSupplierDocumentQueries(queryClient, item.supplier_id)
+        notifySuccess('RIB supprimé définitivement.')
       } else {
         await hardDeleteSupplierMutation.mutateAsync({
           projectId,
@@ -326,7 +364,9 @@ export function TrashPage() {
     return filteredItems.map((item) => {
       const itemKey = `${item.type}-${item.id}`
       const isBusy = activeItemKey === itemKey
-      const isRestoreDisabled = item.type === 'document' && !item.can_restore
+      const isRestoreDisabled =
+        (item.type === 'document' || item.type === 'supplier_document') &&
+        !item.can_restore
 
       return (
         <TableRow key={itemKey}>
@@ -517,6 +557,7 @@ export function TrashPage() {
             <li>
               {formatCount(trashCounts.supplier, 'fournisseur', 'fournisseurs')}
             </li>
+            <li>{formatCount(trashCounts.supplier_document, 'RIB', 'RIB')}</li>
           </ul>
           <p className="mt-3 text-destructive">
             Les transactions supprimeront aussi leurs documents associés et les

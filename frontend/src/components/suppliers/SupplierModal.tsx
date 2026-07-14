@@ -1,10 +1,34 @@
 import { useEffect, useState } from 'react'
-import { Check, Copy, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import {
+  Check,
+  Copy,
+  Download,
+  Paperclip,
+  Pencil,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react'
 
+import { getApiErrorMessage } from '@/api/client'
+import {
+  invalidateSupplierDocumentQueries,
+  useDeleteSupplierDocumentMutation,
+  useSupplierDocumentsQuery,
+  useUploadSupplierDocumentMutation,
+} from '@/api/supplier-documents'
+import type { SupplierDocumentRead } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
+import { downloadSupplierDocument } from '@/lib/documents'
+import {
+  documentInputAccept,
+  formatFileSize,
+  getSelectedFile,
+} from '@/lib/files'
 import {
   buildPhoneNumber,
   formatPhoneNumber,
@@ -40,7 +64,7 @@ type SupplierModalProps = {
   mode: SupplierModalMode
   supplier: Supplier | null
   onClose: () => void
-  onSave: (supplier: Supplier) => Promise<void> | void
+  onSave: (supplier: Supplier) => Promise<Supplier> | Supplier
   onDelete?: (supplier: Supplier) => Promise<void> | void
 }
 
@@ -136,6 +160,238 @@ async function copyAddressToClipboard(supplier: Supplier) {
   }
 }
 
+function numericSupplierId(supplierId: string | null): number | null {
+  const parsed = Number(supplierId)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null
+}
+
+function SelectedRibPreview({
+  file,
+  onClear,
+}: {
+  file: File
+  onClear: () => void
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2 text-sm">
+      <span className="min-w-0">
+        <span className="block truncate font-medium text-foreground">
+          {file.name}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {formatFileSize(file.size)}
+        </span>
+      </span>
+      <Button size="sm" variant="ghost" type="button" onClick={onClear}>
+        Retirer
+      </Button>
+    </div>
+  )
+}
+
+function NewSupplierRibField({
+  file,
+  disabled,
+  onFileChange,
+  onClear,
+}: {
+  file: File | null
+  disabled?: boolean
+  onFileChange: (file: File | null) => void
+  onClear: () => void
+}) {
+  return (
+    <section className="space-y-3 rounded-md border border-border p-4">
+      <h3 className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
+        <Paperclip className="h-4 w-4" aria-hidden />
+        RIB
+      </h3>
+      <Input
+        key={file ? 'rib-selected' : 'rib-empty'}
+        type="file"
+        accept={documentInputAccept}
+        disabled={disabled}
+        onChange={(event) => onFileChange(getSelectedFile(event))}
+      />
+      {file ? <SelectedRibPreview file={file} onClear={onClear} /> : null}
+    </section>
+  )
+}
+
+function SupplierRibPanel({
+  supplierId,
+  readOnly,
+}: {
+  supplierId: number
+  readOnly?: boolean
+}) {
+  const queryClient = useQueryClient()
+  const documentsQuery = useSupplierDocumentsQuery(supplierId, {
+    enabled: Number.isInteger(supplierId),
+  })
+  const uploadDocumentMutation = useUploadSupplierDocumentMutation()
+  const deleteDocumentMutation = useDeleteSupplierDocumentMutation()
+  const [documentError, setDocumentError] = useState<string | null>(null)
+  const [documentPendingDeletion, setDocumentPendingDeletion] =
+    useState<SupplierDocumentRead | null>(null)
+  const isMutating =
+    uploadDocumentMutation.isPending || deleteDocumentMutation.isPending
+
+  async function handleUpload(file: File | null) {
+    if (!file) return
+
+    try {
+      setDocumentError(null)
+      await uploadDocumentMutation.mutateAsync({ supplierId, file })
+      invalidateSupplierDocumentQueries(queryClient, supplierId)
+      notifySuccess('RIB ajouté au fournisseur.')
+    } catch (error) {
+      const message = getApiErrorMessage(error)
+      setDocumentError(message)
+      notifyError(`Impossible d’ajouter le RIB. ${message}`)
+    }
+  }
+
+  async function handleDownload(document: SupplierDocumentRead) {
+    try {
+      setDocumentError(null)
+      await downloadSupplierDocument(document.id, document.original_filename)
+    } catch (error) {
+      const message = getApiErrorMessage(error)
+      setDocumentError(message)
+      notifyError(`Impossible de télécharger le RIB. ${message}`)
+    }
+  }
+
+  async function handleDelete(document: SupplierDocumentRead) {
+    try {
+      setDocumentError(null)
+      await deleteDocumentMutation.mutateAsync({ documentId: document.id })
+      invalidateSupplierDocumentQueries(queryClient, supplierId)
+      setDocumentPendingDeletion(null)
+      notifySuccess('RIB déplacé dans la corbeille.')
+    } catch (error) {
+      const message = getApiErrorMessage(error)
+      setDocumentError(message)
+      notifyError(`Impossible de supprimer le RIB. ${message}`)
+    }
+  }
+
+  const documents = documentsQuery.data ?? []
+  const hasAttachedDocuments = documents.length > 0
+  const canUploadDocument =
+    !readOnly &&
+    documentsQuery.isSuccess &&
+    !hasAttachedDocuments &&
+    !documentsQuery.isFetching
+
+  return (
+    <section className="space-y-3 rounded-md border border-border p-4">
+      <h3 className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
+        <Paperclip className="h-4 w-4" aria-hidden />
+        RIB
+      </h3>
+
+      {documentsQuery.isLoading ? (
+        <p className="text-sm text-muted-foreground">Chargement du RIB</p>
+      ) : documentsQuery.isError ? (
+        <p className="text-sm text-destructive">
+          {getApiErrorMessage(documentsQuery.error)}
+        </p>
+      ) : canUploadDocument ? (
+        <Input
+          type="file"
+          accept={documentInputAccept}
+          disabled={isMutating}
+          onChange={(event) => {
+            const file = getSelectedFile(event)
+            event.currentTarget.value = ''
+            void handleUpload(file)
+          }}
+        />
+      ) : null}
+
+      {documentsQuery.isSuccess && documents.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Aucun RIB joint.</p>
+      ) : null}
+
+      {documents.length > 0 ? (
+        <div className="space-y-2">
+          {documents.map((document) => (
+            <div
+              key={document.id}
+              className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2 text-sm"
+            >
+              <span className="min-w-0">
+                <span className="block truncate font-medium text-foreground">
+                  {document.original_filename}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {formatFileSize(document.file_size)}
+                </span>
+              </span>
+              <span className="flex shrink-0 items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  type="button"
+                  onClick={() => void handleDownload(document)}
+                >
+                  <Download aria-hidden />
+                  Télécharger
+                </Button>
+                {readOnly ? null : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    type="button"
+                    disabled={isMutating}
+                    onClick={() => {
+                      setDocumentError(null)
+                      setDocumentPendingDeletion(document)
+                    }}
+                  >
+                    <Trash2 aria-hidden />
+                    Supprimer
+                  </Button>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {documentError && !documentPendingDeletion ? (
+        <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          {documentError}
+        </p>
+      ) : null}
+
+      {documentPendingDeletion ? (
+        <ConfirmationDialog
+          title="Supprimer ce RIB ?"
+          description="Ce RIB sera déplacé dans la corbeille."
+          error={documentError}
+          isPending={deleteDocumentMutation.isPending}
+          onCancel={() => {
+            if (deleteDocumentMutation.isPending) return
+            setDocumentPendingDeletion(null)
+            setDocumentError(null)
+          }}
+          onConfirm={() => void handleDelete(documentPendingDeletion)}
+        >
+          <p className="font-medium text-foreground">
+            {documentPendingDeletion.original_filename}
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            {formatFileSize(documentPendingDeletion.file_size)}
+          </p>
+        </ConfirmationDialog>
+      ) : null}
+    </section>
+  )
+}
+
 export function SupplierModal({
   mode,
   supplier,
@@ -143,6 +399,8 @@ export function SupplierModal({
   onSave,
   onDelete,
 }: SupplierModalProps) {
+  const queryClient = useQueryClient()
+  const uploadRibMutation = useUploadSupplierDocumentMutation()
   const [currentMode, setCurrentMode] = useState<SupplierModalMode>(mode)
   const [form, setForm] = useState<SupplierFormState>(() =>
     supplierToForm(supplier),
@@ -152,8 +410,12 @@ export function SupplierModal({
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [ribFile, setRibFile] = useState<File | null>(null)
+  const [createdSupplierForRib, setCreatedSupplierForRib] =
+    useState<Supplier | null>(null)
   const isReadOnly = currentMode === 'view'
   const isBusy = isSaving || isDeleting
+  const existingSupplierId = numericSupplierId(supplier?.id ?? null)
 
   useEffect(() => {
     setCurrentMode(mode)
@@ -163,6 +425,8 @@ export function SupplierModal({
     setDeleteConfirmationOpen(false)
     setIsSaving(false)
     setIsDeleting(false)
+    setRibFile(null)
+    setCreatedSupplierForRib(null)
   }, [mode, supplier])
 
   function updateContact(contactId: string, updates: Partial<ContactDraft>) {
@@ -262,21 +526,41 @@ export function SupplierModal({
         updated_at: null,
       }))
 
-      await onSave({
-        id: supplierId,
-        user_id: supplier?.user_id ?? '0',
-        name: form.name.trim(),
-        siret: normalizeBusinessIdentifier(form.siret),
-        comment: normalizeOptional(form.comment) ?? '',
-        street: normalizeOptional(form.street),
-        complement: normalizeOptional(form.complement),
-        postal_code: normalizeOptional(form.postal_code),
-        city: normalizeOptional(form.city),
-        contacts,
-        created_at: supplier?.created_at ?? null,
-        updated_at: null,
-        deleted_at: supplier?.deleted_at ?? null,
-      })
+      // A failed RIB upload keeps the modal open after the supplier was
+      // created; reuse the created supplier on retry instead of duplicating.
+      const savedSupplier =
+        createdSupplierForRib ??
+        (await onSave({
+          id: supplierId,
+          user_id: supplier?.user_id ?? '0',
+          name: form.name.trim(),
+          siret: normalizeBusinessIdentifier(form.siret),
+          comment: normalizeOptional(form.comment) ?? '',
+          street: normalizeOptional(form.street),
+          complement: normalizeOptional(form.complement),
+          postal_code: normalizeOptional(form.postal_code),
+          city: normalizeOptional(form.city),
+          contacts,
+          created_at: supplier?.created_at ?? null,
+          updated_at: null,
+          deleted_at: supplier?.deleted_at ?? null,
+        }))
+
+      if (ribFile) {
+        const savedSupplierId = numericSupplierId(savedSupplier.id)
+        if (savedSupplierId === null) {
+          throw new Error('Identifiant fournisseur invalide.')
+        }
+
+        setCreatedSupplierForRib(savedSupplier)
+        await uploadRibMutation.mutateAsync({
+          supplierId: savedSupplierId,
+          file: ribFile,
+        })
+        invalidateSupplierDocumentQueries(queryClient, savedSupplierId)
+        notifySuccess('RIB ajouté au fournisseur.')
+      }
+
       onClose()
     } catch (error) {
       setFormError(
@@ -442,6 +726,10 @@ export function SupplierModal({
                     ))}
                   </div>
                 </section>
+
+                {existingSupplierId !== null ? (
+                  <SupplierRibPanel supplierId={existingSupplierId} readOnly />
+                ) : null}
               </div>
             ) : (
               <div className="space-y-4">
@@ -672,6 +960,17 @@ export function SupplierModal({
                     ))}
                   </div>
                 </section>
+
+                {currentMode === 'create' ? (
+                  <NewSupplierRibField
+                    file={ribFile}
+                    disabled={isBusy}
+                    onFileChange={setRibFile}
+                    onClear={() => setRibFile(null)}
+                  />
+                ) : existingSupplierId !== null ? (
+                  <SupplierRibPanel supplierId={existingSupplierId} />
+                ) : null}
               </div>
             )}
 

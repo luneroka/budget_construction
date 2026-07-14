@@ -156,7 +156,7 @@ export function SuppliersPage() {
     setSelectedSupplier(null)
   }
 
-  async function saveSupplier(savedSupplier: Supplier) {
+  async function saveSupplier(savedSupplier: Supplier): Promise<Supplier> {
     try {
       const isCreating = selectedSupplier === null
       const saved = isCreating
@@ -176,6 +176,7 @@ export function SuppliersPage() {
         queryKey: supplierQueryKeys.list(false),
       })
       notifySuccess(isCreating ? 'Fournisseur ajouté.' : 'Fournisseur modifié.')
+      return supplierToDomain(saved)
     } catch (error) {
       const message = getApiErrorMessage(error)
       notifyError(`Impossible d’enregistrer le fournisseur. ${message}`)

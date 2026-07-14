@@ -55,6 +55,11 @@ class Supplier(Base):
         cascade='all, delete-orphan',
         order_by='SupplierContact.id',
     )
+    documents = relationship(
+        'SupplierDocument',
+        back_populates='supplier',
+        cascade='all, delete-orphan',
+    )
 
     def __repr__(self):
         return f'<Supplier id={self.id} name={self.name}>'

@@ -4,8 +4,8 @@ import { apiConfig } from './config'
 import { apiDelete, apiGet, apiPost } from './client'
 import type {
   DocumentDownloadUrl,
-  DocumentListRead,
   DocumentRead,
+  DocumentsListItem,
 } from './types'
 
 export const documentQueryKeys = {
@@ -23,8 +23,8 @@ export const documentQueryKeys = {
 
 export function getDocuments(
   includeDeleted = false,
-): Promise<DocumentListRead[]> {
-  return apiGet<DocumentListRead[]>('/documents/', {
+): Promise<DocumentsListItem[]> {
+  return apiGet<DocumentsListItem[]>('/documents/', {
     params: { include_deleted: includeDeleted },
   })
 }

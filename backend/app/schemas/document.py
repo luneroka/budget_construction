@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -24,6 +25,7 @@ class DocumentRead(BaseModel):
 
 
 class DocumentListRead(DocumentRead):
+    type: Literal['document'] = 'document'
     project_id: int
     transaction_type: TransactionType
     transaction_description: str | None = None

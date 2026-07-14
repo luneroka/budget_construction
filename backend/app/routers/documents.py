@@ -8,105 +8,24 @@ from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.repositories import document as document_repository
+from app.repositories import supplier_document as supplier_document_repository
 from app.repositories import transaction as transaction_repository
 from app.schemas.document import DocumentListRead, DocumentRead, DocumentDownloadUrl
+from app.schemas.supplier_document import SupplierDocumentListRead
+from app.services.document_validation import (
+    DocumentUploadValidationError,
+    cleanup_uploaded_file as _cleanup_uploaded_file,
+    validate_document_upload as _validate_document_upload,
+)
 from app.services.storage import (
     upload_file_to_r2,
     generate_download_url,
     delete_file_from_r2,
 )
 
-MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
-MIME_EXTENSIONS = {
-    'application/pdf': {'pdf'},
-    'image/jpeg': {'jpg', 'jpeg'},
-    'image/png': {'png'},
-    'image/heic': {'heic'},
-}
-SIGNATURE_READ_SIZE = 32
-
-
-class DocumentUploadValidationError(ValueError):
-    pass
-
-
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix='/transactions', tags=['Documents'])
 document_router = APIRouter(prefix='/documents', tags=['Documents'])
-
-
-def _detect_mime_type(signature: bytes) -> str | None:
-    if signature.startswith(b'%PDF-'):
-        return 'application/pdf'
-    if signature.startswith(b'\xff\xd8\xff'):
-        return 'image/jpeg'
-    if signature.startswith(b'\x89PNG\r\n\x1a\n'):
-        return 'image/png'
-
-    # HEIC/HEIF files are ISO BMFF containers with an ftyp box near the start.
-    if len(signature) >= 12 and signature[4:8] == b'ftyp':
-        brand = signature[8:12]
-        compatible_brands = signature[16:32]
-        heic_brands = {
-            b'heic',
-            b'heix',
-            b'hevc',
-            b'hevx',
-            b'heim',
-            b'heis',
-            b'mif1',
-            b'msf1',
-        }
-        if brand in heic_brands or any(
-            heic_brand in compatible_brands for heic_brand in heic_brands
-        ):
-            return 'image/heic'
-
-    return None
-
-
-def _validate_document_upload(file: UploadFile) -> tuple[str, str, str, int]:
-    if not file.filename:
-        raise DocumentUploadValidationError('Missing filename')
-
-    original_filename = file.filename
-
-    if '.' not in original_filename:
-        raise DocumentUploadValidationError('Missing file extension')
-
-    extension = original_filename.rsplit('.', 1)[-1].lower()
-    if extension not in {ext for exts in MIME_EXTENSIONS.values() for ext in exts}:
-        raise DocumentUploadValidationError('Unsupported file extension')
-
-    file.file.seek(0, 2)
-    file_size = file.file.tell()
-    file.file.seek(0)
-
-    if file_size == 0:
-        raise DocumentUploadValidationError('File is empty')
-    if file_size > MAX_FILE_SIZE:
-        raise DocumentUploadValidationError('File is too large')
-
-    signature = file.file.read(SIGNATURE_READ_SIZE)
-    file.file.seek(0)
-
-    detected_mime_type = _detect_mime_type(signature)
-    if detected_mime_type is None:
-        raise DocumentUploadValidationError('Unsupported or invalid file content')
-
-    if extension not in MIME_EXTENSIONS[detected_mime_type]:
-        raise DocumentUploadValidationError(
-            'File extension does not match file content'
-        )
-
-    return original_filename, extension, detected_mime_type, file_size
-
-
-def _cleanup_uploaded_file(object_key: str) -> None:
-    try:
-        delete_file_from_r2(object_key)
-    except Exception:
-        logger.exception('Failed to clean up uploaded document from R2')
 
 
 def _document_list_read(
@@ -236,7 +155,7 @@ async def get_documents_by_transaction(
 
 @document_router.get(
     '/',
-    response_model=list[DocumentListRead],
+    response_model=list[DocumentListRead | SupplierDocumentListRead],
 )
 async def get_documents(
     include_deleted: bool = False,
@@ -248,7 +167,25 @@ async def get_documents(
         user_id=current_user.id,
         include_deleted=include_deleted,
     )
-    return [_document_list_read(row) for row in rows]
+    supplier_document_rows = (
+        await supplier_document_repository.get_supplier_document_list(
+            db=db,
+            user_id=current_user.id,
+            include_deleted=include_deleted,
+        )
+    )
+
+    items: list[DocumentListRead | SupplierDocumentListRead] = [
+        _document_list_read(row) for row in rows
+    ]
+    items.extend(
+        SupplierDocumentListRead.model_validate(
+            {**document.__dict__, 'supplier_name': supplier_name}
+        )
+        for document, supplier_name in supplier_document_rows
+    )
+
+    return sorted(items, key=lambda item: item.created_at, reverse=True)
 
 
 @document_router.get(

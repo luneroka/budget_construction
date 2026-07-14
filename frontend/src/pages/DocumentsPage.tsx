@@ -10,8 +10,13 @@ import {
   useDeleteDocumentMutation,
   useDocumentsQuery,
 } from '@/api/documents'
+import {
+  getSupplierDocumentDownloadUrl,
+  invalidateSupplierDocumentQueries,
+  useDeleteSupplierDocumentMutation,
+} from '@/api/supplier-documents'
 import { trashQueryKeys } from '@/api/trash'
-import type { DocumentListRead } from '@/api/types'
+import type { DocumentListRead, DocumentsListItem } from '@/api/types'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
 import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
@@ -26,7 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { downloadDocument } from '@/lib/documents'
+import { downloadDocument, downloadSupplierDocument } from '@/lib/documents'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import { useAppState } from '@/state/appState'
@@ -53,7 +58,11 @@ function formatTransactionTitle(description: string | null): string | null {
   return `${subject} - ${documentLabel}`
 }
 
-function formatDocumentDisplayName(document: DocumentListRead): string {
+function formatDocumentDisplayName(document: DocumentsListItem): string {
+  if (document.type === 'supplier_document') {
+    return `RIB • ${document.supplier_name}`
+  }
+
   const typeLabel = documentTransactionTypeLabels[document.transaction_type]
   const supplier = document.supplier_name ?? 'Autoconstruction'
   const amount = document.amount_ttc
@@ -65,7 +74,7 @@ function formatDocumentDisplayName(document: DocumentListRead): string {
   return `${primaryLabel} • ${supplier} • ${amount}`
 }
 
-function sortDocuments(documents: DocumentListRead[]): DocumentListRead[] {
+function sortDocuments(documents: DocumentsListItem[]): DocumentsListItem[] {
   return [...documents].sort(
     (left, right) =>
       new Date(right.created_at).getTime() -
@@ -80,15 +89,16 @@ export function DocumentsPage() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [activeDocumentId, setActiveDocumentId] = useState<number | null>(null)
   const [documentPendingDeletion, setDocumentPendingDeletion] =
-    useState<DocumentListRead | null>(null)
+    useState<DocumentsListItem | null>(null)
   const [viewerDocument, setViewerDocument] = useState<{
-    document: DocumentListRead
+    document: DocumentsListItem
     url: string
   } | null>(null)
   const [viewerLoading, setViewerLoading] = useState(false)
   const [viewerError, setViewerError] = useState<string | null>(null)
   const documentsQuery = useDocumentsQuery({ enabled: true })
   const deleteDocumentMutation = useDeleteDocumentMutation()
+  const deleteSupplierDocumentMutation = useDeleteSupplierDocumentMutation()
   const documents = useMemo(
     () => sortDocuments(documentsQuery.data ?? []),
     [documentsQuery.data],
@@ -97,22 +107,31 @@ export function DocumentsPage() {
   const filteredDocuments = useMemo(() => {
     if (!normalizedSearch) return documents
 
-    return documents.filter((document) =>
-      [
-        document.original_filename,
-        formatDocumentDisplayName(document),
-        document.transaction_type,
-        document.transaction_description,
-        document.supplier_name,
-        document.product_name,
-        document.amount_ttc,
-        String(document.transaction_id),
-      ]
+    return documents.filter((document) => {
+      const searchableValues =
+        document.type === 'supplier_document'
+          ? [
+              document.original_filename,
+              formatDocumentDisplayName(document),
+              document.supplier_name,
+            ]
+          : [
+              document.original_filename,
+              formatDocumentDisplayName(document),
+              document.transaction_type,
+              document.transaction_description,
+              document.supplier_name,
+              document.product_name,
+              document.amount_ttc,
+              String(document.transaction_id),
+            ]
+
+      return searchableValues
         .filter(Boolean)
         .some((value) =>
           String(value).toLowerCase().includes(normalizedSearch),
-        ),
-    )
+        )
+    })
   }, [documents, normalizedSearch])
   const documentsError = documentsQuery.isError
     ? getApiErrorMessage(documentsQuery.error)
@@ -122,13 +141,14 @@ export function DocumentsPage() {
     documentsQuery.isFetching && !isLoadingDocuments && !documentsError
   const showEmptyState =
     !isLoadingDocuments && !documentsError && filteredDocuments.length === 0
-  const pendingDeletionTransactionTitle = documentPendingDeletion
-    ? formatTransactionTitle(documentPendingDeletion.transaction_description)
-    : null
+  const pendingDeletionTransactionTitle =
+    documentPendingDeletion && documentPendingDeletion.type === 'document'
+      ? formatTransactionTitle(documentPendingDeletion.transaction_description)
+      : null
 
   async function openDocumentAction(
     action: DocumentAction,
-    document: DocumentListRead,
+    document: DocumentsListItem,
   ) {
     setActiveDocumentId(document.id)
     setViewerLoading(true)
@@ -137,11 +157,21 @@ export function DocumentsPage() {
 
     try {
       if (action === 'download') {
-        await downloadDocument(document.id, document.original_filename)
+        if (document.type === 'supplier_document') {
+          await downloadSupplierDocument(
+            document.id,
+            document.original_filename,
+          )
+        } else {
+          await downloadDocument(document.id, document.original_filename)
+        }
         return
       }
 
-      const { url } = await getDocumentDownloadUrl(document.id, true)
+      const { url } =
+        document.type === 'supplier_document'
+          ? await getSupplierDocumentDownloadUrl(document.id, true)
+          : await getDocumentDownloadUrl(document.id, true)
 
       if (action === 'view') {
         setViewerDocument({ document, url })
@@ -160,18 +190,29 @@ export function DocumentsPage() {
     }
   }
 
-  async function deleteDocument(document: DocumentListRead) {
+  async function deleteDocument(document: DocumentsListItem) {
     setActiveDocumentId(document.id)
     setActionError(null)
 
     try {
-      await deleteDocumentMutation.mutateAsync({ documentId: document.id })
-      queryClient.setQueryData<DocumentListRead[]>(
+      if (document.type === 'supplier_document') {
+        await deleteSupplierDocumentMutation.mutateAsync({
+          documentId: document.id,
+        })
+        invalidateSupplierDocumentQueries(queryClient, document.supplier_id)
+      } else {
+        await deleteDocumentMutation.mutateAsync({ documentId: document.id })
+        invalidateDocumentQueries(queryClient, document.transaction_id)
+      }
+      queryClient.setQueryData<DocumentsListItem[]>(
         documentQueryKeys.list(false),
         (current) =>
-          current?.filter((candidate) => candidate.id !== document.id) ?? [],
+          current?.filter(
+            (candidate) =>
+              candidate.type !== document.type ||
+              candidate.id !== document.id,
+          ) ?? [],
       )
-      invalidateDocumentQueries(queryClient, document.transaction_id)
       const projectId = Number(selectedProjectId)
       if (Number.isInteger(projectId) && projectId > 0) {
         void queryClient.invalidateQueries({
@@ -196,10 +237,17 @@ export function DocumentsPage() {
     setViewerError(null)
 
     try {
-      await downloadDocument(
-        viewerDocument.document.id,
-        viewerDocument.document.original_filename,
-      )
+      if (viewerDocument.document.type === 'supplier_document') {
+        await downloadSupplierDocument(
+          viewerDocument.document.id,
+          viewerDocument.document.original_filename,
+        )
+      } else {
+        await downloadDocument(
+          viewerDocument.document.id,
+          viewerDocument.document.original_filename,
+        )
+      }
     } catch (error) {
       const message = getApiErrorMessage(error)
       setViewerError(message)
@@ -246,7 +294,7 @@ export function DocumentsPage() {
       const displayName = formatDocumentDisplayName(document)
 
       return (
-        <TableRow key={document.id}>
+        <TableRow key={`${document.type}-${document.id}`}>
           <TableCell>
             <p className="font-medium text-foreground">{displayName}</p>
             {displayName !== document.original_filename ? (
@@ -256,7 +304,13 @@ export function DocumentsPage() {
             ) : null}
           </TableCell>
           <TableCell className="min-w-32 whitespace-nowrap">
-            <StatusBadge status={document.transaction_type} />
+            <StatusBadge
+              status={
+                document.type === 'supplier_document'
+                  ? 'rib'
+                  : document.transaction_type
+              }
+            />
           </TableCell>
           <TableCell className="font-medium whitespace-nowrap">
             {document.supplier_name ?? 'Autoconstruction'}
@@ -306,7 +360,7 @@ export function DocumentsPage() {
     <section>
       <PageHeader
         title="Documents"
-        description="Fichiers rattachés aux transactions."
+        description="Fichiers rattachés aux transactions et aux fournisseurs."
       />
 
       {documentsError || actionError ? (
