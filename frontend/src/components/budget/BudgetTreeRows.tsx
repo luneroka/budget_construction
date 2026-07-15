@@ -390,7 +390,7 @@ export function BudgetLineRow({
                 <span className="hidden mt-1 text-xs text-muted-foreground">
                   Budget sélectionné:{' '}
                   {formatCurrency(line.selected_budget_amount_ttc)} (
-                  {formatSelectedBudgetSource(line)})
+                  {formatSelectedBudgetSource(line.transactions)})
                 </span>
               </span>
             </button>
