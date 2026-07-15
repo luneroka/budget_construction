@@ -313,7 +313,7 @@ The two modes cannot coexist for the same active project/product pair. Convertin
 
 A budget line can contain several competing quotes and DIY estimates.
 
-The selected budget is stored as a boolean on each transaction: `is_selected_budget`. There is no cap on how many quotes and DIY estimates can be selected for the same budget line — any validated quote or DIY estimate can be marked selected independently, and all of them contribute to the budget line's total.
+The selected budget is stored as a boolean on each transaction: `is_selected_budget`. There is no cap on how many quotes and DIY estimates can be selected for the same budget line — a quote in any status except rejected, or a DIY estimate, can be marked selected independently, and all of them contribute to the budget line's total. A selected quote cannot be changed to rejected while it remains selected; it must be unselected first.
 
 ```text
 Selected budget TTC
@@ -660,7 +660,7 @@ The original document contained several early proposals that are no longer curre
 | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | Generic project name such as Budget Chantier                               | Product is branded **BatiBudget**, with `batibudget.com` acquired                                                  |
 | `project_items` and `sub_products` as separate or loosely defined concepts | Project financial units are finalized as `budget_lines`, typed as whole-product or breakdown                       |
-| One selected budget transaction per budget line                            | Any number of validated quotes and DIY estimates can be independently selected per budget line; all contribute to the budget |
+| One selected budget transaction per budget line                            | Any number of quotes (any status except rejected) and DIY estimates can be independently selected per budget line; all contribute to the budget |
 | Supabase Storage, with optional Cloudinary                                 | Cloudflare R2 is the confirmed document storage provider                                                           |
 | Multi-user authentication as a later phase                                 | Authentication, ownership, admin authorization, and password recovery are core implemented foundations             |
 | Dashboard and analytics as a distant second phase                          | The financial engine and dashboard-specific API projections are already implemented                                |

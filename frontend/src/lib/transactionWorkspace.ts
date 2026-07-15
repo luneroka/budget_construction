@@ -17,6 +17,7 @@ export type QuickViewId =
   | 'recent'
   | 'budget_selected'
   | 'budget_not_selected'
+  | 'budget_to_validate'
 
 export type TransactionWorkspaceRow = ViewedTransactionContext & {
   documentFilenames: string[]
@@ -35,6 +36,7 @@ export const quickViews: Array<{ id: QuickViewId; label: string }> = [
   { id: 'recent', label: 'Transactions récentes' },
   { id: 'budget_selected', label: 'Budget sélectionné' },
   { id: 'budget_not_selected', label: 'Budget non sélectionné' },
+  { id: 'budget_to_validate', label: 'Budget à valider' },
 ]
 
 export const visibleQuickViews = quickViews.filter(
@@ -246,6 +248,15 @@ export function matchesQuickView(
     return (
       ['quote', 'diy_estimate'].includes(transaction.transaction_type) &&
       !isBudgetSelected(transaction)
+    )
+  }
+
+  if (quickView === 'budget_to_validate') {
+    return (
+      transaction.transaction_type === 'quote' &&
+      isBudgetSelected(transaction) &&
+      (transaction.quote_status === 'to_confirm' ||
+        transaction.quote_status === 'to_negotiate')
     )
   }
 

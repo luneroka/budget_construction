@@ -335,10 +335,10 @@ def validate_selected_budget_candidate(
         )
     if (
         transaction_type == TransactionType.quote
-        and quote_status != QuoteStatus.validated
+        and quote_status == QuoteStatus.rejected
     ):
         raise TransactionValidationError(
-            'Only validated quotes can be selected as budget candidates'
+            'Rejected quotes cannot be selected as budget candidates'
         )
 
 
@@ -365,9 +365,9 @@ def _ensure_selected_budget_candidate_remains_valid(
         QuoteStatus | None,
         values.get('quote_status', transaction.quote_status),
     )
-    if quote_status != QuoteStatus.validated:
+    if quote_status == QuoteStatus.rejected:
         raise TransactionValidationError(
-            'A selected budget quote must remain validated'
+            'A selected budget quote cannot be rejected'
         )
 
 

@@ -488,6 +488,49 @@ async def test_project_dashboard_quote_widgets_return_status_projections(
     assert negotiate_widget['items'][0]['quote_status'] == 'to_negotiate'
 
 
+async def test_project_dashboard_budget_to_validate_returns_selected_unconfirmed_quotes(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_financial_summary_context(db_session)
+    selected_to_confirm = Transaction(
+        budget_line_id=context.budget_line_id,
+        transaction_type=TransactionType.quote,
+        amount_ht=Decimal('300.00'),
+        amount_vat=Decimal('0.00'),
+        amount_ttc=Decimal('300.00'),
+        issued_date=date(2026, 6, 11),
+        quote_status=QuoteStatus.to_confirm,
+        is_selected_budget=True,
+    )
+    selected_to_negotiate = Transaction(
+        budget_line_id=context.second_budget_line_id,
+        transaction_type=TransactionType.quote,
+        amount_ht=Decimal('400.00'),
+        amount_vat=Decimal('0.00'),
+        amount_ttc=Decimal('400.00'),
+        issued_date=date(2026, 6, 12),
+        quote_status=QuoteStatus.to_negotiate,
+        is_selected_budget=True,
+    )
+    db_session.add_all([selected_to_confirm, selected_to_negotiate])
+    await db_session.commit()
+
+    response = await client.get(
+        f'/projects/{context.project_id}/dashboard/widgets/budget-to-validate',
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 200
+    widget = response.json()
+    assert widget['count'] == 2
+    assert {item['quote_status'] for item in widget['items']} == {
+        'to_confirm',
+        'to_negotiate',
+    }
+    assert all(item['transaction_type'] == 'quote' for item in widget['items'])
+
+
 async def test_project_dashboard_missing_documents_returns_limited_widget_projection(
     client: AsyncClient,
     db_session: AsyncSession,

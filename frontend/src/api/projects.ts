@@ -182,6 +182,14 @@ export function getProjectDashboardQuotesToNegotiate(
   )
 }
 
+export function getProjectDashboardBudgetToValidate(
+  projectId: number,
+): Promise<DashboardTransactionWidgetRead> {
+  return apiGet<DashboardTransactionWidgetRead>(
+    `/projects/${projectId}/dashboard/widgets/budget-to-validate`,
+  )
+}
+
 export function getProjectDashboardMissingDocuments(
   projectId: number,
 ): Promise<DashboardTransactionWidgetRead> {
@@ -451,6 +459,18 @@ export function useProjectDashboardQuotesToNegotiateQuery(
     projectId,
     'quotes-to-negotiate',
     getProjectDashboardQuotesToNegotiate,
+    options,
+  )
+}
+
+export function useProjectDashboardBudgetToValidateQuery(
+  projectId: number | null,
+  options?: { enabled?: boolean },
+) {
+  return useProjectDashboardTransactionWidgetQuery(
+    projectId,
+    'budget-to-validate',
+    getProjectDashboardBudgetToValidate,
     options,
   )
 }

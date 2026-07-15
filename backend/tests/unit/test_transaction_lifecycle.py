@@ -122,10 +122,16 @@ def test_quote_accepts_all_quote_statuses(quote_status: QuoteStatus) -> None:
     assert values['quote_status'] == quote_status
 
 
-def test_selected_budget_candidate_accepts_validated_quote() -> None:
+@pytest.mark.parametrize(
+    'quote_status',
+    [QuoteStatus.to_confirm, QuoteStatus.to_negotiate, QuoteStatus.validated],
+)
+def test_selected_budget_candidate_accepts_non_rejected_quote(
+    quote_status: QuoteStatus,
+) -> None:
     validate_selected_budget_candidate(
         TransactionType.quote,
-        QuoteStatus.validated,
+        quote_status,
     )
 
 
@@ -136,20 +142,14 @@ def test_selected_budget_candidate_accepts_diy_estimate() -> None:
     )
 
 
-@pytest.mark.parametrize(
-    'quote_status',
-    [QuoteStatus.to_confirm, QuoteStatus.to_negotiate, QuoteStatus.rejected],
-)
-def test_selected_budget_candidate_rejects_unvalidated_quote(
-    quote_status: QuoteStatus,
-) -> None:
+def test_selected_budget_candidate_rejects_rejected_quote() -> None:
     with pytest.raises(
         TransactionValidationError,
-        match='Only validated quotes can be selected as budget candidates',
+        match='Rejected quotes cannot be selected as budget candidates',
     ):
         validate_selected_budget_candidate(
             TransactionType.quote,
-            quote_status,
+            QuoteStatus.rejected,
         )
 
 

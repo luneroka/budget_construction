@@ -202,6 +202,7 @@ Suggested views include:
 - Transactions récentes
 - Budget sélectionné
 - Budget non sélectionné
+- Budget à valider
 
 Each Quick View displays the number of matching transactions.
 

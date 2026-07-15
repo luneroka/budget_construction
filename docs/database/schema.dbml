@@ -210,8 +210,9 @@ Table budget_lines {
     Payment installments (acompte, solde, etc.) must be modeled as multiple
     transactions on the same budget_line, not as additional breakdown budget_lines.
     Budget selection lives on transactions.is_selected_budget, not on this table.
-    Any number of validated quotes and DIY estimates may be selected as budget
-    for the same budget_line; there is no cap.
+    Any number of quotes and DIY estimates may be selected as budget for the
+    same budget_line; there is no cap. A quote can be selected in any status
+    except rejected.
     The selected budget amount is the sum of the TTC of every selected quote
     and DIY estimate transaction on the budget_line.
     Invoice transactions are never budget candidates.

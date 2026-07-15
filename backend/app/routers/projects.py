@@ -319,6 +319,29 @@ async def get_project_dashboard_quotes_to_negotiate(
 
 
 @router.get(
+    '/{project_id}/dashboard/widgets/budget-to-validate',
+    response_model=DashboardTransactionWidgetRead,
+)
+async def get_project_dashboard_budget_to_validate(
+    project_id: int,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    projection = await financial_engine.get_dashboard_budget_to_validate(
+        db,
+        project_id,
+        current_user.id,
+    )
+
+    if projection is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
+        )
+
+    return projection
+
+
+@router.get(
     '/{project_id}/dashboard/widgets/missing-documents',
     response_model=DashboardTransactionWidgetRead,
 )

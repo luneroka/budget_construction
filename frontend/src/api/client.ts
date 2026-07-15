@@ -116,10 +116,10 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
   request_conflict:
     'Cette action entre en conflit avec des données existantes.',
   request_validation_failed: 'Certains champs sont invalides.',
-  selected_budget_quote_must_be_validated:
-    'Seuls les devis validés peuvent être sélectionnés comme budget.',
-  selected_budget_quote_status_locked:
-    'Un devis sélectionné comme budget doit rester validé.',
+  selected_budget_quote_cannot_be_rejected:
+    'Un devis sélectionné comme budget ne peut pas être rejeté.',
+  selected_budget_quote_rejected:
+    'Un devis rejeté ne peut pas être sélectionné comme budget.',
   self_delete_endpoint_required:
     'Utilisez l’action de suppression de votre propre compte.',
   self_service_endpoint_required:

@@ -270,13 +270,13 @@ ERROR_DEFINITIONS: dict[str, ErrorDefinition] = {
     'request_validation_failed': {
         'message': 'Request validation failed',
     },
-    'selected_budget_quote_must_be_validated': {
-        'message': 'Only validated quotes can be selected as budget candidates',
-        'field': 'select_as_budget',
-    },
-    'selected_budget_quote_status_locked': {
-        'message': 'A selected budget quote must remain validated',
+    'selected_budget_quote_cannot_be_rejected': {
+        'message': 'A selected budget quote cannot be rejected',
         'field': 'quote_status',
+    },
+    'selected_budget_quote_rejected': {
+        'message': 'Rejected quotes cannot be selected as budget candidates',
+        'field': 'select_as_budget',
     },
     'self_delete_endpoint_required': {
         'message': 'Use self-delete endpoint',

@@ -398,6 +398,24 @@ class FinancialEngine:
             ),
         )
 
+    async def get_dashboard_budget_to_validate(
+        self,
+        db: AsyncSession,
+        project_id: int,
+        user_id: int,
+    ) -> DashboardTransactionWidgetRead | None:
+        return await self._get_dashboard_transaction_widget(
+            db,
+            project_id,
+            user_id,
+            predicate=lambda transaction: (
+                transaction.transaction_type == TransactionType.quote
+                and transaction.is_selected_budget
+                and transaction.quote_status
+                in (QuoteStatus.to_confirm, QuoteStatus.to_negotiate)
+            ),
+        )
+
     async def get_dashboard_missing_documents(
         self,
         db: AsyncSession,

@@ -354,13 +354,13 @@ function normalizeForType(
     invoice_status: 'unpaid',
     invoice_type: 'full',
     payment_method: 'wire',
-    select_as_budget: state.quote_status === 'validated',
+    select_as_budget: false,
   }
 }
 
 function canSelectCreatedTransactionAsBudget(form: TransactionFormState) {
   if (form.transaction_type === 'diy_estimate') return true
-  return form.transaction_type === 'quote' && form.quote_status === 'validated'
+  return form.transaction_type === 'quote' && form.quote_status !== 'rejected'
 }
 
 function buildTransactionUpdate(
@@ -1006,7 +1006,8 @@ export function TransactionModal({
     setForm((current) => ({
       ...current,
       quote_status: quoteStatus,
-      select_as_budget: quoteStatus === 'validated',
+      select_as_budget:
+        quoteStatus === 'rejected' ? false : current.select_as_budget,
     }))
     setMutationError(null)
   }
@@ -1014,9 +1015,9 @@ export function TransactionModal({
   function getSelectAsBudgetHint() {
     if (
       form.transaction_type === 'quote' &&
-      form.quote_status !== 'validated'
+      form.quote_status === 'rejected'
     ) {
-      return 'Acceptez le devis pour pouvoir le sélectionner comme budget.'
+      return 'Un devis rejeté ne peut pas être sélectionné comme budget.'
     }
     return 'Le montant contribuera au budget sélectionné de ce poste.'
   }
@@ -1486,7 +1487,7 @@ export function TransactionReviewModal({
   const canToggleBudgetSelectionFromForm =
     localIsBudgetSelected ||
     canToggleBudgetSelection ||
-    (isEditing && isQuote && form.quote_status === 'validated')
+    (isEditing && isQuote && form.quote_status !== 'rejected')
 
   function updateField<K extends keyof TransactionUpdateFormState>(
     key: K,
@@ -1575,19 +1576,6 @@ export function TransactionReviewModal({
           transactionId,
         })
       } else {
-        if (
-          isQuote &&
-          form.quote_status === 'validated' &&
-          transaction.quote_status !== 'validated'
-        ) {
-          await updateTransactionMutation.mutateAsync({
-            projectId,
-            budgetLineId,
-            transactionId,
-            transaction: { quote_status: 'validated' },
-          })
-        }
-
         await selectBudgetCandidateMutation.mutateAsync({
           projectId,
           budgetLineId,

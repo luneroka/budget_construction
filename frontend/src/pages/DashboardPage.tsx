@@ -19,13 +19,13 @@ import {
 import { getApiErrorMessage } from '@/api/client'
 import {
   useProjectDashboardBudgetAlertsQuery,
+  useProjectDashboardBudgetToValidateQuery,
   useProjectDashboardBudgetVsActualQuery,
   useProjectDashboardCategoryDistributionQuery,
   useProjectDashboardFinancialOverviewQuery,
   useProjectDashboardMissingDocumentsQuery,
   useProjectDashboardQuotesToConfirmQuery,
   useProjectDashboardQuotesToNegotiateQuery,
-  useProjectDashboardRecentTransactionsQuery,
   useProjectDashboardSpendingOverTimeQuery,
   useProjectDashboardSupplierDistributionQuery,
   useProjectDashboardUnpaidInvoicesQuery,
@@ -146,7 +146,7 @@ export function DashboardPage({
     projectId,
     { enabled: includeActionCenter },
   )
-  const recentTransactionsQuery = useProjectDashboardRecentTransactionsQuery(
+  const budgetToValidateQuery = useProjectDashboardBudgetToValidateQuery(
     projectId,
     { enabled: includeActionCenter },
   )
@@ -632,18 +632,16 @@ export function DashboardPage({
                 </ActionCenterWidget>
 
                 <ActionCenterWidget
-                  title="Transactions récentes"
-                  count={recentTransactionsQuery.data?.count ?? 0}
-                  showCountBadge={false}
-                  onViewAll={() => void navigate('/transactions')}
+                  title="Budget à valider"
+                  count={budgetToValidateQuery.data?.count ?? 0}
+                  onViewAll={() => viewAllTransactions('budget_to_validate')}
                 >
                   <TransactionWidgetContent
-                    emptyMessage="Aucune transaction récente."
-                    error={recentTransactionsQuery.error}
-                    isError={recentTransactionsQuery.isError}
-                    isLoading={recentTransactionsQuery.isLoading}
-                    widget={recentTransactionsQuery.data}
-                    maxItems={5}
+                    emptyMessage="Aucun budget à valider."
+                    error={budgetToValidateQuery.error}
+                    isError={budgetToValidateQuery.isError}
+                    isLoading={budgetToValidateQuery.isLoading}
+                    widget={budgetToValidateQuery.data}
                     onItemClick={(item) =>
                       void openTransaction(item.transaction_id)
                     }

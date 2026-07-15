@@ -40,7 +40,7 @@ export function canToggleBudgetSelection(transaction: Transaction) {
   if (transaction.transaction_type === 'diy_estimate') return true
   return (
     transaction.transaction_type === 'quote' &&
-    transaction.quote_status === 'validated'
+    transaction.quote_status !== 'rejected'
   )
 }
 

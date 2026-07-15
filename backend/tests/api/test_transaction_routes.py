@@ -4,6 +4,7 @@ from datetime import datetime, UTC
 from io import StringIO
 from typing import cast
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -571,18 +572,20 @@ async def test_unselect_budget_candidate_allows_no_selected_budget(
         assert response.json()['is_selected_budget'] is False
 
 
-async def test_invalid_selected_candidate_returns_400(
+@pytest.mark.parametrize('quote_status', ['to_confirm', 'to_negotiate'])
+async def test_non_confirmed_quote_can_be_selected_as_budget_candidate(
     client: AsyncClient,
     db_session: AsyncSession,
+    quote_status: str,
 ) -> None:
     context = await create_transaction_route_context(
         db_session,
-        email='invalid-selected-candidate-user@example.com',
+        email=f'non-confirmed-selected-candidate-{quote_status}-user@example.com',
     )
     transaction = await create_product_transaction(
         client,
         context,
-        quote_payload(quote_status='to_confirm'),
+        quote_payload(quote_status=quote_status),
     )
     transaction_id = transaction['id']
     budget_line_id = transaction['budget_line_id']
@@ -597,7 +600,57 @@ async def test_invalid_selected_candidate_returns_400(
         headers=auth_headers(context.access_token),
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 200
+    assert response.json()['is_selected_budget'] is True
+
+
+async def test_selected_budget_quote_cannot_be_changed_to_rejected(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_transaction_route_context(
+        db_session,
+        email='selected-quote-cannot-be-rejected-user@example.com',
+    )
+    transaction = await create_product_transaction(
+        client,
+        context,
+        quote_payload(quote_status='validated'),
+    )
+    transaction_id = transaction['id']
+    budget_line_id = transaction['budget_line_id']
+    assert isinstance(transaction_id, int)
+    assert isinstance(budget_line_id, int)
+
+    select_response = await client.post(
+        (
+            f'/projects/{context.project_id}/budget-lines/{budget_line_id}'
+            f'/transactions/{transaction_id}/select-budget'
+        ),
+        headers=auth_headers(context.access_token),
+    )
+    assert select_response.status_code == 200
+
+    reject_response = await client.patch(
+        (
+            f'/projects/{context.project_id}/budget-lines/{budget_line_id}'
+            f'/transactions/{transaction_id}'
+        ),
+        headers=auth_headers(context.access_token),
+        json={'quote_status': 'rejected'},
+    )
+    assert reject_response.status_code == 400
+
+    negotiate_response = await client.patch(
+        (
+            f'/projects/{context.project_id}/budget-lines/{budget_line_id}'
+            f'/transactions/{transaction_id}'
+        ),
+        headers=auth_headers(context.access_token),
+        json={'quote_status': 'to_negotiate'},
+    )
+    assert negotiate_response.status_code == 200
+    assert negotiate_response.json()['is_selected_budget'] is True
 
 
 async def test_rejected_quote_cannot_be_selected_as_budget_candidate(
