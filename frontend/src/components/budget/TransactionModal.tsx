@@ -7,7 +7,6 @@ import {
   FilePlus2,
   Paperclip,
   Trash2,
-  X,
 } from 'lucide-react'
 
 import {
@@ -44,7 +43,12 @@ import type {
 } from '@/api/types'
 import { DeleteTransactionDialog } from '@/components/budget/DeleteTransactionDialog'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
-import { ModalShell } from '@/components/shared/ModalShell'
+import {
+  ModalCancelButton,
+  ModalCloseButton,
+  ModalSaveButton,
+  ModalShell,
+} from '@/components/shared/ModalShell'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -1058,22 +1062,15 @@ export function TransactionModal({
         <>
           <div />
           <div className="flex justify-end gap-2">
-            <Button
-              variant="ghost"
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              <X aria-hidden />
-              Fermer
-            </Button>
-            <Button
-              type="submit"
+            <ModalCloseButton onClick={onClose} disabled={isSubmitting} />
+            <ModalSaveButton
               form="transaction-create-form"
               disabled={isSubmitting}
+              isSaving={isSubmitting}
+              savingLabel="Création..."
             >
-              {isSubmitting ? 'Création...' : 'Créer'}
-            </Button>
+              Créer
+            </ModalSaveButton>
           </div>
         </>
       }
@@ -1608,27 +1605,18 @@ export function TransactionReviewModal({
             <div className="flex justify-end gap-2">
               {isEditing ? (
                 <>
-                  <Button
-                    variant="outline"
-                    type="button"
+                  <ModalCancelButton
                     onClick={resetEditMode}
                     disabled={isMutating}
-                  >
-                    Annuler
-                  </Button>
-                  <Button
-                    type="submit"
+                  />
+                  <ModalSaveButton
                     form="transaction-review-form"
                     disabled={isMutating}
-                  >
-                    {isMutating ? 'Enregistrement...' : 'Enregistrer'}
-                  </Button>
+                    isSaving={isMutating}
+                  />
                 </>
               ) : (
-                <Button variant="ghost" onClick={onClose}>
-                  <X aria-hidden />
-                  Fermer
-                </Button>
+                <ModalCloseButton onClick={onClose} />
               )}
             </div>
           </>

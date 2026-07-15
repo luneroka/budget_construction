@@ -1,15 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import {
-  Check,
-  Copy,
-  Download,
-  Paperclip,
-  Pencil,
-  Plus,
-  Trash2,
-  X,
-} from 'lucide-react'
+import { Copy, Download, Paperclip, Pencil, Plus, Trash2 } from 'lucide-react'
 
 import { getApiErrorMessage } from '@/api/client'
 import {
@@ -23,7 +14,12 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
-import { ModalShell } from '@/components/shared/ModalShell'
+import {
+  ModalCancelButton,
+  ModalCloseButton,
+  ModalSaveButton,
+  ModalShell,
+} from '@/components/shared/ModalShell'
 import { downloadSupplierDocument } from '@/lib/documents'
 import {
   documentInputAccept,
@@ -566,6 +562,14 @@ export function SupplierModal({
     }
   }
 
+  function cancelEdit() {
+    setForm(supplierToForm(supplier))
+    setFormError(null)
+    setRibFile(null)
+    setCreatedSupplierForRib(null)
+    setCurrentMode('view')
+  }
+
   async function deleteSupplier() {
     if (!supplier || !onDelete) return
 
@@ -633,15 +637,17 @@ export function SupplierModal({
               ) : null}
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" disabled={isBusy} onClick={onClose}>
-                <X aria-hidden />
-                Fermer
-              </Button>
+              {currentMode === 'edit' ? (
+                <ModalCancelButton onClick={cancelEdit} disabled={isBusy} />
+              ) : (
+                <ModalCloseButton onClick={onClose} disabled={isBusy} />
+              )}
               {!isReadOnly ? (
-                <Button variant="gold" disabled={isBusy} onClick={saveSupplier}>
-                  <Check aria-hidden />
-                  {isSaving ? 'Enregistrement...' : 'Enregistrer'}
-                </Button>
+                <ModalSaveButton
+                  onClick={saveSupplier}
+                  disabled={isBusy}
+                  isSaving={isSaving}
+                />
               ) : null}
             </div>
           </>

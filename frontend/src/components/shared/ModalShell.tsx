@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Eye, X } from 'lucide-react'
+import { Check, Eye, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 
@@ -67,5 +67,74 @@ export function ModalShell({
         ) : null}
       </div>
     </div>
+  )
+}
+
+export function ModalCancelButton({
+  onClick,
+  disabled,
+  children = 'Annuler',
+}: {
+  onClick: () => void
+  disabled?: boolean
+  children?: ReactNode
+}) {
+  return (
+    <Button
+      variant="outline"
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+    >
+      {children}
+    </Button>
+  )
+}
+
+export function ModalCloseButton({
+  onClick,
+  disabled,
+  children = 'Fermer',
+}: {
+  onClick: () => void
+  disabled?: boolean
+  children?: ReactNode
+}) {
+  return (
+    <Button variant="ghost" type="button" onClick={onClick} disabled={disabled}>
+      <X aria-hidden />
+      {children}
+    </Button>
+  )
+}
+
+export function ModalSaveButton({
+  type = 'submit',
+  form,
+  onClick,
+  disabled,
+  isSaving,
+  savingLabel = 'Enregistrement...',
+  children = 'Enregistrer',
+}: {
+  type?: 'button' | 'submit'
+  form?: string
+  onClick?: () => void
+  disabled?: boolean
+  isSaving?: boolean
+  savingLabel?: string
+  children?: ReactNode
+}) {
+  return (
+    <Button
+      type={type}
+      form={form}
+      variant="gold"
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <Check aria-hidden />
+      {isSaving ? savingLabel : children}
+    </Button>
   )
 }
