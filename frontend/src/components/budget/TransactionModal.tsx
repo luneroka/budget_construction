@@ -1452,6 +1452,8 @@ export function TransactionReviewModal({
     localIsBudgetSelected ||
     canToggleBudgetSelection ||
     (isEditing && isQuote && form.quote_status !== 'rejected')
+  const isBudgetSelectionDisabled =
+    readOnly || !canToggleBudgetSelectionFromForm || isMutating
 
   function updateField<K extends keyof TransactionUpdateFormState>(
     key: K,
@@ -1672,6 +1674,7 @@ export function TransactionReviewModal({
                       : formatDate(transaction.issued_date)
                   }
                   readOnly={!isEditing}
+                  disabled={!isEditing}
                   onChange={(event) =>
                     updateField('issued_date', event.target.value)
                   }
@@ -1695,12 +1698,18 @@ export function TransactionReviewModal({
                     className="h-9 text-sm"
                     value={transaction.supplier_name ?? selectedSupplierName}
                     readOnly
+                    disabled
                   />
                 )}
               </Field>
               <div>
                 <p className="text-xs font-medium">Type</p>
-                <div className="mt-1 flex h-9 items-center rounded-md border border-input bg-muted/30 px-3">
+                <div
+                  className={cn(
+                    'mt-1 flex h-9 items-center rounded-md border border-input bg-muted/30 px-3',
+                    !isEditing && 'cursor-not-allowed',
+                  )}
+                >
                   <StatusBadge
                     status={transaction.transaction_type}
                     disabled={isEditing}
@@ -1744,7 +1753,12 @@ export function TransactionReviewModal({
                     )}
                   </Select>
                 ) : (
-                  <div className="flex h-9 items-center rounded-md border border-input bg-muted/30 px-3">
+                  <div
+                    className={cn(
+                      'flex h-9 items-center rounded-md border border-input bg-muted/30 px-3',
+                      !isEditing && 'cursor-not-allowed',
+                    )}
+                  >
                     {isQuote && transaction.quote_status ? (
                       <StatusBadge status={transaction.quote_status} />
                     ) : isInvoice && transaction.invoice_status ? (
@@ -1769,6 +1783,7 @@ export function TransactionReviewModal({
                       : formatCurrency(transaction.amount_ht)
                   }
                   readOnly={!isEditing}
+                  disabled={!isEditing}
                   onChange={(event) =>
                     updateField('amount_ht', event.target.value)
                   }
@@ -1786,6 +1801,7 @@ export function TransactionReviewModal({
                     isEditing ? form.vat_rate : `${transaction.vat_rate} %`
                   }
                   readOnly={!isEditing}
+                  disabled={!isEditing}
                   onChange={(event) =>
                     updateField('vat_rate', event.target.value)
                   }
@@ -1804,7 +1820,7 @@ export function TransactionReviewModal({
                       : formatCurrency(transaction.amount_vat)
                   }
                   readOnly
-                  disabled={isEditing}
+                  disabled
                 />
               </Field>
               <Field
@@ -1823,6 +1839,7 @@ export function TransactionReviewModal({
                       : formatCurrency(transaction.amount_ttc)
                   }
                   readOnly={!isEditing}
+                  disabled={!isEditing}
                   onChange={(event) =>
                     updateField('amount_ttc', event.target.value)
                   }
@@ -1847,6 +1864,7 @@ export function TransactionReviewModal({
                         : formatDate(transaction.due_date)
                     }
                     readOnly={!isEditing}
+                    disabled={!isEditing}
                     onChange={(event) =>
                       updateField('due_date', event.target.value)
                     }
@@ -1973,23 +1991,27 @@ export function TransactionReviewModal({
                   className="h-9 text-sm"
                   value={form.description}
                   readOnly={!isEditing}
+                  disabled={!isEditing}
                   onChange={(event) =>
                     updateField('description', event.target.value)
                   }
                 />
               </Field>
               {isInvoice ? null : (
-                <label className="flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm">
+                <label
+                  className={cn(
+                    'flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm',
+                    isBudgetSelectionDisabled
+                      ? 'cursor-not-allowed'
+                      : 'cursor-pointer',
+                  )}
+                >
                   <Checkbox
                     checked={localIsBudgetSelected}
-                    disabled={
-                      readOnly ||
-                      !canToggleBudgetSelectionFromForm ||
-                      isMutating
-                    }
+                    disabled={isBudgetSelectionDisabled}
                     onChange={handleBudgetSelectionToggle}
                   />
-                  Sélectionné pour budget
+                  Sélectionner pour budget
                 </label>
               )}
             </div>
