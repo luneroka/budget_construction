@@ -59,6 +59,7 @@ import {
   decimalToNumber,
   distributionColors,
   formatDashboardPercentage,
+  getPrimaryGradientColor,
 } from '@/components/dashboard/utils'
 import { formatCurrency, formatMonth } from '@/lib/format'
 import { suppliersToDomain } from '@/lib/budgetWorkspaceApiAdapter'
@@ -555,11 +556,10 @@ export function DashboardPage({
                         {topSupplierDistributionData.map((item, index) => (
                           <Cell
                             key={item.supplier_id ?? 'no-supplier'}
-                            fill={
-                              distributionColors[
-                                index % distributionColors.length
-                              ]
-                            }
+                            fill={getPrimaryGradientColor(
+                              index,
+                              topSupplierDistributionData.length,
+                            )}
                           />
                         ))}
                       </Bar>

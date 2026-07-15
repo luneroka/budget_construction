@@ -21,6 +21,19 @@ export const distributionColors = [
   chartColors.destructive,
 ]
 
+const PRIMARY_HUE = 220
+const PRIMARY_SATURATION = 45
+const PRIMARY_LIGHTNESS_DARK = 22
+const PRIMARY_LIGHTNESS_LIGHT = 74
+
+export function getPrimaryGradientColor(index: number, total: number): string {
+  const ratio = total <= 1 ? 0 : index / (total - 1)
+  const lightness =
+    PRIMARY_LIGHTNESS_DARK +
+    ratio * (PRIMARY_LIGHTNESS_LIGHT - PRIMARY_LIGHTNESS_DARK)
+  return `hsl(${PRIMARY_HUE} ${PRIMARY_SATURATION}% ${lightness}%)`
+}
+
 export function decimalToNumber(
   value: ApiDecimal | number | null | undefined,
 ): number {
