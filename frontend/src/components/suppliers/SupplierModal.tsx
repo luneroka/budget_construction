@@ -649,29 +649,60 @@ export function SupplierModal({
       >
         {isReadOnly ? (
           <div className="space-y-4">
-            <section className="rounded-md border border-border p-4">
+            <section className="space-y-3 rounded-md border border-border p-4">
               <h3 className="text-xs font-semibold uppercase text-muted-foreground">
                 Entreprise
               </h3>
-              <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <dt className="text-xs text-muted-foreground">Nom</dt>
-                  <dd className="font-medium">{readValue(supplier?.name)}</dd>
+                  <label
+                    className="text-xs font-medium"
+                    htmlFor="supplier-name"
+                  >
+                    Nom
+                  </label>
+                  <Input
+                    id="supplier-name"
+                    className="mt-1 h-9 text-sm"
+                    value={readValue(supplier?.name)}
+                    readOnly
+                    disabled
+                  />
                 </div>
                 <div>
-                  <dt className="text-xs text-muted-foreground">
+                  <label
+                    className="text-xs font-medium"
+                    htmlFor="supplier-siret"
+                  >
                     SIRET / SIREN
-                  </dt>
-                  <dd>{readValue(supplier?.siret)}</dd>
+                  </label>
+                  <Input
+                    id="supplier-siret"
+                    className="mt-1 h-9 text-sm"
+                    value={readValue(supplier?.siret)}
+                    readOnly
+                    disabled
+                  />
                 </div>
-                <div className="sm:col-span-2">
-                  <dt className="text-xs text-muted-foreground">Commentaire</dt>
-                  <dd>{readValue(supplier?.comment)}</dd>
-                </div>
-              </dl>
+              </div>
+              <div>
+                <label
+                  className="text-xs font-medium"
+                  htmlFor="supplier-comment"
+                >
+                  Commentaire
+                </label>
+                <Input
+                  id="supplier-comment"
+                  className="mt-1 h-9 text-sm"
+                  value={readValue(supplier?.comment)}
+                  readOnly
+                  disabled
+                />
+              </div>
             </section>
 
-            <section className="rounded-md border border-border p-4">
+            <section className="space-y-3 rounded-md border border-border p-4">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-xs font-semibold uppercase text-muted-foreground">
                   Adresse
@@ -690,46 +721,105 @@ export function SupplierModal({
                   Copier l'adresse
                 </Button>
               </div>
-              <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <dt className="text-xs text-muted-foreground">Rue</dt>
-                  <dd>{readValue(supplier?.street)}</dd>
-                </div>
-                <div className="sm:col-span-2">
-                  <dt className="text-xs text-muted-foreground">
-                    Complément d'adresse
-                  </dt>
-                  <dd>{readValue(supplier?.complement)}</dd>
+              <div>
+                <label
+                  className="text-xs font-medium"
+                  htmlFor="supplier-street"
+                >
+                  Rue
+                </label>
+                <Input
+                  id="supplier-street"
+                  className="mt-1 h-9 text-sm"
+                  value={readValue(supplier?.street)}
+                  readOnly
+                  disabled
+                />
+              </div>
+              <div>
+                <label
+                  className="text-xs font-medium"
+                  htmlFor="supplier-complement"
+                >
+                  Complément d'adresse
+                </label>
+                <Input
+                  id="supplier-complement"
+                  className="mt-1 h-9 text-sm"
+                  value={readValue(supplier?.complement)}
+                  readOnly
+                  disabled
+                />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label
+                    className="text-xs font-medium"
+                    htmlFor="supplier-postal-code"
+                  >
+                    Code postal
+                  </label>
+                  <Input
+                    id="supplier-postal-code"
+                    className="mt-1 h-9 text-sm"
+                    value={readValue(supplier?.postal_code)}
+                    readOnly
+                    disabled
+                  />
                 </div>
                 <div>
-                  <dt className="text-xs text-muted-foreground">Code postal</dt>
-                  <dd>{readValue(supplier?.postal_code)}</dd>
+                  <label
+                    className="text-xs font-medium"
+                    htmlFor="supplier-city"
+                  >
+                    Ville
+                  </label>
+                  <Input
+                    id="supplier-city"
+                    className="mt-1 h-9 text-sm"
+                    value={readValue(supplier?.city)}
+                    readOnly
+                    disabled
+                  />
                 </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">Ville</dt>
-                  <dd>{readValue(supplier?.city)}</dd>
-                </div>
-              </dl>
+              </div>
             </section>
 
-            <section className="rounded-md border border-border p-4">
+            <section className="space-y-3 rounded-md border border-border p-4">
               <h3 className="text-xs font-semibold uppercase text-muted-foreground">
                 Contacts
               </h3>
-              <div className="mt-3 grid gap-2">
+              <div className="grid gap-2">
                 {supplier?.contacts.map((contact) => (
                   <div
                     key={contact.id}
                     className="grid gap-2 px-1 py-1 md:grid-cols-[minmax(11rem,1.1fr)_minmax(10rem,0.9fr)_minmax(16rem,1.4fr)_88px]"
                   >
-                    <span className="font-medium">
-                      {readValue(contact.name)}
-                    </span>
-                    <span>{formatPhoneNumber(contact.phone_number)}</span>
-                    <span>{readValue(contact.email)}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {contact.is_primary ? 'Principal' : ''}
-                    </span>
+                    <Input
+                      className="h-9 text-sm"
+                      aria-label="Nom du contact"
+                      value={readValue(contact.name)}
+                      readOnly
+                      disabled
+                    />
+                    <Input
+                      className="h-9 text-sm"
+                      aria-label="Téléphone du contact"
+                      value={formatPhoneNumber(contact.phone_number)}
+                      readOnly
+                      disabled
+                    />
+                    <Input
+                      className="h-9 text-sm"
+                      aria-label="Email du contact"
+                      value={readValue(contact.email)}
+                      readOnly
+                      disabled
+                    />
+                    <label className="flex cursor-not-allowed items-center gap-2 text-xs">
+                      <Checkbox checked={contact.is_primary} disabled />
+                      Principal
+                    </label>
                   </div>
                 ))}
               </div>
