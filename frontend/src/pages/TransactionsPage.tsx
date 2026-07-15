@@ -664,11 +664,7 @@ export function TransactionsPage() {
               key={view.id}
               size="sm"
               variant={isActive ? 'gold' : 'outline'}
-              hidden={view.id === 'missing_documents'}
-              className={cn(
-                'h-7 gap-1.5 rounded-full px-2.5 text-xs',
-                view.id === 'missing_documents' && '!hidden',
-              )}
+              className="h-7 gap-1.5 rounded-full px-2.5 text-xs"
               onClick={() => selectQuickView(view.id)}
             >
               {view.label}
