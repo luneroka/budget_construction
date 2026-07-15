@@ -98,14 +98,6 @@ function budgetLineToDomain(
     budget_line_id: String(budgetLine.budget_line_id),
     name: budgetLine.name,
     item_type: budgetLine.item_type,
-    selected_quote_transaction_id:
-      budgetLine.selected_quote_transaction_id === null
-        ? null
-        : String(budgetLine.selected_quote_transaction_id),
-    selected_diy_estimate_transaction_id:
-      budgetLine.selected_diy_estimate_transaction_id === null
-        ? null
-        : String(budgetLine.selected_diy_estimate_transaction_id),
     ...totalsToNumbers(budgetLine),
     transactions: [],
   }
@@ -197,7 +189,6 @@ export function buildBudgetWorkspaceFromApi(
 
 export function transactionToDomain(
   transaction: TransactionRead,
-  budgetLine: BudgetLine,
   suppliers: SupplierRead[],
 ): Transaction {
   const supplier = suppliers.find(
@@ -227,9 +218,7 @@ export function transactionToDomain(
     invoice_status: transaction.invoice_status,
     invoice_type: transaction.invoice_type,
     payment_method: transaction.payment_method,
-    select_as_budget:
-      transactionId === budgetLine.selected_quote_transaction_id ||
-      transactionId === budgetLine.selected_diy_estimate_transaction_id,
+    select_as_budget: transaction.is_selected_budget,
     document_state: transaction.has_documents ? 'attached' : 'missing',
   }
 }

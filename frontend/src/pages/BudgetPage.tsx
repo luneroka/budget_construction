@@ -26,12 +26,8 @@ import type {
   TransactionAction,
 } from '@/components/budget/types'
 import { PageHeader } from '@/components/shared/PageHeader'
-import type { BudgetLine, Transaction } from '@/types'
-import {
-  type BudgetSelectionState,
-  canToggleBudgetSelection,
-  isSelectedBudgetTransaction,
-} from '@/lib/budgetDomain'
+import type { Transaction } from '@/types'
+import { canToggleBudgetSelection } from '@/lib/budgetDomain'
 import {
   suppliersToDomain,
   useBudgetWorkspaceQuery,
@@ -97,25 +93,6 @@ export function BudgetPage() {
       { replace: true },
     )
   }, [productFocusParam, setSearchParams])
-
-  function getBudgetSelection(line: BudgetLine): BudgetSelectionState {
-    return {
-      selected_quote_transaction_id: line.selected_quote_transaction_id,
-      selected_diy_estimate_transaction_id:
-        line.selected_diy_estimate_transaction_id,
-    }
-  }
-
-  function getLineWithBudgetSelection(line: BudgetLine): BudgetLine {
-    return line
-  }
-
-  function toggleBudgetSelection(
-    _line?: BudgetLine,
-    _transaction?: Parameters<typeof isSelectedBudgetTransaction>[0],
-  ) {
-    // Budget selection is backend-owned. Chunk 4 will wire mutations.
-  }
 
   const transactionDocumentTypeLabels: Record<
     Transaction['transaction_type'],
@@ -258,8 +235,6 @@ export function BudgetPage() {
         focusedProductId={focusedProductId}
         selectedCategoryId={selectedCategoryId}
         selectedSubcategoryName={selectedSubcategoryName}
-        getBudgetSelection={getBudgetSelection}
-        getLineWithBudgetSelection={getLineWithBudgetSelection}
         projectId={projectId}
         onSelectCategory={selectCategory}
         onSelectSubcategory={selectSubcategory}
@@ -271,7 +246,7 @@ export function BudgetPage() {
         onDecomposeProduct={(action) =>
           setActiveAction({ kind: 'decompose-product', ...action })
         }
-        onToggleBudgetSelection={toggleBudgetSelection}
+        onToggleBudgetSelection={() => {}}
         onRequestDeleteBudgetLine={setBudgetLineDelete}
         onRequestDeleteTransaction={setTransactionDelete}
         onEditTransaction={(context) =>
@@ -331,19 +306,11 @@ export function BudgetPage() {
           context={transactionReview.context}
           initialMode={transactionReview.initialMode}
           suppliers={suppliers}
-          isBudgetSelected={isSelectedBudgetTransaction(
-            transactionReview.context.transaction,
-            getBudgetSelection(transactionReview.context.budgetLine),
-          )}
+          isBudgetSelected={transactionReview.context.transaction.select_as_budget}
           canToggleBudgetSelection={canToggleBudgetSelection(
             transactionReview.context.transaction,
           )}
-          onToggleBudgetSelection={() =>
-            toggleBudgetSelection(
-              transactionReview.context.budgetLine,
-              transactionReview.context.transaction,
-            )
-          }
+          onToggleBudgetSelection={() => {}}
           onClose={() => setTransactionReview(null)}
         />
       ) : null}

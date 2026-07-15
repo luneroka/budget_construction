@@ -34,8 +34,6 @@ class BudgetLineFinancialSummaryRead(FinancialTotalsRead):
     budget_line_id: int
     name: str
     item_type: BudgetLineType
-    selected_quote_transaction_id: int | None = None
-    selected_diy_estimate_transaction_id: int | None = None
 
 
 class ProductFinancialSummaryRead(FinancialTotalsRead):

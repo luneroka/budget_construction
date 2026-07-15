@@ -9,7 +9,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token
-from app.models.budget_line import BudgetLine
 from app.models.category import Category
 from app.models.document import Document
 from app.models.product import Product
@@ -117,17 +116,6 @@ async def create_product_transaction(
     return cast(dict[str, object], response.json())
 
 
-async def get_budget_line(
-    db_session: AsyncSession,
-    budget_line_id: int,
-) -> BudgetLine:
-    result = await db_session.execute(
-        select(BudgetLine).where(BudgetLine.id == budget_line_id)
-    )
-    budget_line = result.scalar_one()
-    return budget_line
-
-
 async def get_user_by_email(db_session: AsyncSession, email: str) -> User:
     result = await db_session.execute(select(User).where(User.email == email))
     return result.scalar_one()
@@ -211,9 +199,7 @@ async def test_select_budget_candidate(
     assert response.status_code == 200
     selected_transaction = cast(dict[str, object], response.json())
     assert selected_transaction['id'] == transaction_id
-
-    budget_line = await get_budget_line(db_session, budget_line_id)
-    assert budget_line.selected_quote_transaction_id == transaction_id
+    assert selected_transaction['is_selected_budget'] is True
 
 
 async def test_export_accounting_csv_downloads_human_readable_rows(
@@ -412,7 +398,7 @@ async def test_export_accounting_csv_rejects_invalid_date_range(
     assert response.status_code == 400
 
 
-async def test_select_budget_candidate_keeps_quote_and_diy_selections(
+async def test_select_budget_candidate_allows_multiple_quotes_and_diy_estimates(
     client: AsyncClient,
     db_session: AsyncSession,
 ) -> None:
@@ -430,7 +416,7 @@ async def test_select_budget_candidate_keeps_quote_and_diy_selections(
         context,
         diy_estimate_payload(),
     )
-    replacement_quote = await create_product_transaction(
+    second_quote = await create_product_transaction(
         client,
         context,
         {
@@ -438,17 +424,26 @@ async def test_select_budget_candidate_keeps_quote_and_diy_selections(
             'amount_ht': '200.00',
         },
     )
+    second_diy_estimate = await create_product_transaction(
+        client,
+        context,
+        {
+            **diy_estimate_payload(),
+            'amount_ht': '75.00',
+        },
+    )
 
     budget_line_id = quote['budget_line_id']
-    quote_id = quote['id']
-    diy_estimate_id = diy_estimate['id']
-    replacement_quote_id = replacement_quote['id']
+    transaction_ids = [
+        quote['id'],
+        diy_estimate['id'],
+        second_quote['id'],
+        second_diy_estimate['id'],
+    ]
     assert isinstance(budget_line_id, int)
-    assert isinstance(quote_id, int)
-    assert isinstance(diy_estimate_id, int)
-    assert isinstance(replacement_quote_id, int)
+    assert all(isinstance(transaction_id, int) for transaction_id in transaction_ids)
 
-    for transaction_id in [quote_id, diy_estimate_id, replacement_quote_id]:
+    for transaction_id in transaction_ids:
         response = await client.post(
             (
                 f'/projects/{context.project_id}/budget-lines/{budget_line_id}'
@@ -457,10 +452,17 @@ async def test_select_budget_candidate_keeps_quote_and_diy_selections(
             headers=auth_headers(context.access_token),
         )
         assert response.status_code == 200
+        assert response.json()['is_selected_budget'] is True
 
-    budget_line = await get_budget_line(db_session, budget_line_id)
-    assert budget_line.selected_quote_transaction_id == replacement_quote_id
-    assert budget_line.selected_diy_estimate_transaction_id == diy_estimate_id
+    list_response = await client.get(
+        f'/projects/{context.project_id}/budget-lines/{budget_line_id}/transactions/',
+        headers=auth_headers(context.access_token),
+    )
+    assert list_response.status_code == 200
+    selected_ids = {
+        item['id'] for item in list_response.json() if item['is_selected_budget']
+    }
+    assert selected_ids == set(transaction_ids)
 
 
 async def test_unselect_budget_candidate_clears_only_matching_selection(
@@ -508,9 +510,17 @@ async def test_unselect_budget_candidate_clears_only_matching_selection(
     )
 
     assert response.status_code == 200
-    budget_line = await get_budget_line(db_session, budget_line_id)
-    assert budget_line.selected_quote_transaction_id is None
-    assert budget_line.selected_diy_estimate_transaction_id == diy_estimate_id
+    assert response.json()['is_selected_budget'] is False
+
+    list_response = await client.get(
+        f'/projects/{context.project_id}/budget-lines/{budget_line_id}/transactions/',
+        headers=auth_headers(context.access_token),
+    )
+    assert list_response.status_code == 200
+    selected_ids = {
+        item['id'] for item in list_response.json() if item['is_selected_budget']
+    }
+    assert selected_ids == {diy_estimate_id}
 
 
 async def test_unselect_budget_candidate_allows_no_selected_budget(
@@ -558,10 +568,7 @@ async def test_unselect_budget_candidate_allows_no_selected_budget(
             headers=auth_headers(context.access_token),
         )
         assert response.status_code == 200
-
-    budget_line = await get_budget_line(db_session, budget_line_id)
-    assert budget_line.selected_quote_transaction_id is None
-    assert budget_line.selected_diy_estimate_transaction_id is None
+        assert response.json()['is_selected_budget'] is False
 
 
 async def test_invalid_selected_candidate_returns_400(
@@ -620,8 +627,16 @@ async def test_rejected_quote_cannot_be_selected_as_budget_candidate(
     )
 
     assert response.status_code == 400
-    budget_line = await get_budget_line(db_session, budget_line_id)
-    assert budget_line.selected_quote_transaction_id is None
+
+    list_response = await client.get(
+        f'/projects/{context.project_id}/budget-lines/{budget_line_id}/transactions/',
+        headers=auth_headers(context.access_token),
+    )
+    assert list_response.status_code == 200
+    (transaction_state,) = [
+        item for item in list_response.json() if item['id'] == transaction_id
+    ]
+    assert transaction_state['is_selected_budget'] is False
 
 
 async def test_rejected_quote_remains_visible_in_budget_line_transactions(
@@ -689,8 +704,7 @@ async def test_rejected_quote_can_be_changed_back_and_selected(
     )
 
     assert select_response.status_code == 200
-    budget_line = await get_budget_line(db_session, budget_line_id)
-    assert budget_line.selected_quote_transaction_id == transaction_id
+    assert select_response.json()['is_selected_budget'] is True
 
 
 async def test_invoice_cannot_be_selected_as_budget_candidate(

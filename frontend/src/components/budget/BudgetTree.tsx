@@ -20,7 +20,6 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import type { BudgetCategory, BudgetLine, Product, Transaction } from '@/types'
 import { useBudgetExpansion } from '@/hooks/useBudgetExpansion'
-import type { BudgetSelectionState } from '@/lib/budgetDomain'
 import {
   getWholeProductBudgetLine,
   groupProductsBySubcategory,
@@ -38,8 +37,6 @@ type BudgetTreeProps = {
   categories: BudgetCategory[]
   selectedCategoryId: string
   selectedSubcategoryName: string
-  getBudgetSelection: (line: BudgetLine) => BudgetSelectionState
-  getLineWithBudgetSelection: (line: BudgetLine) => BudgetLine
   projectId?: number
   focusedProductId?: string | null
   readOnly?: boolean
@@ -184,8 +181,6 @@ export function BudgetTree({
   categories,
   selectedCategoryId,
   selectedSubcategoryName,
-  getBudgetSelection,
-  getLineWithBudgetSelection,
   focusedProductId,
   projectId,
   readOnly,
@@ -424,10 +419,8 @@ export function BudgetTree({
                 const isProductOpen = isSearchActive
                   ? searchOpenProductIds.has(product.product_id)
                   : openProducts.has(product.product_id)
-                const wholeProductLine = getWholeProductBudgetLine(product)
-                const selectedWholeProductLine = wholeProductLine
-                  ? getLineWithBudgetSelection(wholeProductLine)
-                  : null
+                const selectedWholeProductLine =
+                  getWholeProductBudgetLine(product)
                 const isEmptyProduct = isProductEmpty(product)
 
                 return (
@@ -477,9 +470,6 @@ export function BudgetTree({
                                 selectedWholeProductLine.transactions
                               }
                               budgetLine={selectedWholeProductLine}
-                              budgetSelection={getBudgetSelection(
-                                selectedWholeProductLine,
-                              )}
                               projectId={projectId}
                               product={product}
                               readOnly={readOnly}
@@ -498,13 +488,11 @@ export function BudgetTree({
                               const isLineOpen = openBudgetLines.has(
                                 line.budget_line_id,
                               )
-                              const selectedLine =
-                                getLineWithBudgetSelection(line)
 
                               return (
                                 <Fragment key={line.budget_line_id}>
                                   <BudgetLineRow
-                                    line={selectedLine}
+                                    line={line}
                                     product={product}
                                     isOpen={isLineOpen}
                                     readOnly={readOnly}
@@ -519,17 +507,14 @@ export function BudgetTree({
                                   {isLineOpen ? (
                                     <>
                                       <BudgetLineContextRow
-                                        line={selectedLine}
+                                        line={line}
                                         product={product}
                                         readOnly={readOnly}
                                         onAddTransaction={onAddTransaction}
                                       />
                                       <TransactionsPanel
-                                        transactions={selectedLine.transactions}
-                                        budgetLine={selectedLine}
-                                        budgetSelection={getBudgetSelection(
-                                          selectedLine,
-                                        )}
+                                        transactions={line.transactions}
+                                        budgetLine={line}
                                         projectId={projectId}
                                         product={product}
                                         readOnly={readOnly}

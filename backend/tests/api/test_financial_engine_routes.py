@@ -70,6 +70,7 @@ async def create_financial_summary_context(
         amount='1000.00',
         quote_status=QuoteStatus.validated,
     )
+    selected_quote.is_selected_budget = True
     unselected_quote = _quote(
         budget_line,
         amount='1200.00',
@@ -85,11 +86,13 @@ async def create_financial_summary_context(
         transaction_type=TransactionType.diy_estimate,
         amount='300.00',
     )
+    selected_diy.is_selected_budget = True
     selected_foundation_diy = _transaction(
         budget_line,
         transaction_type=TransactionType.diy_estimate,
         amount='150.00',
     )
+    selected_foundation_diy.is_selected_budget = True
 
     db_session.add_all(
         [user, category, subcategory, product, second_product, supplier, project]
@@ -148,10 +151,6 @@ async def create_financial_summary_context(
             ),
         ]
     )
-    await db_session.flush()
-    budget_line.selected_quote_transaction_id = selected_quote.id
-    budget_line.selected_diy_estimate_transaction_id = selected_foundation_diy.id
-    second_budget_line.selected_diy_estimate_transaction_id = selected_diy.id
     await db_session.commit()
     await db_session.refresh(user)
     await db_session.refresh(project)
@@ -295,6 +294,37 @@ async def test_project_financial_summary_excludes_rejected_quotes(
     assert summary['validated_quote_amount_ttc'] == '1000.00'
     assert summary['quote_count'] == 4
     assert summary['validated_quote_count'] == 1
+
+
+async def test_project_financial_summary_sums_multiple_selected_quotes(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    context = await create_financial_summary_context(db_session)
+    second_selected_quote = Transaction(
+        budget_line_id=context.budget_line_id,
+        transaction_type=TransactionType.quote,
+        amount_ht=Decimal('500.00'),
+        amount_vat=Decimal('0.00'),
+        amount_ttc=Decimal('500.00'),
+        issued_date=date(2026, 6, 10),
+        quote_status=QuoteStatus.validated,
+        is_selected_budget=True,
+    )
+    db_session.add(second_selected_quote)
+    await db_session.commit()
+
+    response = await client.get(
+        f'/projects/{context.project_id}/financial-summary',
+        headers=auth_headers(context.access_token),
+    )
+
+    assert response.status_code == 200
+    summary = cast(dict[str, object], response.json())
+    assert summary['selected_quote_budget_amount_ttc'] == '1500.00'
+    assert summary['selected_budget_amount_ttc'] == '1950.00'
+    assert summary['quote_count'] == 4
+    assert summary['validated_quote_count'] == 2
 
 
 async def test_project_dashboard_financial_overview_returns_kpi_projection(

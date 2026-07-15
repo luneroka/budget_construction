@@ -44,13 +44,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { BudgetLine, Project } from '@/types'
+import type { Project } from '@/types'
 import { suppliersToDomain } from '@/lib/budgetWorkspaceApiAdapter'
-import {
-  canToggleBudgetSelection,
-  isSelectedBudgetTransaction,
-  type BudgetSelectionState,
-} from '@/lib/budgetDomain'
+import { canToggleBudgetSelection } from '@/lib/budgetDomain'
 import {
   buildTransactionRow,
   getBudgetLabel,
@@ -99,16 +95,6 @@ function projectToDomain(project: ProjectRead): Project {
     end_date: project.end_date ?? '',
     project_status: project.project_status,
     selected_budget_amount_ttc: 0,
-  }
-}
-
-function getBudgetSelection(
-  budgetLine: BudgetLine,
-): BudgetSelectionState {
-  return {
-    selected_quote_transaction_id: budgetLine.selected_quote_transaction_id,
-    selected_diy_estimate_transaction_id:
-      budgetLine.selected_diy_estimate_transaction_id,
   }
 }
 
@@ -877,10 +863,7 @@ export function TransactionsPage() {
           context={transactionReview.context}
           initialMode={transactionReview.initialMode}
           suppliers={suppliers}
-          isBudgetSelected={isSelectedBudgetTransaction(
-            transactionReview.context.transaction,
-            getBudgetSelection(transactionReview.context.budgetLine),
-          )}
+          isBudgetSelected={transactionReview.context.transaction.select_as_budget}
           canToggleBudgetSelection={canToggleBudgetSelection(
             transactionReview.context.transaction,
           )}

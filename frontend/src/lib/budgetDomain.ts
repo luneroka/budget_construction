@@ -1,13 +1,4 @@
-import type {
-  BudgetLine,
-  Product,
-  Transaction,
-} from '@/types'
-
-export type BudgetSelectionState = {
-  selected_quote_transaction_id: string | null
-  selected_diy_estimate_transaction_id: string | null
-}
+import type { Product, Transaction } from '@/types'
 
 export type SubcategoryGroup = {
   name: string
@@ -25,26 +16,21 @@ export function varianceClass(value: number) {
   return 'text-muted-foreground'
 }
 
-function getSelectedBudgetParts(line: BudgetLine) {
-  const selectedQuote = line.transactions.find(
-    (transaction) => transaction.id === line.selected_quote_transaction_id,
-  )
-  const selectedDiyEstimate = line.transactions.find(
+export function formatSelectedBudgetSource(transactions: Transaction[]) {
+  const quoteCount = transactions.filter(
     (transaction) =>
-      transaction.id === line.selected_diy_estimate_transaction_id,
-  )
-
-  return {
-    selectedQuote,
-    selectedDiyEstimate,
-  }
-}
-
-export function formatSelectedBudgetSource(line: BudgetLine) {
-  const { selectedQuote, selectedDiyEstimate } = getSelectedBudgetParts(line)
+      transaction.transaction_type === 'quote' && transaction.select_as_budget,
+  ).length
+  const diyCount = transactions.filter(
+    (transaction) =>
+      transaction.transaction_type === 'diy_estimate' &&
+      transaction.select_as_budget,
+  ).length
   const parts = [
-    selectedQuote ? '1 devis' : null,
-    selectedDiyEstimate ? '1 estimation DIY' : null,
+    quoteCount > 0 ? `${quoteCount} devis` : null,
+    diyCount > 0
+      ? `${diyCount} estimation${diyCount > 1 ? 's' : ''} DIY`
+      : null,
   ].filter(Boolean)
 
   return parts.length > 0 ? parts.join(' + ') : 'Aucun budget sélectionné'
@@ -55,16 +41,6 @@ export function canToggleBudgetSelection(transaction: Transaction) {
   return (
     transaction.transaction_type === 'quote' &&
     transaction.quote_status === 'validated'
-  )
-}
-
-export function isSelectedBudgetTransaction(
-  transaction: Transaction,
-  selection: BudgetSelectionState,
-) {
-  return (
-    transaction.id === selection.selected_quote_transaction_id ||
-    transaction.id === selection.selected_diy_estimate_transaction_id
   )
 }
 

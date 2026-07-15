@@ -52,10 +52,6 @@ def _to_project_transaction_read(transaction: Transaction) -> ProjectTransaction
         **base,
         budget_line_name=budget_line.name,
         budget_line_item_type=budget_line.item_type,
-        selected_quote_transaction_id=budget_line.selected_quote_transaction_id,
-        selected_diy_estimate_transaction_id=(
-            budget_line.selected_diy_estimate_transaction_id
-        ),
         product_id=product.id,
         product_name=product.name,
         subcategory_name=product.subcategory.name,

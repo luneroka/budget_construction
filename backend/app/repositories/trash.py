@@ -468,21 +468,6 @@ async def permanently_delete_targets(
     targets: TrashPermanentDeleteTargets,
 ) -> None:
     try:
-        transaction_ids = [transaction.id for transaction in targets.transactions]
-        if transaction_ids:
-            await db.execute(
-                update(BudgetLine)
-                .where(BudgetLine.selected_quote_transaction_id.in_(transaction_ids))
-                .values(selected_quote_transaction_id=None)
-            )
-            await db.execute(
-                update(BudgetLine)
-                .where(
-                    BudgetLine.selected_diy_estimate_transaction_id.in_(transaction_ids)
-                )
-                .values(selected_diy_estimate_transaction_id=None)
-            )
-
         supplier_ids = [supplier.id for supplier in targets.suppliers]
         if supplier_ids:
             await db.execute(

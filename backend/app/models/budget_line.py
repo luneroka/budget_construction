@@ -48,16 +48,6 @@ class BudgetLine(Base):
         ForeignKey('products.id'), nullable=False, index=True
     )
 
-    selected_quote_transaction_id: Mapped[int | None] = mapped_column(
-        ForeignKey('transactions.id', ondelete='SET NULL'),
-        nullable=True,
-    )
-
-    selected_diy_estimate_transaction_id: Mapped[int | None] = mapped_column(
-        ForeignKey('transactions.id', ondelete='SET NULL'),
-        nullable=True,
-    )
-
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     item_type: Mapped[BudgetLineType] = mapped_column(
         Enum(BudgetLineType, name='budget_line_type'),
@@ -89,38 +79,11 @@ class BudgetLine(Base):
             unique=True,
             postgresql_where=text("item_type = 'product' AND deleted_at IS NULL"),
         ),
-        Index(
-            'uq_budget_lines_selected_quote_transaction',
-            'selected_quote_transaction_id',
-            unique=True,
-            postgresql_where=text(
-                'selected_quote_transaction_id IS NOT NULL AND deleted_at IS NULL'
-            ),
-        ),
-        Index(
-            'uq_budget_lines_selected_diy_estimate_transaction',
-            'selected_diy_estimate_transaction_id',
-            unique=True,
-            postgresql_where=text(
-                'selected_diy_estimate_transaction_id IS NOT NULL '
-                'AND deleted_at IS NULL'
-            ),
-        ),
     )
 
     project: Mapped[Project] = relationship('Project', back_populates='budget_lines')
     template_item: Mapped[TemplateItem | None] = relationship('TemplateItem')
     product: Mapped[Product] = relationship('Product', back_populates='budget_lines')
-    selected_quote_transaction: Mapped[Transaction | None] = relationship(
-        'Transaction',
-        foreign_keys=[selected_quote_transaction_id],
-        post_update=True,
-    )
-    selected_diy_estimate_transaction: Mapped[Transaction | None] = relationship(
-        'Transaction',
-        foreign_keys=[selected_diy_estimate_transaction_id],
-        post_update=True,
-    )
     transactions: Mapped[list[Transaction]] = relationship(
         'Transaction',
         back_populates='budget_line',

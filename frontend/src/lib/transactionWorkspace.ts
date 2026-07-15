@@ -107,14 +107,6 @@ export function buildTransactionRow(
     budget_line_id: String(transaction.budget_line_id),
     name: transaction.budget_line_name,
     item_type: transaction.budget_line_item_type,
-    selected_quote_transaction_id:
-      transaction.selected_quote_transaction_id === null
-        ? null
-        : String(transaction.selected_quote_transaction_id),
-    selected_diy_estimate_transaction_id:
-      transaction.selected_diy_estimate_transaction_id === null
-        ? null
-        : String(transaction.selected_diy_estimate_transaction_id),
     selected_budget_amount_ttc: 0,
     quote_amount_ttc: 0,
     validated_quote_amount_ttc: 0,
@@ -165,9 +157,7 @@ export function buildTransactionRow(
     invoice_status: transaction.invoice_status,
     invoice_type: transaction.invoice_type,
     payment_method: transaction.payment_method,
-    select_as_budget:
-      transactionId === budgetLine.selected_quote_transaction_id ||
-      transactionId === budgetLine.selected_diy_estimate_transaction_id,
+    select_as_budget: transaction.is_selected_budget,
     document_state: transaction.has_documents ? 'attached' : 'missing',
   }
   const row = {

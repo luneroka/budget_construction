@@ -100,8 +100,6 @@ export type BudgetLineRead = {
   project_id: number
   template_item_id: number | null
   product_id: number
-  selected_quote_transaction_id: number | null
-  selected_diy_estimate_transaction_id: number | null
   name: string
   item_type: BudgetLineType
   sort_order: number
@@ -210,8 +208,6 @@ export type BudgetLineFinancialSummaryRead = FinancialTotalsRead & {
   budget_line_id: number
   name: string
   item_type: BudgetLineType
-  selected_quote_transaction_id: number | null
-  selected_diy_estimate_transaction_id: number | null
 }
 
 export type ProductFinancialSummaryRead = FinancialTotalsRead & {
@@ -343,6 +339,7 @@ export type TransactionUpdate = {
 export type TransactionRead = {
   id: number
   budget_line_id: number
+  is_selected_budget: boolean
   has_documents: boolean
   supplier_id: number | null
   transaction_type: TransactionType
@@ -366,8 +363,6 @@ export type TransactionRead = {
 export type ProjectTransactionRead = TransactionRead & {
   budget_line_name: string
   budget_line_item_type: BudgetLineType
-  selected_quote_transaction_id: number | null
-  selected_diy_estimate_transaction_id: number | null
   product_id: number
   product_name: string
   subcategory_name: string

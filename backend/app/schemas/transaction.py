@@ -160,6 +160,7 @@ class TransactionReadBase(BaseModel):
 class TransactionRead(TransactionReadBase):
     id: int
     budget_line_id: int
+    is_selected_budget: bool = False
     has_documents: bool = False
     created_at: datetime
     updated_at: datetime
@@ -171,8 +172,6 @@ class TransactionRead(TransactionReadBase):
 class ProjectTransactionRead(TransactionRead):
     budget_line_name: str
     budget_line_item_type: BudgetLineType
-    selected_quote_transaction_id: int | None = None
-    selected_diy_estimate_transaction_id: int | None = None
     product_id: int
     product_name: str
     subcategory_name: str

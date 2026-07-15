@@ -313,17 +313,12 @@ The two modes cannot coexist for the same active project/product pair. Convertin
 
 A budget line can contain several competing quotes and DIY estimates.
 
-The selected budget is not stored as a boolean on every transaction. The budget line owns two explicit references:
-
-- `selected_quote_transaction_id`;
-- `selected_diy_estimate_transaction_id`.
-
-This allows a validated supplier quote and a complementary DIY estimate to contribute independently to the same budget line.
+The selected budget is stored as a boolean on each transaction: `is_selected_budget`. There is no cap on how many quotes and DIY estimates can be selected for the same budget line — any validated quote or DIY estimate can be marked selected independently, and all of them contribute to the budget line's total.
 
 ```text
 Selected budget TTC
-= selected quote TTC
-+ selected DIY estimate TTC
+= sum of TTC of every selected quote
++ sum of TTC of every selected DIY estimate
 ```
 
 Invoices are never selected as budget candidates.
@@ -665,7 +660,7 @@ The original document contained several early proposals that are no longer curre
 | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | Generic project name such as Budget Chantier                               | Product is branded **BatiBudget**, with `batibudget.com` acquired                                                  |
 | `project_items` and `sub_products` as separate or loosely defined concepts | Project financial units are finalized as `budget_lines`, typed as whole-product or breakdown                       |
-| One selected budget transaction per budget line                            | A budget line can independently select one validated quote and one DIY estimate; both contribute to the budget     |
+| One selected budget transaction per budget line                            | Any number of validated quotes and DIY estimates can be independently selected per budget line; all contribute to the budget |
 | Supabase Storage, with optional Cloudinary                                 | Cloudflare R2 is the confirmed document storage provider                                                           |
 | Multi-user authentication as a later phase                                 | Authentication, ownership, admin authorization, and password recovery are core implemented foundations             |
 | Dashboard and analytics as a distant second phase                          | The financial engine and dashboard-specific API projections are already implemented                                |

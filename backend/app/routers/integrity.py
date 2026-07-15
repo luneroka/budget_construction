@@ -19,12 +19,6 @@ CONSTRAINT_MESSAGES = {
     'uq_budget_lines_project_id_product_id_product_type': (
         'A whole-product budget line already exists for this project product'
     ),
-    'uq_budget_lines_selected_quote_transaction': (
-        'This quote is already selected by another budget line'
-    ),
-    'uq_budget_lines_selected_diy_estimate_transaction': (
-        'This DIY estimate is already selected by another budget line'
-    ),
 }
 
 

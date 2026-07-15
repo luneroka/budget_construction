@@ -186,8 +186,6 @@ Table budget_lines {
   project_id integer [not null]
   template_item_id integer
   product_id integer [not null]
-  selected_quote_transaction_id integer
-  selected_diy_estimate_transaction_id integer
   name varchar(255) [not null]
   item_type budget_line_type [not null]
   sort_order integer [not null, default: 0]
@@ -199,8 +197,6 @@ Table budget_lines {
     template_item_id [name: 'ix_budget_lines_template_item_id']
     product_id [name: 'ix_budget_lines_product_id']
     (project_id, product_id) [unique, name: 'uq_budget_lines_project_id_product_id_product_type', note: 'Partial index: WHERE item_type = product AND deleted_at IS NULL']
-    selected_quote_transaction_id [unique, name: 'uq_budget_lines_selected_quote_transaction', note: 'Partial index: WHERE selected_quote_transaction_id IS NOT NULL AND deleted_at IS NULL']
-    selected_diy_estimate_transaction_id [unique, name: 'uq_budget_lines_selected_diy_estimate_transaction', note: 'Partial index: WHERE selected_diy_estimate_transaction_id IS NOT NULL AND deleted_at IS NULL']
   }
 
   Note: '''
@@ -213,12 +209,11 @@ Table budget_lines {
     Mixing both modes for the same project + product is forbidden.
     Payment installments (acompte, solde, etc.) must be modeled as multiple
     transactions on the same budget_line, not as additional breakdown budget_lines.
-    selected_quote_transaction_id points to the active validated quote selected
-    for the budget_line.
-    selected_diy_estimate_transaction_id points to the active DIY estimate
-    selected for the budget_line.
-    The selected budget amount is the sum of the selected quote TTC, if any,
-    and the selected DIY estimate TTC, if any.
+    Budget selection lives on transactions.is_selected_budget, not on this table.
+    Any number of validated quotes and DIY estimates may be selected as budget
+    for the same budget_line; there is no cap.
+    The selected budget amount is the sum of the TTC of every selected quote
+    and DIY estimate transaction on the budget_line.
     Invoice transactions are never budget candidates.
   '''
 }
@@ -240,6 +235,7 @@ Table transactions {
   invoice_status invoice_status
   invoice_type invoice_type
   payment_method payment_method
+  is_selected_budget boolean [not null, default: false]
   ~timestamps
   deleted_at timestamp
 
@@ -260,7 +256,15 @@ Table transactions {
     `transaction_type = 'invoice' OR payment_method IS NULL` [name: 'ck_transactions_payment_method_only_for_invoices']
     `transaction_type IN ('quote', 'invoice') OR due_date IS NULL` [name: 'ck_transactions_due_date_only_for_quotes_or_invoices']
     `transaction_type = 'invoice' OR payment_date IS NULL` [name: 'ck_transactions_payment_date_only_for_invoices']
+    `NOT is_selected_budget OR transaction_type IN ('quote', 'diy_estimate')` [name: 'ck_transactions_selected_budget_candidate']
   }
+
+  Note: '''
+    is_selected_budget marks a quote or DIY estimate as contributing to its
+    budget_line's selected budget. There is no uniqueness constraint: any
+    number of quotes and DIY estimates may be selected simultaneously for the
+    same budget_line.
+  '''
 }
 
 Table documents {
@@ -293,8 +297,6 @@ Ref: template_items.product_id > products.id
 Ref: budget_lines.project_id > projects.id [delete: cascade]
 Ref: budget_lines.template_item_id > template_items.id [delete: set null]
 Ref: budget_lines.product_id > products.id
-Ref: budget_lines.selected_quote_transaction_id > transactions.id [delete: set null]
-Ref: budget_lines.selected_diy_estimate_transaction_id > transactions.id [delete: set null]
 Ref: transactions.budget_line_id > budget_lines.id [delete: cascade]
 Ref: transactions.supplier_id > suppliers.id [delete: set null]
 Ref: documents.transaction_id > transactions.id [delete: cascade]

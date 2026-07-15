@@ -25,8 +25,6 @@ import { notifyError, notifySuccess } from '@/lib/toasts'
 import {
   canToggleBudgetSelection,
   formatSelectedBudgetSource,
-  isSelectedBudgetTransaction,
-  type BudgetSelectionState,
 } from '@/lib/budgetDomain'
 import { cn } from '@/lib/utils'
 
@@ -36,7 +34,6 @@ const transactionGridClass =
 type TransactionsPanelProps = {
   transactions: Transaction[]
   budgetLine: BudgetLine
-  budgetSelection: BudgetSelectionState
   projectId?: number
   product: Product
   readOnly?: boolean
@@ -85,7 +82,6 @@ function TransactionPanelMessage({ message }: { message: string }) {
 function TransactionRows({
   transactions,
   budgetLine,
-  budgetSelection,
   product,
   readOnly,
   onToggleBudgetSelection,
@@ -99,10 +95,7 @@ function TransactionRows({
   return transactions.map((transaction) => {
     const financialStatus =
       transaction.quote_status ?? transaction.invoice_status
-    const isSelectedBudget = isSelectedBudgetTransaction(
-      transaction,
-      budgetSelection,
-    )
+    const isSelectedBudget = transaction.select_as_budget
     const canToggleSelection = canToggleBudgetSelection(transaction)
 
     return (
@@ -251,19 +244,9 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
     if (!shouldUseApi) return props.transactions
 
     return (transactionsQuery.data ?? []).map((transaction) =>
-      transactionToDomain(
-        transaction,
-        props.budgetLine,
-        suppliersQuery.data ?? [],
-      ),
+      transactionToDomain(transaction, suppliersQuery.data ?? []),
     )
-  }, [
-    props.budgetLine,
-    props.transactions,
-    shouldUseApi,
-    suppliersQuery.data,
-    transactionsQuery.data,
-  ])
+  }, [props.transactions, shouldUseApi, suppliersQuery.data, transactionsQuery.data])
   const budgetCandidates = transactions.filter((transaction) =>
     ['quote', 'diy_estimate'].includes(transaction.transaction_type),
   )
@@ -298,10 +281,7 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
 
     try {
       setSelectionError(null)
-      const isCurrentlySelected = isSelectedBudgetTransaction(
-        transaction,
-        props.budgetSelection,
-      )
+      const isCurrentlySelected = transaction.select_as_budget
       if (isCurrentlySelected) {
         await unselectBudgetCandidateMutation.mutateAsync({
           projectId: props.projectId,
@@ -342,7 +322,7 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
                 Budget sélectionné{' '}
                 {formatCurrency(props.budgetLine.selected_budget_amount_ttc)}
                 <span className="ml-1 text-muted-foreground">
-                  ({formatSelectedBudgetSource(props.budgetLine)})
+                  ({formatSelectedBudgetSource(transactions)})
                 </span>
               </p>
             </div>

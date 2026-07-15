@@ -115,8 +115,17 @@ class Transaction(Base):
         nullable=False,
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    is_selected_budget: Mapped[bool] = mapped_column(
+        default=False, server_default='false', nullable=False
+    )
 
     __table_args__ = (
+        # No uniqueness on is_selected_budget: any number of quotes and DIY
+        # estimates may be selected as budget for the same budget line.
+        CheckConstraint(
+            "NOT is_selected_budget OR transaction_type IN ('quote', 'diy_estimate')",
+            name='ck_transactions_selected_budget_candidate',
+        ),
         Index(
             'ix_transactions_active_budget_line_issued_date_id',
             'budget_line_id',

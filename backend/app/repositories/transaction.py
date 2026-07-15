@@ -342,73 +342,30 @@ def validate_selected_budget_candidate(
         )
 
 
-async def _set_selected_budget_candidate(
-    db: AsyncSession,
-    budget_line_id: int,
-    transaction_id: int,
-    transaction_type: TransactionType,
-) -> None:
-    if transaction_type == TransactionType.quote:
-        values = {'selected_quote_transaction_id': transaction_id}
-    elif transaction_type == TransactionType.diy_estimate:
-        values = {'selected_diy_estimate_transaction_id': transaction_id}
-    else:
-        raise TransactionValidationError(
-            'Only quotes and DIY estimates can be selected as budget candidates'
-        )
-
-    await db.execute(
-        update(BudgetLine)
-        .where(BudgetLine.id == budget_line_id)
-        .values(**values)
-    )
+def _select_budget_candidate(transaction: Transaction) -> None:
+    # No cap: any number of quotes and DIY estimates may be selected as
+    # budget simultaneously for the same budget line.
+    transaction.is_selected_budget = True
 
 
-async def _clear_selected_budget_candidate_if_matches(
-    db: AsyncSession,
-    budget_line_id: int,
-    transaction_id: int,
-) -> None:
-    await db.execute(
-        update(BudgetLine)
-        .where(
-            BudgetLine.id == budget_line_id,
-            BudgetLine.selected_quote_transaction_id == transaction_id,
-        )
-        .values(selected_quote_transaction_id=None)
-    )
-    await db.execute(
-        update(BudgetLine)
-        .where(
-            BudgetLine.id == budget_line_id,
-            BudgetLine.selected_diy_estimate_transaction_id == transaction_id,
-        )
-        .values(selected_diy_estimate_transaction_id=None)
-    )
+def _unselect_budget_candidate(transaction: Transaction) -> None:
+    transaction.is_selected_budget = False
 
 
-async def _ensure_selected_budget_candidate_remains_valid(
-    db: AsyncSession,
+def _ensure_selected_budget_candidate_remains_valid(
     transaction: Transaction,
     values: dict[str, object],
 ) -> None:
     if transaction.transaction_type != TransactionType.quote:
+        return
+    if not transaction.is_selected_budget:
         return
 
     quote_status = cast(
         QuoteStatus | None,
         values.get('quote_status', transaction.quote_status),
     )
-    if quote_status == QuoteStatus.validated:
-        return
-
-    result = await db.execute(
-        select(BudgetLine.id).where(
-            BudgetLine.selected_quote_transaction_id == transaction.id,
-            BudgetLine.deleted_at.is_(None),
-        )
-    )
-    if result.scalar_one_or_none() is not None:
+    if quote_status != QuoteStatus.validated:
         raise TransactionValidationError(
             'A selected budget quote must remain validated'
         )
@@ -434,15 +391,9 @@ async def create_transaction(
         )
 
     transaction = Transaction(**values, budget_line_id=budget_line_id)
-    db.add(transaction)
-    await db.flush()
     if transaction_data.select_as_budget:
-        await _set_selected_budget_candidate(
-            db,
-            budget_line_id,
-            transaction.id,
-            transaction.transaction_type,
-        )
+        _select_budget_candidate(transaction)
+    db.add(transaction)
     await db.commit()
 
     return await get_transaction_by_id(
@@ -558,7 +509,7 @@ async def update_transaction(
         return None
 
     values = _validate_update(transaction, transaction_data)
-    await _ensure_selected_budget_candidate_remains_valid(db, transaction, values)
+    _ensure_selected_budget_candidate_remains_valid(transaction, values)
     if 'supplier_id' in values:
         await _validate_supplier(
             db,
@@ -601,11 +552,7 @@ async def soft_delete_transaction(
             )
             .values(deleted_at=deleted_at, updated_at=deleted_at)
         )
-        await _clear_selected_budget_candidate_if_matches(
-            db,
-            transaction.budget_line_id,
-            transaction.id,
-        )
+        transaction.is_selected_budget = False
         transaction.deleted_at = deleted_at
 
         await db.commit()
@@ -638,12 +585,7 @@ async def select_budget_candidate(
         transaction.transaction_type,
         transaction.quote_status,
     )
-    await _set_selected_budget_candidate(
-        db,
-        transaction.budget_line_id,
-        transaction.id,
-        transaction.transaction_type,
-    )
+    _select_budget_candidate(transaction)
 
     await db.commit()
     await db.refresh(transaction)
@@ -676,11 +618,7 @@ async def unselect_budget_candidate(
             'Only quotes and DIY estimates can be unselected as budget candidates'
         )
 
-    await _clear_selected_budget_candidate_if_matches(
-        db,
-        transaction.budget_line_id,
-        transaction.id,
-    )
+    _unselect_budget_candidate(transaction)
 
     await db.commit()
     await db.refresh(transaction)

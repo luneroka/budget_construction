@@ -630,17 +630,7 @@ class FinancialEngine:
         for transaction in budget_line.transactions:
             totals.add_transaction(
                 transaction,
-                is_selected=(
-                    (
-                        transaction.transaction_type == TransactionType.quote
-                        and transaction.id == budget_line.selected_quote_transaction_id
-                    )
-                    or (
-                        transaction.transaction_type == TransactionType.diy_estimate
-                        and transaction.id
-                        == budget_line.selected_diy_estimate_transaction_id
-                    )
-                ),
+                is_selected=transaction.is_selected_budget,
             )
         return totals
 
@@ -719,10 +709,6 @@ def budget_line_financials_to_read_model(
         budget_line_id=budget_line.id,
         name=budget_line.name,
         item_type=budget_line.item_type,
-        selected_quote_transaction_id=budget_line.selected_quote_transaction_id,
-        selected_diy_estimate_transaction_id=(
-            budget_line.selected_diy_estimate_transaction_id
-        ),
         **financial_totals_to_read_model(budget_line_financials.totals).model_dump(),
     )
 
