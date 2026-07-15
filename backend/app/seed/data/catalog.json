@@ -508,6 +508,10 @@
           {
             "name": "Appareillage",
             "sort_order": 5
+          },
+          {
+            "name": "Borne de recharge VE",
+            "sort_order": 6
           }
         ]
       },
