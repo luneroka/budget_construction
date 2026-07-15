@@ -74,7 +74,7 @@ export function CategoryHeader({
         </span>
       </span>
       <span className="text-right text-xs">
-        <span className="block text-primary-foreground/65">Payé</span>
+        <span className="block text-primary-foreground/65">Facturé</span>
         <span className="font-semibold">
           {formatCurrency(category.actual_cost_amount_ttc)}
         </span>
@@ -266,7 +266,7 @@ export function SubcategoryRow({
             </span>
           </span>
           <span className="text-right text-xs">
-            <span className="block text-primary/65">Payé</span>
+            <span className="block text-primary/65">Facturé</span>
             <span className="font-semibold text-primary/80">
               {formatCurrency(group.actual_cost_amount_ttc)}
             </span>
@@ -301,6 +301,12 @@ export const ProductRow = forwardRef<
   { product, isFocused, isOpen, searchQuery = '', onToggle },
   ref,
 ) {
+  const transactionCount = product.budget_lines.reduce(
+    (total, line) =>
+      total + line.quote_count + line.diy_estimate_count + line.invoice_count,
+    0,
+  )
+
   return (
     <TableRow
       ref={ref}
@@ -320,21 +326,26 @@ export const ProductRow = forwardRef<
             <ToggleIcon isOpen={isOpen} />
             <span className="block font-medium text-foreground">
               {highlightSearchMatches(product.product_name, searchQuery)}
+              {transactionCount > 0 ? (
+                <span className="ml-1 text-xs font-normal text-muted-foreground">
+                  ({transactionCount})
+                </span>
+              ) : null}
             </span>
           </span>
-          <span className="hidden text-right text-xs">
+          <span className="hidden text-right text-xs sm:block">
             <span className="block text-muted-foreground">Budget</span>
             <span className="font-semibold text-foreground">
               {formatCurrency(product.selected_budget_amount_ttc)}
             </span>
           </span>
-          <span className="hidden text-right text-xs">
-            <span className="block text-muted-foreground">Payé</span>
+          <span className="hidden text-right text-xs sm:block">
+            <span className="block text-muted-foreground">Facturé</span>
             <span className="font-semibold text-foreground">
               {formatCurrency(product.actual_cost_amount_ttc)}
             </span>
           </span>
-          <span className="hidden text-right text-xs">
+          <span className="hidden text-right text-xs sm:block">
             <span className="block text-muted-foreground">Écart</span>
             <span
               className={cn(
@@ -405,19 +416,19 @@ export function BudgetLineRow({
               </button>
             )}
           </span>
-          <span className="hidden text-right text-xs">
+          <span className="hidden text-right text-xs sm:block">
             <span className="block text-muted-foreground">Budget</span>
             <span className="font-semibold text-foreground">
               {formatCurrency(line.selected_budget_amount_ttc)}
             </span>
           </span>
-          <span className="hidden text-right text-xs">
-            <span className="block text-muted-foreground">Payé</span>
+          <span className="hidden text-right text-xs sm:block">
+            <span className="block text-muted-foreground">Facturé</span>
             <span className="font-semibold text-foreground">
               {formatCurrency(line.actual_cost_amount_ttc)}
             </span>
           </span>
-          <span className="hidden text-right text-xs">
+          <span className="hidden text-right text-xs sm:block">
             <span className="block text-muted-foreground">Écart</span>
             <span
               className={cn(

@@ -47,14 +47,24 @@ type TransactionsPanelProps = {
   onViewTransactionDocuments: (transaction: Transaction) => void
 }
 
-function TransactionSectionDivider({ label }: { label: string }) {
+function TransactionSectionDivider({
+  label,
+  totalTtc,
+}: {
+  label: string
+  totalTtc: number
+}) {
   return (
     <div
       className={cn(transactionGridClass, 'border-y border-border bg-muted/55')}
     >
-      <div className="col-span-8 px-2.5 py-2 text-[11px] font-bold tracking-normal text-foreground uppercase">
+      <div className="col-span-3 px-2.5 py-2 text-[11px] font-bold tracking-normal text-foreground uppercase">
         {label}
       </div>
+      <div className="px-3 py-2 text-right text-[11px] font-bold tracking-normal text-foreground whitespace-nowrap">
+        {formatCurrency(totalTtc)}
+      </div>
+      <div className="col-span-4" />
     </div>
   )
 }
@@ -253,6 +263,14 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
   const invoices = transactions.filter(
     (transaction) => transaction.transaction_type === 'invoice',
   )
+  const budgetCandidatesTotalTtc = budgetCandidates.reduce(
+    (total, transaction) => total + transaction.amount_ttc,
+    0,
+  )
+  const invoicesTotalTtc = invoices.reduce(
+    (total, transaction) => total + transaction.amount_ttc,
+    0,
+  )
   const isLoadingApiRows =
     shouldUseApi &&
     (transactionsQuery.isLoading ||
@@ -353,7 +371,10 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
               </div>
             </div>
 
-            <TransactionSectionDivider label="Candidats budget" />
+            <TransactionSectionDivider
+              label="Candidats budget"
+              totalTtc={budgetCandidatesTotalTtc}
+            />
             {selectionError ? (
               <TransactionPanelMessage message={selectionError} />
             ) : null}
@@ -370,7 +391,10 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
               />
             )}
 
-            <TransactionSectionDivider label="Dépenses réelles" />
+            <TransactionSectionDivider
+              label="Dépenses réelles"
+              totalTtc={invoicesTotalTtc}
+            />
             {isLoadingApiRows ? (
               <TransactionPanelMessage message="Chargement des transactions" />
             ) : apiError ? (

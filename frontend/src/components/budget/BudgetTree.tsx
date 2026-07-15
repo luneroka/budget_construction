@@ -278,6 +278,23 @@ export function BudgetTree({
       ),
     [filteredProducts, normalizedProductSearch],
   )
+  const visibleTotals = useMemo(
+    () =>
+      visibleProducts.reduce(
+        (totals, product) => ({
+          selected_budget_amount_ttc:
+            totals.selected_budget_amount_ttc +
+            product.selected_budget_amount_ttc,
+          actual_cost_amount_ttc:
+            totals.actual_cost_amount_ttc + product.actual_cost_amount_ttc,
+        }),
+        { selected_budget_amount_ttc: 0, actual_cost_amount_ttc: 0 },
+      ),
+    [visibleProducts],
+  )
+  const visibleVariance =
+    visibleTotals.selected_budget_amount_ttc -
+    visibleTotals.actual_cost_amount_ttc
 
   useEffect(() => {
     setSearchOpenProductIds(new Set())
@@ -387,17 +404,41 @@ export function BudgetTree({
         ))}
       </div>
 
-      <div className="max-w-sm">
-        <label className="sr-only" htmlFor="budget-product-search">
-          Rechercher un produit
-        </label>
-        <Input
-          id="budget-product-search"
-          type="search"
-          value={productSearch}
-          placeholder="Rechercher un produit..."
-          onChange={(event) => setProductSearch(event.target.value)}
-        />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="max-w-sm min-w-48 flex-1">
+          <label className="sr-only" htmlFor="budget-product-search">
+            Rechercher un produit
+          </label>
+          <Input
+            id="budget-product-search"
+            type="search"
+            value={productSearch}
+            placeholder="Rechercher un produit..."
+            onChange={(event) => setProductSearch(event.target.value)}
+          />
+        </div>
+        <div className="grid grid-cols-[7.25rem_7.25rem_7.25rem] items-center gap-x-1 rounded-md border border-border bg-card px-3 py-1.5 text-xs">
+          <span className="text-right">
+            <span className="block text-muted-foreground">Budget</span>
+            <span className="font-semibold text-foreground">
+              {formatCurrency(visibleTotals.selected_budget_amount_ttc)}
+            </span>
+          </span>
+          <span className="text-right">
+            <span className="block text-muted-foreground">Facturé</span>
+            <span className="font-semibold text-foreground">
+              {formatCurrency(visibleTotals.actual_cost_amount_ttc)}
+            </span>
+          </span>
+          <span className="text-right">
+            <span className="block text-muted-foreground">Écart</span>
+            <span
+              className={cn('font-semibold', varianceClass(visibleVariance))}
+            >
+              {formatCurrency(visibleVariance)}
+            </span>
+          </span>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-border bg-card">
