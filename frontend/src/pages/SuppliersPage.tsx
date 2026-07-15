@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Copy, Mail, Plus } from 'lucide-react'
+import { Copy, Eye, Mail, Plus } from 'lucide-react'
 
+import { useDocumentsQuery } from '@/api/documents'
 import { getApiErrorMessage } from '@/api/client'
+import { getSupplierDocumentDownloadUrl } from '@/api/supplier-documents'
 import { trashQueryKeys } from '@/api/trash'
 import {
   supplierQueryKeys,
@@ -14,7 +16,8 @@ import {
   useUpdateSupplierMutation,
   upsertSupplier,
 } from '@/api/suppliers'
-import type { SupplierRead } from '@/api/types'
+import type { SupplierDocumentListRead, SupplierRead } from '@/api/types'
+import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { TableToolbar } from '@/components/shared/TableToolbar'
 import {
@@ -31,6 +34,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import type { SupplierContact, Supplier } from '@/types'
+import { downloadSupplierDocument } from '@/lib/documents'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import { formatPhoneNumber, normalizePhoneNumber } from '@/lib/phone'
 import { useAppState } from '@/state/appState'
@@ -104,13 +108,29 @@ export function SuppliersPage() {
     null,
   )
   const suppliersQuery = useSuppliersQuery({ enabled: true })
+  const documentsQuery = useDocumentsQuery({ enabled: true })
   const createSupplierMutation = useCreateSupplierMutation()
   const updateSupplierMutation = useUpdateSupplierMutation()
   const deleteSupplierMutation = useDeleteSupplierMutation()
+  const [viewerRib, setViewerRib] = useState<{
+    document: SupplierDocumentListRead
+    url: string
+  } | null>(null)
+  const [viewerLoading, setViewerLoading] = useState(false)
+  const [viewerError, setViewerError] = useState<string | null>(null)
   const suppliers = useMemo(
     () => (suppliersQuery.data ?? []).map(supplierToDomain),
     [suppliersQuery.data],
   )
+  const ribBySupplierId = useMemo(() => {
+    const map = new Map<number, SupplierDocumentListRead>()
+    for (const document of documentsQuery.data ?? []) {
+      if (document.type === 'supplier_document') {
+        map.set(document.supplier_id, document)
+      }
+    }
+    return map
+  }, [documentsQuery.data])
   const normalizedSearch = search.trim().toLowerCase()
   const filteredSuppliers = useMemo(() => {
     if (!normalizedSearch) return suppliers
@@ -210,6 +230,41 @@ export function SuppliersPage() {
     }
   }
 
+  async function openRibViewer(document: SupplierDocumentListRead) {
+    setViewerLoading(true)
+    setViewerError(null)
+
+    try {
+      const { url } = await getSupplierDocumentDownloadUrl(document.id, true)
+      setViewerRib({ document, url })
+    } catch (error) {
+      const message = getApiErrorMessage(error)
+      notifyError(`Impossible d’ouvrir le RIB. ${message}`)
+    } finally {
+      setViewerLoading(false)
+    }
+  }
+
+  async function handleViewerDownload() {
+    if (!viewerRib) return
+
+    setViewerLoading(true)
+    setViewerError(null)
+
+    try {
+      await downloadSupplierDocument(
+        viewerRib.document.id,
+        viewerRib.document.original_filename,
+      )
+    } catch (error) {
+      const message = getApiErrorMessage(error)
+      setViewerError(message)
+      notifyError(`Impossible de télécharger le RIB. ${message}`)
+    } finally {
+      setViewerLoading(false)
+    }
+  }
+
   function emptyStateMessage() {
     if (search.trim() !== '') {
       return 'Aucun fournisseur ne correspond à la recherche.'
@@ -223,7 +278,7 @@ export function SuppliersPage() {
       return (
         <TableRow>
           <TableCell
-            colSpan={4}
+            colSpan={5}
             className="py-8 text-center text-muted-foreground"
           >
             Chargement des fournisseurs...
@@ -235,7 +290,7 @@ export function SuppliersPage() {
     if (suppliersError) {
       return (
         <TableRow>
-          <TableCell colSpan={4} className="py-8 text-center text-destructive">
+          <TableCell colSpan={5} className="py-8 text-center text-destructive">
             Impossible de charger les fournisseurs.
           </TableCell>
         </TableRow>
@@ -246,13 +301,14 @@ export function SuppliersPage() {
       const contact = primaryContact(supplier)
       const contactEmail = contact?.email?.trim() ?? ''
       const hasEmail = contactEmail !== ''
+      const rib = ribBySupplierId.get(Number(supplier.id))
 
       return (
         <TableRow key={supplier.id}>
-          <TableCell>
+          <TableCell className="group transition-colors hover:bg-gold/15">
             <button
               type="button"
-              className="group -mx-3 -my-2 inline-flex min-w-48 max-w-full flex-col items-start rounded-md px-3 py-2 text-left transition-colors hover:bg-gold/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="flex w-full flex-col items-start text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               onClick={() => openDetailModal(supplier)}
             >
               <span className="w-full truncate font-medium text-foreground group-hover:text-gold">
@@ -264,6 +320,19 @@ export function SuppliersPage() {
                 </span>
               ) : null}
             </button>
+          </TableCell>
+          <TableCell className="text-center">
+            {rib ? (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="text-muted-foreground hover:bg-gold/15 hover:text-gold"
+                aria-label={`Voir le RIB de ${supplier.name}`}
+                onClick={() => void openRibViewer(rib)}
+              >
+                <Eye aria-hidden />
+              </Button>
+            ) : null}
           </TableCell>
           <TableCell>{contact?.name ?? '-'}</TableCell>
           <TableCell className="whitespace-nowrap">
@@ -362,6 +431,9 @@ export function SuppliersPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Fournisseur</TableHead>
+              <TableHead>
+                <span className="block text-center">RIB</span>
+              </TableHead>
               <TableHead>Contact principal</TableHead>
               <TableHead>Téléphone</TableHead>
               <TableHead>Email</TableHead>
@@ -383,6 +455,20 @@ export function SuppliersPage() {
           onClose={closeModal}
           onSave={saveSupplier}
           onDelete={deleteSupplier}
+        />
+      ) : null}
+
+      {viewerRib ? (
+        <DocumentViewerDialog
+          title={`RIB • ${viewerRib.document.supplier_name}`}
+          url={viewerRib.url}
+          isPending={viewerLoading}
+          error={viewerError}
+          onClose={() => {
+            setViewerRib(null)
+            setViewerError(null)
+          }}
+          onDownload={() => void handleViewerDownload()}
         />
       ) : null}
     </section>
