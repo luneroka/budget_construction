@@ -103,9 +103,7 @@ function budgetLineToDomain(
   }
 }
 
-function productToDomain(
-  product: ProductFinancialSummaryRead,
-): Product {
+function productToDomain(product: ProductFinancialSummaryRead): Product {
   return {
     product_id: String(product.product_id),
     product_name: product.product_name,
@@ -220,6 +218,7 @@ export function transactionToDomain(
     payment_method: transaction.payment_method,
     select_as_budget: transaction.is_selected_budget,
     document_state: transaction.has_documents ? 'attached' : 'missing',
+    document_count: transaction.document_count,
   }
 }
 

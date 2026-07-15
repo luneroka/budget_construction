@@ -15,7 +15,7 @@ const statusVariants: Record<string, BadgeVariant> = {
   invoice: 'default',
   rib: 'gold',
   to_confirm: 'warning',
-  to_negotiate: 'gold',
+  to_negotiate: 'warning',
   validated: 'success',
   rejected: 'secondary',
   unpaid: 'warning',

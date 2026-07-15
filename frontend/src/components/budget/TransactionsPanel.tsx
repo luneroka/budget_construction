@@ -14,11 +14,7 @@ import type { ViewedTransactionContext } from '@/components/budget/TransactionMo
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Badge } from '@/components/ui/badge'
 import { TableCell, TableRow } from '@/components/ui/table'
-import type {
-  BudgetLine,
-  Product,
-  Transaction,
-} from '@/types'
+import type { BudgetLine, Product, Transaction } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { transactionToDomain } from '@/lib/budgetWorkspaceApiAdapter'
 import { notifyError, notifySuccess } from '@/lib/toasts'
@@ -223,11 +219,14 @@ function TransactionRows({
           {transaction.document_state === 'attached' ? (
             <button
               type="button"
-              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
+              className="inline-flex h-6 items-center gap-1 rounded-md px-1 text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
               onClick={() => onViewTransactionDocuments(transaction)}
-              aria-label="Voir les documents de la transaction"
+              aria-label={`Voir les ${transaction.document_count} documents de la transaction`}
             >
               <Paperclip className="h-4 w-4" aria-hidden="true" />
+              <span className="text-xs font-medium">
+                {transaction.document_count}
+              </span>
             </button>
           ) : null}
         </div>
@@ -256,7 +255,12 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
     return (transactionsQuery.data ?? []).map((transaction) =>
       transactionToDomain(transaction, suppliersQuery.data ?? []),
     )
-  }, [props.transactions, shouldUseApi, suppliersQuery.data, transactionsQuery.data])
+  }, [
+    props.transactions,
+    shouldUseApi,
+    suppliersQuery.data,
+    transactionsQuery.data,
+  ])
   const budgetCandidates = transactions.filter((transaction) =>
     ['quote', 'diy_estimate'].includes(transaction.transaction_type),
   )

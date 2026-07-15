@@ -2,10 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { getApiErrorMessage } from '@/api/client'
-import {
-  getDocumentDownloadUrl,
-  getTransactionDocuments,
-} from '@/api/documents'
 import { useSuppliersQuery } from '@/api/suppliers'
 import { BudgetTree } from '@/components/budget/BudgetTree'
 import { DeleteBudgetLineDialog } from '@/components/budget/DeleteBudgetLineDialog'
@@ -32,10 +28,13 @@ import {
   suppliersToDomain,
   useBudgetWorkspaceQuery,
 } from '@/lib/budgetWorkspaceApiAdapter'
-import { downloadDocument } from '@/lib/documents'
+import {
+  formatDocumentViewerTitle,
+  formatOriginalFilename,
+} from '@/lib/documents'
 import { formatCurrency } from '@/lib/format'
-import { notifyError } from '@/lib/toasts'
 import { useAppState } from '@/state/appState'
+import { useTransactionDocumentViewer } from '@/hooks/useTransactionDocumentViewer'
 
 export function BudgetPage() {
   const { selectedProjectId } = useAppState()
@@ -54,14 +53,7 @@ export function BudgetPage() {
   const [activeAction, setActiveAction] = useState<ActiveAction | null>(null)
   const [transactionReview, setTransactionReview] =
     useState<TransactionReviewState | null>(null)
-  const [viewerDocument, setViewerDocument] = useState<{
-    documentId: number
-    filename: string
-    title: string
-    url: string
-  } | null>(null)
-  const [viewerLoading, setViewerLoading] = useState(false)
-  const [viewerError, setViewerError] = useState<string | null>(null)
+  const documentViewer = useTransactionDocumentViewer()
   const [transactionDelete, setTransactionDelete] =
     useState<TransactionDeleteState | null>(null)
   const [budgetLineDelete, setBudgetLineDelete] =
@@ -115,50 +107,10 @@ export function BudgetPage() {
   }
 
   async function openTransactionDocumentsViewer(transaction: Transaction) {
-    setViewerLoading(true)
-    setViewerError(null)
-
-    try {
-      const documents = await getTransactionDocuments(Number(transaction.id))
-      if (documents.length === 0) {
-        setViewerError('Aucun document joint à cette transaction.')
-        return
-      }
-
-      const document = documents[0]
-      const { url } = await getDocumentDownloadUrl(document.id, true)
-      setViewerDocument({
-        documentId: document.id,
-        filename: document.original_filename,
-        title: `${document.original_filename} — ${formatTransactionDocumentTitle(
-          transaction,
-        )}`,
-        url,
-      })
-    } catch (error) {
-      const message = getApiErrorMessage(error)
-      setViewerError(message)
-      notifyError(`Impossible d’ouvrir le document. ${message}`)
-    } finally {
-      setViewerLoading(false)
-    }
-  }
-
-  async function handleViewerDownload() {
-    if (!viewerDocument) return
-
-    setViewerLoading(true)
-    setViewerError(null)
-
-    try {
-      await downloadDocument(viewerDocument.documentId, viewerDocument.filename)
-    } catch (error) {
-      const message = getApiErrorMessage(error)
-      setViewerError(message)
-      notifyError(`Impossible de télécharger le document. ${message}`)
-    } finally {
-      setViewerLoading(false)
-    }
+    await documentViewer.open(
+      Number(transaction.id),
+      formatTransactionDocumentTitle(transaction),
+    )
   }
 
   if (!projectId) {
@@ -286,17 +238,25 @@ export function BudgetPage() {
         />
       ) : null}
 
-      {viewerDocument ? (
+      {documentViewer.isOpen && documentViewer.document ? (
         <DocumentViewerDialog
-          title={viewerDocument.title}
-          url={viewerDocument.url}
-          isPending={viewerLoading}
-          error={viewerError}
-          onClose={() => {
-            setViewerDocument(null)
-            setViewerError(null)
-          }}
-          onDownload={() => void handleViewerDownload()}
+          title={formatDocumentViewerTitle(
+            documentViewer.contextLabel,
+            documentViewer.index + 1,
+            documentViewer.count,
+          )}
+          subtitle={formatOriginalFilename(
+            documentViewer.document.original_filename,
+          )}
+          url={documentViewer.url ?? ''}
+          isPending={documentViewer.isLoading}
+          error={documentViewer.error}
+          onClose={documentViewer.close}
+          onDownload={() => void documentViewer.download()}
+          onPrevious={documentViewer.goToPrevious}
+          onNext={documentViewer.goToNext}
+          hasPrevious={documentViewer.index > 0}
+          hasNext={documentViewer.index < documentViewer.count - 1}
         />
       ) : null}
 
@@ -306,7 +266,9 @@ export function BudgetPage() {
           context={transactionReview.context}
           initialMode={transactionReview.initialMode}
           suppliers={suppliers}
-          isBudgetSelected={transactionReview.context.transaction.select_as_budget}
+          isBudgetSelected={
+            transactionReview.context.transaction.select_as_budget
+          }
           canToggleBudgetSelection={canToggleBudgetSelection(
             transactionReview.context.transaction,
           )}

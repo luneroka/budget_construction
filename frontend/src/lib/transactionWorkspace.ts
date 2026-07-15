@@ -1,9 +1,5 @@
 import type { ApiDecimal, ProjectTransactionRead } from '@/api/types'
-import type {
-  BudgetLine,
-  Product,
-  Transaction,
-} from '@/types'
+import type { BudgetLine, Product, Transaction } from '@/types'
 import { formatCurrency } from '@/lib/format'
 import type { ViewedTransactionContext } from '@/components/budget/TransactionModal'
 
@@ -61,10 +57,7 @@ export function getTransactionStatus(transaction: Transaction) {
   return transaction.quote_status ?? transaction.invoice_status
 }
 
-export function getBudgetLabel(
-  product: Product,
-  budgetLine: BudgetLine,
-) {
+export function getBudgetLabel(product: Product, budgetLine: BudgetLine) {
   const productName = product.product_name.trim()
   const budgetLineName = budgetLine.name.trim()
 
@@ -161,6 +154,7 @@ export function buildTransactionRow(
     payment_method: transaction.payment_method,
     select_as_budget: transaction.is_selected_budget,
     document_state: transaction.has_documents ? 'attached' : 'missing',
+    document_count: transaction.document_count,
   }
   const row = {
     budgetLine,
@@ -180,7 +174,11 @@ function dateAtStart(value: Date) {
   return new Date(value.getFullYear(), value.getMonth(), value.getDate())
 }
 
-export function isWithinLastDays(value: string, days: number, now = new Date()) {
+export function isWithinLastDays(
+  value: string,
+  days: number,
+  now = new Date(),
+) {
   const issuedDate = dateAtStart(new Date(`${value}T00:00:00`))
   const today = dateAtStart(now)
   const cutoff = new Date(today)

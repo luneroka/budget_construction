@@ -12,10 +12,6 @@ import {
 } from 'lucide-react'
 
 import { getApiErrorMessage } from '@/api/client'
-import {
-  getDocumentDownloadUrl,
-  getTransactionDocuments,
-} from '@/api/documents'
 import { useProjectQuery } from '@/api/projects'
 import { useSuppliersQuery } from '@/api/suppliers'
 import { useProjectTransactionsQuery } from '@/api/transactions'
@@ -60,11 +56,15 @@ import {
   type TransactionWorkspaceRow,
   visibleQuickViews,
 } from '@/lib/transactionWorkspace'
-import { downloadDocument } from '@/lib/documents'
+import {
+  formatDocumentViewerTitle,
+  formatOriginalFilename,
+} from '@/lib/documents'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { notifyError } from '@/lib/toasts'
 import { useAppState } from '@/state/appState'
+import { useTransactionDocumentViewer } from '@/hooks/useTransactionDocumentViewer'
 
 type TransactionTypeFilter =
   'all' | TransactionWorkspaceRow['transaction']['transaction_type']
@@ -229,15 +229,8 @@ export function TransactionsPage() {
     useState<TransactionReviewState | null>(null)
   const [transactionDelete, setTransactionDelete] =
     useState<TransactionDeleteState | null>(null)
-  const [viewerDocument, setViewerDocument] = useState<{
-    documentId: number
-    filename: string
-    title: string
-    url: string
-  } | null>(null)
-  const [viewerLoading, setViewerLoading] = useState(false)
-  const [viewerError, setViewerError] = useState<string | null>(null)
-  const [activeDocumentTransactionId, setActiveDocumentTransactionId] =
+  const documentViewer = useTransactionDocumentViewer()
+  const [openingDocumentsTransactionId, setOpeningDocumentsTransactionId] =
     useState<string | null>(null)
   const suppliers = useMemo(
     () => suppliersToDomain(suppliersQuery.data),
@@ -420,7 +413,7 @@ export function TransactionsPage() {
     })
   }
 
-  function formatDocumentViewerTitle(context: ViewedTransactionContext) {
+  function formatTransactionContextLabel(context: ViewedTransactionContext) {
     const typeLabel =
       transactionTypeLabels[context.transaction.transaction_type]
     const supplier = context.transaction.supplier_name ?? 'Autoconstruction'
@@ -439,54 +432,12 @@ export function TransactionsPage() {
       return
     }
 
-    setActiveDocumentTransactionId(context.transaction.id)
-    setViewerLoading(true)
-    setViewerError(null)
-
-    try {
-      const documents = await getTransactionDocuments(transactionId)
-      if (documents.length === 0) {
-        const message = 'Aucun document joint à cette transaction.'
-        setViewerError(message)
-        notifyError(message)
-        return
-      }
-
-      const document = documents[0]
-      const { url } = await getDocumentDownloadUrl(document.id, true)
-      setViewerDocument({
-        documentId: document.id,
-        filename: document.original_filename,
-        title: `${document.original_filename} — ${formatDocumentViewerTitle(
-          context,
-        )}`,
-        url,
-      })
-    } catch (error) {
-      const message = getApiErrorMessage(error)
-      setViewerError(message)
-      notifyError(`Impossible d’ouvrir le document. ${message}`)
-    } finally {
-      setViewerLoading(false)
-      setActiveDocumentTransactionId(null)
-    }
-  }
-
-  async function handleViewerDownload() {
-    if (!viewerDocument) return
-
-    setViewerLoading(true)
-    setViewerError(null)
-
-    try {
-      await downloadDocument(viewerDocument.documentId, viewerDocument.filename)
-    } catch (error) {
-      const message = getApiErrorMessage(error)
-      setViewerError(message)
-      notifyError(`Impossible de télécharger le document. ${message}`)
-    } finally {
-      setViewerLoading(false)
-    }
+    setOpeningDocumentsTransactionId(context.transaction.id)
+    await documentViewer.open(
+      transactionId,
+      formatTransactionContextLabel(context),
+    )
+    setOpeningDocumentsTransactionId(null)
   }
 
   function renderTableBody() {
@@ -563,11 +514,11 @@ export function TransactionsPage() {
                 size="sm"
                 variant="outline"
                 aria-label={`${documentLabel} pour cette transaction`}
-                disabled={activeDocumentTransactionId === transaction.id}
+                disabled={openingDocumentsTransactionId === transaction.id}
                 onClick={() => void openTransactionDocumentsViewer(context)}
               >
                 <FileSearch aria-hidden />
-                Ouvrir
+                Ouvrir ({transaction.document_count})
               </Button>
             ) : (
               <Button
@@ -863,7 +814,9 @@ export function TransactionsPage() {
           context={transactionReview.context}
           initialMode={transactionReview.initialMode}
           suppliers={suppliers}
-          isBudgetSelected={transactionReview.context.transaction.select_as_budget}
+          isBudgetSelected={
+            transactionReview.context.transaction.select_as_budget
+          }
           canToggleBudgetSelection={canToggleBudgetSelection(
             transactionReview.context.transaction,
           )}
@@ -872,17 +825,25 @@ export function TransactionsPage() {
         />
       ) : null}
 
-      {viewerDocument ? (
+      {documentViewer.isOpen && documentViewer.document ? (
         <DocumentViewerDialog
-          title={viewerDocument.title}
-          url={viewerDocument.url}
-          isPending={viewerLoading}
-          error={viewerError}
-          onClose={() => {
-            setViewerDocument(null)
-            setViewerError(null)
-          }}
-          onDownload={() => void handleViewerDownload()}
+          title={formatDocumentViewerTitle(
+            documentViewer.contextLabel,
+            documentViewer.index + 1,
+            documentViewer.count,
+          )}
+          subtitle={formatOriginalFilename(
+            documentViewer.document.original_filename,
+          )}
+          url={documentViewer.url ?? ''}
+          isPending={documentViewer.isLoading}
+          error={documentViewer.error}
+          onClose={documentViewer.close}
+          onDownload={() => void documentViewer.download()}
+          onPrevious={documentViewer.goToPrevious}
+          onNext={documentViewer.goToNext}
+          hasPrevious={documentViewer.index > 0}
+          hasNext={documentViewer.index < documentViewer.count - 1}
         />
       ) : null}
 

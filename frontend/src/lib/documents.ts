@@ -20,3 +20,15 @@ export async function downloadSupplierDocument(
   triggerBrowserDownload(url, filename)
   notifySuccess('Document téléchargé.')
 }
+
+export function formatDocumentViewerTitle(
+  label: string,
+  index: number,
+  total: number,
+): string {
+  return total > 1 ? `${label} · Document ${index}/${total}` : label
+}
+
+export function formatOriginalFilename(filename: string): string {
+  return `Fichier original : ${filename}`
+}

@@ -7,7 +7,8 @@ export type BudgetLineType = 'product' | 'breakdown'
 export type ProductLineConversionStrategy =
   'archive_existing' | 'reuse_existing_as_breakdown'
 export type TransactionType = 'quote' | 'diy_estimate' | 'invoice'
-export type QuoteStatus = 'to_confirm' | 'to_negotiate' | 'validated' | 'rejected'
+export type QuoteStatus =
+  'to_confirm' | 'to_negotiate' | 'validated' | 'rejected'
 export type InvoiceStatus = 'unpaid' | 'on_hold' | 'paid'
 export type InvoiceType = 'full' | 'deposit' | 'interim' | 'balance'
 export type PaymentMethod = 'cash' | 'card' | 'wire'
@@ -341,6 +342,7 @@ export type TransactionRead = {
   budget_line_id: number
   is_selected_budget: boolean
   has_documents: boolean
+  document_count: number
   supplier_id: number | null
   transaction_type: TransactionType
   amount_ht: ApiDecimal

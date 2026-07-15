@@ -162,6 +162,7 @@ class TransactionRead(TransactionReadBase):
     budget_line_id: int
     is_selected_budget: bool = False
     has_documents: bool = False
+    document_count: int = 0
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = None

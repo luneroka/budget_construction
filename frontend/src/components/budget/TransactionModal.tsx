@@ -787,12 +787,7 @@ function TransactionDocumentsPanel({
   }
 
   const documents = documentsQuery.data ?? []
-  const hasAttachedDocuments = documents.length > 0
-  const canUploadDocument =
-    !readOnly &&
-    documentsQuery.isSuccess &&
-    !hasAttachedDocuments &&
-    !documentsQuery.isFetching
+  const canUploadDocument = !readOnly && !documentsQuery.isLoading
 
   return (
     <div className="space-y-3 rounded-md border border-border p-4">
@@ -809,68 +804,66 @@ function TransactionDocumentsPanel({
         <p className="text-sm text-destructive">
           {getApiErrorMessage(documentsQuery.error)}
         </p>
-      ) : canUploadDocument ? (
-        <Input
-          type="file"
-          accept={documentInputAccept}
-          disabled={isMutating}
-          onChange={(event) => {
-            const file = getSelectedFile(event)
-            event.currentTarget.value = ''
-            void handleUpload(file)
-          }}
-        />
-      ) : null}
+      ) : (
+        <>
+          {canUploadDocument ? (
+            <Input
+              type="file"
+              accept={documentInputAccept}
+              disabled={isMutating}
+              onChange={(event) => {
+                const file = getSelectedFile(event)
+                event.currentTarget.value = ''
+                void handleUpload(file)
+              }}
+            />
+          ) : null}
 
-      {documentsQuery.isSuccess && documents.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Aucun document joint.</p>
-      ) : null}
-
-      {documents.length > 0 ? (
-        <div className="space-y-2">
-          {documents.map((document) => (
-            <div
-              key={document.id}
-              className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2 text-sm"
-            >
-              <span className="min-w-0">
-                <span className="block truncate font-medium text-foreground">
-                  {document.original_filename}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {formatFileSize(document.file_size)}
-                </span>
-              </span>
-              <span className="flex shrink-0 items-center gap-1">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  type="button"
-                  onClick={() => void handleDownload(document)}
+          {documents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Aucun document joint.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {documents.map((document) => (
+                <div
+                  key={document.id}
+                  className="flex items-center gap-1.5 rounded-md border border-border bg-background py-1.5 pr-1.5 pl-3 text-sm"
                 >
-                  <Download aria-hidden />
-                  Télécharger
-                </Button>
-                {readOnly ? null : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    type="button"
-                    disabled={isMutating}
-                    onClick={() => {
-                      setDocumentError(null)
-                      setDocumentPendingDeletion(document)
-                    }}
+                  <span
+                    className="max-w-40 truncate font-medium text-foreground"
+                    title={document.original_filename}
                   >
-                    <Trash2 aria-hidden />
-                    Supprimer
-                  </Button>
-                )}
-              </span>
+                    {document.original_filename}
+                  </span>
+                  <button
+                    type="button"
+                    className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                    onClick={() => void handleDownload(document)}
+                    aria-label={`Télécharger ${document.original_filename}`}
+                  >
+                    <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                  {readOnly ? null : (
+                    <button
+                      type="button"
+                      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-50"
+                      disabled={isMutating}
+                      onClick={() => {
+                        setDocumentError(null)
+                        setDocumentPendingDeletion(document)
+                      }}
+                      aria-label={`Supprimer ${document.original_filename}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      ) : null}
+          )}
+        </>
+      )}
 
       {documentError && !documentPendingDeletion ? (
         <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">

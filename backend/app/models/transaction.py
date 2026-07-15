@@ -188,6 +188,10 @@ class Transaction(Base):
     def has_documents(self) -> bool:
         return any(document.deleted_at is None for document in self.documents)
 
+    @property
+    def document_count(self) -> int:
+        return sum(1 for document in self.documents if document.deleted_at is None)
+
     supplier: Mapped[Supplier | None] = relationship(
         'Supplier', back_populates='transactions'
     )

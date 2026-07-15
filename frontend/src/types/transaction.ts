@@ -1,5 +1,6 @@
 export type TransactionType = 'quote' | 'diy_estimate' | 'invoice'
-export type QuoteStatus = 'to_confirm' | 'to_negotiate' | 'validated' | 'rejected'
+export type QuoteStatus =
+  'to_confirm' | 'to_negotiate' | 'validated' | 'rejected'
 export type InvoiceStatus = 'unpaid' | 'on_hold' | 'paid'
 export type InvoiceType = 'full' | 'deposit' | 'interim' | 'balance'
 export type PaymentMethod = 'cash' | 'card' | 'wire'
@@ -29,4 +30,5 @@ export type Transaction = {
   payment_method: PaymentMethod | null
   select_as_budget: boolean
   document_state: DocumentDisplayState
+  document_count: number
 }

@@ -31,7 +31,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { downloadDocument, downloadSupplierDocument } from '@/lib/documents'
+import {
+  downloadDocument,
+  downloadSupplierDocument,
+  formatDocumentViewerTitle,
+  formatOriginalFilename,
+} from '@/lib/documents'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import { useAppState } from '@/state/appState'
@@ -82,6 +87,29 @@ function sortDocuments(documents: DocumentsListItem[]): DocumentsListItem[] {
   )
 }
 
+function buildTransactionDocumentPositions(
+  documents: DocumentsListItem[],
+): Map<number, { index: number; total: number }> {
+  const groups = new Map<number, DocumentListRead[]>()
+
+  for (const document of documents) {
+    if (document.type !== 'document') continue
+    const group = groups.get(document.transaction_id) ?? []
+    group.push(document)
+    groups.set(document.transaction_id, group)
+  }
+
+  const positions = new Map<number, { index: number; total: number }>()
+  for (const group of groups.values()) {
+    if (group.length < 2) continue
+    group.forEach((document, index) => {
+      positions.set(document.id, { index: index + 1, total: group.length })
+    })
+  }
+
+  return positions
+}
+
 export function DocumentsPage() {
   const queryClient = useQueryClient()
   const { selectedProjectId } = useAppState()
@@ -103,6 +131,24 @@ export function DocumentsPage() {
     () => sortDocuments(documentsQuery.data ?? []),
     [documentsQuery.data],
   )
+  const transactionDocumentPositions = useMemo(
+    () => buildTransactionDocumentPositions(documents),
+    [documents],
+  )
+
+  function formatViewerTitle(document: DocumentsListItem): string {
+    const position =
+      document.type === 'document'
+        ? transactionDocumentPositions.get(document.id)
+        : undefined
+
+    return formatDocumentViewerTitle(
+      formatDocumentDisplayName(document),
+      position?.index ?? 1,
+      position?.total ?? 1,
+    )
+  }
+
   const normalizedSearch = search.trim().toLowerCase()
   const filteredDocuments = useMemo(() => {
     if (!normalizedSearch) return documents
@@ -128,9 +174,7 @@ export function DocumentsPage() {
 
       return searchableValues
         .filter(Boolean)
-        .some((value) =>
-          String(value).toLowerCase().includes(normalizedSearch),
-        )
+        .some((value) => String(value).toLowerCase().includes(normalizedSearch))
     })
   }, [documents, normalizedSearch])
   const documentsError = documentsQuery.isError
@@ -209,8 +253,7 @@ export function DocumentsPage() {
         (current) =>
           current?.filter(
             (candidate) =>
-              candidate.type !== document.type ||
-              candidate.id !== document.id,
+              candidate.type !== document.type || candidate.id !== document.id,
           ) ?? [],
       )
       const projectId = Number(selectedProjectId)
@@ -291,7 +334,7 @@ export function DocumentsPage() {
 
     return filteredDocuments.map((document) => {
       const isBusy = activeDocumentId === document.id
-      const displayName = formatDocumentDisplayName(document)
+      const displayName = formatViewerTitle(document)
 
       return (
         <TableRow key={`${document.type}-${document.id}`}>
@@ -299,7 +342,7 @@ export function DocumentsPage() {
             <p className="font-medium text-foreground">{displayName}</p>
             {displayName !== document.original_filename ? (
               <p className="mt-1 text-xs text-muted-foreground">
-                Fichier original : {document.original_filename}
+                {formatOriginalFilename(document.original_filename)}
               </p>
             ) : null}
           </TableCell>
@@ -411,7 +454,10 @@ export function DocumentsPage() {
 
       {viewerDocument ? (
         <DocumentViewerDialog
-          title={formatDocumentDisplayName(viewerDocument.document)}
+          title={formatViewerTitle(viewerDocument.document)}
+          subtitle={formatOriginalFilename(
+            viewerDocument.document.original_filename,
+          )}
           url={viewerDocument.url}
           isPending={viewerLoading}
           error={viewerError}

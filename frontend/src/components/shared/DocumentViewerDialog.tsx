@@ -1,24 +1,36 @@
-import { Download } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 
 type DocumentViewerDialogProps = {
   title: string
+  subtitle?: string
   url: string
   isPending?: boolean
   error?: string | null
   onClose: () => void
   onDownload?: () => void
+  onPrevious?: () => void
+  onNext?: () => void
+  hasPrevious?: boolean
+  hasNext?: boolean
 }
 
 export function DocumentViewerDialog({
   title,
+  subtitle,
   url,
   isPending = false,
   error,
   onClose,
   onDownload,
+  onPrevious,
+  onNext,
+  hasPrevious = false,
+  hasNext = false,
 }: DocumentViewerDialogProps) {
+  const canNavigate = Boolean(onPrevious || onNext)
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 px-4 py-6"
@@ -35,8 +47,13 @@ export function DocumentViewerDialog({
             >
               {title}
             </p>
+            {subtitle ? (
+              <p className="mt-1 truncate text-xs text-muted-foreground">
+                {subtitle}
+              </p>
+            ) : null}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {onDownload ? (
               <Button
                 size="sm"
@@ -51,6 +68,28 @@ export function DocumentViewerDialog({
             <Button size="sm" variant="outline" onClick={onClose}>
               Fermer
             </Button>
+            {canNavigate ? (
+              <div className="flex items-center gap-1 border-l border-border pl-2">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Document précédent"
+                  disabled={!onPrevious || !hasPrevious}
+                  onClick={onPrevious}
+                >
+                  <ChevronLeft aria-hidden />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Document suivant"
+                  disabled={!onNext || !hasNext}
+                  onClick={onNext}
+                >
+                  <ChevronRight aria-hidden />
+                </Button>
+              </div>
+            ) : null}
           </div>
         </div>
 
