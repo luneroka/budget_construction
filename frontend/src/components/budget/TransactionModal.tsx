@@ -42,7 +42,9 @@ import type {
   TransactionRead,
   TransactionUpdate,
 } from '@/api/types'
+import { DeleteTransactionDialog } from '@/components/budget/DeleteTransactionDialog'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
+import { ModalShell } from '@/components/shared/ModalShell'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -897,61 +899,6 @@ function TransactionDocumentsPanel({
   )
 }
 
-function ModalShell({
-  title,
-  icon,
-  headerActions,
-  children,
-  size = 'wide',
-  onClose,
-}: {
-  title: string
-  icon: ReactNode
-  headerActions?: ReactNode
-  children: ReactNode
-  size?: 'compact' | 'wide'
-  onClose: () => void
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-    >
-      <div
-        className={cn(
-          'flex max-h-[92vh] w-full flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-xl',
-          size === 'compact' ? 'max-w-4xl' : 'max-w-5xl',
-        )}
-      >
-        <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gold/15 text-gold">
-              {icon}
-            </span>
-            <div className="min-w-0">
-              <p className="text-base font-semibold">{title}</p>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {headerActions}
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label="Fermer"
-              onClick={onClose}
-            >
-              <X aria-hidden />
-            </Button>
-          </div>
-        </div>
-        <div className="overflow-y-auto px-5 py-4 text-sm">{children}</div>
-      </div>
-    </div>
-  )
-}
-
 export function TransactionModal({
   project,
   product,
@@ -1013,10 +960,7 @@ export function TransactionModal({
   }
 
   function getSelectAsBudgetHint() {
-    if (
-      form.transaction_type === 'quote' &&
-      form.quote_status === 'rejected'
-    ) {
+    if (form.transaction_type === 'quote' && form.quote_status === 'rejected') {
       return 'Un devis rejeté ne peut pas être sélectionné comme budget.'
     }
     return 'Le montant contribuera au budget sélectionné de ce poste.'
@@ -1110,8 +1054,35 @@ export function TransactionModal({
       title="Ajouter une transaction"
       icon={<FilePlus2 className="h-5 w-5" aria-hidden="true" />}
       onClose={onClose}
+      footer={
+        <>
+          <div />
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              <X aria-hidden />
+              Fermer
+            </Button>
+            <Button
+              type="submit"
+              form="transaction-create-form"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Création...' : 'Créer'}
+            </Button>
+          </div>
+        </>
+      }
     >
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form
+        id="transaction-create-form"
+        className="space-y-4"
+        onSubmit={handleSubmit}
+      >
         <TransactionContextSummary
           project={project}
           product={product}
@@ -1435,15 +1406,6 @@ export function TransactionModal({
             {mutationError}
           </div>
         ) : null}
-
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-            Annuler
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Création...' : 'Créer'}
-          </Button>
-        </div>
       </form>
     </ModalShell>
   )
@@ -1475,6 +1437,8 @@ export function TransactionReviewModal({
   const [mutationError, setMutationError] = useState<string | null>(null)
   const [localIsBudgetSelected, setLocalIsBudgetSelected] =
     useState(isBudgetSelected)
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] =
+    useState(false)
   const isMutating =
     updateTransactionMutation.isPending ||
     selectBudgetCandidateMutation.isPending ||
@@ -1598,405 +1562,465 @@ export function TransactionReviewModal({
   }
 
   return (
-    <ModalShell
-      title={
-        isEditing ? 'Modifier la transaction' : 'Détails de la transaction'
-      }
-      icon={
-        isEditing ? (
-          <Edit3 className="h-5 w-5" aria-hidden="true" />
-        ) : (
-          <Eye className="h-5 w-5" aria-hidden="true" />
-        )
-      }
-      size="compact"
-      headerActions={
-        isEditing || readOnly ? null : (
-          <Button
-            size="sm"
-            variant="outline"
-            type="button"
-            onClick={() => setIsEditing(true)}
-          >
-            <Edit3 aria-hidden />
-            Modifier
-          </Button>
-        )
-      }
-      onClose={onClose}
-    >
-      <form className="space-y-4 text-sm" onSubmit={handleSubmit}>
-        <TransactionContextSummary
-          project={project}
-          product={product}
-          budgetLine={budgetLine}
-        />
-
-        {transaction.created_at || transaction.updated_at ? (
-          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            {transaction.created_at ? (
-              <span>Ajoutée le {formatDate(transaction.created_at)}</span>
-            ) : null}
-            {transaction.updated_at ? (
-              <span className="sm:ml-auto">
-                Dernière modification : {formatDate(transaction.updated_at)}
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-
-        <CompactSection title="Transaction">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Field
-              label={issuedDateLabels[transaction.transaction_type]}
-              htmlFor="review-transaction-issued-date"
+    <>
+      <ModalShell
+        title={
+          isEditing ? 'Modifier la transaction' : 'Détails de la transaction'
+        }
+        icon={
+          isEditing ? (
+            <Edit3 className="h-5 w-5" aria-hidden="true" />
+          ) : (
+            <Eye className="h-5 w-5" aria-hidden="true" />
+          )
+        }
+        headerActions={
+          isEditing || readOnly ? null : (
+            <Button
+              size="sm"
+              variant="outline"
+              type="button"
+              onClick={() => setIsEditing(true)}
             >
-              <Input
-                id="review-transaction-issued-date"
-                className="h-9 text-sm"
-                type={isEditing ? 'date' : 'text'}
-                value={
-                  isEditing
-                    ? form.issued_date
-                    : formatDate(transaction.issued_date)
-                }
-                readOnly={!isEditing}
-                onChange={(event) =>
-                  updateField('issued_date', event.target.value)
-                }
-                required
-              />
-            </Field>
-            <Field label="Fournisseur" htmlFor="review-transaction-supplier">
-              {isEditing ? (
-                <SupplierSelectField
-                  id="review-transaction-supplier"
-                  className="h-9 text-sm"
-                  value={form.supplier_id}
-                  suppliers={suppliers}
-                  onChange={(supplierId) =>
-                    updateField('supplier_id', supplierId)
-                  }
-                />
-              ) : (
-                <Input
-                  id="review-transaction-supplier"
-                  className="h-9 text-sm"
-                  value={transaction.supplier_name ?? selectedSupplierName}
-                  readOnly
-                />
-              )}
-            </Field>
+              <Edit3 aria-hidden />
+              Modifier
+            </Button>
+          )
+        }
+        onClose={onClose}
+        footer={
+          <>
             <div>
-              <p className="text-xs font-medium">Type</p>
-              <div className="mt-1 flex h-9 items-center rounded-md border border-input bg-muted/30 px-3">
-                <StatusBadge
-                  status={transaction.transaction_type}
-                  disabled={isEditing}
-                />
-              </div>
+              {!isEditing && !readOnly ? (
+                <Button
+                  variant="ghost"
+                  disabled={isMutating}
+                  className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  onClick={() => setIsDeleteConfirmationOpen(true)}
+                >
+                  <Trash2 aria-hidden />
+                  Supprimer la transaction
+                </Button>
+              ) : null}
             </div>
-            <Field label="Statut" htmlFor="review-transaction-status">
-              {isEditing && isQuote ? (
-                <Select
-                  id="review-transaction-status"
-                  className="h-9 text-sm"
-                  value={form.quote_status}
-                  onChange={(event) =>
-                    updateField(
-                      'quote_status',
-                      event.target.value as QuoteStatus,
-                    )
-                  }
-                >
-                  {Object.entries(quoteStatusLabels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </Select>
-              ) : isEditing && isInvoice ? (
-                <Select
-                  id="review-transaction-status"
-                  className="h-9 text-sm"
-                  value={form.invoice_status}
-                  onChange={(event) =>
-                    updateInvoiceStatus(event.target.value as InvoiceStatus)
-                  }
-                >
-                  {Object.entries(invoiceStatusLabels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </Select>
-              ) : (
-                <div className="flex h-9 items-center rounded-md border border-input bg-muted/30 px-3">
-                  {isQuote && transaction.quote_status ? (
-                    <StatusBadge status={transaction.quote_status} />
-                  ) : isInvoice && transaction.invoice_status ? (
-                    <StatusBadge status={transaction.invoice_status} />
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </div>
-              )}
-            </Field>
-
-            <Field label="Montant HT" htmlFor="review-transaction-amount-ht">
-              <Input
-                id="review-transaction-amount-ht"
-                className="h-9 text-sm"
-                type={isEditing ? 'number' : 'text'}
-                min="0"
-                step="0.01"
-                value={
-                  isEditing
-                    ? form.amount_ht
-                    : formatCurrency(transaction.amount_ht)
-                }
-                readOnly={!isEditing}
-                onChange={(event) =>
-                  updateField('amount_ht', event.target.value)
-                }
-                required
-              />
-            </Field>
-            <Field label="TVA" htmlFor="review-transaction-vat-rate">
-              <Input
-                id="review-transaction-vat-rate"
-                className="h-9 text-sm"
-                type={isEditing ? 'number' : 'text'}
-                min="0"
-                step="0.01"
-                value={isEditing ? form.vat_rate : `${transaction.vat_rate} %`}
-                readOnly={!isEditing}
-                onChange={(event) =>
-                  updateField('vat_rate', event.target.value)
-                }
-              />
-            </Field>
-            <Field label="Montant TVA" htmlFor="review-transaction-amount-vat">
-              <Input
-                id="review-transaction-amount-vat"
-                className="h-9 text-sm"
-                value={
-                  isEditing
-                    ? form.amount_vat
-                    : formatCurrency(transaction.amount_vat)
-                }
-                readOnly
-                disabled={isEditing}
-              />
-            </Field>
-            <Field label="Montant TTC" htmlFor="review-transaction-amount-ttc">
-              <Input
-                id="review-transaction-amount-ttc"
-                className="h-9 text-sm"
-                type={isEditing ? 'number' : 'text'}
-                min="0"
-                step="0.01"
-                value={
-                  isEditing
-                    ? form.amount_ttc
-                    : formatCurrency(transaction.amount_ttc)
-                }
-                readOnly={!isEditing}
-                onChange={(event) =>
-                  updateField('amount_ttc', event.target.value)
-                }
-                required
-              />
-            </Field>
-          </div>
-
-          {isQuote || isInvoice ? (
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Field
-                label="Date d'échéance"
-                htmlFor="review-transaction-due-date"
-              >
-                <Input
-                  id="review-transaction-due-date"
-                  className="h-9 text-sm"
-                  type={isEditing ? 'date' : 'text'}
-                  value={
-                    isEditing ? form.due_date : formatDate(transaction.due_date)
-                  }
-                  readOnly={!isEditing}
-                  onChange={(event) =>
-                    updateField('due_date', event.target.value)
-                  }
-                />
-              </Field>
-              {isInvoice ? (
+            <div className="flex justify-end gap-2">
+              {isEditing ? (
                 <>
-                  <Field
-                    label="Date de paiement"
-                    htmlFor="review-transaction-payment-date"
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={resetEditMode}
+                    disabled={isMutating}
                   >
-                    <Input
-                      id="review-transaction-payment-date"
-                      className="h-9 text-sm"
-                      type={isEditing ? 'date' : 'text'}
-                      value={
-                        isEditing
-                          ? form.payment_date
-                          : formatDate(transaction.payment_date)
-                      }
-                      readOnly={!isEditing}
-                      disabled={isEditing && form.invoice_status !== 'paid'}
-                      onChange={(event) =>
-                        updateField('payment_date', event.target.value)
-                      }
-                      required={isEditing && form.invoice_status === 'paid'}
-                    />
-                  </Field>
-                  <Field
-                    label="Type facture"
-                    htmlFor="review-transaction-invoice-type"
+                    Annuler
+                  </Button>
+                  <Button
+                    type="submit"
+                    form="transaction-review-form"
+                    disabled={isMutating}
                   >
-                    {isEditing ? (
-                      <Select
-                        id="review-transaction-invoice-type"
-                        className="h-9 text-sm"
-                        value={form.invoice_type}
-                        onChange={(event) =>
-                          updateField(
-                            'invoice_type',
-                            event.target.value as InvoiceType,
-                          )
-                        }
-                      >
-                        {Object.entries(invoiceTypeLabels).map(
-                          ([value, label]) => (
-                            <option key={value} value={value}>
-                              {label}
-                            </option>
-                          ),
-                        )}
-                      </Select>
-                    ) : (
-                      <Input
-                        id="review-transaction-invoice-type"
-                        className="h-9 text-sm"
-                        value={
-                          transaction.invoice_type
-                            ? invoiceTypeLabels[transaction.invoice_type]
-                            : '-'
-                        }
-                        readOnly
-                      />
-                    )}
-                  </Field>
-                  <Field
-                    label="Moyen de paiement"
-                    htmlFor="review-transaction-payment-method"
-                  >
-                    {isEditing ? (
-                      <Select
-                        id="review-transaction-payment-method"
-                        className="h-9 text-sm"
-                        value={form.payment_method}
-                        onChange={(event) =>
-                          updateField(
-                            'payment_method',
-                            event.target.value as PaymentMethod,
-                          )
-                        }
-                      >
-                        {Object.entries(paymentMethodLabels).map(
-                          ([value, label]) => (
-                            <option key={value} value={value}>
-                              {label}
-                            </option>
-                          ),
-                        )}
-                      </Select>
-                    ) : (
-                      <Input
-                        id="review-transaction-payment-method"
-                        className="h-9 text-sm"
-                        value={
-                          transaction.payment_method
-                            ? paymentMethodLabels[transaction.payment_method]
-                            : '-'
-                        }
-                        readOnly
-                      />
-                    )}
-                  </Field>
+                    {isMutating ? 'Enregistrement...' : 'Enregistrer'}
+                  </Button>
                 </>
+              ) : (
+                <Button variant="ghost" onClick={onClose}>
+                  <X aria-hidden />
+                  Fermer
+                </Button>
+              )}
+            </div>
+          </>
+        }
+      >
+        <form
+          id="transaction-review-form"
+          className="space-y-4 text-sm"
+          onSubmit={handleSubmit}
+        >
+          <TransactionContextSummary
+            project={project}
+            product={product}
+            budgetLine={budgetLine}
+          />
+
+          {transaction.created_at || transaction.updated_at ? (
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              {transaction.created_at ? (
+                <span>Ajoutée le {formatDate(transaction.created_at)}</span>
+              ) : null}
+              {transaction.updated_at ? (
+                <span className="sm:ml-auto">
+                  Dernière modification : {formatDate(transaction.updated_at)}
+                </span>
               ) : null}
             </div>
           ) : null}
-        </CompactSection>
 
-        <CompactSection title="Détails">
-          <div
-            className={cn(
-              'grid gap-3 lg:items-end',
-              isInvoice
-                ? 'lg:grid-cols-1'
-                : 'lg:grid-cols-[minmax(16rem,1fr)_13rem]',
-            )}
-          >
-            <Field label="Description" htmlFor="review-transaction-description">
-              <Input
-                id="review-transaction-description"
-                className="h-9 text-sm"
-                value={form.description}
-                readOnly={!isEditing}
-                onChange={(event) =>
-                  updateField('description', event.target.value)
-                }
-              />
-            </Field>
-            {isInvoice ? null : (
-              <label className="flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm">
-                <Checkbox
-                  checked={localIsBudgetSelected}
-                  disabled={
-                    readOnly || !canToggleBudgetSelectionFromForm || isMutating
+          <CompactSection title="Transaction">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Field
+                label={issuedDateLabels[transaction.transaction_type]}
+                htmlFor="review-transaction-issued-date"
+              >
+                <Input
+                  id="review-transaction-issued-date"
+                  className="h-9 text-sm"
+                  type={isEditing ? 'date' : 'text'}
+                  value={
+                    isEditing
+                      ? form.issued_date
+                      : formatDate(transaction.issued_date)
                   }
-                  onChange={handleBudgetSelectionToggle}
+                  readOnly={!isEditing}
+                  onChange={(event) =>
+                    updateField('issued_date', event.target.value)
+                  }
+                  required
                 />
-                Sélectionné pour budget
-              </label>
-            )}
-          </div>
-        </CompactSection>
+              </Field>
+              <Field label="Fournisseur" htmlFor="review-transaction-supplier">
+                {isEditing ? (
+                  <SupplierSelectField
+                    id="review-transaction-supplier"
+                    className="h-9 text-sm"
+                    value={form.supplier_id}
+                    suppliers={suppliers}
+                    onChange={(supplierId) =>
+                      updateField('supplier_id', supplierId)
+                    }
+                  />
+                ) : (
+                  <Input
+                    id="review-transaction-supplier"
+                    className="h-9 text-sm"
+                    value={transaction.supplier_name ?? selectedSupplierName}
+                    readOnly
+                  />
+                )}
+              </Field>
+              <div>
+                <p className="text-xs font-medium">Type</p>
+                <div className="mt-1 flex h-9 items-center rounded-md border border-input bg-muted/30 px-3">
+                  <StatusBadge
+                    status={transaction.transaction_type}
+                    disabled={isEditing}
+                  />
+                </div>
+              </div>
+              <Field label="Statut" htmlFor="review-transaction-status">
+                {isEditing && isQuote ? (
+                  <Select
+                    id="review-transaction-status"
+                    className="h-9 text-sm"
+                    value={form.quote_status}
+                    onChange={(event) =>
+                      updateField(
+                        'quote_status',
+                        event.target.value as QuoteStatus,
+                      )
+                    }
+                  >
+                    {Object.entries(quoteStatusLabels).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </Select>
+                ) : isEditing && isInvoice ? (
+                  <Select
+                    id="review-transaction-status"
+                    className="h-9 text-sm"
+                    value={form.invoice_status}
+                    onChange={(event) =>
+                      updateInvoiceStatus(event.target.value as InvoiceStatus)
+                    }
+                  >
+                    {Object.entries(invoiceStatusLabels).map(
+                      ([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ),
+                    )}
+                  </Select>
+                ) : (
+                  <div className="flex h-9 items-center rounded-md border border-input bg-muted/30 px-3">
+                    {isQuote && transaction.quote_status ? (
+                      <StatusBadge status={transaction.quote_status} />
+                    ) : isInvoice && transaction.invoice_status ? (
+                      <StatusBadge status={transaction.invoice_status} />
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </div>
+                )}
+              </Field>
 
-        {Number.isInteger(Number(transaction.id)) ? (
-          <TransactionDocumentsPanel
-            transactionId={Number(transaction.id)}
-            projectId={Number(project.id)}
-            readOnly={readOnly}
-          />
-        ) : null}
+              <Field label="Montant HT" htmlFor="review-transaction-amount-ht">
+                <Input
+                  id="review-transaction-amount-ht"
+                  className="h-9 text-sm"
+                  type={isEditing ? 'number' : 'text'}
+                  min="0"
+                  step="0.01"
+                  value={
+                    isEditing
+                      ? form.amount_ht
+                      : formatCurrency(transaction.amount_ht)
+                  }
+                  readOnly={!isEditing}
+                  onChange={(event) =>
+                    updateField('amount_ht', event.target.value)
+                  }
+                  required
+                />
+              </Field>
+              <Field label="TVA" htmlFor="review-transaction-vat-rate">
+                <Input
+                  id="review-transaction-vat-rate"
+                  className="h-9 text-sm"
+                  type={isEditing ? 'number' : 'text'}
+                  min="0"
+                  step="0.01"
+                  value={
+                    isEditing ? form.vat_rate : `${transaction.vat_rate} %`
+                  }
+                  readOnly={!isEditing}
+                  onChange={(event) =>
+                    updateField('vat_rate', event.target.value)
+                  }
+                />
+              </Field>
+              <Field
+                label="Montant TVA"
+                htmlFor="review-transaction-amount-vat"
+              >
+                <Input
+                  id="review-transaction-amount-vat"
+                  className="h-9 text-sm"
+                  value={
+                    isEditing
+                      ? form.amount_vat
+                      : formatCurrency(transaction.amount_vat)
+                  }
+                  readOnly
+                  disabled={isEditing}
+                />
+              </Field>
+              <Field
+                label="Montant TTC"
+                htmlFor="review-transaction-amount-ttc"
+              >
+                <Input
+                  id="review-transaction-amount-ttc"
+                  className="h-9 text-sm"
+                  type={isEditing ? 'number' : 'text'}
+                  min="0"
+                  step="0.01"
+                  value={
+                    isEditing
+                      ? form.amount_ttc
+                      : formatCurrency(transaction.amount_ttc)
+                  }
+                  readOnly={!isEditing}
+                  onChange={(event) =>
+                    updateField('amount_ttc', event.target.value)
+                  }
+                  required
+                />
+              </Field>
+            </div>
 
-        {mutationError ? (
-          <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-            {mutationError}
-          </div>
-        ) : null}
+            {isQuote || isInvoice ? (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Field
+                  label="Date d'échéance"
+                  htmlFor="review-transaction-due-date"
+                >
+                  <Input
+                    id="review-transaction-due-date"
+                    className="h-9 text-sm"
+                    type={isEditing ? 'date' : 'text'}
+                    value={
+                      isEditing
+                        ? form.due_date
+                        : formatDate(transaction.due_date)
+                    }
+                    readOnly={!isEditing}
+                    onChange={(event) =>
+                      updateField('due_date', event.target.value)
+                    }
+                  />
+                </Field>
+                {isInvoice ? (
+                  <>
+                    <Field
+                      label="Date de paiement"
+                      htmlFor="review-transaction-payment-date"
+                    >
+                      <Input
+                        id="review-transaction-payment-date"
+                        className="h-9 text-sm"
+                        type={isEditing ? 'date' : 'text'}
+                        value={
+                          isEditing
+                            ? form.payment_date
+                            : formatDate(transaction.payment_date)
+                        }
+                        readOnly={!isEditing}
+                        disabled={isEditing && form.invoice_status !== 'paid'}
+                        onChange={(event) =>
+                          updateField('payment_date', event.target.value)
+                        }
+                        required={isEditing && form.invoice_status === 'paid'}
+                      />
+                    </Field>
+                    <Field
+                      label="Type facture"
+                      htmlFor="review-transaction-invoice-type"
+                    >
+                      {isEditing ? (
+                        <Select
+                          id="review-transaction-invoice-type"
+                          className="h-9 text-sm"
+                          value={form.invoice_type}
+                          onChange={(event) =>
+                            updateField(
+                              'invoice_type',
+                              event.target.value as InvoiceType,
+                            )
+                          }
+                        >
+                          {Object.entries(invoiceTypeLabels).map(
+                            ([value, label]) => (
+                              <option key={value} value={value}>
+                                {label}
+                              </option>
+                            ),
+                          )}
+                        </Select>
+                      ) : (
+                        <Input
+                          id="review-transaction-invoice-type"
+                          className="h-9 text-sm"
+                          value={
+                            transaction.invoice_type
+                              ? invoiceTypeLabels[transaction.invoice_type]
+                              : '-'
+                          }
+                          readOnly
+                        />
+                      )}
+                    </Field>
+                    <Field
+                      label="Moyen de paiement"
+                      htmlFor="review-transaction-payment-method"
+                    >
+                      {isEditing ? (
+                        <Select
+                          id="review-transaction-payment-method"
+                          className="h-9 text-sm"
+                          value={form.payment_method}
+                          onChange={(event) =>
+                            updateField(
+                              'payment_method',
+                              event.target.value as PaymentMethod,
+                            )
+                          }
+                        >
+                          {Object.entries(paymentMethodLabels).map(
+                            ([value, label]) => (
+                              <option key={value} value={value}>
+                                {label}
+                              </option>
+                            ),
+                          )}
+                        </Select>
+                      ) : (
+                        <Input
+                          id="review-transaction-payment-method"
+                          className="h-9 text-sm"
+                          value={
+                            transaction.payment_method
+                              ? paymentMethodLabels[transaction.payment_method]
+                              : '-'
+                          }
+                          readOnly
+                        />
+                      )}
+                    </Field>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+          </CompactSection>
 
-        {isEditing ? (
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              type="button"
-              onClick={resetEditMode}
-              disabled={isMutating}
+          <CompactSection title="Détails">
+            <div
+              className={cn(
+                'grid gap-3 lg:items-end',
+                isInvoice
+                  ? 'lg:grid-cols-1'
+                  : 'lg:grid-cols-[minmax(16rem,1fr)_13rem]',
+              )}
             >
-              Annuler
-            </Button>
-            <Button type="submit" disabled={isMutating}>
-              {isMutating ? 'Enregistrement...' : 'Enregistrer'}
-            </Button>
-          </div>
-        ) : null}
-      </form>
-    </ModalShell>
+              <Field
+                label="Description"
+                htmlFor="review-transaction-description"
+              >
+                <Input
+                  id="review-transaction-description"
+                  className="h-9 text-sm"
+                  value={form.description}
+                  readOnly={!isEditing}
+                  onChange={(event) =>
+                    updateField('description', event.target.value)
+                  }
+                />
+              </Field>
+              {isInvoice ? null : (
+                <label className="flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm">
+                  <Checkbox
+                    checked={localIsBudgetSelected}
+                    disabled={
+                      readOnly ||
+                      !canToggleBudgetSelectionFromForm ||
+                      isMutating
+                    }
+                    onChange={handleBudgetSelectionToggle}
+                  />
+                  Sélectionné pour budget
+                </label>
+              )}
+            </div>
+          </CompactSection>
+
+          {Number.isInteger(Number(transaction.id)) ? (
+            <TransactionDocumentsPanel
+              transactionId={Number(transaction.id)}
+              projectId={Number(project.id)}
+              readOnly={readOnly}
+            />
+          ) : null}
+
+          {mutationError ? (
+            <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+              {mutationError}
+            </div>
+          ) : null}
+        </form>
+      </ModalShell>
+      {isDeleteConfirmationOpen ? (
+        <DeleteTransactionDialog
+          context={context}
+          projectId={Number(project.id)}
+          onCancel={() => setIsDeleteConfirmationOpen(false)}
+          onConfirm={() => {
+            setIsDeleteConfirmationOpen(false)
+            onClose()
+          }}
+        />
+      ) : null}
+    </>
   )
 }
