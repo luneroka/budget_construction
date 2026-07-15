@@ -203,6 +203,7 @@ function optionalDecimal(value: string) {
 }
 
 function optionalId(value: string) {
+  if (value.trim() === '') return null
   const parsed = Number(value)
   return Number.isInteger(parsed) ? parsed : null
 }
