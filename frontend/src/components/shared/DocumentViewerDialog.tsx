@@ -57,7 +57,7 @@ export function DocumentViewerDialog({
             {onDownload ? (
               <Button
                 size="sm"
-                variant="secondary"
+                variant="outline"
                 onClick={onDownload}
                 disabled={isPending}
               >
