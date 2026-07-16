@@ -263,6 +263,14 @@ export function ProjectsSettingsPage() {
     }
   }
 
+  function handleCancelEdit() {
+    if (!currentProject) return
+
+    setForm(formFromProject(currentProject))
+    setFormError(null)
+    setIsEditingProjectInfo(false)
+  }
+
   async function handleDeleteProject() {
     if (!currentProject) return
 
@@ -566,22 +574,33 @@ export function ProjectsSettingsPage() {
                 </p>
               ) : null}
 
-              {isEditingProjectInfo && hasChanges ? (
-                <div className="flex justify-end border-t border-border pt-3">
+              {isEditingProjectInfo ? (
+                <div className="flex justify-end gap-2 border-t border-border pt-3">
                   <Button
-                    type="submit"
+                    type="button"
+                    variant="outline"
                     size="sm"
                     disabled={updateProjectMutation.isPending}
+                    onClick={handleCancelEdit}
                   >
-                    {updateProjectMutation.isPending ? (
-                      <Loader2 className="animate-spin" aria-hidden />
-                    ) : (
-                      <Save aria-hidden />
-                    )}
-                    {updateProjectMutation.isPending
-                      ? 'Enregistrement'
-                      : 'Enregistrer'}
+                    Annuler
                   </Button>
+                  {hasChanges ? (
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={updateProjectMutation.isPending}
+                    >
+                      {updateProjectMutation.isPending ? (
+                        <Loader2 className="animate-spin" aria-hidden />
+                      ) : (
+                        <Save aria-hidden />
+                      )}
+                      {updateProjectMutation.isPending
+                        ? 'Enregistrement'
+                        : 'Enregistrer'}
+                    </Button>
+                  ) : null}
                 </div>
               ) : null}
             </form>
