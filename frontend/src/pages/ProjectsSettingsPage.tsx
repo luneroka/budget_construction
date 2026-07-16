@@ -49,7 +49,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useProjectOnboarding } from '@/hooks/useProjectOnboarding'
-import { formatProjectStatus } from '@/lib/format'
+import { formatDate, formatProjectStatus } from '@/lib/format'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import { useAppState } from '@/state/appState'
 
@@ -501,9 +501,18 @@ export function ProjectsSettingsPage() {
                     </Label>
                     <Input
                       id="project-settings-start-date"
-                      type="date"
+                      type={isEditingProjectInfo ? 'date' : 'text'}
+                      placeholder={
+                        isEditingProjectInfo ? undefined : 'Non renseignée'
+                      }
                       className="h-8"
-                      value={form.startDate}
+                      value={
+                        isEditingProjectInfo
+                          ? form.startDate
+                          : form.startDate
+                            ? formatDate(form.startDate)
+                            : ''
+                      }
                       disabled={
                         !isEditingProjectInfo || updateProjectMutation.isPending
                       }
@@ -526,9 +535,18 @@ export function ProjectsSettingsPage() {
                     </Label>
                     <Input
                       id="project-settings-end-date"
-                      type="date"
+                      type={isEditingProjectInfo ? 'date' : 'text'}
+                      placeholder={
+                        isEditingProjectInfo ? undefined : 'Non renseignée'
+                      }
                       className="h-8"
-                      value={form.endDate}
+                      value={
+                        isEditingProjectInfo
+                          ? form.endDate
+                          : form.endDate
+                            ? formatDate(form.endDate)
+                            : ''
+                      }
                       disabled={
                         !isEditingProjectInfo || updateProjectMutation.isPending
                       }
