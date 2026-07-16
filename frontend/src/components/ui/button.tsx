@@ -11,7 +11,7 @@ type ButtonVariant =
   | 'link'
   | 'gold'
 
-type ButtonSize = 'default' | 'sm' | 'lg' | 'icon'
+type ButtonSize = 'default' | 'sm' | 'lg' | 'icon' | 'icon-sm'
 
 const variantClasses: Record<ButtonVariant, string> = {
   default: 'bg-primary text-primary-foreground hover:bg-primary/90',
@@ -30,6 +30,7 @@ const sizeClasses: Record<ButtonSize, string> = {
   sm: 'h-9 px-3',
   lg: 'h-11 px-8',
   icon: 'h-10 w-10',
+  'icon-sm': 'h-9 w-9',
 }
 
 export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {

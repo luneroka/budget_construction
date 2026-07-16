@@ -835,7 +835,7 @@ export function TransactionsPage() {
           subtitle={formatOriginalFilename(
             documentViewer.document.original_filename,
           )}
-          url={documentViewer.url ?? ''}
+          url={documentViewer.url}
           isPending={documentViewer.isLoading}
           error={documentViewer.error}
           onClose={documentViewer.close}

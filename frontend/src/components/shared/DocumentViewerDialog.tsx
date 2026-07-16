@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 
@@ -6,7 +6,7 @@ type DocumentViewerDialogProps = {
   title: string
   positionLabel?: string | null
   subtitle?: string
-  url: string
+  url: string | null
   isPending?: boolean
   error?: string | null
   onClose: () => void
@@ -31,7 +31,7 @@ export function DocumentViewerDialog({
   hasPrevious = false,
   hasNext = false,
 }: DocumentViewerDialogProps) {
-  const canNavigate = Boolean(onPrevious || onNext)
+  const canNavigate = hasPrevious || hasNext
 
   return (
     <div
@@ -61,24 +61,10 @@ export function DocumentViewerDialog({
             ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {onDownload ? (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={onDownload}
-                disabled={isPending}
-              >
-                <Download className="h-4 w-4" aria-hidden="true" />
-                Télécharger
-              </Button>
-            ) : null}
-            <Button size="sm" variant="outline" onClick={onClose}>
-              Fermer
-            </Button>
             {canNavigate ? (
-              <div className="flex items-center gap-1 border-l border-border pl-2">
+              <div className="flex items-center gap-1 border-r border-border pr-2">
                 <Button
-                  size="icon"
+                  size="icon-sm"
                   variant="outline"
                   aria-label="Document précédent"
                   disabled={!onPrevious || !hasPrevious}
@@ -87,7 +73,7 @@ export function DocumentViewerDialog({
                   <ChevronLeft aria-hidden />
                 </Button>
                 <Button
-                  size="icon"
+                  size="icon-sm"
                   variant="outline"
                   aria-label="Document suivant"
                   disabled={!onNext || !hasNext}
@@ -97,6 +83,20 @@ export function DocumentViewerDialog({
                 </Button>
               </div>
             ) : null}
+            {onDownload ? (
+              <Button
+                size="icon-sm"
+                variant="outline"
+                aria-label="Télécharger"
+                onClick={onDownload}
+                disabled={isPending}
+              >
+                <Download aria-hidden="true" />
+              </Button>
+            ) : null}
+            <Button size="sm" variant="outline" onClick={onClose}>
+              Fermer
+            </Button>
           </div>
         </div>
 
@@ -105,13 +105,18 @@ export function DocumentViewerDialog({
             <p>Impossible d’afficher le document.</p>
             <p className="mt-2 text-muted-foreground">{error}</p>
           </div>
-        ) : (
+        ) : url ? (
           <div className="relative flex-1 overflow-hidden bg-black">
             <iframe
               src={url}
               title={title}
               className="h-full w-full border-0 bg-black"
             />
+          </div>
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-2 bg-black text-sm text-white/60">
+            <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+            Chargement du document
           </div>
         )}
       </div>
