@@ -203,6 +203,8 @@ export function BudgetTree({
     toggleProduct,
     toggleBudgetLine,
     openProduct,
+    closeBudgetLines,
+    collapseAllProducts,
   } = useBudgetExpansion()
   const focusedProductRef = useRef<HTMLTableRowElement | null>(null)
   const [productSearch, setProductSearch] = useState('')
@@ -309,6 +311,18 @@ export function BudgetTree({
     })
   }
 
+  function handleSelectCategory(categoryId: string) {
+    collapseAllProducts()
+    setSearchOpenProductIds(new Set())
+    onSelectCategory(categoryId)
+  }
+
+  function handleSelectSubcategory(subcategoryName: string) {
+    collapseAllProducts()
+    setSearchOpenProductIds(new Set())
+    onSelectSubcategory(subcategoryName)
+  }
+
   useEffect(() => {
     if (
       selectedCategoryId !== ALL_CATEGORIES_ID &&
@@ -367,7 +381,7 @@ export function BudgetTree({
             key={category.id}
             category={category}
             isSelected={category.id === selectedCategoryId}
-            onSelect={() => onSelectCategory(category.id)}
+            onSelect={() => handleSelectCategory(category.id)}
           />
         ))}
       </div>
@@ -381,7 +395,7 @@ export function BudgetTree({
               ? 'border-primary bg-primary text-primary-foreground'
               : 'border-border bg-card text-muted-foreground hover:border-primary/60 hover:text-primary',
           )}
-          onClick={() => onSelectSubcategory(ALL_SUBCATEGORIES_ID)}
+          onClick={() => handleSelectSubcategory(ALL_SUBCATEGORIES_ID)}
           aria-pressed={selectedSubcategoryName === ALL_SUBCATEGORIES_ID}
         >
           Tous
@@ -396,7 +410,7 @@ export function BudgetTree({
                 ? 'border-primary bg-primary text-primary-foreground'
                 : 'border-border bg-card text-muted-foreground hover:border-primary/60 hover:text-primary',
             )}
-            onClick={() => onSelectSubcategory(group.name)}
+            onClick={() => handleSelectSubcategory(group.name)}
             aria-pressed={selectedSubcategoryName === group.name}
           >
             {group.name}
@@ -482,11 +496,20 @@ export function BudgetTree({
                       isFocused={focusedProductId === product.product_id}
                       isOpen={isProductOpen}
                       searchQuery={isSearchActive ? productSearch : ''}
-                      onToggle={() =>
-                        isSearchActive
-                          ? toggleSearchProduct(product.product_id)
-                          : toggleProduct(product.product_id)
-                      }
+                      onToggle={() => {
+                        if (isProductOpen) {
+                          closeBudgetLines(
+                            product.budget_lines.map(
+                              (line) => line.budget_line_id,
+                            ),
+                          )
+                        }
+                        if (isSearchActive) {
+                          toggleSearchProduct(product.product_id)
+                        } else {
+                          toggleProduct(product.product_id)
+                        }
+                      }}
                     />
                     {isProductOpen ? (
                       isEmptyProduct ? (

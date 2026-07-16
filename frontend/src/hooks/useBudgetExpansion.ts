@@ -35,6 +35,21 @@ export function useBudgetExpansion() {
     (id: string) => setOpenBudgetLines((current) => new Set(current).add(id)),
     [],
   )
+  const closeBudgetLines = useCallback((ids: string[]) => {
+    if (ids.length === 0) return
+    setOpenBudgetLines((current) => {
+      const next = new Set(current)
+      let changed = false
+      for (const id of ids) {
+        if (next.delete(id)) changed = true
+      }
+      return changed ? next : current
+    })
+  }, [])
+  const collapseAllProducts = useCallback(() => {
+    setOpenProducts(new Set())
+    setOpenBudgetLines(new Set())
+  }, [])
   const toggleCategory = useCallback(
     (id: string) =>
       setOpenCategories((current) => toggleSetValue(current, id)),
@@ -64,6 +79,8 @@ export function useBudgetExpansion() {
     openSubcategory,
     openProduct,
     openBudgetLine,
+    closeBudgetLines,
+    collapseAllProducts,
     toggleCategory,
     toggleSubcategory,
     toggleProduct,
