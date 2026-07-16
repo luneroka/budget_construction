@@ -29,7 +29,7 @@ import {
   useBudgetWorkspaceQuery,
 } from '@/lib/budgetWorkspaceApiAdapter'
 import {
-  formatDocumentViewerTitle,
+  formatDocumentPositionLabel,
   formatOriginalFilename,
 } from '@/lib/documents'
 import { formatCurrency } from '@/lib/format'
@@ -240,8 +240,8 @@ export function BudgetPage() {
 
       {documentViewer.isOpen && documentViewer.document ? (
         <DocumentViewerDialog
-          title={formatDocumentViewerTitle(
-            documentViewer.contextLabel,
+          title={documentViewer.contextLabel}
+          positionLabel={formatDocumentPositionLabel(
             documentViewer.index + 1,
             documentViewer.count,
           )}

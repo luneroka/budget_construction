@@ -34,6 +34,7 @@ import {
 import {
   downloadDocument,
   downloadSupplierDocument,
+  formatDocumentPositionLabel,
   formatDocumentViewerTitle,
   formatOriginalFilename,
 } from '@/lib/documents'
@@ -136,14 +137,28 @@ export function DocumentsPage() {
     [documents],
   )
 
+  function getDocumentPosition(document: DocumentsListItem) {
+    return document.type === 'document'
+      ? transactionDocumentPositions.get(document.id)
+      : undefined
+  }
+
   function formatViewerTitle(document: DocumentsListItem): string {
-    const position =
-      document.type === 'document'
-        ? transactionDocumentPositions.get(document.id)
-        : undefined
+    const position = getDocumentPosition(document)
 
     return formatDocumentViewerTitle(
       formatDocumentDisplayName(document),
+      position?.index ?? 1,
+      position?.total ?? 1,
+    )
+  }
+
+  function formatViewerPositionLabel(
+    document: DocumentsListItem,
+  ): string | null {
+    const position = getDocumentPosition(document)
+
+    return formatDocumentPositionLabel(
       position?.index ?? 1,
       position?.total ?? 1,
     )
@@ -454,7 +469,8 @@ export function DocumentsPage() {
 
       {viewerDocument ? (
         <DocumentViewerDialog
-          title={formatViewerTitle(viewerDocument.document)}
+          title={formatDocumentDisplayName(viewerDocument.document)}
+          positionLabel={formatViewerPositionLabel(viewerDocument.document)}
           subtitle={formatOriginalFilename(
             viewerDocument.document.original_filename,
           )}

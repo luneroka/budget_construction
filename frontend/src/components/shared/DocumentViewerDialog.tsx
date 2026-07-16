@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 
 type DocumentViewerDialogProps = {
   title: string
+  positionLabel?: string | null
   subtitle?: string
   url: string
   isPending?: boolean
@@ -18,6 +19,7 @@ type DocumentViewerDialogProps = {
 
 export function DocumentViewerDialog({
   title,
+  positionLabel,
   subtitle,
   url,
   isPending = false,
@@ -47,6 +49,11 @@ export function DocumentViewerDialog({
             >
               {title}
             </p>
+            {positionLabel ? (
+              <p className="mt-0.5 text-xs italic text-muted-foreground">
+                {positionLabel}
+              </p>
+            ) : null}
             {subtitle ? (
               <p className="mt-1 truncate text-xs text-muted-foreground">
                 {subtitle}
@@ -72,7 +79,7 @@ export function DocumentViewerDialog({
               <div className="flex items-center gap-1 border-l border-border pl-2">
                 <Button
                   size="icon"
-                  variant="ghost"
+                  variant="outline"
                   aria-label="Document précédent"
                   disabled={!onPrevious || !hasPrevious}
                   onClick={onPrevious}
@@ -81,7 +88,7 @@ export function DocumentViewerDialog({
                 </Button>
                 <Button
                   size="icon"
-                  variant="ghost"
+                  variant="outline"
                   aria-label="Document suivant"
                   disabled={!onNext || !hasNext}
                   onClick={onNext}

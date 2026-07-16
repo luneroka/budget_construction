@@ -29,6 +29,13 @@ export function formatDocumentViewerTitle(
   return total > 1 ? `${label} · Document ${index}/${total}` : label
 }
 
+export function formatDocumentPositionLabel(
+  index: number,
+  total: number,
+): string | null {
+  return total > 1 ? `Document ${index}/${total}` : null
+}
+
 export function formatOriginalFilename(filename: string): string {
   return `Fichier original : ${filename}`
 }

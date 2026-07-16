@@ -57,7 +57,7 @@ import {
   visibleQuickViews,
 } from '@/lib/transactionWorkspace'
 import {
-  formatDocumentViewerTitle,
+  formatDocumentPositionLabel,
   formatOriginalFilename,
 } from '@/lib/documents'
 import { formatCurrency, formatDate } from '@/lib/format'
@@ -827,8 +827,8 @@ export function TransactionsPage() {
 
       {documentViewer.isOpen && documentViewer.document ? (
         <DocumentViewerDialog
-          title={formatDocumentViewerTitle(
-            documentViewer.contextLabel,
+          title={documentViewer.contextLabel}
+          positionLabel={formatDocumentPositionLabel(
             documentViewer.index + 1,
             documentViewer.count,
           )}
