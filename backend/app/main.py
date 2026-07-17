@@ -34,6 +34,7 @@ from app.routers import (
     supplier_documents,
     exports,
     issue_reports,
+    contact_requests,
     trash,
     admin,
 )
@@ -127,6 +128,7 @@ async def readiness_check() -> dict[str, str]:
     return {'status': 'ok'}
 
 app.include_router(auth.router)
+app.include_router(contact_requests.router)
 app.include_router(users.router)
 app.include_router(categories.router)
 app.include_router(subcategories.router)

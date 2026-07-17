@@ -252,3 +252,114 @@ Metadata
     except Exception:
         logger.exception('Failed to send issue report email through Resend')
         return False
+
+
+async def send_contact_request_email(
+    *, name: str, email: str, reason: str, message: str
+) -> bool:
+    if not _resend_config_available():
+        logger.error(
+            'Cannot send contact request email: Resend configuration is missing'
+        )
+        return False
+
+    recipient_email = settings.support_email or settings.resend_from
+    subject = f'Bâti Budget – Nouvelle demande de contact ({reason})'
+
+    html = f"""\
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{escape(subject)}</title>
+  </head>
+  <body style="margin:0; padding:0; background:#f7f9fb; color:#1b2433; font-family:'Source Sans 3', Arial, sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f7f9fb; margin:0; padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px; background:#ffffff; border:1px solid #dde3ea; border-radius:8px; overflow:hidden;">
+            <tr>
+              <td style="background:#1f2f52; padding:24px 28px;">
+                <p style="margin:0 0 6px; color:#d4a73d; font-size:13px; font-weight:700; letter-spacing:0.02em;">
+                  Bâti Budget
+                </p>
+                <h1 style="margin:0; color:#f8fafc; font-family:Georgia, 'Times New Roman', serif; font-size:26px; line-height:1.2; font-weight:700;">
+                  Nouvelle demande de contact
+                </h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:28px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%; border-collapse:collapse; margin:0 0 22px;">
+                  <tr>
+                    <th align="left" style="padding:6px 0; font-size:14px; color:#64748b; width:110px;">Nom</th>
+                    <td style="padding:6px 0; font-size:14px;">{escape(name)}</td>
+                  </tr>
+                  <tr>
+                    <th align="left" style="padding:6px 0; font-size:14px; color:#64748b;">Email</th>
+                    <td style="padding:6px 0; font-size:14px;">{escape(email)}</td>
+                  </tr>
+                  <tr>
+                    <th align="left" style="padding:6px 0; font-size:14px; color:#64748b;">Raison</th>
+                    <td style="padding:6px 0; font-size:14px;">{escape(reason)}</td>
+                  </tr>
+                </table>
+                <p style="margin:0 0 8px; font-size:14px; font-weight:700; color:#64748b;">
+                  Message
+                </p>
+                <p style="margin:0; font-size:16px; line-height:1.6; white-space:pre-wrap;">{escape(message)}</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="background:#f1f5f9; border-top:1px solid #dde3ea; padding:18px 28px;">
+                <p style="margin:0; font-size:12px; line-height:1.5; color:#64748b;">
+                  Envoyé depuis le formulaire de contact de la page de connexion de Bâti Budget. Répondez directement à cet e-mail pour contacter {escape(name)}.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+"""
+
+    text = f"""\
+Nouvelle demande de contact
+
+Nom : {name}
+Email : {email}
+Raison : {reason}
+
+Message
+{message}
+"""
+
+    payload: dict[str, Any] = {
+        'from': settings.resend_from,
+        'to': [recipient_email],
+        'reply_to': email,
+        'subject': subject,
+        'html': html,
+        'text': text,
+    }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                RESEND_API_URL, json=payload, headers=_resend_headers(), timeout=10.0
+            )
+
+            if resp.status_code not in (200, 202):
+                logger.error(
+                    'Resend rejected contact request email with status code %s',
+                    resp.status_code,
+                )
+                return False
+
+            return True
+    except Exception:
+        logger.exception('Failed to send contact request email through Resend')
+        return False

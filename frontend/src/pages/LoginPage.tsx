@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { forgotPassword } from '@/api/auth'
 import { getApiErrorMessage } from '@/api/client'
 import { useAuth } from '@/auth/authContext'
+import { ContactOwnerDialog } from '@/components/shared/ContactOwnerDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -175,6 +176,8 @@ export function LoginPage() {
             </Button>
           </div>
         </form>
+
+        <ContactOwnerDialog />
       </section>
     </main>
   )
