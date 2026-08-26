@@ -62,7 +62,9 @@ healthy read-only, Caddy healthy with `NET_BIND_SERVICE` only); inside that
 production-mode container `/docs` and `/openapi.json` answer 404, the sixth
 failed login answers 429, and `security:` lines appear in the logs.
 
-**Still for the owner:** the production rollout in section 5, and S-05b — switch
+**Deployed to the VPS on 2026-08-26 16:02 UTC** and verified from outside: headers/HSTS/`no-store` present, `/api/docs`, `/api/openapi.json` and `POST /api/auth/register` → 404, sixth failed login → 429 with `Retry-After`. Every "Deploy WP-1" row below is therefore live.
+
+**Still for the owner:** S-05b — switch
 `Content-Security-Policy-Report-Only` to `Content-Security-Policy` in the
 Caddyfile once a week of Report-Only shows no legitimate violations
 (earliest 2026-09-02), then reload Caddy.
@@ -74,7 +76,7 @@ Caddyfile once a week of Report-Only shows no legitimate violations
 | S-03 | No rate limiting | ✅ Fixed — slowapi per-IP limits, per-account lockout, per-address reset cap; `rate_limited` error code | Deploy WP-1 |
 | S-04 | Vulnerable dependencies | ✅ Fixed — starlette 1.6, python-multipart 0.0.32, cryptography 50, pyasn1 0.6.4, pydantic-settings 2.15, fastapi 0.141; frontend `npm audit` clean | Deploy WP-1/WP-2 |
 | S-05 | Missing security headers | ✅ Fixed — HSTS, CSP (Report-Only), X-Frame-Options, Permissions-Policy, COOP, `no-store` on `/api` | Caddy reload; enforce CSP after the Report-Only week (S-05b) |
-| S-06 | No edge body-size limit | ✅ Fixed — Caddy `request_body max_size 25MB`; 413 mapped in the SPA | Caddy reload |
+| S-06 | No edge body-size limit | ✅ Fixed & live — Caddy `request_body max_size 25MB` (stream cap, 413); Starlette additionally caps non-file form fields at 1 MB; 413 mapped in the SPA | Done 2026-08-26 |
 | S-07 | Email change without re-auth | ✅ Fixed — `current_password` required, sessions revoked, old address notified | Deploy WP-1 |
 | S-08 | python-jose / ecdsa | ✅ Fixed — PyJWT, symmetric algorithms only; `pip-audit` clean | Deploy WP-1 |
 | S-09 | Client IP not propagated | ✅ Fixed — `FORWARDED_ALLOW_IPS=*` on the backend service | `up -d` recreates backend |
@@ -662,9 +664,12 @@ for i in $(seq 1 6); do curl -s -o /dev/null -w '%{http_code} ' -X POST \
   https://batibudget.com/api/auth/login -d 'username=x@example.com&password=wrong'; done; echo
 # real client IP reaches the app (look for your IP, not 172.x, in the security log)
 docker compose --env-file .env.production -f docker-compose.prod.yml logs --since 2m backend | grep login_failed
-# body cap
+# body cap. Caddy caps the proxied *stream* at 25 MB and answers 413 when that
+# cap is what stops the read (verified: upstream received exactly 25,000,000 of
+# 30,000,000 bytes). A raw urlencoded blob like this one is rejected even
+# earlier by Starlette's 1 MB form-field limit, so expect 400 here, not 413:
 head -c 30000000 /dev/zero | curl -s -o /dev/null -w '%{http_code}\n' -X POST \
-  -H 'Authorization: Bearer invalid' --data-binary @- https://batibudget.com/api/issue-reports   # 413
+  -H 'Authorization: Bearer invalid' --data-binary @- https://batibudget.com/api/issue-reports   # 400 "Field exceeded maximum size"
 # registration gone, cookie scoped
 curl -s -o /dev/null -w '%{http_code}\n' -X POST https://batibudget.com/api/auth/register        # 404
 curl -si -X POST https://batibudget.com/api/auth/login -d 'username=<you>&password=<pw>' \
