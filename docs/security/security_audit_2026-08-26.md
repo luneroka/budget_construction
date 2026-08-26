@@ -74,7 +74,7 @@ running server (see section 5) — nothing is live until that is done.
 | S-17 | Least-privilege DB role | ✅ Tooling merged — `scripts/create_db_app_role.sh` + `MIGRATIONS_DATABASE_URL` split; opt-in | Manual: run the script, edit `.env.production`, `up -d` (section 5, "Least-privilege database role") |
 | S-18 | CORS tightening | ✅ Fixed — explicit method/header allow-lists | Deploy WP-1 |
 | S-19 | Refresh-cookie path | ✅ Fixed — cookie scoped to `REFRESH_COOKIE_PATH` (`/api/auth` in prod); legacy `/` cookie expired on every write | Deploy WP-1 (`up -d` picks up the compose env) |
-| S-20 | Dependency automation | ⏳ Pending | — |
+| S-20 | Dependency automation | ✅ Fixed — Dependabot (uv, npm, actions, docker, compose) + weekly/PR `pip-audit` and `npm audit` workflow | — |
 | S-21 | Cross-user authorization tests | ⏳ Pending | — |
 | S-22 | Local `.env` credentials | ⏳ Pending — needs the owner to confirm/rotate | — |
 | S-23 | Health endpoints | Accepted as-is | — |

@@ -1,0 +1,53 @@
+name: Dependency audit
+
+# Fails when a locked production dependency has a known vulnerability, so a
+# new advisory shows up as a red check within a week even without a push.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    - cron: "17 6 * * 1"
+
+jobs:
+  backend-audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Export locked production requirements
+        run: uv export --no-dev --no-hashes --no-emit-project -o requirements-audit.txt
+
+      - name: Run pip-audit
+        run: uvx pip-audit --strict --desc off -r requirements-audit.txt
+
+  frontend-audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit (production dependencies, high and above)
+        run: npm audit --omit=dev --audit-level=high
