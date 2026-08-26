@@ -24,7 +24,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM alpine:3.21 AS assets
+FROM alpine:3.24 AS assets
 
 COPY --from=build /app/dist /src
 
