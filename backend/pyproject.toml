@@ -17,6 +17,7 @@ dependencies = [
     "httpx>=0.24.0",
     "boto3>=1.43.21",
     "sentry-sdk>=2.60.0",
+    "slowapi>=0.1.10",
 ]
 
 [tool.black]

@@ -1,6 +1,8 @@
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, Response, status
+
+from app.core.rate_limit import CONTACT_REQUEST_LIMIT, limiter
 
 from app.schemas.contact_request import ContactRequestCreate, ContactRequestResponse
 from app.services import mailer as mailer_service
@@ -13,7 +15,10 @@ router = APIRouter(prefix='/contact-requests', tags=['Contact Requests'])
 @router.post(
     '', response_model=ContactRequestResponse, status_code=status.HTTP_202_ACCEPTED
 )
+@limiter.limit(CONTACT_REQUEST_LIMIT)
 async def create_contact_request(
+    request: Request,
+    response: Response,
     payload: ContactRequestCreate,
 ) -> ContactRequestResponse:
     if payload.website.strip():

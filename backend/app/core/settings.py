@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     r2_secret_access_key: Optional[str] = None
     r2_bucket_name: Optional[str] = None
     sentry_dsn: Optional[str] = None
+    # Per-IP / per-account abuse limits (app/core/rate_limit.py). Only ever
+    # turned off by the test suite.
+    rate_limit_enabled: bool = True
     cors_allowed_origins: list[str] = Field(
         default_factory=lambda: [
             'http://localhost:5173',

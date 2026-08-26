@@ -121,6 +121,19 @@ theft signal, not just that one token. Resetting a password revokes all of a
 user's refresh tokens. Refresh tokens are stored hashed (SHA-256) in the
 `refresh_tokens` table, never in plaintext.
 
+## Abuse protection
+
+Public and cheap-to-abuse endpoints are rate limited in the API
+(`app/core/rate_limit.py`): per client IP on `/auth/login`, `/auth/refresh`,
+`/auth/forgot-password`, `/auth/reset-password`, `/contact-requests` and
+`/issue-reports`, plus a per-account lockout after repeated failed logins and
+a per-address cap on password-reset emails. Limited requests get `429` with
+`detail.code = "rate_limited"` and a `Retry-After` header. Behind Caddy the
+backend runs with `FORWARDED_ALLOW_IPS=*` (set in `docker-compose.prod.yml`)
+so limits apply to the real client IP rather than the proxy. Caddy also caps
+request bodies at 25 MB and serves `/api/docs` and `/api/openapi.json` as
+`404` in production.
+
 ## Validation and operations
 
 After deployment, verify:

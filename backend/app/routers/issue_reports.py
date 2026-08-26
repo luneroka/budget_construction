@@ -1,9 +1,20 @@
 import json
 import logging
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 from pydantic import ValidationError
 
+from app.core.rate_limit import ISSUE_REPORT_LIMIT, limiter
 from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.schemas.issue_report import (
@@ -24,7 +35,10 @@ MAX_ATTACHMENT_COUNT = 5
 @router.post(
     '', response_model=IssueReportResponse, status_code=status.HTTP_202_ACCEPTED
 )
+@limiter.limit(ISSUE_REPORT_LIMIT)
 async def create_issue_report(
+    request: Request,
+    response: Response,
     category: IssueReportCategory = Form(...),
     description: str = Form(...),
     metadata: str = Form(...),

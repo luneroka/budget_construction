@@ -34,6 +34,11 @@ services:
     build:
       context: ./backend
     env_file: ${ENV_FILE:-.env.production}
+    environment:
+      # Trust X-Forwarded-For/-Proto from the reverse proxy so the API sees
+      # the real client IP (rate limiting, security logs). Safe because
+      # port 8000 is reachable only from Caddy on the Docker network.
+      FORWARDED_ALLOW_IPS: "*"
     expose:
       - "8000"
     depends_on:

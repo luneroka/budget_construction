@@ -6,9 +6,11 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import sentry_sdk
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.core.rate_limit import limiter, rate_limit_exceeded_handler
 from app.core.settings import settings
 from app.core.sentry import init_sentry
 from app.db.session import engine, init_db
@@ -96,6 +98,8 @@ app.add_middleware(
 )
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 app.add_exception_handler(RequestValidationError, request_validation_exception_handler)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 
 @app.exception_handler(Exception)

@@ -264,6 +264,9 @@ ERROR_DEFINITIONS: dict[str, ErrorDefinition] = {
         'message': 'quote_status is required for quotes',
         'field': 'quote_status',
     },
+    'rate_limited': {
+        'message': 'Too many requests, please try again later',
+    },
     'request_conflict': {
         'message': 'Request conflicts with an existing record or database constraint',
     },
@@ -354,6 +357,7 @@ DEFAULT_ERROR_CODE_BY_STATUS: dict[int, str] = {
     status.HTTP_404_NOT_FOUND: 'not_found',
     status.HTTP_409_CONFLICT: 'request_conflict',
     status.HTTP_422_UNPROCESSABLE_CONTENT: 'request_validation_failed',
+    status.HTTP_429_TOO_MANY_REQUESTS: 'rate_limited',
     status.HTTP_500_INTERNAL_SERVER_ERROR: 'internal_server_error',
     status.HTTP_502_BAD_GATEWAY: 'external_service_error',
 }
@@ -367,6 +371,7 @@ DEFAULT_ERROR_MESSAGE_BY_STATUS: dict[int, str] = {
     status.HTTP_422_UNPROCESSABLE_CONTENT: ERROR_DEFINITIONS[
         'request_validation_failed'
     ]['message'],
+    status.HTTP_429_TOO_MANY_REQUESTS: ERROR_DEFINITIONS['rate_limited']['message'],
     status.HTTP_500_INTERNAL_SERVER_ERROR: 'Internal server error',
     status.HTTP_502_BAD_GATEWAY: 'External service error',
 }

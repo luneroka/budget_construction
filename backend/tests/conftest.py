@@ -45,6 +45,7 @@ async def db_session() -> AsyncIterator[AsyncSession]:
 
 @pytest_asyncio.fixture
 async def client(db_session: AsyncSession) -> AsyncIterator[AsyncClient]:
+    from app.core.rate_limit import ALL_THROTTLES, limiter
     from app.db.session import get_db_session
     from app.main import app as fastapi_app
 
@@ -52,6 +53,13 @@ async def client(db_session: AsyncSession) -> AsyncIterator[AsyncClient]:
         yield db_session
 
     fastapi_app.dependency_overrides[get_db_session] = override_get_db_session
+
+    # Abuse limits are off by default so ordinary tests can hammer the API;
+    # tests that cover them flip `limiter.enabled` back on themselves.
+    limiter.enabled = False
+    limiter.reset()
+    for throttle in ALL_THROTTLES:
+        throttle.reset()
 
     transport = ASGITransport(app=fastapi_app)
     async with AsyncClient(transport=transport, base_url='http://test') as test_client:

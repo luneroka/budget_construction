@@ -4,11 +4,22 @@ from fastapi import (
     Cookie,
     Depends,
     HTTPException,
+    Request,
     Response,
     status,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.rate_limit import (
+    FORGOT_PASSWORD_LIMIT,
+    LOGIN_LIMIT,
+    REFRESH_LIMIT,
+    RESET_PASSWORD_LIMIT,
+    limiter,
+    login_failures,
+    normalize_email_key,
+    password_reset_requests,
+)
 from app.core.security import REFRESH_TOKEN_EXPIRE_DAYS, create_access_token
 from app.db.session import get_db_session
 from app.errors import raise_api_error
@@ -46,16 +57,25 @@ def _clear_refresh_cookie(response: Response) -> None:
 
 
 @router.post('/login', response_model=Token)
+@limiter.limit(LOGIN_LIMIT)
 async def login(
+    request: Request,
     response: Response,
     credentials: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db_session),
 ):
+    # Per-account lockout on top of the per-IP limit, checked before the
+    # (deliberately slow) password hash is computed.
+    account_key = normalize_email_key(credentials.username)
+    if login_failures.is_limited(account_key):
+        raise_api_error(status.HTTP_429_TOO_MANY_REQUESTS, 'rate_limited')
+
     user = await auth_service.authenticate_user(
         db=db, email=credentials.username, password=credentials.password
     )
 
     if user is None:
+        login_failures.record(account_key)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid email or password'
         )
@@ -68,7 +88,9 @@ async def login(
 
 
 @router.post('/refresh', response_model=Token)
+@limiter.limit(REFRESH_LIMIT)
 async def refresh(
+    request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db_session),
     refresh_token: str | None = Cookie(default=None),
@@ -103,11 +125,23 @@ async def logout(
 
 
 @router.post('/forgot-password')
+@limiter.limit(FORGOT_PASSWORD_LIMIT)
 async def forgot_password(
+    request: Request,
+    response: Response,
     payload: ForgotPasswordRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db_session),
 ):
+    generic_response = {'message': 'If this email exists, a reset link has been sent.'}
+
+    # Per-address cap on reset emails, counted whether or not the account
+    # exists so the response never reveals which it is.
+    email_key = normalize_email_key(payload.email)
+    if password_reset_requests.is_limited(email_key):
+        return generic_response
+    password_reset_requests.record(email_key)
+
     token = await auth_service.generate_password_reset_token(db=db, email=payload.email)
 
     # Always return a generic message so we don't disclose whether the email exists.
@@ -119,11 +153,14 @@ async def forgot_password(
             auth_service.build_password_reset_link(token),
         )
 
-    return {'message': 'If this email exists, a reset link has been sent.'}
+    return generic_response
 
 
 @router.post('/reset-password')
+@limiter.limit(RESET_PASSWORD_LIMIT)
 async def reset_password(
+    request: Request,
+    response: Response,
     payload: ResetPasswordRequest,
     db: AsyncSession = Depends(get_db_session),
 ):

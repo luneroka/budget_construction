@@ -113,6 +113,8 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
   quote_status_not_allowed:
     'Le statut de devis est disponible uniquement pour les devis.',
   quote_status_required: 'Le statut du devis est obligatoire.',
+  rate_limited:
+    'Trop de tentatives. Patientez quelques minutes avant de réessayer.',
   request_conflict:
     'Cette action entre en conflit avec des données existantes.',
   request_validation_failed: 'Certains champs sont invalides.',
@@ -309,6 +311,7 @@ export function getApiErrorMessage(error: unknown): string {
       // Caddy rejects oversized bodies before they reach the API.
       413: 'file_too_large',
       422: 'request_validation_failed',
+      429: 'rate_limited',
       500: 'internal_server_error',
       502: 'external_service_error',
     }
