@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     algorithm: Optional[str] = None
     access_token_expire_minutes: Optional[int] = None
     refresh_token_expire_days: int = 30
+    # Path the refresh cookie is scoped to, as seen by the browser. The API
+    # itself serves /auth/*; behind the production proxy that is /api/auth.
+    refresh_cookie_path: str = '/auth'
     resend_api_key: Optional[str] = None
     resend_from: Optional[str] = None
     support_email: Optional[str] = None

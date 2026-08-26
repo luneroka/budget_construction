@@ -37,9 +37,18 @@ router = APIRouter(prefix='/auth', tags=['Auth'])
 
 REFRESH_COOKIE_NAME = 'refresh_token'
 REFRESH_COOKIE_MAX_AGE = REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+REFRESH_COOKIE_PATH = settings.refresh_cookie_path
+# Before 2026-08 the cookie was set on '/', i.e. sent with every request to
+# the site. Browsers keep sending that older cookie (and, as the less
+# specific path, it would shadow the new one), so it is explicitly expired
+# whenever the scoped cookie is written. Safe to drop once every session
+# from before the change has expired (REFRESH_TOKEN_EXPIRE_DAYS).
+_LEGACY_COOKIE_PATHS = tuple(p for p in ('/',) if p != REFRESH_COOKIE_PATH)
 
 
 def _set_refresh_cookie(response: Response, raw_token: str) -> None:
+    for legacy_path in _LEGACY_COOKIE_PATHS:
+        response.delete_cookie(key=REFRESH_COOKIE_NAME, path=legacy_path)
     response.set_cookie(
         key=REFRESH_COOKIE_NAME,
         value=raw_token,
@@ -47,12 +56,14 @@ def _set_refresh_cookie(response: Response, raw_token: str) -> None:
         httponly=True,
         secure=settings.app_environment == 'production',
         samesite='lax',
-        path='/',
+        path=REFRESH_COOKIE_PATH,
     )
 
 
 def _clear_refresh_cookie(response: Response) -> None:
-    response.delete_cookie(key=REFRESH_COOKIE_NAME, path='/')
+    for legacy_path in _LEGACY_COOKIE_PATHS:
+        response.delete_cookie(key=REFRESH_COOKIE_NAME, path=legacy_path)
+    response.delete_cookie(key=REFRESH_COOKIE_NAME, path=REFRESH_COOKIE_PATH)
 
 
 # There is deliberately no public registration endpoint: accounts are created

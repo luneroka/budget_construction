@@ -76,6 +76,7 @@ settings are:
 | `APP_ENVIRONMENT=production`                             | Enables strict production configuration validation.                          |
 | `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT signing configuration; generate a high-entropy secret (≥32 characters).  |
 | `REFRESH_TOKEN_EXPIRE_DAYS`                              | Sliding session length in days for the httpOnly refresh cookie (default 30). |
+| `REFRESH_COOKIE_PATH`                                    | Browser-visible path the refresh cookie is scoped to (`/api/auth` in prod, set in the compose file). |
 | `APP_URL`, `CORS_ALLOWED_ORIGINS`                        | Public HTTPS URL and JSON array of permitted browser origins.                |
 | `R2_*`                                                   | Bucket-scoped Cloudflare R2 credentials.                                     |
 | `RESEND_*`, `SUPPORT_EMAIL`                              | Verified Resend sender and issue-report recipient.                           |
@@ -113,8 +114,9 @@ administrator is created on the server with
 Login (`POST /auth/login`) returns a short-lived JWT access token
 (`ACCESS_TOKEN_EXPIRE_MINUTES`, default 30) in the response body, which the
 frontend keeps in memory only (never `localStorage`), and sets a separate,
-long-lived refresh token as an `httpOnly`, `SameSite=Lax` cookie
-(`REFRESH_TOKEN_EXPIRE_DAYS`, default 30, sliding). `POST /auth/refresh`
+long-lived refresh token as an `httpOnly`, `SameSite=Lax` cookie scoped to
+the auth routes (`REFRESH_COOKIE_PATH`; `REFRESH_TOKEN_EXPIRE_DAYS`, default
+30, sliding). `POST /auth/refresh`
 exchanges a valid refresh cookie for a new access token and rotates the
 refresh token; the previous one is invalidated. `POST /auth/logout` revokes
 the current refresh token. If a rotated-out or already-revoked refresh token
