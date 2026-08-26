@@ -363,3 +363,63 @@ Message
     except Exception:
         logger.exception('Failed to send contact request email through Resend')
         return False
+
+
+async def send_email_changed_notice(previous_email: str, new_email: str) -> bool:
+    """Tell the *previous* address that the account's email was changed.
+
+    Sent after the change is committed, so an unnoticed hijack still leaves
+    a trace where the legitimate owner can see it.
+    """
+    if not _resend_config_available():
+        logger.error('Cannot send email-change notice: Resend configuration is missing')
+        return False
+
+    subject = 'Adresse e-mail de votre compte modifiée'
+    support = settings.support_email or settings.resend_from or ''
+    text = f"""\
+Bonjour,
+
+L'adresse e-mail associée à votre compte Bâti Budget vient d'être remplacée par {new_email}.
+Toutes les sessions ouvertes ont été déconnectées.
+
+Si vous n'êtes pas à l'origine de cette modification, contactez immédiatement le support : {support}
+"""
+    html = f"""\
+<!doctype html>
+<html lang="fr">
+  <head><meta charset="utf-8"><title>{escape(subject)}</title></head>
+  <body style="font-family:Arial, sans-serif; color:#1b2433;">
+    <h1 style="font-size:20px;">{escape(subject)}</h1>
+    <p>Bonjour,</p>
+    <p>L'adresse e-mail associée à votre compte Bâti Budget vient d'être remplacée par <strong>{escape(new_email)}</strong>. Toutes les sessions ouvertes ont été déconnectées.</p>
+    <p>Si vous n'êtes pas à l'origine de cette modification, contactez immédiatement le support : {escape(support)}</p>
+  </body>
+</html>
+"""
+
+    payload: dict[str, Any] = {
+        'from': settings.resend_from,
+        'to': [previous_email],
+        'subject': subject,
+        'html': html,
+        'text': text,
+    }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                RESEND_API_URL, json=payload, headers=_resend_headers(), timeout=10.0
+            )
+
+            if resp.status_code not in (200, 202):
+                logger.error(
+                    'Resend rejected email-change notice with status code %s',
+                    resp.status_code,
+                )
+                return False
+
+            return True
+    except Exception:
+        logger.exception('Failed to send email-change notice through Resend')
+        return False

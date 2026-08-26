@@ -89,6 +89,14 @@ ERROR_DEFINITIONS: dict[str, ErrorDefinition] = {
     'credentials_invalid': {
         'message': 'Could not validate credentials',
     },
+    'current_password_invalid': {
+        'message': 'Current password is incorrect',
+        'field': 'current_password',
+    },
+    'current_password_required': {
+        'message': 'Current password is required to change the email address',
+        'field': 'current_password',
+    },
     'document_delete_failed': {
         'message': 'Failed to delete document file',
     },

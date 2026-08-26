@@ -15,9 +15,14 @@ class UserCreate(UserBase):
 class UserProfileUpdate(BaseModel):
     name: str | None = None
     email: EmailStr | None = None
+    # Required whenever `email` changes: a stolen session must not be able to
+    # move the account to an attacker-controlled address.
+    current_password: str | None = Field(default=None, max_length=72)
 
 
-class AdminUserUpdate(UserProfileUpdate):
+class AdminUserUpdate(BaseModel):
+    name: str | None = None
+    email: EmailStr | None = None
     is_active: bool | None = None
 
 

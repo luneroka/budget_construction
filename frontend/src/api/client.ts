@@ -32,6 +32,9 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
   conversion_strategy_required:
     'Choisissez comment convertir le poste existant avant de continuer.',
   credentials_invalid: 'Identifiants incorrects.',
+  current_password_invalid: 'Le mot de passe actuel est incorrect.',
+  current_password_required:
+    'Le mot de passe actuel est requis pour changer d’adresse email.',
   document_delete_failed: 'Le document n’a pas pu être supprimé.',
   document_metadata_save_failed:
     'Le document a été envoyé, mais ses informations n’ont pas pu être enregistrées.',
