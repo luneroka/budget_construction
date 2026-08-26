@@ -62,9 +62,7 @@ healthy read-only, Caddy healthy with `NET_BIND_SERVICE` only); inside that
 production-mode container `/docs` and `/openapi.json` answer 404, the sixth
 failed login answers 429, and `security:` lines appear in the logs.
 
-**Still for the owner:** S-22 (confirm
-the local `.env` R2/Resend keys are dev-scoped, rotate otherwise), the
-production rollout in section 5, and S-05b — switch
+**Still for the owner:** the production rollout in section 5, and S-05b — switch
 `Content-Security-Policy-Report-Only` to `Content-Security-Policy` in the
 Caddyfile once a week of Report-Only shows no legitimate violations
 (earliest 2026-09-02), then reload Caddy.
@@ -92,7 +90,7 @@ Caddyfile once a week of Report-Only shows no legitimate violations
 | S-19 | Refresh-cookie path | ✅ Fixed — cookie scoped to `REFRESH_COOKIE_PATH` (`/api/auth` in prod); legacy `/` cookie expired on every write | Deploy WP-1 (`up -d` picks up the compose env) |
 | S-20 | Dependency automation | ✅ Fixed — Dependabot (uv, npm, actions, docker, compose) + weekly/PR `pip-audit` and `npm audit` workflow | — |
 | S-21 | Cross-user authorization tests | ✅ Fixed — 31-route matrix asserting 404 for another user, with a route-existence guard | — |
-| S-22 | Local `.env` credentials | ⏳ Pending — needs the owner to confirm/rotate | — |
+| S-22 | Local `.env` credentials | Accepted — the owner confirmed the local `.env` uses the same R2 token and Resend key as production, against a separate dev bucket. The app is owner-operated for the owner's own family, so a dedicated dev token is not worth the overhead | — |
 | S-23 | Health endpoints | Accepted as-is | — |
 | S-24 | Admin bootstrap | ✅ Fixed — `uv run python -m app.scripts.create_admin` documented in README | — |
 
