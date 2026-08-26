@@ -65,7 +65,7 @@ running server (see section 5) — nothing is live until that is done.
 | S-08 | python-jose / ecdsa | ✅ Fixed — PyJWT, symmetric algorithms only; `pip-audit` clean | Deploy WP-1 |
 | S-09 | Client IP not propagated | ✅ Fixed — `FORWARDED_ALLOW_IPS=*` on the backend service | `up -d` recreates backend |
 | S-10 | No security event logging | ✅ Fixed — `security` logger emits `login_failed/success`, `login_locked`, `refresh_reuse_detected`, `password_reset_*`, `email_changed`, `admin_user_*`, `rate_limited` with IP | Deploy WP-1 |
-| S-11 | Password policy | ⏳ Pending | — |
+| S-11 | Password policy | ✅ Fixed — shared `Password` type: 12–72 bytes, no surrounding whitespace, enforced on reset/create/CLI and mirrored in the SPA | Deploy WP-1/WP-2 |
 | S-12 | Public repository | ⏳ Pending — needs the repo owner to flip visibility on GitHub | — |
 | S-13 | Email sent to Sentry | ⏳ Pending | — |
 | S-14 | Issue-report attachments | ⏳ Pending | — |

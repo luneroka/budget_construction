@@ -20,11 +20,11 @@ import sys
 from sqlalchemy import select
 
 from app.core.security import hash_password
+from app.schemas.password import MAX_PASSWORD_BYTES, MIN_PASSWORD_LENGTH
 from app.db.session import AsyncSessionLocal
 from app.models.user import User
 
-MIN_PASSWORD_LENGTH = 12
-MAX_PASSWORD_LENGTH = 72
+MAX_PASSWORD_LENGTH = MAX_PASSWORD_BYTES
 
 
 def _prompt_password() -> str:

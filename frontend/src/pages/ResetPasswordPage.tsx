@@ -9,6 +9,9 @@ import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 
+// Mirrors MIN_PASSWORD_LENGTH in backend/app/schemas/password.py.
+const MIN_PASSWORD_LENGTH = 12
+
 export function ResetPasswordPage() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') ?? ''
@@ -28,6 +31,13 @@ export function ResetPasswordPage() {
 
     if (!token) {
       const message = 'Le lien de réinitialisation est invalide ou a expiré.'
+      setErrorMessage(message)
+      notifyError(message)
+      return
+    }
+
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      const message = `Le mot de passe doit contenir au moins ${MIN_PASSWORD_LENGTH} caractères.`
       setErrorMessage(message)
       notifyError(message)
       return
@@ -67,7 +77,8 @@ export function ResetPasswordPage() {
             Nouveau mot de passe
           </h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            Définissez un nouveau mot de passe pour accéder à votre espace.
+            Définissez un nouveau mot de passe d’au moins{' '}
+            {MIN_PASSWORD_LENGTH} caractères pour accéder à votre espace.
           </p>
         </div>
 
@@ -85,7 +96,8 @@ export function ResetPasswordPage() {
                 onChange={(event) => setPassword(event.target.value)}
                 isVisible={isPasswordVisible}
                 onVisibilityChange={setIsPasswordVisible}
-                minLength={8}
+                minLength={MIN_PASSWORD_LENGTH}
+                maxLength={72}
                 required
                 disabled={Boolean(successMessage)}
               />
@@ -104,7 +116,8 @@ export function ResetPasswordPage() {
                 }
                 isVisible={isPasswordConfirmationVisible}
                 onVisibilityChange={setIsPasswordConfirmationVisible}
-                minLength={8}
+                minLength={MIN_PASSWORD_LENGTH}
+                maxLength={72}
                 required
                 disabled={Boolean(successMessage)}
               />

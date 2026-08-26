@@ -104,7 +104,8 @@ doesn't drown out real traffic in the log budget.
 
 There is no public sign-up. An administrator creates accounts with
 `POST /admin/users` (`{"name": ..., "email": ...}`); the new user receives a
-password-reset link by email and chooses their own password. The first
+password-reset link by email and chooses their own password (12 to 72
+characters, see `app/schemas/password.py`). The first
 administrator is created on the server with
 `uv run python -m app.scripts.create_admin` (see the runbook).
 
