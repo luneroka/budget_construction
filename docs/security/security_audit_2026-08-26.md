@@ -68,7 +68,7 @@ running server (see section 5) — nothing is live until that is done.
 | S-11 | Password policy | ✅ Fixed — shared `Password` type: 12–72 bytes, no surrounding whitespace, enforced on reset/create/CLI and mirrored in the SPA | Deploy WP-1/WP-2 |
 | S-12 | Public repository | ⏳ Pending — needs the repo owner to flip visibility on GitHub | — |
 | S-13 | Email sent to Sentry | ✅ Fixed — `set_user` sends the user id only | Deploy WP-1 |
-| S-14 | Issue-report attachments | ⏳ Pending | — |
+| S-14 | Issue-report attachments | ✅ Fixed — content sniffed against the PNG/JPEG/PDF/HEIC allow-list, 20 MB total cap, 5 000-char description | Deploy WP-1 |
 | S-15 | Access tokens survive password reset | ✅ Fixed — tokens carry a password-hash marker checked on every request | Deploy WP-1 |
 | S-16 | Container hardening | ⏳ Pending | — |
 | S-17 | Least-privilege DB role | ⏳ Pending | — |

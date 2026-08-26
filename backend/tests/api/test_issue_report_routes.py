@@ -136,3 +136,87 @@ async def test_issue_report_email_uses_resend_from_when_support_email_is_missing
 
     assert sent is True
     assert captured_payloads[0]['to'] == ['support@example.com']
+
+
+async def test_create_issue_report_rejects_attachment_that_is_not_an_image_or_pdf(
+    client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    email = 'issue-report-exe@example.com'
+    await create_user(email=email)
+    access_token = await login_user(client, email=email)
+    sent: list[dict[str, Any]] = []
+
+    async def fake_send_issue_report_email(**kwargs: Any) -> bool:
+        sent.append(kwargs)
+        return True
+
+    monkeypatch.setattr(
+        'app.routers.issue_reports.mailer_service.send_issue_report_email',
+        fake_send_issue_report_email,
+    )
+
+    response = await client.post(
+        '/issue-reports',
+        headers={'Authorization': f'Bearer {access_token}'},
+        data={
+            'category': 'bug',
+            'description': 'Attached the wrong thing.',
+            'metadata': json.dumps(
+                {
+                    'route': '/dashboard',
+                    'project_name': None,
+                    'user_agent': 'pytest-browser',
+                    'timestamp': datetime.now(UTC).isoformat(),
+                }
+            ),
+        },
+        # Declared as PNG, but the bytes are a Windows executable header.
+        files={'attachments': ('capture.png', b'MZ\x90\x00binary', 'image/png')},
+    )
+
+    assert response.status_code == 400
+    assert response.json()['detail']['code'] == 'file_content_invalid'
+    assert sent == []
+
+
+async def test_create_issue_report_uses_detected_content_type(
+    client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    email = 'issue-report-sniff@example.com'
+    await create_user(email=email)
+    access_token = await login_user(client, email=email)
+    sent: list[dict[str, Any]] = []
+
+    async def fake_send_issue_report_email(**kwargs: Any) -> bool:
+        sent.append(kwargs)
+        return True
+
+    monkeypatch.setattr(
+        'app.routers.issue_reports.mailer_service.send_issue_report_email',
+        fake_send_issue_report_email,
+    )
+
+    response = await client.post(
+        '/issue-reports',
+        headers={'Authorization': f'Bearer {access_token}'},
+        data={
+            'category': 'bug',
+            'description': 'PDF declared as octet-stream.',
+            'metadata': json.dumps(
+                {
+                    'route': '/dashboard',
+                    'project_name': None,
+                    'user_agent': 'pytest-browser',
+                    'timestamp': datetime.now(UTC).isoformat(),
+                }
+            ),
+        },
+        files={
+            'attachments': ('quote.pdf', b'%PDF-1.7 fake', 'application/octet-stream')
+        },
+    )
+
+    assert response.status_code == 202
+    assert sent[0]['attachments'][0]['content_type'] == 'application/pdf'
