@@ -20,6 +20,7 @@ store (Redis) is the upgrade path if that ever matters.
 
 from collections import defaultdict, deque
 from collections.abc import Callable
+import logging
 import time
 
 from fastapi import Request, status
@@ -28,6 +29,7 @@ from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
+from app.core.security_log import security_event
 from app.core.settings import settings
 from app.errors import error_detail
 
@@ -47,6 +49,9 @@ ISSUE_REPORT_LIMIT = '10/hour'
 
 async def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, RateLimitExceeded)
+    security_event(
+        'rate_limited', request=request, route=request.url.path, level=logging.WARNING
+    )
     response = JSONResponse(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
         content={'detail': error_detail('rate_limited')},

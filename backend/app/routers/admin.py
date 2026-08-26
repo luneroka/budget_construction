@@ -1,4 +1,6 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+import logging
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,6 +9,7 @@ from app.db.session import get_db_session
 from app.repositories import admin as admin_repository
 from app.routers.integrity import raise_integrity_conflict
 from app.schemas.user import AdminUserCreate, AdminUserRead, AdminUserUpdate
+from app.core.security_log import security_event
 from app.dependencies.auth import get_current_admin_user
 from app.services import auth as auth_service
 from app.services import mailer as mailer_service
@@ -22,9 +25,11 @@ router = APIRouter(
 # API ENDPOINT FOR ADMIN TO CREATE A USER (replaces public self-registration)
 @router.post('/', response_model=AdminUserRead, status_code=status.HTTP_201_CREATED)
 async def admin_create_user(
+    request: Request,
     user_data: AdminUserCreate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db_session),
+    admin: User = Depends(get_current_admin_user),
 ):
     try:
         user = await auth_service.invite_user(
@@ -41,6 +46,10 @@ async def admin_create_user(
 
     # The account has an unusable random password; the invitee sets their
     # own through the standard reset flow.
+    security_event(
+        'admin_user_created', request=request, actor=admin.id, target=user.id,
+        email=user.email,
+    )
     token = await auth_service.generate_password_reset_token(db, email=user.email)
     if token:
         background_tasks.add_task(
@@ -80,6 +89,7 @@ async def get_user(
 # API ENDPOINT FOR ADMIN TO UPDATE A USER
 @router.patch('/{user_id}', response_model=AdminUserRead)
 async def admin_update_user(
+    request: Request,
     user_id: int,
     user_data: AdminUserUpdate,
     db: AsyncSession = Depends(get_db_session),
@@ -106,12 +116,17 @@ async def admin_update_user(
             status_code=status.HTTP_404_NOT_FOUND, detail='User not found'
         )
 
+    security_event(
+        'admin_user_updated', request=request, actor=admin.id, target=user.id,
+        fields=','.join(sorted(user_data.model_dump(exclude_unset=True))),
+    )
     return user
 
 
 # API ENDPOINT FOR ADMIN TO SOFT DELETE A USER
 @router.delete('/{user_id}', response_model=AdminUserRead)
 async def admin_soft_delete_user(
+    request: Request,
     user_id: int,
     db: AsyncSession = Depends(get_db_session),
     admin: User = Depends(get_current_admin_user),
@@ -135,14 +150,19 @@ async def admin_soft_delete_user(
             status_code=status.HTTP_404_NOT_FOUND, detail='User not found'
         )
 
+    security_event(
+        'admin_user_deleted', request=request, actor=admin.id, target=user.id
+    )
     return user
 
 
 # API ENDPOINT FOR ADMIN TO RESTORE A USER
 @router.post('/{user_id}/restore', response_model=AdminUserRead)
 async def admin_restore_user(
+    request: Request,
     user_id: int,
     db: AsyncSession = Depends(get_db_session),
+    admin: User = Depends(get_current_admin_user),
 ):
     try:
         user = await user_lifecycle.restore_user(db, user_id)
@@ -157,12 +177,16 @@ async def admin_restore_user(
             status_code=status.HTTP_404_NOT_FOUND, detail='User not found'
         )
 
+    security_event(
+        'admin_user_restored', request=request, actor=admin.id, target=user.id
+    )
     return user
 
 
 # API ENDPOINT FOR ADMIN TO PERMANENTLY DELETE A USER
 @router.delete('/{user_id}/permanent', status_code=status.HTTP_204_NO_CONTENT)
 async def admin_hard_delete_user(
+    request: Request,
     user_id: int,
     db: AsyncSession = Depends(get_db_session),
     admin: User = Depends(get_current_admin_user),
@@ -185,3 +209,8 @@ async def admin_hard_delete_user(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail='User not found'
         )
+
+    security_event(
+        'admin_user_hard_deleted', request=request, actor=admin.id, target=user_id,
+        level=logging.WARNING,
+    )

@@ -134,6 +134,13 @@ so limits apply to the real client IP rather than the proxy. Caddy also caps
 request bodies at 25 MB and serves `/api/docs` and `/api/openapi.json` as
 `404` in production.
 
+Security-relevant events (failed/successful logins, lockouts, refresh-token
+reuse, password resets, email changes, admin user management, rate limiting)
+are written as one `key=value` line each on the `security` logger, e.g.
+`security: login_failed ip=203.0.113.9 email=someone@example.com`. Grep the
+backend container logs for `security:` to reconstruct what happened to an
+account.
+
 ## Validation and operations
 
 After deployment, verify:

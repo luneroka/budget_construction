@@ -1,8 +1,11 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+import logging
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import verify_password
+from app.core.security_log import security_event
 from app.dependencies.auth import get_current_user
 from app.errors import raise_api_error
 from app.models.user import User
@@ -26,6 +29,7 @@ async def get_me(current_user: User = Depends(get_current_user)):
 # API ENDPOINT TO UPDATE CURRENT USER PROFILE
 @router.patch('/me', response_model=UserRead)
 async def update_me(
+    request: Request,
     user_data: UserProfileUpdate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db_session),
@@ -51,6 +55,10 @@ async def update_me(
         if not verify_password(
             user_data.current_password, current_user.hashed_password
         ):
+            security_event(
+                'email_change_wrong_password', request=request,
+                user_id=current_user.id, level=logging.WARNING,
+            )
             raise_api_error(status.HTTP_403_FORBIDDEN, 'current_password_invalid')
 
     try:
@@ -71,6 +79,10 @@ async def update_me(
         )
         background_tasks.add_task(
             mailer_service.send_email_changed_notice, previous_email, user.email
+        )
+        security_event(
+            'email_changed', request=request, user_id=user.id,
+            previous_email=previous_email, new_email=user.email,
         )
 
     return user
@@ -101,9 +113,11 @@ async def get_user(
 # API ENDPOINT TO SOFT DELETE A USER
 @router.delete('/me', response_model=UserRead)
 async def soft_delete_user(
+    request: Request,
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
+    security_event('self_delete', request=request, user_id=current_user.id)
     try:
         user = await user_lifecycle.soft_delete_user(db, current_user.id)
     except user_lifecycle.UserLifecycleError as error:

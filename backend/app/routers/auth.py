@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -21,6 +23,7 @@ from app.core.rate_limit import (
     password_reset_requests,
 )
 from app.core.security import REFRESH_TOKEN_EXPIRE_DAYS, create_access_token
+from app.core.security_log import security_event
 from app.db.session import get_db_session
 from app.errors import raise_api_error
 from app.repositories import user as user_repository
@@ -69,6 +72,9 @@ async def login(
     # (deliberately slow) password hash is computed.
     account_key = normalize_email_key(credentials.username)
     if login_failures.is_limited(account_key):
+        security_event(
+            'login_locked', request=request, email=account_key, level=logging.WARNING
+        )
         raise_api_error(status.HTTP_429_TOO_MANY_REQUESTS, 'rate_limited')
 
     user = await auth_service.authenticate_user(
@@ -77,6 +83,7 @@ async def login(
 
     if user is None:
         login_failures.record(account_key)
+        security_event('login_failed', request=request, email=account_key)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid email or password'
         )
@@ -85,6 +92,7 @@ async def login(
         subject=str(user.id), hashed_password=user.hashed_password
     )
     refresh_token = await auth_service.issue_refresh_token(db, user.id)
+    security_event('login_success', request=request, user_id=user.id)
     _set_refresh_cookie(response, refresh_token)
 
     return Token(access_token=access_token)
@@ -105,7 +113,15 @@ async def refresh(
         new_refresh_token, user_id = await auth_service.rotate_refresh_token(
             db, refresh_token
         )
-    except (ValueError, auth_service.RefreshTokenReuseError):
+    except auth_service.RefreshTokenReuseError:
+        # Someone presented a token that was already rotated out or revoked:
+        # the whole session family has just been revoked. Worth an alert.
+        security_event(
+            'refresh_reuse_detected', request=request, level=logging.WARNING
+        )
+        _clear_refresh_cookie(response)
+        raise_api_error(status.HTTP_401_UNAUTHORIZED, 'not_authenticated')
+    except ValueError:
         _clear_refresh_cookie(response)
         raise_api_error(status.HTTP_401_UNAUTHORIZED, 'not_authenticated')
 
@@ -114,6 +130,7 @@ async def refresh(
         # Deactivated or deleted since the session started: end it.
         await auth_service.revoke_refresh_token(db, new_refresh_token)
         _clear_refresh_cookie(response)
+        security_event('refresh_rejected_inactive_user', request=request, user_id=user_id)
         raise_api_error(status.HTTP_401_UNAUTHORIZED, 'not_authenticated')
 
     access_token = create_access_token(
@@ -126,12 +143,14 @@ async def refresh(
 
 @router.post('/logout', status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
+    request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db_session),
     refresh_token: str | None = Cookie(default=None),
 ):
     if refresh_token is not None:
         await auth_service.revoke_refresh_token(db, refresh_token)
+        security_event('logout', request=request)
 
     _clear_refresh_cookie(response)
 
@@ -151,10 +170,18 @@ async def forgot_password(
     # exists so the response never reveals which it is.
     email_key = normalize_email_key(payload.email)
     if password_reset_requests.is_limited(email_key):
+        security_event(
+            'password_reset_throttled', request=request, email=email_key,
+            level=logging.WARNING,
+        )
         return generic_response
     password_reset_requests.record(email_key)
 
     token = await auth_service.generate_password_reset_token(db=db, email=payload.email)
+    security_event(
+        'password_reset_requested', request=request, email=email_key,
+        account_exists=token is not None,
+    )
 
     # Always return a generic message so we don't disclose whether the email exists.
     if token:
@@ -181,8 +208,10 @@ async def reset_password(
     )
 
     if not ok:
+        security_event('password_reset_rejected', request=request)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid or expired token'
         )
 
+    security_event('password_reset_completed', request=request)
     return {'message': 'Password has been reset successfully.'}
