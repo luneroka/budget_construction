@@ -53,6 +53,22 @@ Updated as fixes land on `main`. "Fixed" means merged and covered by
 tests/validation; the **VPS** column says what is still needed on the
 running server (see section 5) — nothing is live until that is done.
 
+**Validation performed on 2026-08-26 (local):** full backend suite green
+(258 tests, incl. the new rate-limit, token-binding, password-policy,
+security-log and cross-user matrices); `pip-audit` and `npm audit` clean;
+the hardened `docker-compose.prod.yml` brought up end-to-end with
+`.env.production.example` (migrate exits 0 read-only/no-caps, backend
+healthy read-only, Caddy healthy with `NET_BIND_SERVICE` only); inside that
+production-mode container `/docs` and `/openapi.json` answer 404, the sixth
+failed login answers 429, and `security:` lines appear in the logs.
+
+**Still for the owner:** S-12 (make the GitHub repo private), S-22 (confirm
+the local `.env` R2/Resend keys are dev-scoped, rotate otherwise), the
+production rollout in section 5, and S-05b — switch
+`Content-Security-Policy-Report-Only` to `Content-Security-Policy` in the
+Caddyfile once a week of Report-Only shows no legitimate violations
+(earliest 2026-09-02), then reload Caddy.
+
 | ID | Finding | Status | VPS step |
 |----|---------|--------|----------|
 | S-01 | Public self-registration | ✅ Fixed — route removed; `POST /admin/users` + invite email; `app.scripts.create_admin` CLI | Deploy WP-1 |
@@ -610,6 +626,12 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST https://batibudget.com/api/auth
 curl -sI https://batibudget.com/api/health/live | grep -i cache-control            # no-store
 ```
 
+Note that WP-0 as a Caddy-only hotfix is now optional: the Caddyfile on
+`main` already carries the headers, the `/api/docs` block and the body
+limit, and the code release below removes the registration route itself.
+Doing the Caddy reload first is still the fastest way to close S-02/S-05
+while the image builds.
+
 Rollback: `git checkout <rollback-rev> -- Caddyfile` and reload again.
 
 ### WP-1 / WP-2 / WP-3 / WP-5 — application releases
@@ -627,6 +649,12 @@ The `frontend` job re-copies the SPA into the Caddy volume; Caddy serves
 the new bundle immediately (no reload needed for static files). If the
 Caddyfile also changed in the same release, run the WP-0 `reload` step.
 
+`.env.production` needs no change for this release: `FORWARDED_ALLOW_IPS`
+and `REFRESH_COOKIE_PATH` are set in the compose file, and
+`MIGRATIONS_DATABASE_URL` is optional (S-17). Existing sessions survive —
+the first `/auth/refresh` after the deploy rewrites the cookie under
+`/api/auth` and expires the old root-path one.
+
 Post-deploy checks (in addition to the runbook's login/refresh/upload/
 download/reset/issue-report list):
 
@@ -639,6 +667,24 @@ docker compose --env-file .env.production -f docker-compose.prod.yml logs --sinc
 # body cap
 head -c 30000000 /dev/zero | curl -s -o /dev/null -w '%{http_code}\n' -X POST \
   -H 'Authorization: Bearer invalid' --data-binary @- https://batibudget.com/api/issue-reports   # 413
+# registration gone, cookie scoped
+curl -s -o /dev/null -w '%{http_code}\n' -X POST https://batibudget.com/api/auth/register        # 404
+curl -si -X POST https://batibudget.com/api/auth/login -d 'username=<you>&password=<pw>' \
+  | grep -i '^set-cookie: refresh_token=' | grep -o 'Path=[^;]*'                                 # Path=/api/auth
+# security log is flowing
+docker compose --env-file .env.production -f docker-compose.prod.yml logs --since 10m backend | grep -c 'security:'
+```
+
+To create accounts from now on (no self-registration):
+
+```sh
+# one-off: first/only admin, run on the VPS
+docker compose --env-file .env.production -f docker-compose.prod.yml \
+  exec backend uv run --no-sync python -m app.scripts.create_admin --email admin@example.com --name "Admin"
+# then, as that admin, invite the customer's users (they get the reset-link email)
+curl -s -X POST https://batibudget.com/api/admin/users/ \
+  -H "Authorization: Bearer $ACCESS_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"name":"Jane Doe","email":"jane@example.com"}'
 ```
 
 Rollback: `git checkout <rollback-rev>` and re-run `up -d --build`. No
