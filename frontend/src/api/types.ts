@@ -22,9 +22,25 @@ export type UserRead = {
   id: number
   name: string
   email: string
+  is_admin: boolean
   created_at: ApiDateTime
   updated_at: ApiDateTime | null
   deleted_at: ApiDateTime | null
+}
+
+export type AdminUserRead = UserRead & {
+  is_active: boolean
+}
+
+export type AdminUserCreate = {
+  name: string
+  email: string
+}
+
+export type AdminUserUpdate = {
+  name?: string
+  email?: string
+  is_active?: boolean
 }
 
 export type ProjectRead = {

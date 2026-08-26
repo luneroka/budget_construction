@@ -35,6 +35,9 @@ class AdminUserCreate(UserBase):
 
 class UserRead(UserBase):
     id: int
+    # Exposed so the SPA can show admin-only navigation; authorization is
+    # still enforced server-side on every admin route.
+    is_admin: bool
     created_at: datetime
     updated_at: datetime | None = None
     deleted_at: datetime | None = None
@@ -43,5 +46,4 @@ class UserRead(UserBase):
 
 
 class AdminUserRead(UserRead):
-    is_admin: bool
     is_active: bool

@@ -1,10 +1,14 @@
-import { FileSpreadsheet, FolderKanban, UserCog } from 'lucide-react'
+import { FileSpreadsheet, FolderKanban, UserCog, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
+
+import { useAuth } from '@/auth/authContext'
 
 import { PageHeader } from '@/components/shared/PageHeader'
 import { SectionCard } from '@/components/shared/SectionCard'
 
 export function SettingsPage() {
+  const { user } = useAuth()
+
   return (
     <section>
       <PageHeader
@@ -54,6 +58,22 @@ export function SettingsPage() {
             </p>
           </SectionCard>
         </Link>
+        {user?.is_admin ? (
+          <Link
+            to="/settings/users"
+            className="block rounded-lg transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <SectionCard
+              title="Utilisateurs"
+              description="Invitations, accès et comptes (administrateur)."
+              icon={Users}
+            >
+              <p className="text-sm font-medium text-primary">
+                Ouvrir la gestion des utilisateurs
+              </p>
+            </SectionCard>
+          </Link>
+        ) : null}
       </div>
     </section>
   )

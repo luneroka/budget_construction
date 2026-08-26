@@ -71,7 +71,7 @@ Caddyfile once a week of Report-Only shows no legitimate violations
 
 | ID | Finding | Status | VPS step |
 |----|---------|--------|----------|
-| S-01 | Public self-registration | ✅ Fixed — route removed; `POST /admin/users` + invite email; `app.scripts.create_admin` CLI | Deploy WP-1 |
+| S-01 | Public self-registration | ✅ Fixed — route removed; `POST /admin/users` + invite email; `app.scripts.create_admin` CLI; admin UI at *Paramètres → Utilisateurs* (invite, deactivate, delete, restore) | Live; admin UI needs one more deploy |
 | S-02 | API docs exposed in prod | ✅ Fixed — `docs_url`/`openapi_url` off in production + Caddy 404 | Deploy WP-1 + Caddy reload |
 | S-03 | No rate limiting | ✅ Fixed — slowapi per-IP limits, per-account lockout, per-address reset cap; `rate_limited` error code | Deploy WP-1 |
 | S-04 | Vulnerable dependencies | ✅ Fixed — starlette 1.6, python-multipart 0.0.32, cryptography 50, pyasn1 0.6.4, pydantic-settings 2.15, fastapi 0.141; frontend `npm audit` clean | Deploy WP-1/WP-2 |

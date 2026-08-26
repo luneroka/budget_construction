@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import { RedirectAuthenticated } from '@/auth/RedirectAuthenticated'
 import { RequireAuth } from '@/auth/RequireAuth'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { AdminUsersPage } from '@/pages/AdminUsersPage'
 import { BudgetPage } from '@/pages/BudgetPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { DocumentsPage } from '@/pages/DocumentsPage'
@@ -70,6 +71,7 @@ export default function App() {
               element={<ProjectsSettingsPage />}
             />
             <Route path="settings/exports" element={<ExportsSettingsPage />} />
+            <Route path="settings/users" element={<AdminUsersPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Route>
