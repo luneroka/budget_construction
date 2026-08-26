@@ -292,7 +292,9 @@ hardened, firewalled, swap-enabled, and Docker-ready for Chunk 4.
 Application deployed and validated on the VPS via SSH, in this order:
 
 1. Cloned the repository to `~/budget_construction` on the VPS as `deploy`
-   (public repo, plain `git clone` over HTTPS).
+   (public repo, plain `git clone` over HTTPS). **Superseded 2026-08-26:**
+   the repository is now private and the VPS pulls over SSH with a read-only
+   deploy key — see "GitHub access from the VPS" below.
 2. Created `.env.production` from `.env.production.example` with real secrets
    (domain `batibudget.com`, generated `POSTGRES_PASSWORD`/`SECRET_KEY`, R2
    and Resend credentials), `chmod 600`. **Incident:** early secret values
@@ -438,6 +440,51 @@ backups with a tested restore procedure. The `Rollback` and
 Chunk 0 deployment checklist treats backups as required "before accepting
 production traffic," so this should be prioritized next despite the
 application itself now being validated end-to-end.
+
+## GitHub access from the VPS (deploy key, 2026-08-26)
+
+The repository was made private during the 2026-08-26 security pass
+(`docs/security/security_audit_2026-08-26.md`, S-12). An anonymous HTTPS
+`git pull` then starts prompting for a GitHub username, so the VPS was
+switched to SSH with a **read-only deploy key**: a key pair that lives only
+on the server, is registered on the repository (not on a personal account),
+cannot push, and can be revoked from the repo's settings page at any time.
+
+Done once, as `deploy` (the same user that runs `git pull`; the folder does
+not matter for the first two blocks because `~/.ssh` is per-user):
+
+```sh
+# 1. Key pair on the VPS. Copy ONLY the .pub line (starts with "ssh-ed25519",
+#    ends with the comment) into GitHub -> repo Settings -> Deploy keys ->
+#    Add deploy key, title "batibudget-vps", "Allow write access" UNCHECKED.
+ssh-keygen -t ed25519 -C "batibudget-vps-deploy" -f ~/.ssh/github_deploy -N ""
+cat ~/.ssh/github_deploy.pub
+
+# 2. Make SSH use that key for github.com.
+cat >> ~/.ssh/config <<'EOF'
+Host github.com
+  IdentityFile ~/.ssh/github_deploy
+  IdentitiesOnly yes
+EOF
+chmod 600 ~/.ssh/config
+
+# 3. First connection asks to trust GitHub's host key. Compare the
+#    fingerprint with https://api.github.com/meta (ssh_key_fingerprints ->
+#    SHA256_ED25519 = +DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU at the time
+#    of writing), then answer "yes". The success message ends with
+#    "GitHub does not provide shell access" -- that is normal.
+ssh -T git@github.com
+
+# 4. Point the existing clone at the SSH remote.
+cd ~/budget_construction
+git remote set-url origin git@github.com:luneroka/budget_construction.git
+git pull
+```
+
+Rotation/revocation: delete the key on GitHub (repo Settings -> Deploy keys)
+and repeat step 1 with a new pair. If the server is ever rebuilt, this
+section is part of the one-time setup, before the first `git clone`
+(`git clone git@github.com:luneroka/budget_construction.git`).
 
 ## Deployment Commands
 
