@@ -7,16 +7,13 @@ from fastapi import (
     Response,
     status,
 )
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import REFRESH_TOKEN_EXPIRE_DAYS, create_access_token
 from app.db.session import get_db_session
 from app.errors import raise_api_error
-from app.routers.integrity import raise_integrity_conflict
 from app.schemas.auth import Token, ForgotPasswordRequest, ResetPasswordRequest
 from fastapi.security import OAuth2PasswordRequestForm
-from app.schemas.user import UserCreate, UserRead
 from app.services import auth as auth_service
 from app.services import mailer as mailer_service
 from app.core.settings import settings
@@ -43,20 +40,9 @@ def _clear_refresh_cookie(response: Response) -> None:
     response.delete_cookie(key=REFRESH_COOKIE_NAME, path='/')
 
 
-@router.post('/register', response_model=UserRead, status_code=status.HTTP_201_CREATED)
-async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db_session)):
-    try:
-        user = await auth_service.register_user(db, user_data)
-    except IntegrityError as error:
-        await raise_integrity_conflict(db, error)
-
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail='A user with this email already exists',
-        )
-
-    return user
+# There is deliberately no public registration endpoint: accounts are created
+# by an administrator (POST /admin/users), which emails the new user a
+# password-reset link so they choose their own password.
 
 
 @router.post('/login', response_model=Token)
@@ -126,16 +112,11 @@ async def forgot_password(
 
     # Always return a generic message so we don't disclose whether the email exists.
     if token:
-        app_url = settings.app_url or ''
-        reset_link = (
-            f'{app_url}/auth/reset-password?token={token}'
-            if app_url
-            else f'/auth/reset-password?token={token}'
-        )
-
         # Send email in background; we don't await the result here.
         background_tasks.add_task(
-            mailer_service.send_reset_password_email, payload.email, reset_link
+            mailer_service.send_reset_password_email,
+            payload.email,
+            auth_service.build_password_reset_link(token),
         )
 
     return {'message': 'If this email exists, a reset link has been sent.'}

@@ -102,6 +102,12 @@ doesn't drown out real traffic in the log budget.
 
 ## Authentication
 
+There is no public sign-up. An administrator creates accounts with
+`POST /admin/users` (`{"name": ..., "email": ...}`); the new user receives a
+password-reset link by email and chooses their own password. The first
+administrator is created on the server with
+`uv run python -m app.scripts.create_admin` (see the runbook).
+
 Login (`POST /auth/login`) returns a short-lived JWT access token
 (`ACCESS_TOKEN_EXPIRE_MINUTES`, default 30) in the response body, which the
 frontend keeps in memory only (never `localStorage`), and sets a separate,

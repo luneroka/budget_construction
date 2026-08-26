@@ -2,52 +2,27 @@ from typing import cast
 
 from httpx import AsyncClient
 
+from tests.helpers import create_user, login_user
 
-PASSWORD = 'Password123!'
 
-
-async def register_user(
+async def test_public_registration_endpoint_does_not_exist(
     client: AsyncClient,
-    *,
-    email: str = 'route-user@example.com',
-) -> dict[str, object]:
+) -> None:
     response = await client.post(
         '/auth/register',
         json={
-            'name': 'Route User',
-            'email': email,
-            'password': PASSWORD,
+            'name': 'Stranger',
+            'email': 'stranger@example.com',
+            'password': 'Password123!',
         },
     )
-    assert response.status_code == 201
-    return cast(dict[str, object], response.json())
 
-
-async def login_user(client: AsyncClient, *, email: str) -> str:
-    response = await client.post(
-        '/auth/login',
-        data={
-            'username': email,
-            'password': PASSWORD,
-        },
-    )
-    assert response.status_code == 200
-
-    payload = cast(dict[str, object], response.json())
-    access_token = payload.get('access_token')
-    assert isinstance(access_token, str)
-    return access_token
-
-
-async def test_register_returns_201(client: AsyncClient) -> None:
-    payload = await register_user(client)
-
-    assert payload['email'] == 'route-user@example.com'
+    assert response.status_code == 404
 
 
 async def test_login_returns_token(client: AsyncClient) -> None:
     email = 'login-route-user@example.com'
-    await register_user(client, email=email)
+    await create_user(email=email)
 
     access_token = await login_user(client, email=email)
 
@@ -56,7 +31,7 @@ async def test_login_returns_token(client: AsyncClient) -> None:
 
 async def test_users_me_works_with_token(client: AsyncClient) -> None:
     email = 'me-route-user@example.com'
-    registered_user = await register_user(client, email=email)
+    user = await create_user(email=email)
     access_token = await login_user(client, email=email)
 
     response = await client.get(
@@ -66,7 +41,7 @@ async def test_users_me_works_with_token(client: AsyncClient) -> None:
 
     assert response.status_code == 200
     current_user = cast(dict[str, object], response.json())
-    assert current_user['id'] == registered_user['id']
+    assert current_user['id'] == user.id
     assert current_user['email'] == email
 
 

@@ -4,37 +4,7 @@ from typing import Any, cast
 
 from httpx import AsyncClient
 import pytest
-
-
-PASSWORD = 'Password123!'
-
-
-async def register_user(client: AsyncClient, *, email: str) -> dict[str, object]:
-    response = await client.post(
-        '/auth/register',
-        json={
-            'name': 'Issue Reporter',
-            'email': email,
-            'password': PASSWORD,
-        },
-    )
-    assert response.status_code == 201
-    return cast(dict[str, object], response.json())
-
-
-async def login_user(client: AsyncClient, *, email: str) -> str:
-    response = await client.post(
-        '/auth/login',
-        data={
-            'username': email,
-            'password': PASSWORD,
-        },
-    )
-    assert response.status_code == 200
-    payload = cast(dict[str, object], response.json())
-    access_token = payload.get('access_token')
-    assert isinstance(access_token, str)
-    return access_token
+from tests.helpers import create_user, login_user
 
 
 async def test_create_issue_report_sends_email_with_metadata_and_attachment(
@@ -42,7 +12,7 @@ async def test_create_issue_report_sends_email_with_metadata_and_attachment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     email = 'issue-report-user@example.com'
-    await register_user(client, email=email)
+    await create_user(email=email)
     access_token = await login_user(client, email=email)
     sent_payloads: list[dict[str, Any]] = []
 

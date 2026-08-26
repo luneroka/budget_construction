@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,8 +6,10 @@ from app.models.user import User
 from app.db.session import get_db_session
 from app.repositories import admin as admin_repository
 from app.routers.integrity import raise_integrity_conflict
-from app.schemas.user import AdminUserRead, AdminUserUpdate
+from app.schemas.user import AdminUserCreate, AdminUserRead, AdminUserUpdate
 from app.dependencies.auth import get_current_admin_user
+from app.services import auth as auth_service
+from app.services import mailer as mailer_service
 from app.services import user_lifecycle
 
 router = APIRouter(
@@ -15,6 +17,39 @@ router = APIRouter(
     tags=['Admin Users'],
     dependencies=[Depends(get_current_admin_user)],
 )
+
+
+# API ENDPOINT FOR ADMIN TO CREATE A USER (replaces public self-registration)
+@router.post('/', response_model=AdminUserRead, status_code=status.HTTP_201_CREATED)
+async def admin_create_user(
+    user_data: AdminUserCreate,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db_session),
+):
+    try:
+        user = await auth_service.invite_user(
+            db, name=user_data.name, email=user_data.email
+        )
+    except IntegrityError as error:
+        await raise_integrity_conflict(db, error)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail='A user with this email already exists',
+        )
+
+    # The account has an unusable random password; the invitee sets their
+    # own through the standard reset flow.
+    token = await auth_service.generate_password_reset_token(db, email=user.email)
+    if token:
+        background_tasks.add_task(
+            mailer_service.send_reset_password_email,
+            user.email,
+            auth_service.build_password_reset_link(token),
+        )
+
+    return user
 
 
 # API ENDPOINT FOR ADMIN TO GET USERS

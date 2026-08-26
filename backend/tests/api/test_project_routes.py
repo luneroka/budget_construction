@@ -1,42 +1,7 @@
 from typing import cast
 
 from httpx import AsyncClient
-
-
-PASSWORD = 'Password123!'
-
-
-async def register_user(
-    client: AsyncClient,
-    *,
-    email: str,
-) -> None:
-    response = await client.post(
-        '/auth/register',
-        json={
-            'name': 'Project Route User',
-            'email': email,
-            'password': PASSWORD,
-        },
-    )
-
-    assert response.status_code == 201
-
-
-async def login_user(client: AsyncClient, *, email: str) -> str:
-    response = await client.post(
-        '/auth/login',
-        data={
-            'username': email,
-            'password': PASSWORD,
-        },
-    )
-    assert response.status_code == 200
-
-    payload = cast(dict[str, object], response.json())
-    access_token = payload.get('access_token')
-    assert isinstance(access_token, str)
-    return access_token
+from tests.helpers import create_authenticated_user
 
 
 async def create_project(
@@ -58,11 +23,6 @@ async def create_project(
     )
     assert response.status_code == 201
     return cast(dict[str, object], response.json())
-
-
-async def create_authenticated_user(client: AsyncClient, *, email: str) -> str:
-    await register_user(client, email=email)
-    return await login_user(client, email=email)
 
 
 async def test_create_project(client: AsyncClient) -> None:

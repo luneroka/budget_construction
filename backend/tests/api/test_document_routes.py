@@ -16,34 +16,7 @@ from app.models.subcategory import Subcategory
 from app.models.transaction import Transaction, TransactionType
 from app.models.user import User
 from app.services.document_validation import MAX_FILE_SIZE
-
-PASSWORD = 'Password123!'
-
-
-async def create_authenticated_user(client: AsyncClient, *, email: str) -> str:
-    register_response = await client.post(
-        '/auth/register',
-        json={
-            'name': 'Document Route User',
-            'email': email,
-            'password': PASSWORD,
-        },
-    )
-    assert register_response.status_code == 201
-
-    login_response = await client.post(
-        '/auth/login',
-        data={
-            'username': email,
-            'password': PASSWORD,
-        },
-    )
-    assert login_response.status_code == 200
-
-    payload = cast(dict[str, object], login_response.json())
-    access_token = payload.get('access_token')
-    assert isinstance(access_token, str)
-    return access_token
+from tests.helpers import create_authenticated_user
 
 
 async def user_by_email(db_session: AsyncSession, email: str) -> User:

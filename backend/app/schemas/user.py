@@ -21,6 +21,11 @@ class AdminUserUpdate(UserProfileUpdate):
     is_active: bool | None = None
 
 
+class AdminUserCreate(UserBase):
+    """Admin-created account: no password, the user sets it via the emailed
+    reset link."""
+
+
 class UserRead(UserBase):
     id: int
     created_at: datetime

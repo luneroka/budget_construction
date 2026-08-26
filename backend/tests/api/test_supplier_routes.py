@@ -2,35 +2,9 @@ from typing import cast
 
 from httpx import AsyncClient
 import pytest
+from tests.helpers import create_authenticated_user
 
-PASSWORD = 'Password123!'
 JsonValue = None | bool | int | float | str | list['JsonValue'] | dict[str, 'JsonValue']
-
-
-async def create_authenticated_user(client: AsyncClient, *, email: str) -> str:
-    register_response = await client.post(
-        '/auth/register',
-        json={
-            'name': 'Supplier Route User',
-            'email': email,
-            'password': PASSWORD,
-        },
-    )
-    assert register_response.status_code == 201
-
-    login_response = await client.post(
-        '/auth/login',
-        data={
-            'username': email,
-            'password': PASSWORD,
-        },
-    )
-    assert login_response.status_code == 200
-
-    payload = cast(dict[str, object], login_response.json())
-    access_token = payload.get('access_token')
-    assert isinstance(access_token, str)
-    return access_token
 
 
 async def test_supplier_routes_expose_contacts_without_flat_contact_fields(

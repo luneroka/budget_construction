@@ -3,6 +3,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import User
+from tests.helpers import PASSWORD, create_user
 
 
 async def test_openapi_schema_is_available(client: AsyncClient) -> None:
@@ -36,23 +37,20 @@ async def test_test_database_starts_empty(db_session: AsyncSession) -> None:
     assert users_count == 0
 
 
-async def test_register_uses_overridden_test_database(
+async def test_login_uses_overridden_test_database(
     client: AsyncClient, db_session: AsyncSession
 ) -> None:
+    await create_user(email='test-user@example.com')
+
     response = await client.post(
-        '/auth/register',
-        json={
-            'name': 'Test User',
-            'email': 'test-user@example.com',
-            'password': 'password123',
-        },
+        '/auth/login',
+        data={'username': 'test-user@example.com', 'password': PASSWORD},
     )
 
-    assert response.status_code == 201
+    assert response.status_code == 200
 
     user = await db_session.scalar(
         select(User).where(User.email == 'test-user@example.com')
     )
-
     assert user is not None
-    assert user.name == 'Test User'
+    assert user.email == 'test-user@example.com'

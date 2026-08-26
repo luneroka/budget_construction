@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta, UTC
+import secrets
 from typing import Any
 import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.settings import settings
 from app.core.security import (
     REFRESH_TOKEN_EXPIRE_DAYS,
     create_password_reset_token,
@@ -43,6 +45,23 @@ async def register_user(db: AsyncSession, user_data: UserCreate) -> User | None:
     return await user_repository.create_user(
         db=db, user_data=user_data, hashed_password=hashed_password
     )
+
+
+async def invite_user(db: AsyncSession, *, name: str, email: str) -> User | None:
+    """Create an account on a user's behalf (admin flow).
+
+    The account gets a random, never-communicated password; the caller is
+    expected to email a password-reset link so the user picks their own.
+    Returns None if the email is already taken.
+    """
+    user_data = UserCreate(name=name, email=email, password=secrets.token_urlsafe(32))
+    return await register_user(db, user_data)
+
+
+def build_password_reset_link(token: str) -> str:
+    path = f'/auth/reset-password?token={token}'
+    app_url = (settings.app_url or '').rstrip('/')
+    return f'{app_url}{path}' if app_url else path
 
 
 async def authenticate_user(db: AsyncSession, email: str, password: str) -> User | None:
