@@ -67,7 +67,7 @@ running server (see section 5) — nothing is live until that is done.
 | S-10 | No security event logging | ✅ Fixed — `security` logger emits `login_failed/success`, `login_locked`, `refresh_reuse_detected`, `password_reset_*`, `email_changed`, `admin_user_*`, `rate_limited` with IP | Deploy WP-1 |
 | S-11 | Password policy | ✅ Fixed — shared `Password` type: 12–72 bytes, no surrounding whitespace, enforced on reset/create/CLI and mirrored in the SPA | Deploy WP-1/WP-2 |
 | S-12 | Public repository | ⏳ Pending — needs the repo owner to flip visibility on GitHub | — |
-| S-13 | Email sent to Sentry | ⏳ Pending | — |
+| S-13 | Email sent to Sentry | ✅ Fixed — `set_user` sends the user id only | Deploy WP-1 |
 | S-14 | Issue-report attachments | ⏳ Pending | — |
 | S-15 | Access tokens survive password reset | ✅ Fixed — tokens carry a password-hash marker checked on every request | Deploy WP-1 |
 | S-16 | Container hardening | ⏳ Pending | — |

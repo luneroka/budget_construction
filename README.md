@@ -90,7 +90,8 @@ allow-list, a non-HTTPS `APP_URL`, or `DATABASE_ECHO=true`.
 Unhandled backend exceptions are caught by a generic exception handler
 (`app/main.py`), logged, and reported to [Sentry](https://sentry.io) if
 `SENTRY_DSN` is set — including which user was affected
-(`sentry_sdk.set_user`, set once they're authenticated). This is
+(`sentry_sdk.set_user` with the user id only, no email or other personal
+data, set once they're authenticated). This is
 independent of the VPS's own container logs, which are discarded on every
 deploy, so it's the primary way to notice and investigate a bug without
 waiting for a user to report it. Leaving `SENTRY_DSN` unset is a safe

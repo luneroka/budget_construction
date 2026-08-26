@@ -50,8 +50,10 @@ async def get_current_user(
         )
 
     # No-op if Sentry isn't initialized. Lets a captured exception show
-    # which user was affected, without relying on them to report it.
-    sentry_sdk.set_user({'id': str(user.id), 'email': user.email})
+    # which user was affected, without relying on them to report it. Only
+    # the id leaves the server: it is enough to look the user up here, and
+    # keeps personal data out of a third-party processor.
+    sentry_sdk.set_user({'id': str(user.id)})
 
     return user
 
