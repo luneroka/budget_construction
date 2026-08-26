@@ -70,8 +70,8 @@ running server (see section 5) — nothing is live until that is done.
 | S-13 | Email sent to Sentry | ✅ Fixed — `set_user` sends the user id only | Deploy WP-1 |
 | S-14 | Issue-report attachments | ✅ Fixed — content sniffed against the PNG/JPEG/PDF/HEIC allow-list, 20 MB total cap, 5 000-char description | Deploy WP-1 |
 | S-15 | Access tokens survive password reset | ✅ Fixed — tokens carry a password-hash marker checked on every request | Deploy WP-1 |
-| S-16 | Container hardening | ⏳ Pending | — |
-| S-17 | Least-privilege DB role | ⏳ Pending | — |
+| S-16 | Container hardening | ✅ Fixed — `no-new-privileges` on every service, `cap_drop: ALL` (+`NET_BIND_SERVICE` for Caddy only), read-only rootfs + tmpfs `/tmp` for backend/migrate; `--pull` on deploy | Deploy WP-1 (`up -d --build --pull always`) |
+| S-17 | Least-privilege DB role | ✅ Tooling merged — `scripts/create_db_app_role.sh` + `MIGRATIONS_DATABASE_URL` split; opt-in | Manual: run the script, edit `.env.production`, `up -d` (section 5, "Least-privilege database role") |
 | S-18 | CORS tightening | ✅ Fixed — explicit method/header allow-lists | Deploy WP-1 |
 | S-19 | Refresh-cookie path | ✅ Fixed — cookie scoped to `REFRESH_COOKIE_PATH` (`/api/auth` in prod); legacy `/` cookie expired on every write | Deploy WP-1 (`up -d` picks up the compose env) |
 | S-20 | Dependency automation | ⏳ Pending | — |
@@ -643,6 +643,26 @@ head -c 30000000 /dev/zero | curl -s -o /dev/null -w '%{http_code}\n' -X POST \
 
 Rollback: `git checkout <rollback-rev>` and re-run `up -d --build`. No
 package in this plan adds a migration, so a code rollback is sufficient.
+
+### Least-privilege database role (S-17, opt-in)
+
+The API currently connects as the PostgreSQL superuser. To switch it to a
+DML-only role without downtime:
+
+```sh
+cd /home/deploy/budget_construction
+export APP_DB_PASSWORD="$(openssl rand -base64 36)"   # keep it: goes into .env.production
+scripts/create_db_app_role.sh                         # idempotent; creates batibudget_app
+```
+
+Then edit `.env.production`: copy the current `DATABASE_URL` into
+`MIGRATIONS_DATABASE_URL`, and set `DATABASE_URL` to
+`postgresql+asyncpg://batibudget_app:<APP_DB_PASSWORD>@db:5432/<POSTGRES_DB>`.
+Run the usual `up -d` (only `backend` is recreated) and check
+`/api/health/ready`. The `migrate` service keeps using the superuser via
+`MIGRATIONS_DATABASE_URL`, so future migrations still own the tables and the
+default privileges keep the app role working. **Re-run the script after any
+`restore_db.sh`** (dumps are restored without privileges).
 
 ### Secrets
 

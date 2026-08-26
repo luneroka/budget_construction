@@ -73,6 +73,7 @@ settings are:
 | -------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | `DOMAIN`, `ACME_EMAIL`                                   | Caddy hostname and Let's Encrypt contact address.                            |
 | `POSTGRES_*`, `DATABASE_URL`                             | Internal PostgreSQL credentials and async API connection URL.                |
+| `MIGRATIONS_DATABASE_URL`                                | Optional superuser URL for the `migrate` service, so `DATABASE_URL` can use the least-privilege role created by `scripts/create_db_app_role.sh`. |
 | `APP_ENVIRONMENT=production`                             | Enables strict production configuration validation.                          |
 | `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT signing configuration; generate a high-entropy secret (≥32 characters).  |
 | `REFRESH_TOKEN_EXPIRE_DAYS`                              | Sliding session length in days for the httpOnly refresh cookie (default 30). |
