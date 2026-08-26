@@ -72,7 +72,7 @@ running server (see section 5) — nothing is live until that is done.
 | S-15 | Access tokens survive password reset | ✅ Fixed — tokens carry a password-hash marker checked on every request | Deploy WP-1 |
 | S-16 | Container hardening | ⏳ Pending | — |
 | S-17 | Least-privilege DB role | ⏳ Pending | — |
-| S-18 | CORS tightening | ⏳ Pending | — |
+| S-18 | CORS tightening | ✅ Fixed — explicit method/header allow-lists | Deploy WP-1 |
 | S-19 | Refresh-cookie path | ⏳ Pending | — |
 | S-20 | Dependency automation | ⏳ Pending | — |
 | S-21 | Cross-user authorization tests | ⏳ Pending | — |
