@@ -43,13 +43,99 @@ import {
 import { formatDate } from '@/lib/format'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 
-function statusOf(user: AdminUserRead): {
+type UserStatus = {
   label: string
   variant: 'success' | 'warning' | 'muted'
-} {
+}
+
+function statusOf(user: AdminUserRead): UserStatus {
   if (user.deleted_at) return { label: 'Supprimé', variant: 'muted' }
   if (!user.is_active) return { label: 'Désactivé', variant: 'warning' }
   return { label: 'Actif', variant: 'success' }
+}
+
+type UserActionsProps = {
+  user: AdminUserRead
+  isSelf: boolean
+  disabled: boolean
+  onToggleActive: (user: AdminUserRead) => void
+  onDelete: (user: AdminUserRead) => void
+  onRestore: (user: AdminUserRead) => void
+}
+
+function UserActions({
+  user,
+  isSelf,
+  disabled,
+  onToggleActive,
+  onDelete,
+  onRestore,
+}: UserActionsProps) {
+  if (isSelf) {
+    return (
+      <span className="text-xs text-muted-foreground">
+        Gérez votre compte depuis « Paramètres utilisateur ».
+      </span>
+    )
+  }
+
+  if (user.deleted_at) {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={disabled}
+        onClick={() => onRestore(user)}
+      >
+        <RotateCcw aria-hidden />
+        Restaurer
+      </Button>
+    )
+  }
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={disabled}
+        onClick={() => onToggleActive(user)}
+      >
+        {user.is_active ? <UserX aria-hidden /> : <UserCheck aria-hidden />}
+        {user.is_active ? 'Désactiver' : 'Réactiver'}
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="text-destructive hover:text-destructive"
+        disabled={disabled}
+        onClick={() => onDelete(user)}
+      >
+        <Trash2 aria-hidden />
+        Supprimer
+      </Button>
+    </>
+  )
+}
+
+function UserName({ user, isSelf }: { user: AdminUserRead; isSelf: boolean }) {
+  return (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      <span className="font-medium text-foreground">{user.name}</span>
+      {user.is_admin ? (
+        <Badge variant="gold">
+          <ShieldCheck className="mr-1 h-3 w-3" aria-hidden />
+          Admin
+        </Badge>
+      ) : null}
+      {isSelf ? (
+        <span className="text-xs text-muted-foreground">(vous)</span>
+      ) : null}
+    </span>
+  )
 }
 
 export function AdminUsersPage() {
@@ -145,11 +231,23 @@ export function AdminUsersPage() {
     }
   }
 
+  function requestDelete(user: AdminUserRead) {
+    setDeleteError(null)
+    setUserToDelete(user)
+  }
+
   const users = usersQuery.data ?? []
   const isBusy =
     updateMutation.isPending ||
     deleteMutation.isPending ||
     restoreMutation.isPending
+
+  const actionProps = {
+    disabled: isBusy,
+    onToggleActive: handleToggleActive,
+    onDelete: requestDelete,
+    onRestore: handleRestore,
+  }
 
   return (
     <section>
@@ -159,34 +257,49 @@ export function AdminUsersPage() {
         description="Invitez des utilisateurs et gérez l'accès à l'application. Il n'y a pas d'inscription publique."
       />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+      <div className="space-y-4">
         <SectionCard
           title="Inviter un utilisateur"
           description="Un e-mail avec un lien pour choisir son mot de passe lui sera envoyé."
           icon={MailPlus}
         >
           <form className="space-y-4" onSubmit={handleInvite}>
-            <div className="space-y-2">
-              <Label htmlFor="invite-name">Nom</Label>
-              <Input
-                id="invite-name"
-                value={inviteName}
-                onChange={(event) => setInviteName(event.target.value)}
-                autoComplete="off"
-                required
-                maxLength={255}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="invite-email">Email</Label>
-              <Input
-                id="invite-email"
-                type="email"
-                value={inviteEmail}
-                onChange={(event) => setInviteEmail(event.target.value)}
-                autoComplete="off"
-                required
-              />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
+              <div className="space-y-2">
+                <Label htmlFor="invite-name">Nom</Label>
+                <Input
+                  id="invite-name"
+                  value={inviteName}
+                  onChange={(event) => setInviteName(event.target.value)}
+                  autoComplete="off"
+                  required
+                  maxLength={255}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="invite-email">Email</Label>
+                <Input
+                  id="invite-email"
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(event) => setInviteEmail(event.target.value)}
+                  autoComplete="off"
+                  required
+                />
+              </div>
+              <Button
+                type="submit"
+                variant="gold"
+                className="w-full sm:col-span-2 lg:col-span-1 lg:w-auto"
+                disabled={inviteMutation.isPending}
+              >
+                {inviteMutation.isPending ? (
+                  <Loader2 className="animate-spin" aria-hidden />
+                ) : (
+                  <MailPlus aria-hidden />
+                )}
+                {inviteMutation.isPending ? 'Envoi...' : "Envoyer l'invitation"}
+              </Button>
             </div>
 
             {inviteError ? (
@@ -197,20 +310,6 @@ export function AdminUsersPage() {
                 {inviteError}
               </div>
             ) : null}
-
-            <Button
-              type="submit"
-              variant="gold"
-              className="w-full"
-              disabled={inviteMutation.isPending}
-            >
-              {inviteMutation.isPending ? (
-                <Loader2 className="animate-spin" aria-hidden />
-              ) : (
-                <MailPlus aria-hidden />
-              )}
-              {inviteMutation.isPending ? 'Envoi...' : "Envoyer l'invitation"}
-            </Button>
           </form>
         </SectionCard>
 
@@ -219,15 +318,23 @@ export function AdminUsersPage() {
           description="Désactiver un compte bloque la connexion sans rien effacer. Supprimer un compte place ses données à la corbeille."
           icon={Users}
         >
-          <div className="mb-4 flex items-center gap-2">
-            <Checkbox
-              id="include-deleted-users"
-              checked={includeDeleted}
-              onChange={(event) => setIncludeDeleted(event.target.checked)}
-            />
-            <Label htmlFor="include-deleted-users" className="font-normal">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <label
+              htmlFor="include-deleted-users"
+              className="inline-flex cursor-pointer items-center gap-2 text-sm"
+            >
+              <Checkbox
+                id="include-deleted-users"
+                checked={includeDeleted}
+                onChange={(event) => setIncludeDeleted(event.target.checked)}
+              />
               Afficher les comptes supprimés
-            </Label>
+            </label>
+            {usersQuery.data ? (
+              <span className="text-sm text-muted-foreground">
+                {users.length} compte{users.length > 1 ? 's' : ''}
+              </span>
+            ) : null}
           </div>
 
           {usersQuery.isLoading ? (
@@ -239,104 +346,95 @@ export function AdminUsersPage() {
           ) : users.length === 0 ? (
             <p className="text-sm text-muted-foreground">Aucun utilisateur.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Créé le</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Phones and small tablets: one card per account. */}
+              <ul className="space-y-3 md:hidden">
                 {users.map((user) => {
                   const status = statusOf(user)
                   const isSelf = user.id === currentUser?.id
-                  const isDeleted = user.deleted_at !== null
 
                   return (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">
-                        <span className="inline-flex items-center gap-2">
-                          {user.name}
-                          {user.is_admin ? (
-                            <Badge variant="gold">
-                              <ShieldCheck
-                                className="mr-1 h-3 w-3"
-                                aria-hidden
-                              />
-                              Admin
-                            </Badge>
-                          ) : null}
-                          {isSelf ? (
-                            <span className="text-xs text-muted-foreground">
-                              (vous)
-                            </span>
-                          ) : null}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {user.email}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={status.variant}>{status.label}</Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDate(user.created_at)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex justify-end gap-2">
-                          {isSelf ? null : isDeleted ? (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              disabled={isBusy}
-                              onClick={() => handleRestore(user)}
-                            >
-                              <RotateCcw aria-hidden />
-                              Restaurer
-                            </Button>
-                          ) : (
-                            <>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                disabled={isBusy}
-                                onClick={() => handleToggleActive(user)}
-                              >
-                                {user.is_active ? (
-                                  <UserX aria-hidden />
-                                ) : (
-                                  <UserCheck aria-hidden />
-                                )}
-                                {user.is_active ? 'Désactiver' : 'Réactiver'}
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="text-destructive hover:text-destructive"
-                                disabled={isBusy}
-                                onClick={() => {
-                                  setDeleteError(null)
-                                  setUserToDelete(user)
-                                }}
-                              >
-                                <Trash2 aria-hidden />
-                                Supprimer
-                              </Button>
-                            </>
-                          )}
+                    <li
+                      key={user.id}
+                      className="rounded-lg border border-border bg-background p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 space-y-1">
+                          <UserName user={user} isSelf={isSelf} />
+                          <p className="truncate text-sm text-muted-foreground">
+                            {user.email}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Créé le {formatDate(user.created_at)}
+                          </p>
                         </div>
-                      </TableCell>
-                    </TableRow>
+                        <Badge variant={status.variant} className="shrink-0">
+                          {status.label}
+                        </Badge>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <UserActions
+                          user={user}
+                          isSelf={isSelf}
+                          {...actionProps}
+                        />
+                      </div>
+                    </li>
                   )
                 })}
-              </TableBody>
-            </Table>
+              </ul>
+
+              {/* Larger screens: a table; the date column only when there is room. */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nom</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead className="hidden lg:table-cell">
+                        Créé le
+                      </TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => {
+                      const status = statusOf(user)
+                      const isSelf = user.id === currentUser?.id
+
+                      return (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            <UserName user={user} isSelf={isSelf} />
+                          </TableCell>
+                          <TableCell className="max-w-[16rem] truncate text-muted-foreground">
+                            {user.email}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={status.variant}>
+                              {status.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="hidden text-muted-foreground lg:table-cell">
+                            {formatDate(user.created_at)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap justify-end gap-2">
+                              <UserActions
+                                user={user}
+                                isSelf={isSelf}
+                                {...actionProps}
+                              />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </SectionCard>
       </div>
