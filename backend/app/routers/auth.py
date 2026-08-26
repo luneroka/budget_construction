@@ -23,6 +23,7 @@ from app.core.rate_limit import (
 from app.core.security import REFRESH_TOKEN_EXPIRE_DAYS, create_access_token
 from app.db.session import get_db_session
 from app.errors import raise_api_error
+from app.repositories import user as user_repository
 from app.schemas.auth import Token, ForgotPasswordRequest, ResetPasswordRequest
 from fastapi.security import OAuth2PasswordRequestForm
 from app.services import auth as auth_service
@@ -80,7 +81,9 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid email or password'
         )
 
-    access_token = create_access_token(subject=str(user.id))
+    access_token = create_access_token(
+        subject=str(user.id), hashed_password=user.hashed_password
+    )
     refresh_token = await auth_service.issue_refresh_token(db, user.id)
     _set_refresh_cookie(response, refresh_token)
 
@@ -106,7 +109,16 @@ async def refresh(
         _clear_refresh_cookie(response)
         raise_api_error(status.HTTP_401_UNAUTHORIZED, 'not_authenticated')
 
-    access_token = create_access_token(subject=str(user_id))
+    user = await user_repository.get_user_by_id(db, user_id)
+    if user is None or not user.is_active:
+        # Deactivated or deleted since the session started: end it.
+        await auth_service.revoke_refresh_token(db, new_refresh_token)
+        _clear_refresh_cookie(response)
+        raise_api_error(status.HTTP_401_UNAUTHORIZED, 'not_authenticated')
+
+    access_token = create_access_token(
+        subject=str(user.id), hashed_password=user.hashed_password
+    )
     _set_refresh_cookie(response, new_refresh_token)
 
     return Token(access_token=access_token)

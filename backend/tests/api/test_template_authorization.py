@@ -59,7 +59,7 @@ async def create_user_token(
     db_session.add(user)
     await db_session.commit()
     await db_session.refresh(user)
-    return create_access_token(subject=str(user.id))
+    return create_access_token(subject=str(user.id), hashed_password=user.hashed_password)
 
 
 @pytest.mark.parametrize(

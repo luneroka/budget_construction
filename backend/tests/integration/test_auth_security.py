@@ -118,7 +118,7 @@ async def test_access_token_fails_for_inactive_or_deleted_user(
     expected_status: int,
 ) -> None:
     user = await create_user(db_session)
-    access_token = create_access_token(subject=str(user.id))
+    access_token = create_access_token(subject=str(user.id), hashed_password=user.hashed_password)
 
     user.is_active = False
     user.deleted_at = deleted_at
@@ -156,7 +156,7 @@ async def test_access_token_cannot_be_used_as_password_reset_token(
     client: AsyncClient,
 ) -> None:
     user = await create_user(db_session)
-    access_token = create_access_token(subject=str(user.id))
+    access_token = create_access_token(subject=str(user.id), hashed_password=user.hashed_password)
 
     response = await client.post(
         '/auth/reset-password',

@@ -93,7 +93,7 @@ async def create_trash_context(
     await db_session.refresh(supplier)
 
     return (
-        create_access_token(subject=str(user.id)),
+        create_access_token(subject=str(user.id), hashed_password=user.hashed_password),
         project.id,
         transaction.id,
         document.id,

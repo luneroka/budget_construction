@@ -48,7 +48,7 @@ async def create_template_route_context(
     await db_session.refresh(template)
 
     return TemplateRouteContext(
-        access_token=create_access_token(subject=str(user.id)),
+        access_token=create_access_token(subject=str(user.id), hashed_password=user.hashed_password),
         template_id=template.id,
     )
 

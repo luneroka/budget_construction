@@ -63,7 +63,7 @@ async def create_transaction_route_context(
     await db_session.refresh(product)
 
     return TransactionRouteContext(
-        access_token=create_access_token(subject=str(user.id)),
+        access_token=create_access_token(subject=str(user.id), hashed_password=user.hashed_password),
         project_id=project.id,
         product_id=product.id,
     )

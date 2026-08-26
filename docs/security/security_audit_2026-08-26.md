@@ -47,6 +47,39 @@ Everything else is hardening and process (sections 3–4). Total estimated
 effort for the P0 + P1 work: roughly 2–3 working days including testing
 and the production rollout.
 
+### Remediation status
+
+Updated as fixes land on `main`. "Fixed" means merged and covered by
+tests/validation; the **VPS** column says what is still needed on the
+running server (see section 5) — nothing is live until that is done.
+
+| ID | Finding | Status | VPS step |
+|----|---------|--------|----------|
+| S-01 | Public self-registration | ✅ Fixed — route removed; `POST /admin/users` + invite email; `app.scripts.create_admin` CLI | Deploy WP-1 |
+| S-02 | API docs exposed in prod | ✅ Fixed — `docs_url`/`openapi_url` off in production + Caddy 404 | Deploy WP-1 + Caddy reload |
+| S-03 | No rate limiting | ✅ Fixed — slowapi per-IP limits, per-account lockout, per-address reset cap; `rate_limited` error code | Deploy WP-1 |
+| S-04 | Vulnerable dependencies | ✅ Fixed — starlette 1.6, python-multipart 0.0.32, cryptography 50, pyasn1 0.6.4, pydantic-settings 2.15, fastapi 0.141; frontend `npm audit` clean | Deploy WP-1/WP-2 |
+| S-05 | Missing security headers | ✅ Fixed — HSTS, CSP (Report-Only), X-Frame-Options, Permissions-Policy, COOP, `no-store` on `/api` | Caddy reload; enforce CSP after the Report-Only week (S-05b) |
+| S-06 | No edge body-size limit | ✅ Fixed — Caddy `request_body max_size 25MB`; 413 mapped in the SPA | Caddy reload |
+| S-07 | Email change without re-auth | ✅ Fixed — `current_password` required, sessions revoked, old address notified | Deploy WP-1 |
+| S-08 | python-jose / ecdsa | ✅ Fixed — PyJWT, symmetric algorithms only; `pip-audit` clean | Deploy WP-1 |
+| S-09 | Client IP not propagated | ✅ Fixed — `FORWARDED_ALLOW_IPS=*` on the backend service | `up -d` recreates backend |
+| S-10 | No security event logging | ⏳ Pending | — |
+| S-11 | Password policy | ⏳ Pending | — |
+| S-12 | Public repository | ⏳ Pending — needs the repo owner to flip visibility on GitHub | — |
+| S-13 | Email sent to Sentry | ⏳ Pending | — |
+| S-14 | Issue-report attachments | ⏳ Pending | — |
+| S-15 | Access tokens survive password reset | ✅ Fixed — tokens carry a password-hash marker checked on every request | Deploy WP-1 |
+| S-16 | Container hardening | ⏳ Pending | — |
+| S-17 | Least-privilege DB role | ⏳ Pending | — |
+| S-18 | CORS tightening | ⏳ Pending | — |
+| S-19 | Refresh-cookie path | ⏳ Pending | — |
+| S-20 | Dependency automation | ⏳ Pending | — |
+| S-21 | Cross-user authorization tests | ⏳ Pending | — |
+| S-22 | Local `.env` credentials | ⏳ Pending — needs the owner to confirm/rotate | — |
+| S-23 | Health endpoints | Accepted as-is | — |
+| S-24 | Admin bootstrap | ✅ Fixed — `uv run python -m app.scripts.create_admin` documented in README | — |
+
 ---
 
 ## 2. What is already solid (keep as-is)

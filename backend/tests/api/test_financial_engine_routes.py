@@ -161,7 +161,7 @@ async def create_financial_summary_context(
     await db_session.refresh(second_budget_line)
 
     return FinancialSummaryRouteContext(
-        access_token=create_access_token(subject=str(user.id)),
+        access_token=create_access_token(subject=str(user.id), hashed_password=user.hashed_password),
         project_id=project.id,
         product_id=product.id,
         second_product_id=second_product.id,
@@ -658,7 +658,7 @@ async def test_project_financial_summary_includes_empty_template_product(
 
     response = await client.get(
         f'/projects/{project.id}/financial-summary',
-        headers=auth_headers(create_access_token(subject=str(user.id))),
+        headers=auth_headers(create_access_token(subject=str(user.id), hashed_password=user.hashed_password)),
     )
 
     assert response.status_code == 200

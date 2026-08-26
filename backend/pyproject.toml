@@ -12,12 +12,12 @@ dependencies = [
     "greenlet>=3.5.0",
     "passlib[bcrypt]>=1.7.4",
     "pydantic-settings>=2.11.0",
-    "python-jose[cryptography]>=3.5.0",
     "sqlalchemy>=2.0.49",
     "httpx>=0.24.0",
     "boto3>=1.43.21",
     "sentry-sdk>=2.60.0",
     "slowapi>=0.1.10",
+    "pyjwt>=2.13.0",
 ]
 
 [tool.black]
