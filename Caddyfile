@@ -7,12 +7,36 @@
 
 	header {
 		-Server
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		# Report-Only for one release so any legitimate resource the policy
+		# misses shows up in the browser console instead of breaking the app;
+		# then rename to Content-Security-Policy. Allowances: Google Fonts
+		# (index.css), R2 presigned URLs in the document viewer iframe/img,
+		# inline styles from React style props and Tailwind.
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.r2.cloudflarestorage.com; connect-src 'self'; frame-src https://*.r2.cloudflarestorage.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+	}
+
+	# The API disables these itself in production; this keeps them hidden at
+	# the edge even if that setting ever regresses.
+	@api_docs path /api/docs /api/docs/* /api/redoc /api/openapi.json
+	handle @api_docs {
+		respond 404
 	}
 
 	@api path /api /api/*
 	handle @api {
+		# API responses carry access tokens and financial data: never cache.
+		header Cache-Control "no-store"
+		# Largest legitimate body is a 20 MB document upload (validated again
+		# by the API); everything else is rejected before reaching uvicorn.
+		request_body {
+			max_size 25MB
+		}
 		uri strip_prefix /api
 		reverse_proxy backend:8000
 	}

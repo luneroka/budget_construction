@@ -76,7 +76,16 @@ async def lifespan(app: FastAPI):
     logger.info('Server stopping')
 
 
-app = FastAPI(lifespan=lifespan)
+# Interactive docs and the OpenAPI schema are a complete map of the API
+# (routes, schemas, admin endpoints). They stay available in development and
+# test but are not served in production.
+_is_production = settings.app_environment == 'production'
+app = FastAPI(
+    lifespan=lifespan,
+    docs_url=None if _is_production else '/docs',
+    redoc_url=None if _is_production else '/redoc',
+    openapi_url=None if _is_production else '/openapi.json',
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_allowed_origins,

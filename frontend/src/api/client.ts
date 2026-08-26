@@ -306,6 +306,8 @@ export function getApiErrorMessage(error: unknown): string {
       403: 'forbidden',
       404: 'not_found',
       409: 'request_conflict',
+      // Caddy rejects oversized bodies before they reach the API.
+      413: 'file_too_large',
       422: 'request_validation_failed',
       500: 'internal_server_error',
       502: 'external_service_error',
