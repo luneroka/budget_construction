@@ -62,7 +62,7 @@ healthy read-only, Caddy healthy with `NET_BIND_SERVICE` only); inside that
 production-mode container `/docs` and `/openapi.json` answer 404, the sixth
 failed login answers 429, and `security:` lines appear in the logs.
 
-**Still for the owner:** S-12 (make the GitHub repo private), S-22 (confirm
+**Still for the owner:** S-22 (confirm
 the local `.env` R2/Resend keys are dev-scoped, rotate otherwise), the
 production rollout in section 5, and S-05b — switch
 `Content-Security-Policy-Report-Only` to `Content-Security-Policy` in the
@@ -82,7 +82,7 @@ Caddyfile once a week of Report-Only shows no legitimate violations
 | S-09 | Client IP not propagated | ✅ Fixed — `FORWARDED_ALLOW_IPS=*` on the backend service | `up -d` recreates backend |
 | S-10 | No security event logging | ✅ Fixed — `security` logger emits `login_failed/success`, `login_locked`, `refresh_reuse_detected`, `password_reset_*`, `email_changed`, `admin_user_*`, `rate_limited` with IP | Deploy WP-1 |
 | S-11 | Password policy | ✅ Fixed — shared `Password` type: 12–72 bytes, no surrounding whitespace, enforced on reset/create/CLI and mirrored in the SPA | Deploy WP-1/WP-2 |
-| S-12 | Public repository | ⏳ Pending — needs the repo owner to flip visibility on GitHub | — |
+| S-12 | Public repository | ✅ Fixed — repository made private by the owner on 2026-08-26 | — |
 | S-13 | Email sent to Sentry | ✅ Fixed — `set_user` sends the user id only | Deploy WP-1 |
 | S-14 | Issue-report attachments | ✅ Fixed — content sniffed against the PNG/JPEG/PDF/HEIC allow-list, 20 MB total cap, 5 000-char description | Deploy WP-1 |
 | S-15 | Access tokens survive password reset | ✅ Fixed — tokens carry a password-hash marker checked on every request | Deploy WP-1 |
