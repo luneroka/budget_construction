@@ -74,6 +74,7 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
   invoice_type_not_allowed:
     'Le type de facture est disponible uniquement pour les factures.',
   invoice_type_required: 'Le type de facture est obligatoire.',
+  login_invalid: 'Email ou mot de passe incorrect.',
   last_admin_deactivate_forbidden:
     'Impossible de désactiver le dernier administrateur.',
   last_admin_delete_forbidden:
@@ -165,7 +166,9 @@ export function setApiUnauthorizedHandler(handler: (() => void) | null) {
 
 // Called on a 401 to obtain a fresh access token via the httpOnly refresh
 // cookie. Returns the new token, or null if the session can't be renewed.
-export function setApiRefreshHandler(handler: (() => Promise<string | null>) | null) {
+export function setApiRefreshHandler(
+  handler: (() => Promise<string | null>) | null,
+) {
   refreshHandler = handler
 }
 
@@ -197,7 +200,12 @@ apiClient.interceptors.response.use(
     const requestConfig = error.config as RetryableRequestConfig | undefined
     const isAuthEndpoint = requestConfig?.url?.startsWith('/auth/') ?? true
 
-    if (!refreshHandler || isAuthEndpoint || !requestConfig || requestConfig._retried) {
+    if (
+      !refreshHandler ||
+      isAuthEndpoint ||
+      !requestConfig ||
+      requestConfig._retried
+    ) {
       unauthorizedHandler?.()
       return Promise.reject(error)
     }

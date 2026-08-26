@@ -177,6 +177,9 @@ ERROR_DEFINITIONS: dict[str, ErrorDefinition] = {
         'message': 'invoice_type is required for invoices',
         'field': 'invoice_type',
     },
+    'login_invalid': {
+        'message': 'Invalid email or password',
+    },
     'last_admin_delete_forbidden': {
         'message': 'Cannot delete the last admin user',
     },

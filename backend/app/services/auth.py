@@ -22,6 +22,10 @@ from app.schemas.user import UserCreate
 from app.models.user import User
 
 
+class InactiveAccountError(Exception):
+    """Correct credentials for an account that has been deactivated."""
+
+
 class RefreshTokenReuseError(Exception):
     """Raised when a refresh token that was already rotated out or revoked is
     presented again -- a signal the token may have been stolen."""
@@ -65,16 +69,22 @@ def build_password_reset_link(token: str) -> str:
 
 
 async def authenticate_user(db: AsyncSession, email: str, password: str) -> User | None:
+    """Return the user for valid credentials, None for invalid ones.
+
+    Raises InactiveAccountError only when the password is correct but the
+    account is deactivated: someone who knows the password may be told why
+    they cannot log in, while a guesser learns nothing about the account.
+    """
     user = await user_repository.get_user_by_email(db, email)
 
     if user is None:
         return None
 
-    if not user.is_active:
-        return None
-
     if not verify_password(password, user.hashed_password):
         return None
+
+    if not user.is_active:
+        raise InactiveAccountError(user.id)
 
     return user
 

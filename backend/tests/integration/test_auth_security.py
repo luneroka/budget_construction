@@ -69,7 +69,25 @@ async def test_inactive_user_cannot_authenticate(
         data={'username': user.email, 'password': PASSWORD},
     )
 
+    # Correct password: the person is told the account is deactivated.
+    assert response.status_code == 403
+    assert response.json()['detail']['code'] == 'inactive_user'
+
+
+async def test_inactive_user_with_wrong_password_learns_nothing(
+    db_session: AsyncSession,
+    client: AsyncClient,
+) -> None:
+    user = await create_user(db_session, is_active=False)
+
+    response = await client.post(
+        '/auth/login',
+        data={'username': user.email, 'password': 'wrong-password'},
+    )
+
+    # Same answer as for any wrong password: no hint that the account exists.
     assert response.status_code == 401
+    assert response.json()['detail']['code'] == 'login_invalid'
 
 
 async def test_wrong_password_rejected(
@@ -84,6 +102,7 @@ async def test_wrong_password_rejected(
     )
 
     assert response.status_code == 401
+    assert response.json()['detail']['code'] == 'login_invalid'
 
 
 async def test_access_token_resolves_current_user(

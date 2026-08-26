@@ -88,16 +88,18 @@ async def login(
         )
         raise_api_error(status.HTTP_429_TOO_MANY_REQUESTS, 'rate_limited')
 
-    user = await auth_service.authenticate_user(
-        db=db, email=credentials.username, password=credentials.password
-    )
+    try:
+        user = await auth_service.authenticate_user(
+            db=db, email=credentials.username, password=credentials.password
+        )
+    except auth_service.InactiveAccountError:
+        security_event('login_rejected_inactive', request=request, email=account_key)
+        raise_api_error(status.HTTP_403_FORBIDDEN, 'inactive_user')
 
     if user is None:
         login_failures.record(account_key)
         security_event('login_failed', request=request, email=account_key)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid email or password'
-        )
+        raise_api_error(status.HTTP_401_UNAUTHORIZED, 'login_invalid')
 
     access_token = create_access_token(
         subject=str(user.id), hashed_password=user.hashed_password
