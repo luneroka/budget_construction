@@ -499,19 +499,21 @@ cd ~/budget_construction
 git rev-parse HEAD | tee ~/last-deploy-revision.txt
 git pull origin main
 
-# 2. Back up the database first (still on-host only until off-host backups
-#    are automated). Always do this before a deploy that runs a migration.
-mkdir -p backups
-docker compose --env-file .env.production -f docker-compose.prod.yml exec -T db \
-  sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
-  | gzip > backups/pre-deploy-$(date +%F).sql.gz
-ls -lh backups/   # confirm the dump is non-empty
+# 2. Back up the database first. Always do this before a deploy that runs a
+#    migration. This is the same encrypted, R2-mirrored backup the daily
+#    timer makes (backups/db-<timestamp>.sql.gz.enc); it is pruned
+#    automatically after 7 days locally and 30 days in R2. Do NOT write a
+#    plain `pg_dump | gzip` file into backups/ -- it is unencrypted and
+#    nothing ever cleans it up.
+./scripts/backup_db.sh
+ls -lh backups/   # the newest db-*.sql.gz.enc is the rollback point
 
 # 3. Build and start. Compose's dependency order handles it safely:
 #    db (stays up, data preserved) -> migrate (alembic upgrade head)
 #    -> backend (only after migrate succeeds) -> frontend (re-copies the
-#    SPA bundle) -> caddy.
-docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+#    SPA bundle) -> caddy. --pull always also refreshes the postgres and
+#    caddy base images.
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build --pull always
 
 # 4. Verify.
 docker compose --env-file .env.production -f docker-compose.prod.yml ps -a
@@ -543,18 +545,22 @@ backup if the database itself is actually damaged (see Disaster Recovery).
 Do not run `alembic downgrade` in production unless the specific migration
 has a reviewed downgrade and a tested restore plan.
 
-To restore the pre-deploy database dump onto a fresh/empty database:
+To restore the pre-deploy backup (the `db-*.sql.gz.enc` file written by
+step 2) onto an empty database, use the restore script — it handles the
+decryption and expects the same `BACKUP_ENCRYPTION_PASSPHRASE` the backup used:
 
 ```sh
-gunzip -c backups/pre-deploy-YYYY-MM-DD.sql.gz \
-  | docker compose --env-file .env.production -f docker-compose.prod.yml exec -T db \
-      sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+scripts/restore_db.sh backups/db-YYYYMMDDTHHMMSSZ.sql.gz.enc --yes
 ```
 
-**Note:** as of 2026-07-13 the code-only rollback path is documented and
-low-risk but has not been exercised against production; the restore command
-above has not been run end-to-end either. Both should be validated as part
-of the outstanding backup/restore task below.
+See "Disaster Recovery" below for the full procedure (including restoring
+from R2 with `--from-r2`) and the restore validation that was run.
+
+**Note:** the code-only rollback path is documented and low-risk but has
+not been exercised against production. Until 2026-08-27 this step recorded
+a plain `pg_dump | gzip` dump under `backups/pre-deploy-*.sql.gz`; those
+files were unencrypted and outside the retention rule and have been
+deleted — do not recreate them.
 
 ## Disaster Recovery
 
