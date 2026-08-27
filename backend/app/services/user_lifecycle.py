@@ -8,8 +8,10 @@ from app.models.document import Document
 from app.models.project import Project
 from app.models.budget_line import BudgetLine
 from app.models.supplier import Supplier
+from app.models.supplier_document import SupplierDocument
 from app.models.transaction import Transaction
 from app.models.user import User
+from app.repositories import refresh_token as refresh_token_repository
 from app.repositories import user as user_repository
 from app.schemas.user import AdminUserUpdate
 from app.services.storage import delete_file_from_r2
@@ -71,9 +73,18 @@ async def update_user(
 
     await _ensure_user_can_be_updated(db, user, user_data)
 
-    return await user_repository.update_user(
+    updated_user = await user_repository.update_user(
         db, user_id, user_data.model_dump(exclude_unset=True)
     )
+
+    if updated_user is not None and user_data.is_active is False:
+        # Every request already rejects inactive users; revoking the refresh
+        # tokens as well ends the sessions explicitly and leaves a trace.
+        await refresh_token_repository.revoke_all_for_user(
+            db, user_id, reason='deactivated'
+        )
+
+    return updated_user
 
 
 async def soft_delete_user(db: AsyncSession, user_id: int) -> User | None:
@@ -157,6 +168,8 @@ async def soft_delete_user(db: AsyncSession, user_id: int) -> User | None:
     except Exception:
         await db.rollback()
         raise
+
+    await refresh_token_repository.revoke_all_for_user(db, user_id, reason='deleted')
 
     return user
 
@@ -258,10 +271,20 @@ async def hard_delete_user(db: AsyncSession, user_id: int) -> bool:
         raise UserLifecycleError('User must be deleted before permanent deletion')
 
     try:
-        result = await db.execute(
+        # Both document tables cascade on the user row; their R2 objects
+        # do not, so collect every stored file before deleting the row.
+        document_paths = await db.execute(
             select(Document.file_path).where(Document.user_id == user_id)
         )
-        file_paths = list(result.scalars().all())
+        supplier_document_paths = await db.execute(
+            select(SupplierDocument.file_path).where(
+                SupplierDocument.user_id == user_id
+            )
+        )
+        file_paths = [
+            *document_paths.scalars().all(),
+            *supplier_document_paths.scalars().all(),
+        ]
 
         for file_path in file_paths:
             await run_in_threadpool(delete_file_from_r2, file_path)

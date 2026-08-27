@@ -11,10 +11,13 @@ from app.models.document import Document
 from app.models.product import Product
 from app.models.project import Project
 from app.models.subcategory import Subcategory
+from app.models.refresh_token import RefreshToken
 from app.models.supplier import Supplier
+from app.models.supplier_document import SupplierDocument
 from app.models.transaction import QuoteStatus, Transaction, TransactionType
 from app.models.user import User
 from app.schemas.user import AdminUserUpdate
+from app.services import auth as auth_service
 from app.services import user_lifecycle
 from app.services.user_lifecycle import UserLifecycleError
 
@@ -244,8 +247,19 @@ async def test_hard_delete_removes_user_and_document_files(
     db_session: AsyncSession,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    user, _, _, _, document, _, _ = await create_user_owned_graph(db_session)
-    file_path = document.file_path
+    user, _, _, _, document, supplier, _ = await create_user_owned_graph(db_session)
+    rib = SupplierDocument(
+        supplier_id=supplier.id,
+        user_id=user.id,
+        original_filename='rib.pdf',
+        stored_filename='stored-rib.pdf',
+        file_path='documents/stored-rib.pdf',
+        mime_type='application/pdf',
+        file_size=512,
+    )
+    db_session.add(rib)
+    await db_session.commit()
+    expected_file_paths = sorted([document.file_path, rib.file_path])
     await user_lifecycle.soft_delete_user(db_session, user.id)
 
     deleted_file_paths: list[str] = []
@@ -259,4 +273,33 @@ async def test_hard_delete_removes_user_and_document_files(
 
     assert deleted is True
     assert await get_user(db_session, user.id) is None
-    assert deleted_file_paths == [file_path]
+    assert sorted(deleted_file_paths) == expected_file_paths
+
+
+async def _revoked_reasons(db_session: AsyncSession, user_id: int) -> list[str | None]:
+    result = await db_session.execute(
+        select(RefreshToken.revoked_reason).where(RefreshToken.user_id == user_id)
+    )
+    return list(result.scalars().all())
+
+
+async def test_soft_delete_revokes_refresh_tokens(db_session: AsyncSession) -> None:
+    user = await create_user(db_session)
+    await db_session.commit()
+    await auth_service.issue_refresh_token(db_session, user.id)
+
+    await user_lifecycle.soft_delete_user(db_session, user.id)
+
+    assert await _revoked_reasons(db_session, user.id) == ['deleted']
+
+
+async def test_deactivation_revokes_refresh_tokens(db_session: AsyncSession) -> None:
+    user = await create_user(db_session)
+    await db_session.commit()
+    await auth_service.issue_refresh_token(db_session, user.id)
+
+    await user_lifecycle.update_user(
+        db_session, user.id, AdminUserUpdate(is_active=False)
+    )
+
+    assert await _revoked_reasons(db_session, user.id) == ['deactivated']
