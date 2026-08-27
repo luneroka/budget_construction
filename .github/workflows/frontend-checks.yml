@@ -1,0 +1,42 @@
+name: Frontend checks
+
+# The production image runs `tsc -b && vite build`, so a type error would
+# otherwise only surface during `docker compose up --build` on the VPS.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  frontend-checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit -p tsconfig.app.json
+
+      - name: Lint
+        run: npx oxlint --deny-warnings
+
+      - name: Check formatting
+        run: npx prettier --check .
+
+      - name: Build
+        run: npm run build
