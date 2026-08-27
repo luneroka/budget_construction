@@ -67,13 +67,12 @@ file; empty state — no first-project fallback — when nothing is selected).
 |-----|--------|-------|
 | WP-1 Safety fixes | ✅ Done 2026-08-27 | Q-01…Q-05, Q-07 landed as 8 commits (`674ac6e`…`556da57`); the frontend CI job is live. `oxlint` runs with `--deny-warnings`, so the four warnings were fixed and the whole frontend was run through Prettier once. |
 | WP-2 Backend dedupe | ✅ Done 2026-08-27 | `repositories/common.py`, `core/time.py`, `routers/_helpers.py`, `routers/uploads.py`, `mailer._send`; 43 `if x is None: 404` blocks → `require_found`; the 13 financial projections are registered from a table; `GET /users/{id}` and `POST …/budget-lines/from-template/{id}` removed (repo function renamed `attach_template`). |
-| WP-3 Frontend dedupe | ⏳ | |
-| WP-4 Frontend tests | ⏳ | |
+| WP-3 Frontend dedupe | ✅ Done 2026-08-27 | `useSelectedProjectId()` (empty state, no first-project fallback — the `ProjectSwitcher` already auto-selects); `lib/apiAdapters.ts` (one `projectToDomain`/`supplierToDomain`/`transactionToDomain`/`decimalToNumber`); `enableReadQueries` flag and its 20 `{ enabled: true }` overrides removed, project hooks collapsed onto `useProjectScopedQuery`; `TransactionModal.tsx` (2,029 lines) split into `transaction-form/` (7 files, shared `useTransactionAmountForm`), `SupplierRibPanel` extracted; `budgetWorkspaceVerification.ts` deleted in favour of `tests/unit/test_financial_totals_invariants.py`. Verified with `tsc`, `oxlint`, Prettier and a production `vite build`; **the manual click-through of Budget / Transactions / Suppliers is still to be done by the owner before deploying.** |
+| WP-4 Frontend tests | ✅ Done 2026-08-27 | Vitest (`npm test`, in CI): 18 tests on `recalculateAmounts`, `normalizeForType`, the create/update payload builders and `getApiErrorMessage`. |
 
-Not re-run on the VPS yet: deploy with the usual `up -d --build` once WP-3
-is merged, or earlier if wanted — every package so far is backwards
-compatible with the deployed SPA except the two removed routes, which the
-SPA never called.
+Not deployed to the VPS yet: run the usual `up -d --build` after the manual
+smoke pass. Every package is backwards compatible with the deployed SPA
+except the two removed routes, which the SPA never called.
 
 ---
 
