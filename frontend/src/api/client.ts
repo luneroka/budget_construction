@@ -15,6 +15,7 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
   amount_vat_invalid: 'Le montant de TVA doit être supérieur ou égal à 0.',
   amount_vat_mismatch:
     'Le montant de TVA ne correspond pas aux montants saisis.',
+  amount_not_decimal: 'Les montants doivent être des nombres décimaux.',
   bad_request: 'La demande est invalide.',
   breakdown_name_conflict:
     'Ce nom de sous-produit existe déjà pour ce produit.',
@@ -24,6 +25,8 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
   budget_line_name_required: 'Le nom du poste de budget est obligatoire.',
   budget_line_not_found: 'Ce poste de budget est introuvable.',
   budget_line_type_required: 'Le type de poste de budget est obligatoire.',
+  budget_candidate_type_invalid:
+    'Seuls les devis et les estimations DIY peuvent être sélectionnés comme budget.',
   budget_transaction_already_selected:
     'Cette transaction est déjà sélectionnée comme budget ailleurs.',
   category_not_found: 'Cette catégorie est introuvable.',
@@ -31,10 +34,14 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
     'Le renommage du poste existant n’est pas autorisé dans ce cas.',
   conversion_strategy_required:
     'Choisissez comment convertir le poste existant avant de continuer.',
+  contact_request_send_failed:
+    'Votre demande de contact n’a pas pu être envoyée. Réessayez plus tard.',
   credentials_invalid: 'Identifiants incorrects.',
   current_password_invalid: 'Le mot de passe actuel est incorrect.',
   current_password_required:
     'Le mot de passe actuel est requis pour changer d’adresse email.',
+  database_unavailable:
+    'La base de données est momentanément indisponible. Réessayez plus tard.',
   document_delete_failed: 'Le document n’a pas pu être supprimé.',
   document_metadata_save_failed:
     'Le document a été envoyé, mais ses informations n’ont pas pu être enregistrées.',
@@ -51,8 +58,6 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
   due_date_not_allowed:
     'La date d’échéance est disponible uniquement pour les devis et les factures.',
   email_already_exists: 'Un compte existe déjà avec cet email.',
-  'Invalid or expired token':
-    'Le lien de réinitialisation est invalide ou a expiré.',
   external_service_error:
     'Un service externe est momentanément indisponible. Réessayez plus tard.',
   file_content_invalid:
@@ -74,6 +79,14 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
   invoice_type_not_allowed:
     'Le type de facture est disponible uniquement pour les factures.',
   invoice_type_required: 'Le type de facture est obligatoire.',
+  issue_report_description_required: 'Décrivez le problème rencontré.',
+  issue_report_metadata_invalid:
+    'Les informations du signalement sont invalides. Rechargez la page et réessayez.',
+  issue_report_send_failed:
+    'Le signalement n’a pas pu être envoyé. Réessayez plus tard.',
+  issue_report_too_many_attachments:
+    'Vous pouvez joindre au maximum 5 fichiers.',
+  issued_date_required: 'La date de transaction est obligatoire.',
   login_invalid: 'Email ou mot de passe incorrect.',
   last_admin_deactivate_forbidden:
     'Impossible de désactiver le dernier administrateur.',
@@ -102,6 +115,8 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
     'Aucun poste de budget actif n’existe encore pour ce produit.',
   product_line_not_found:
     'Le poste de budget du produit entier est introuvable.',
+  product_line_conflict:
+    'Un poste de budget produit entier existe déjà pour ce produit.',
   product_not_available_in_template:
     'Ce produit n’est pas disponible dans le modèle de ce projet.',
   product_not_found: 'Ce produit est introuvable.',
@@ -134,6 +149,8 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
   supplier_name_conflict: 'Un fournisseur porte déjà ce nom.',
   supplier_not_found: 'Ce fournisseur est introuvable.',
   supplier_not_found_or_inactive: 'Ce fournisseur est introuvable ou inactif.',
+  supplier_primary_contact_conflict:
+    'Un fournisseur ne peut avoir qu’un seul contact principal.',
   template_item_not_found: 'Cet élément de modèle est introuvable.',
   template_name_conflict: 'Un modèle porte déjà ce nom.',
   template_not_found: 'Ce modèle est introuvable.',

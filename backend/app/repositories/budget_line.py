@@ -150,9 +150,7 @@ async def load_template(
             or not product.subcategory.is_active
             or not product.subcategory.category.is_active
         ):
-            raise BudgetLineValidationError(
-                f'Product {template_item.product_id} not found or inactive'
-            )
+            raise BudgetLineValidationError('Product not found or inactive')
         if template_item.product_id in product_ids:
             raise BudgetLineValidationError(
                 'A template cannot create more than one whole-product item '

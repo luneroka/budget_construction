@@ -179,7 +179,7 @@ async def test_generation_rolls_back_when_template_item_is_invalid_midway(
 
     with pytest.raises(
         BudgetLineValidationError,
-        match=f'Product {products[1].id} not found or inactive',
+        match='Product not found or inactive',
     ):
         await generate_project_from_template(
             db_session,

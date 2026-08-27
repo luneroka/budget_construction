@@ -354,7 +354,54 @@ ERROR_DEFINITIONS: dict[str, ErrorDefinition] = {
         'message': 'vat_rate must be greater than or equal to 0',
         'field': 'vat_rate',
     },
+    'amount_not_decimal': {
+        'message': 'Amounts must be decimal numbers',
+    },
+    'issued_date_required': {
+        'message': 'issued_date is required',
+        'field': 'issued_date',
+    },
+    'budget_candidate_type_invalid': {
+        'message': 'Only quotes and DIY estimates can be selected as budget candidates',
+    },
+    'supplier_primary_contact_conflict': {
+        'message': 'A supplier can only have one primary contact',
+        'field': 'contacts',
+    },
+    'product_line_conflict': {
+        'message': 'A whole-product budget line already exists for this project product',
+        'field': 'product_id',
+    },
+    'issue_report_description_required': {
+        'message': 'Description is required',
+        'field': 'description',
+    },
+    'issue_report_too_many_attachments': {
+        'message': 'Too many attachments',
+        'field': 'attachments',
+    },
+    'issue_report_metadata_invalid': {
+        'message': 'Invalid metadata',
+        'field': 'metadata',
+    },
+    'issue_report_send_failed': {
+        'message': 'Failed to send issue report',
+    },
+    'contact_request_send_failed': {
+        'message': 'Failed to send contact request',
+    },
+    'database_unavailable': {
+        'message': 'Database is unavailable',
+    },
+    'internal_server_error': {
+        'message': 'Internal server error',
+    },
 }
+
+# Every message raised by the application must appear above exactly once:
+# tests/unit/test_error_registry.py walks the source tree and fails on any
+# HTTPException/domain-error literal that does not map to a code, so that a
+# new message cannot silently degrade to a generic client-side toast.
 
 
 MESSAGE_TO_CODE: dict[str, str] = {

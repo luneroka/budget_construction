@@ -34,13 +34,13 @@ VAT_RATE_DIVISOR = Decimal('100')
 AMOUNT_TOLERANCE = Decimal('0.01')
 
 
-def _as_decimal(value: object, field_name: str) -> Decimal:
+def _as_decimal(value: object) -> Decimal:
     if isinstance(value, Decimal):
         return value
     try:
         return Decimal(str(value))
     except Exception as error:
-        raise TransactionValidationError(f'{field_name} must be a decimal') from error
+        raise TransactionValidationError('Amounts must be decimal numbers') from error
 
 
 def _money(value: Decimal) -> Decimal:
@@ -52,7 +52,7 @@ def _amounts_differ(left: Decimal, right: Decimal) -> bool:
 
 
 def normalize_transaction_amounts(values: dict[str, object]) -> None:
-    amount_ht = _money(_as_decimal(values['amount_ht'], 'amount_ht'))
+    amount_ht = _money(_as_decimal(values['amount_ht']))
     amount_vat_value = values.get('amount_vat')
     amount_ttc_value = values.get('amount_ttc')
     vat_rate_value = values.get('vat_rate')
@@ -62,7 +62,7 @@ def normalize_transaction_amounts(values: dict[str, object]) -> None:
 
     vat_rate: Decimal | None = None
     if vat_rate_value is not None:
-        vat_rate = _as_decimal(vat_rate_value, 'vat_rate')
+        vat_rate = _as_decimal(vat_rate_value)
         if vat_rate < 0:
             raise TransactionValidationError(
                 'vat_rate must be greater than or equal to 0'
@@ -70,7 +70,7 @@ def normalize_transaction_amounts(values: dict[str, object]) -> None:
 
     amount_ttc: Decimal | None = None
     if amount_ttc_value is not None:
-        amount_ttc = _money(_as_decimal(amount_ttc_value, 'amount_ttc'))
+        amount_ttc = _money(_as_decimal(amount_ttc_value))
         if amount_ttc < 0:
             raise TransactionValidationError(
                 'amount_ttc must be greater than or equal to 0'
@@ -86,7 +86,7 @@ def normalize_transaction_amounts(values: dict[str, object]) -> None:
                 'amount_ttc is required when vat_rate and amount_vat are not provided'
             )
     else:
-        amount_vat = _money(_as_decimal(amount_vat_value, 'amount_vat'))
+        amount_vat = _money(_as_decimal(amount_vat_value))
 
     if amount_vat < 0:
         raise TransactionValidationError(
@@ -615,7 +615,7 @@ async def unselect_budget_candidate(
         TransactionType.diy_estimate,
     }:
         raise TransactionValidationError(
-            'Only quotes and DIY estimates can be unselected as budget candidates'
+            'Only quotes and DIY estimates can be selected as budget candidates'
         )
 
     _unselect_budget_candidate(transaction)
