@@ -28,7 +28,7 @@ async def generate_project_from_template(
 
     try:
         await db.flush()
-        budget_lines = await budget_line_repository.load_template(
+        budget_lines = await budget_line_repository.attach_template(
             db,
             project.id,
             project_data.template_id,

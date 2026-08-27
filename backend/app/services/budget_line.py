@@ -1,22 +1,25 @@
 from dataclasses import dataclass
-from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
 
 from app.models.budget_line import BudgetLine, BudgetLineType
-from app.models.category import Category
-from app.models.product import Product
-from app.models.project import Project
-from app.models.subcategory import Subcategory
 from app.models.template_item import TemplateItem
 from app.models.transaction import Transaction
-from app.repositories.budget_line import BudgetLineValidationError
+from app.repositories.budget_line import (
+    BudgetLineValidationError,
+    find_template_item_for_project_product,
+)
+from app.repositories.common import (
+    get_active_product,
+    get_active_project,
+    with_product_hierarchy,
+)
 from app.schemas.budget_line import (
     ProductLineConversionStrategy,
     ProductLineConvertToBreakdown,
 )
+from app.core.time import utcnow
 
 
 @dataclass(frozen=True)
@@ -31,15 +34,15 @@ class BudgetLineService:
         name: str | None = None,
         item_type: BudgetLineType = BudgetLineType.product,
     ) -> BudgetLine | None:
-        project = await self._get_active_project(db, project_id, user_id)
+        project = await get_active_project(db, project_id, user_id)
         if project is None:
             return None
 
-        product = await self._get_active_product(db, product_id)
+        product = await get_active_product(db, product_id)
         if product is None:
             raise BudgetLineValidationError('Product not found or inactive')
 
-        template_item = await self._find_template_item_for_project_product(
+        template_item = await find_template_item_for_project_product(
             db,
             project=project,
             product_id=product_id,
@@ -81,11 +84,11 @@ class BudgetLineService:
         product_id: int,
         user_id: int,
     ) -> BudgetLine | None:
-        project = await self._get_active_project(db, project_id, user_id)
+        project = await get_active_project(db, project_id, user_id)
         if project is None:
             return None
 
-        product = await self._get_active_product(db, product_id)
+        product = await get_active_product(db, product_id)
         if product is None:
             raise BudgetLineValidationError('Product not found or inactive')
 
@@ -118,11 +121,11 @@ class BudgetLineService:
         line. Split invoices must target a specific budget_line_id after the
         frontend has created or selected the intended breakdown line.
         """
-        project = await self._get_active_project(db, project_id, user_id)
+        project = await get_active_project(db, project_id, user_id)
         if project is None:
             return None
 
-        product = await self._get_active_product(db, product_id)
+        product = await get_active_product(db, product_id)
         if product is None:
             raise BudgetLineValidationError('Product not found or inactive')
 
@@ -154,15 +157,15 @@ class BudgetLineService:
         conversion_data: ProductLineConvertToBreakdown,
         user_id: int,
     ) -> list[BudgetLine] | None:
-        project = await self._get_active_project(db, project_id, user_id)
+        project = await get_active_project(db, project_id, user_id)
         if project is None:
             return None
 
-        product = await self._get_active_product(db, product_id)
+        product = await get_active_product(db, product_id)
         if product is None:
             raise BudgetLineValidationError('Product not found or inactive')
 
-        template_item = await self._find_template_item_for_project_product(
+        template_item = await find_template_item_for_project_product(
             db,
             project=project,
             product_id=product_id,
@@ -244,36 +247,6 @@ class BudgetLineService:
             with_product=True,
         )
 
-    async def _get_active_project(
-        self, db: AsyncSession, project_id: int, user_id: int
-    ) -> Project | None:
-        result = await db.execute(
-            select(Project).where(
-                Project.id == project_id,
-                Project.user_id == user_id,
-                Project.deleted_at.is_(None),
-            )
-        )
-
-        return result.scalar_one_or_none()
-
-    async def _get_active_product(
-        self, db: AsyncSession, product_id: int
-    ) -> Product | None:
-        result = await db.execute(
-            select(Product)
-            .join(Subcategory, Product.subcategory_id == Subcategory.id)
-            .join(Category, Subcategory.category_id == Category.id)
-            .where(
-                Product.id == product_id,
-                Product.is_active.is_(True),
-                Subcategory.is_active.is_(True),
-                Category.is_active.is_(True),
-            )
-        )
-
-        return result.scalar_one_or_none()
-
     async def _get_active_lines_for_project_product(
         self,
         db: AsyncSession,
@@ -288,11 +261,7 @@ class BudgetLineService:
             BudgetLine.deleted_at.is_(None),
         )
         if with_product:
-            query = query.options(
-                joinedload(BudgetLine.product)
-                .joinedload(Product.subcategory)
-                .joinedload(Subcategory.category)
-            )
+            query = query.options(with_product_hierarchy(BudgetLine.product))
         query = query.order_by(BudgetLine.sort_order, BudgetLine.id)
 
         result = await db.execute(query)
@@ -318,7 +287,7 @@ class BudgetLineService:
         db: AsyncSession,
         budget_line: BudgetLine,
     ) -> None:
-        deleted_at = datetime.now(UTC).replace(tzinfo=None)
+        deleted_at = utcnow()
         budget_line.deleted_at = deleted_at
         budget_line.updated_at = deleted_at
 
@@ -414,33 +383,6 @@ class BudgetLineService:
 
     def _normalize_name_key(self, name: str) -> str:
         return name.strip().casefold()
-
-    async def _find_template_item_for_project_product(
-        self,
-        db: AsyncSession,
-        *,
-        project: Project,
-        product_id: int,
-    ) -> TemplateItem:
-        """Return the template item or raise the domain validation error."""
-        if project.template_id is None:
-            raise BudgetLineValidationError(
-                'Cannot create budget lines because this project has no template'
-            )
-
-        result = await db.execute(
-            select(TemplateItem).where(
-                TemplateItem.template_id == project.template_id,
-                TemplateItem.product_id == product_id,
-            )
-        )
-        template_item = result.scalar_one_or_none()
-        if template_item is None:
-            raise BudgetLineValidationError(
-                "Product is not available in this project's template"
-            )
-
-        return template_item
 
     def _resolve_budget_line_name(
         self,

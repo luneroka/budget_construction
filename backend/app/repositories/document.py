@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from datetime import UTC, datetime
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -12,6 +11,7 @@ from app.models.budget_line import BudgetLine
 from app.models.product import Product
 from app.models.supplier import Supplier
 from app.models.transaction import Transaction, TransactionType
+from app.core.time import utcnow
 
 DocumentListRow = Row[
     tuple[Document, int, TransactionType, str | None, str, str, Decimal]
@@ -163,7 +163,7 @@ async def get_documents_by_transaction_id(
 
 
 async def soft_delete_document(db: AsyncSession, document: Document) -> Document:
-    document.deleted_at = datetime.now(UTC).replace(tzinfo=None)
+    document.deleted_at = utcnow()
 
     await db.commit()
 

@@ -1,61 +1,24 @@
-from datetime import datetime, UTC
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
 
-from app.models.category import Category
 from app.models.document import Document
-from app.models.product import Product
 from app.models.project import Project
 from app.models.budget_line import BudgetLine, BudgetLineType
 from app.models.template import Template
 from app.models.template_item import TemplateItem
 from app.models.transaction import Transaction
-from app.models.subcategory import Subcategory
+from app.repositories.common import (
+    get_active_product,
+    get_active_project,
+    with_product_hierarchy,
+)
 from app.schemas.budget_line import BudgetLineCreate, BudgetLineUpdate
+from app.core.time import utcnow
 
 
 class BudgetLineValidationError(ValueError):
     pass
-
-
-def _with_product_hierarchy():
-    return (
-        joinedload(BudgetLine.product)
-        .joinedload(Product.subcategory)
-        .joinedload(Subcategory.category)
-    )
-
-
-async def _get_active_project(
-    db: AsyncSession, project_id: int, user_id: int
-) -> Project | None:
-    result = await db.execute(
-        select(Project).where(
-            Project.id == project_id,
-            Project.user_id == user_id,
-            Project.deleted_at.is_(None),
-        )
-    )
-
-    return result.scalar_one_or_none()
-
-
-async def _get_active_product(db: AsyncSession, product_id: int) -> Product | None:
-    result = await db.execute(
-        select(Product)
-        .join(Subcategory, Product.subcategory_id == Subcategory.id)
-        .join(Category, Subcategory.category_id == Category.id)
-        .where(
-            Product.id == product_id,
-            Product.is_active.is_(True),
-            Subcategory.is_active.is_(True),
-            Category.is_active.is_(True),
-        )
-    )
-
-    return result.scalar_one_or_none()
 
 
 async def get_budget_line_by_id(
@@ -66,7 +29,7 @@ async def get_budget_line_by_id(
 ) -> BudgetLine | None:
     result = await db.execute(
         select(BudgetLine)
-        .options(_with_product_hierarchy())
+        .options(with_product_hierarchy(BudgetLine.product))
         .join(Project, BudgetLine.project_id == Project.id)
         .where(
             BudgetLine.id == budget_line_id,
@@ -85,12 +48,12 @@ async def get_budget_lines(
     project_id: int,
     user_id: int,
 ) -> list[BudgetLine] | None:
-    if await _get_active_project(db, project_id, user_id) is None:
+    if await get_active_project(db, project_id, user_id) is None:
         return None
 
     result = await db.execute(
         select(BudgetLine)
-        .options(_with_product_hierarchy())
+        .options(with_product_hierarchy(BudgetLine.product))
         .where(
             BudgetLine.project_id == project_id,
             BudgetLine.deleted_at.is_(None),
@@ -104,13 +67,13 @@ async def get_budget_lines(
     return list(result.scalars().all())
 
 
-async def load_template(
+async def attach_template(
     db: AsyncSession,
     project_id: int,
     template_id: int,
     user_id: int,
 ) -> list[BudgetLine] | None:
-    project = await _get_active_project(db, project_id, user_id)
+    project = await get_active_project(db, project_id, user_id)
     if project is None:
         return None
     if project.template_id is not None:
@@ -129,11 +92,7 @@ async def load_template(
 
     result = await db.execute(
         select(TemplateItem)
-        .options(
-            joinedload(TemplateItem.product)
-            .joinedload(Product.subcategory)
-            .joinedload(Subcategory.category)
-        )
+        .options(with_product_hierarchy(TemplateItem.product))
         .where(TemplateItem.template_id == template_id)
         .order_by(
             TemplateItem.sort_order,
@@ -200,11 +159,11 @@ async def create_budget_line(
     budget_line_create: BudgetLineCreate,
     user_id: int,
 ) -> BudgetLine | None:
-    project = await _get_active_project(db, project_id, user_id)
+    project = await get_active_project(db, project_id, user_id)
     if project is None:
         return None
 
-    if await _get_active_product(db, budget_line_create.product_id) is None:
+    if await get_active_product(db, budget_line_create.product_id) is None:
         raise BudgetLineValidationError('Product not found or inactive')
 
     template_item = await find_template_item_for_project_product(
@@ -299,7 +258,7 @@ async def soft_delete_budget_line(
     if budget_line is None:
         return None
 
-    deleted_at = datetime.now(UTC).replace(tzinfo=None)
+    deleted_at = utcnow()
 
     transaction_ids = select(Transaction.id).where(
         Transaction.budget_line_id == budget_line.id,

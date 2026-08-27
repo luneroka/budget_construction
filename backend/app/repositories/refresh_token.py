@@ -1,13 +1,10 @@
-from datetime import datetime, UTC
+from datetime import datetime
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.refresh_token import RefreshToken
-
-
-def _now() -> datetime:
-    return datetime.now(UTC).replace(tzinfo=None)
+from app.core.time import utcnow
 
 
 async def create_refresh_token(
@@ -44,7 +41,7 @@ async def get_refresh_token_by_hash(
 async def revoke_refresh_token(
     db: AsyncSession, refresh_token: RefreshToken, *, reason: str
 ) -> None:
-    refresh_token.revoked_at = _now()
+    refresh_token.revoked_at = utcnow()
     refresh_token.revoked_reason = reason
     await db.commit()
 
@@ -59,7 +56,7 @@ async def claim_for_rotation(db: AsyncSession, refresh_token: RefreshToken) -> b
     result = await db.execute(
         update(RefreshToken)
         .where(RefreshToken.id == refresh_token.id, RefreshToken.revoked_at.is_(None))
-        .values(revoked_at=_now(), revoked_reason='rotated')
+        .values(revoked_at=utcnow(), revoked_reason='rotated')
         .returning(RefreshToken.id)
     )
     await db.commit()
@@ -70,7 +67,7 @@ async def revoke_family(db: AsyncSession, family_id: str, *, reason: str) -> Non
     await db.execute(
         update(RefreshToken)
         .where(RefreshToken.family_id == family_id, RefreshToken.revoked_at.is_(None))
-        .values(revoked_at=_now(), revoked_reason=reason)
+        .values(revoked_at=utcnow(), revoked_reason=reason)
     )
     await db.commit()
 
@@ -79,6 +76,6 @@ async def revoke_all_for_user(db: AsyncSession, user_id: int, *, reason: str) ->
     await db.execute(
         update(RefreshToken)
         .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
-        .values(revoked_at=_now(), revoked_reason=reason)
+        .values(revoked_at=utcnow(), revoked_reason=reason)
     )
     await db.commit()

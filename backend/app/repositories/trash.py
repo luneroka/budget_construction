@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import UTC, datetime
 from typing import cast
 
 from sqlalchemy import func, select, update
@@ -16,6 +15,8 @@ from app.models.project import Project
 from app.models.supplier import Supplier
 from app.models.supplier_document import SupplierDocument
 from app.models.transaction import Transaction
+from app.repositories.common import get_active_project
+from app.core.time import utcnow
 
 DeletedTransactionRow = Row[tuple[Transaction, str | None, str]]
 DeletedDocumentRow = Row[tuple[Document, Transaction, str | None]]
@@ -47,14 +48,7 @@ async def project_exists_for_user(
     project_id: int,
     user_id: int,
 ) -> bool:
-    result = await db.execute(
-        select(Project.id).where(
-            Project.id == project_id,
-            Project.user_id == user_id,
-            Project.deleted_at.is_(None),
-        )
-    )
-    return result.scalar_one_or_none() is not None
+    return await get_active_project(db, project_id, user_id) is not None
 
 
 async def get_deleted_transactions(
@@ -173,7 +167,7 @@ async def restore_transaction(
     if transaction is None:
         return None
 
-    restored_at = datetime.now(UTC).replace(tzinfo=None)
+    restored_at = utcnow()
     try:
         await db.execute(
             update(Document)
@@ -227,7 +221,7 @@ async def restore_document(
     if transaction.deleted_at is not None:
         raise TrashRestoreError('Restore the parent transaction first')
 
-    restored_at = datetime.now(UTC).replace(tzinfo=None)
+    restored_at = utcnow()
     document.deleted_at = None
     document.updated_at = restored_at
 
@@ -255,7 +249,7 @@ async def restore_supplier(
     if supplier is None:
         return None
 
-    restored_at = datetime.now(UTC).replace(tzinfo=None)
+    restored_at = utcnow()
     try:
         await db.execute(
             update(SupplierDocument)
@@ -302,7 +296,7 @@ async def restore_supplier_document(
     if supplier.deleted_at is not None:
         raise TrashRestoreError('Restore the parent supplier first')
 
-    restored_at = datetime.now(UTC).replace(tzinfo=None)
+    restored_at = utcnow()
     document.deleted_at = None
     document.updated_at = restored_at
 

@@ -3,13 +3,13 @@ from typing import cast
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
 
 from app.models.category import Category
 from app.models.product import Product
 from app.models.template import Template
 from app.models.template_item import TemplateItem
 from app.models.subcategory import Subcategory
+from app.repositories.common import get_active_product, with_product_hierarchy
 from app.schemas.template_item import (
     TemplateItemCreate,
     TemplateItemUpdate,
@@ -25,32 +25,8 @@ DUPLICATE_TEMPLATE_PRODUCT_MESSAGE = (
 )
 
 
-def _with_product_hierarchy():
-    return (
-        joinedload(TemplateItem.product)
-        .joinedload(Product.subcategory)
-        .joinedload(Subcategory.category)
-    )
-
-
 async def _get_template(db: AsyncSession, template_id: int) -> Template | None:
     result = await db.execute(select(Template).where(Template.id == template_id))
-
-    return result.scalar_one_or_none()
-
-
-async def _get_active_product(db: AsyncSession, product_id: int) -> Product | None:
-    result = await db.execute(
-        select(Product)
-        .join(Subcategory, Product.subcategory_id == Subcategory.id)
-        .join(Category, Subcategory.category_id == Category.id)
-        .where(
-            Product.id == product_id,
-            Product.is_active.is_(True),
-            Subcategory.is_active.is_(True),
-            Category.is_active.is_(True),
-        )
-    )
 
     return result.scalar_one_or_none()
 
@@ -94,7 +70,7 @@ async def get_template_item_by_id(
 ) -> TemplateItem | None:
     query = (
         select(TemplateItem)
-        .options(_with_product_hierarchy())
+        .options(with_product_hierarchy(TemplateItem.product))
         .where(
             TemplateItem.id == template_item_id,
             TemplateItem.template_id == template_id,
@@ -111,11 +87,7 @@ async def get_template_items_by_template_id(
 ) -> Sequence[TemplateItem]:
     query = (
         select(TemplateItem)
-        .options(
-            joinedload(TemplateItem.product)
-            .joinedload(Product.subcategory)
-            .joinedload(Subcategory.category)
-        )
+        .options(with_product_hierarchy(TemplateItem.product))
         .where(TemplateItem.template_id == template_id)
         .order_by(
             TemplateItem.sort_order,
@@ -133,7 +105,7 @@ async def _validate_item_data(
     *,
     product_id: int,
 ) -> None:
-    if await _get_active_product(db, product_id) is None:
+    if await get_active_product(db, product_id) is None:
         raise TemplateItemValidationError('Product not found or inactive')
 
 
@@ -278,7 +250,7 @@ async def create_template_items_bulk(
     item_ids = [item.id for item in template_items]
     result = await db.execute(
         select(TemplateItem)
-        .options(_with_product_hierarchy())
+        .options(with_product_hierarchy(TemplateItem.product))
         .where(TemplateItem.id.in_(item_ids))
     )
     items_by_id = {item.id: item for item in result.scalars().all()}

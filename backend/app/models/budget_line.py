@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, UTC
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 import enum
@@ -16,6 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.core.time import utcnow
 
 if TYPE_CHECKING:
     from app.models.product import Product
@@ -58,15 +59,15 @@ class BudgetLine(Base):
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=lambda: datetime.now(UTC).replace(tzinfo=None),
+        default=utcnow,
         server_default=func.now(),
         nullable=False,
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=lambda: datetime.now(UTC).replace(tzinfo=None),
+        default=utcnow,
         server_default=func.now(),
-        onupdate=lambda: datetime.now(UTC).replace(tzinfo=None),
+        onupdate=utcnow,
         nullable=False,
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

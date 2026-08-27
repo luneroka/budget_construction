@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta
 import secrets
 from typing import Any
 import uuid
@@ -20,6 +20,7 @@ from app.repositories import refresh_token as refresh_token_repository
 from app.repositories import user as user_repository
 from app.schemas.user import UserCreate
 from app.models.user import User
+from app.core.time import utcnow
 
 
 class InactiveAccountError(Exception):
@@ -146,7 +147,7 @@ async def reset_password(db: AsyncSession, token: str, new_password: str) -> boo
 
 
 def _refresh_token_expiry() -> datetime:
-    return datetime.now(UTC).replace(tzinfo=None) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    return utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
 
 
 async def _create_refresh_token(
@@ -187,7 +188,7 @@ async def rotate_refresh_token(db: AsyncSession, raw_token: str) -> tuple[str, i
     if existing is None:
         raise ValueError('Invalid refresh token')
 
-    now = datetime.now(UTC).replace(tzinfo=None)
+    now = utcnow()
 
     won_rotation = False
     if existing.revoked_at is None:

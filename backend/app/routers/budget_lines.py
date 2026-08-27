@@ -8,6 +8,7 @@ from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.repositories import budget_line as budget_line_repository
+from app.routers._helpers import require_found
 from app.routers.integrity import raise_integrity_conflict
 from app.schemas.budget_line import (
     BudgetLineCreate,
@@ -44,10 +45,7 @@ async def create_budget_line(
     except IntegrityError as error:
         await raise_integrity_conflict(db, error)
 
-    if budget_line is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
-        )
+    budget_line = require_found(budget_line, 'project_not_found')
 
     return budget_line
 
@@ -62,36 +60,7 @@ async def get_budget_lines(
         db, project_id, current_user.id
     )
 
-    if budget_lines is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
-        )
-
-    return budget_lines
-
-
-@router.post(
-    '/from-template/{template_id}',
-    response_model=list[BudgetLineRead],
-    status_code=status.HTTP_201_CREATED,
-)
-async def load_template(
-    project_id: int,
-    template_id: int,
-    db: AsyncSession = Depends(get_db_session),
-    current_user: User = Depends(get_current_user),
-):
-    try:
-        budget_lines = await budget_line_repository.load_template(
-            db, project_id, template_id, current_user.id
-        )
-    except budget_line_repository.BudgetLineValidationError as error:
-        _bad_request(error)
-
-    if budget_lines is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
-        )
+    budget_lines = require_found(budget_lines, 'project_not_found')
 
     return budget_lines
 
@@ -107,10 +76,7 @@ async def get_budget_line(
         db, project_id, budget_line_id, current_user.id
     )
 
-    if budget_line is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='Budget line not found'
-        )
+    budget_line = require_found(budget_line, 'budget_line_not_found')
 
     return budget_line
 
@@ -132,10 +98,7 @@ async def update_budget_line(
     except IntegrityError as error:
         await raise_integrity_conflict(db, error)
 
-    if budget_line is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='Budget line not found'
-        )
+    budget_line = require_found(budget_line, 'budget_line_not_found')
 
     return budget_line
 
@@ -151,10 +114,7 @@ async def soft_delete_budget_line(
         db, project_id, budget_line_id, current_user.id
     )
 
-    if budget_line is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='Budget line not found'
-        )
+    budget_line = require_found(budget_line, 'budget_line_not_found')
 
     return budget_line
 
@@ -184,9 +144,6 @@ async def convert_product_line_to_breakdown_lines(
     except IntegrityError as error:
         await raise_integrity_conflict(db, error)
 
-    if budget_lines is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='Project not found'
-        )
+    budget_lines = require_found(budget_lines, 'project_not_found')
 
     return budget_lines

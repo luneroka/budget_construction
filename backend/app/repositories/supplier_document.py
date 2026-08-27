@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from datetime import UTC, datetime
 from typing import cast
 
 from sqlalchemy import select
@@ -8,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.supplier import Supplier
 from app.models.supplier_document import SupplierDocument
+from app.core.time import utcnow
 
 SupplierDocumentListRow = Row[tuple[SupplierDocument, str]]
 
@@ -94,7 +94,7 @@ async def get_supplier_document_by_id(
 async def soft_delete_supplier_document(
     db: AsyncSession, document: SupplierDocument
 ) -> SupplierDocument:
-    document.deleted_at = datetime.now(UTC).replace(tzinfo=None)
+    document.deleted_at = utcnow()
 
     await db.commit()
 

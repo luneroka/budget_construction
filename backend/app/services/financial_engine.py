@@ -2,14 +2,13 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import (
     contains_eager,
-    joinedload,
     selectinload,
     with_loader_criteria,
 )
@@ -27,6 +26,7 @@ from app.models.transaction import (
     Transaction,
     TransactionType,
 )
+from app.repositories.common import get_active_project, with_product_hierarchy
 from app.schemas.financial_engine import (
     BudgetLineFinancialSummaryRead,
     DashboardCategoryBudgetActualRead,
@@ -42,6 +42,7 @@ from app.schemas.financial_engine import (
     ProductFinancialSummaryRead,
     ProjectFinancialSummaryRead,
 )
+from app.core.time import utcnow
 
 ZERO_MONEY = Decimal('0.00')
 DASHBOARD_WIDGET_LIMIT = 5
@@ -529,7 +530,7 @@ class FinancialEngine:
         project_id: int,
         user_id: int,
     ) -> ProjectFinancials | None:
-        project = await self._get_active_project(db, project_id, user_id)
+        project = await get_active_project(db, project_id, user_id)
         if project is None:
             return None
 
@@ -556,25 +557,10 @@ class FinancialEngine:
         return ProjectFinancials(
             project_id=project_id,
             project_name=project.name,
-            generated_at=datetime.now(UTC).replace(tzinfo=None),
+            generated_at=utcnow(),
             totals=project_totals,
             products=list(products.values()),
         )
-
-    async def _get_active_project(
-        self,
-        db: AsyncSession,
-        project_id: int,
-        user_id: int,
-    ) -> Project | None:
-        result = await db.execute(
-            select(Project).where(
-                Project.id == project_id,
-                Project.user_id == user_id,
-                Project.deleted_at.is_(None),
-            )
-        )
-        return result.scalar_one_or_none()
 
     async def _get_template_product_financials(
         self,
@@ -616,9 +602,7 @@ class FinancialEngine:
         result = await db.execute(
             select(BudgetLine)
             .options(
-                joinedload(BudgetLine.product)
-                .joinedload(Product.subcategory)
-                .joinedload(Subcategory.category),
+                with_product_hierarchy(BudgetLine.product),
                 selectinload(BudgetLine.transactions).joinedload(Transaction.supplier),
                 selectinload(BudgetLine.transactions).selectinload(
                     Transaction.documents

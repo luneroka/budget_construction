@@ -32,18 +32,32 @@ def _resend_headers() -> dict[str, str]:
     }
 
 
+async def _send(payload: dict[str, Any], *, label: str) -> bool:
+    """POST one message to Resend; ``label`` names it in log lines."""
+    if not _resend_config_available():
+        logger.error('Cannot send %s: Resend configuration is missing', label)
+        return False
+
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                RESEND_API_URL, json=payload, headers=_resend_headers(), timeout=10.0
+            )
+    except Exception:
+        logger.exception('Failed to send %s through Resend', label)
+        return False
+
+    if resp.status_code not in (200, 202):
+        logger.error('Resend rejected %s with status code %s', label, resp.status_code)
+        return False
+
+    return True
+
+
 async def send_reset_password_email(
     to_email: str, reset_link: str, subject: str = 'Réinitialisation du mot de passe'
 ) -> bool:
     from_email = settings.resend_from
-
-    if not _resend_config_available():
-        logger.error(
-            'Cannot send password reset email: Resend configuration is missing'
-        )
-        return False
-
-    headers = _resend_headers()
 
     safe_reset_link = escape(reset_link, quote=True)
 
@@ -132,23 +146,7 @@ Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mai
         'text': text,
     }
 
-    try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                RESEND_API_URL, json=payload, headers=headers, timeout=10.0
-            )
-
-            if resp.status_code not in (200, 202):
-                logger.error(
-                    'Resend rejected password reset email with status code %s',
-                    resp.status_code,
-                )
-                return False
-
-            return True
-    except Exception:
-        logger.exception('Failed to send password reset email through Resend')
-        return False
+    return await _send(payload, label='password reset email')
 
 
 async def send_issue_report_email(
@@ -159,10 +157,6 @@ async def send_issue_report_email(
     user: User,
     attachments: list[EmailAttachment],
 ) -> bool:
-    if not _resend_config_available():
-        logger.error('Cannot send issue report email: Resend configuration is missing')
-        return False
-
     recipient_email = settings.support_email or settings.resend_from
     if settings.support_email is None:
         logger.info(
@@ -235,34 +229,12 @@ Metadata
             for attachment in attachments
         ]
 
-    try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                RESEND_API_URL, json=payload, headers=_resend_headers(), timeout=10.0
-            )
-
-            if resp.status_code not in (200, 202):
-                logger.error(
-                    'Resend rejected issue report email with status code %s',
-                    resp.status_code,
-                )
-                return False
-
-            return True
-    except Exception:
-        logger.exception('Failed to send issue report email through Resend')
-        return False
+    return await _send(payload, label='issue report email')
 
 
 async def send_contact_request_email(
     *, name: str, email: str, reason: str, message: str
 ) -> bool:
-    if not _resend_config_available():
-        logger.error(
-            'Cannot send contact request email: Resend configuration is missing'
-        )
-        return False
-
     recipient_email = settings.support_email or settings.resend_from
     subject = f'Bâti Budget – Nouvelle demande de contact ({reason})'
 
@@ -346,23 +318,7 @@ Message
         'text': text,
     }
 
-    try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                RESEND_API_URL, json=payload, headers=_resend_headers(), timeout=10.0
-            )
-
-            if resp.status_code not in (200, 202):
-                logger.error(
-                    'Resend rejected contact request email with status code %s',
-                    resp.status_code,
-                )
-                return False
-
-            return True
-    except Exception:
-        logger.exception('Failed to send contact request email through Resend')
-        return False
+    return await _send(payload, label='contact request email')
 
 
 async def send_email_changed_notice(previous_email: str, new_email: str) -> bool:
@@ -371,10 +327,6 @@ async def send_email_changed_notice(previous_email: str, new_email: str) -> bool
     Sent after the change is committed, so an unnoticed hijack still leaves
     a trace where the legitimate owner can see it.
     """
-    if not _resend_config_available():
-        logger.error('Cannot send email-change notice: Resend configuration is missing')
-        return False
-
     subject = 'Adresse e-mail de votre compte modifiée'
     support = settings.support_email or settings.resend_from or ''
     text = f"""\
@@ -406,20 +358,4 @@ Si vous n'êtes pas à l'origine de cette modification, contactez immédiatement
         'text': text,
     }
 
-    try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                RESEND_API_URL, json=payload, headers=_resend_headers(), timeout=10.0
-            )
-
-            if resp.status_code not in (200, 202):
-                logger.error(
-                    'Resend rejected email-change notice with status code %s',
-                    resp.status_code,
-                )
-                return False
-
-            return True
-    except Exception:
-        logger.exception('Failed to send email-change notice through Resend')
-        return False
+    return await _send(payload, label='email-change notice')

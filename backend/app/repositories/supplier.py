@@ -1,4 +1,3 @@
-from datetime import datetime, UTC
 from typing import Sequence, cast
 
 from sqlalchemy import select, update
@@ -15,6 +14,7 @@ from app.schemas.supplier import (
     SupplierCreate,
     SupplierUpdate,
 )
+from app.core.time import utcnow
 
 SupplierContactWrite = SupplierContactCreate | SupplierContactUpdate
 
@@ -118,7 +118,7 @@ async def soft_delete_supplier(
     if supplier is None:
         return None
 
-    deleted_at = datetime.now(UTC).replace(tzinfo=None)
+    deleted_at = utcnow()
     await db.execute(
         update(SupplierDocument)
         .where(

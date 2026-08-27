@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
 from typing import cast
 
@@ -23,6 +23,7 @@ from app.schemas.transaction import (
     TransactionCreate,
     TransactionUpdate,
 )
+from app.core.time import utcnow
 
 
 class TransactionValidationError(ValueError):
@@ -542,7 +543,7 @@ async def soft_delete_transaction(
     if transaction is None:
         return None
 
-    deleted_at = datetime.now(UTC).replace(tzinfo=None)
+    deleted_at = utcnow()
     try:
         await db.execute(
             update(Document)

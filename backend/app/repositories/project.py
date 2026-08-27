@@ -1,4 +1,4 @@
-from datetime import date, datetime, UTC
+from datetime import date
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,6 +7,7 @@ from app.models.project import Project
 from app.models.budget_line import BudgetLine
 from app.models.transaction import Transaction
 from app.schemas.project import ProjectCreate, ProjectUpdate
+from app.core.time import utcnow
 
 
 class ProjectValidationError(ValueError):
@@ -99,7 +100,7 @@ async def soft_delete_project(
     if project is None:
         return None
 
-    deleted_at = datetime.now(UTC).replace(tzinfo=None)
+    deleted_at = utcnow()
 
     transaction_ids = (
         select(Transaction.id)

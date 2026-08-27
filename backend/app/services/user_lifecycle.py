@@ -1,5 +1,3 @@
-from datetime import UTC, datetime
-
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
@@ -15,6 +13,7 @@ from app.repositories import refresh_token as refresh_token_repository
 from app.repositories import user as user_repository
 from app.schemas.user import AdminUserUpdate
 from app.services.storage import delete_file_from_r2
+from app.core.time import utcnow
 
 
 class UserLifecycleError(ValueError):
@@ -95,7 +94,7 @@ async def soft_delete_user(db: AsyncSession, user_id: int) -> User | None:
 
     await _ensure_user_can_be_deleted(db, user)
 
-    deleted_at = datetime.now(UTC).replace(tzinfo=None)
+    deleted_at = utcnow()
 
     project_ids = select(Project.id).where(
         Project.user_id == user_id,
@@ -184,7 +183,7 @@ async def restore_user(db: AsyncSession, user_id: int) -> User | None:
         raise UserLifecycleError('User is not deleted')
 
     deleted_at = user.deleted_at
-    restored_at = datetime.now(UTC).replace(tzinfo=None)
+    restored_at = utcnow()
 
     budget_line_ids = (
         select(BudgetLine.id)

@@ -1,9 +1,10 @@
-from datetime import datetime, UTC
+from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.core.time import utcnow
 
 
 class RefreshToken(Base):
@@ -19,7 +20,7 @@ class RefreshToken(Base):
     family_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=lambda: datetime.now(UTC).replace(tzinfo=None),
+        default=utcnow,
         nullable=False,
     )
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
