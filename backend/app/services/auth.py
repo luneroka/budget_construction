@@ -37,6 +37,11 @@ class RefreshTokenReuseError(Exception):
 # this window is treated as theft and revokes the whole session family.
 REFRESH_TOKEN_REUSE_GRACE_SECONDS = 10
 
+# Verified against when the email is unknown, so a login attempt costs the
+# same ~100 ms whether or not the account exists (no timing oracle on
+# account existence). Any valid bcrypt hash works; the result is discarded.
+_UNKNOWN_ACCOUNT_HASH = hash_password('unknown-account-placeholder')
+
 
 async def register_user(db: AsyncSession, user_data: UserCreate) -> User | None:
     existing_user = await user_repository.get_user_by_email(db, user_data.email)
@@ -78,6 +83,7 @@ async def authenticate_user(db: AsyncSession, email: str, password: str) -> User
     user = await user_repository.get_user_by_email(db, email)
 
     if user is None:
+        verify_password(password, _UNKNOWN_ACCOUNT_HASH)
         return None
 
     if not verify_password(password, user.hashed_password):
