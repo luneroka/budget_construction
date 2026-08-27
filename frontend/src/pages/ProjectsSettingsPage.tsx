@@ -62,6 +62,11 @@ type ProjectFormState = {
   status: ProjectStatus
 }
 
+// The project "danger zone" (archive / duplicate / delete) stays hidden until
+// deletion is recoverable and the flow has proper safeguards; the code is
+// kept so it can be switched on without being rewritten.
+const PROJECT_DANGER_ZONE_ENABLED: boolean = false
+
 const statusOptions: Array<{ value: ProjectStatus; label: string }> = [
   { value: 'draft', label: 'Brouillon' },
   { value: 'active', label: 'Actif' },
@@ -675,7 +680,7 @@ export function ProjectsSettingsPage() {
             Before exposing this again, add safeguards: soft-delete, recoverable
             projects, a clearer flow, and additional confirmation dialogs.
           */}
-          {false ? (
+          {PROJECT_DANGER_ZONE_ENABLED ? (
             <SectionCard
               title="Zone de danger"
               description="Actions sensibles sur le projet actuel."
@@ -732,7 +737,7 @@ export function ProjectsSettingsPage() {
         onSubmit={projectOnboarding.submit}
       />
 
-      {false ? (
+      {PROJECT_DANGER_ZONE_ENABLED ? (
         showDeleteDialog && currentProject ? (
           <ConfirmationDialog
             title="Supprimer ce projet ?"

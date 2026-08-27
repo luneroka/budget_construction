@@ -1,9 +1,5 @@
 import type { ViewedTransactionContext } from '@/components/budget/TransactionModal'
-import type {
-  BudgetLine,
-  Product,
-  Transaction,
-} from '@/types'
+import type { BudgetLine, Product, Transaction } from '@/types'
 
 export type ProductStructureChoice = 'single' | 'breakdown'
 

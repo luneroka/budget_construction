@@ -15,13 +15,20 @@ type ChartCardProps = {
   children: ReactNode
 }
 
-export function ChartCard({ title, description, action, children }: ChartCardProps) {
+export function ChartCard({
+  title,
+  description,
+  action,
+  children,
+}: ChartCardProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
           <CardTitle>{title}</CardTitle>
-          {description ? <CardDescription>{description}</CardDescription> : null}
+          {description ? (
+            <CardDescription>{description}</CardDescription>
+          ) : null}
         </div>
         {action}
       </CardHeader>

@@ -1,9 +1,4 @@
-import {
-  type ReactNode,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { Check, ChevronDown, FolderPlus, Loader2, Settings } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
@@ -49,14 +44,17 @@ export function ProjectSwitcher() {
 
   const selectedProject = useMemo(
     () =>
-      projects.find((project) => project.id === selectedProjectId) ?? projects[0],
+      projects.find((project) => project.id === selectedProjectId) ??
+      projects[0],
     [projects, selectedProjectId],
   )
   const selectedProjectNumericId = selectedProject
     ? Number(selectedProject.id)
     : null
   const selectedProjectSummaryQuery = useProjectFinancialSummaryQuery(
-    Number.isInteger(selectedProjectNumericId) ? selectedProjectNumericId : null,
+    Number.isInteger(selectedProjectNumericId)
+      ? selectedProjectNumericId
+      : null,
     { enabled: true },
   )
   const selectedBudgetAmount = selectedProjectSummaryQuery.data
@@ -164,9 +162,7 @@ export function ProjectSwitcher() {
               {selectedProject.location}
             </span>
             <span className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-sidebar-foreground/70">
-              <span>
-                Budget : {formatCurrency(selectedBudgetAmount)}
-              </span>
+              <span>Budget : {formatCurrency(selectedBudgetAmount)}</span>
             </span>
           </span>
           <ChevronDown
@@ -187,7 +183,10 @@ export function ProjectSwitcher() {
                 label={project.name}
                 icon={
                   project.id === selectedProjectId ? (
-                    <Check className="h-4 w-4 stroke-[1.8]" aria-hidden="true" />
+                    <Check
+                      className="h-4 w-4 stroke-[1.8]"
+                      aria-hidden="true"
+                    />
                   ) : null
                 }
                 onClick={() => {
@@ -202,10 +201,7 @@ export function ProjectSwitcher() {
 
           <ProjectMenuItem
             icon={
-              <FolderPlus
-                className="h-4 w-4 stroke-[1.8]"
-                aria-hidden="true"
-              />
+              <FolderPlus className="h-4 w-4 stroke-[1.8]" aria-hidden="true" />
             }
             label="Nouveau projet"
             onClick={() => {
@@ -240,11 +236,7 @@ type ProjectMenuItemProps = {
   onClick: () => void
 }
 
-function ProjectMenuItem({
-  label,
-  icon,
-  onClick,
-}: ProjectMenuItemProps) {
+function ProjectMenuItem({ label, icon, onClick }: ProjectMenuItemProps) {
   return (
     <button
       type="button"
@@ -265,12 +257,7 @@ type ProjectMenuLinkProps = ProjectMenuItemProps & {
   to: string
 }
 
-function ProjectMenuLink({
-  label,
-  icon,
-  onClick,
-  to,
-}: ProjectMenuLinkProps) {
+function ProjectMenuLink({ label, icon, onClick, to }: ProjectMenuLinkProps) {
   return (
     <Link
       to={to}

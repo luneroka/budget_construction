@@ -81,13 +81,8 @@ export function useSupplierDocumentsQuery(
 
 export function useUploadSupplierDocumentMutation() {
   return useMutation({
-    mutationFn: ({
-      supplierId,
-      file,
-    }: {
-      supplierId: number
-      file: File
-    }) => uploadSupplierDocument(supplierId, file),
+    mutationFn: ({ supplierId, file }: { supplierId: number; file: File }) =>
+      uploadSupplierDocument(supplierId, file),
   })
 }
 

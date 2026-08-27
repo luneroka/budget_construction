@@ -2,10 +2,14 @@ import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-export type CheckboxProps = React.InputHTMLAttributes<HTMLInputElement>
+// `type` is always "checkbox"; it is not a configurable prop.
+export type CheckboxProps = Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'type'
+>
 
 export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
-  ({ className, type, ...props }, ref) => (
+  ({ className, ...props }, ref) => (
     <input
       ref={ref}
       type="checkbox"

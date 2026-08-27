@@ -3,11 +3,7 @@ import { formatCurrency } from '@/lib/format'
 import { varianceClass } from '@/lib/budgetDomain'
 import { cn } from '@/lib/utils'
 
-export function BudgetSummaryCards({
-  summary,
-}: {
-  summary: FinancialSummary
-}) {
+export function BudgetSummaryCards({ summary }: { summary: FinancialSummary }) {
   return (
     <div className="mb-10 grid grid-cols-2 gap-3 lg:grid-cols-4">
       <div className="rounded-lg border border-border bg-card p-3">

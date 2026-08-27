@@ -4,7 +4,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 
 import { resetPassword } from '@/api/auth'
 import { getApiErrorMessage } from '@/api/client'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button-variants'
 import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
 import { notifyError, notifySuccess } from '@/lib/toasts'
@@ -77,8 +78,8 @@ export function ResetPasswordPage() {
             Nouveau mot de passe
           </h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            Définissez un nouveau mot de passe d’au moins{' '}
-            {MIN_PASSWORD_LENGTH} caractères pour accéder à votre espace.
+            Définissez un nouveau mot de passe d’au moins {MIN_PASSWORD_LENGTH}{' '}
+            caractères pour accéder à votre espace.
           </p>
         </div>
 

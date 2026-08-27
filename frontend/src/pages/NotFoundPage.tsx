@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import { PageHeader } from '@/components/shared/PageHeader'
-import { buttonVariants } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button-variants'
 
 export function NotFoundPage() {
   return (
@@ -10,10 +10,7 @@ export function NotFoundPage() {
         title="Page inconnue"
         description="Cette route ne correspond a aucun ecran de l'application."
       />
-      <Link
-        to="/dashboard"
-        className={buttonVariants({ className: 'mt-6' })}
-      >
+      <Link to="/dashboard" className={buttonVariants({ className: 'mt-6' })}>
         Retour au dashboard
       </Link>
     </section>

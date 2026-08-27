@@ -23,8 +23,7 @@ export function useBudgetExpansion() {
     [],
   )
   const openSubcategory = useCallback(
-    (id: string) =>
-      setOpenSubcategories((current) => new Set(current).add(id)),
+    (id: string) => setOpenSubcategories((current) => new Set(current).add(id)),
     [],
   )
   const openProduct = useCallback(
@@ -51,8 +50,7 @@ export function useBudgetExpansion() {
     setOpenBudgetLines(new Set())
   }, [])
   const toggleCategory = useCallback(
-    (id: string) =>
-      setOpenCategories((current) => toggleSetValue(current, id)),
+    (id: string) => setOpenCategories((current) => toggleSetValue(current, id)),
     [],
   )
   const toggleSubcategory = useCallback(

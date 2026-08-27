@@ -27,7 +27,8 @@ export function DeleteBudgetLineDialog({
   const budgetLineId = Number(line.budget_line_id)
   const transactionCount =
     line.quote_count + line.diy_estimate_count + line.invoice_count
-  const canDelete = Number.isInteger(projectId) && Number.isInteger(budgetLineId)
+  const canDelete =
+    Number.isInteger(projectId) && Number.isInteger(budgetLineId)
 
   async function handleConfirm() {
     if (!canDelete) {
@@ -63,8 +64,8 @@ export function DeleteBudgetLineDialog({
       <p className="font-medium text-foreground">{line.name}</p>
       <p className="mt-1 text-muted-foreground">{product.product_name}</p>
       <p className="mt-1 text-muted-foreground">
-        {transactionCount} transaction{transactionCount > 1 ? 's' : ''} ·
-        Budget {formatCurrency(line.selected_budget_amount_ttc)}
+        {transactionCount} transaction{transactionCount > 1 ? 's' : ''} · Budget{' '}
+        {formatCurrency(line.selected_budget_amount_ttc)}
       </p>
     </ConfirmationDialog>
   )

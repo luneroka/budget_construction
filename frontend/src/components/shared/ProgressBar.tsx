@@ -32,7 +32,10 @@ export function ProgressBar({
       ) : null}
       <div className="h-2 overflow-hidden rounded-full bg-muted">
         <div
-          className={cn('h-full rounded-full transition-all', toneClasses[tone])}
+          className={cn(
+            'h-full rounded-full transition-all',
+            toneClasses[tone],
+          )}
           style={{ width: `${percent}%` }}
         />
       </div>

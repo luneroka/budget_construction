@@ -13,7 +13,9 @@ type VerificationIssue = {
 
 const MONEY_TOLERANCE = 0.01
 
-function decimalToNumber(value: ApiDecimal | number | null | undefined): number {
+function decimalToNumber(
+  value: ApiDecimal | number | null | undefined,
+): number {
   if (value == null) return 0
   return typeof value === 'number' ? value : Number(value)
 }
