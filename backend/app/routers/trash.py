@@ -4,6 +4,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
 from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
@@ -54,10 +55,10 @@ async def _ensure_project(
         )
 
 
-def _delete_document_files(file_paths: list[str]) -> None:
+async def _delete_document_files(file_paths: list[str]) -> None:
     for file_path in file_paths:
         try:
-            delete_file_from_r2(file_path)
+            await run_in_threadpool(delete_file_from_r2, file_path)
         except Exception as exc:
             logger.exception('Failed to delete document from R2')
             raise HTTPException(
@@ -70,7 +71,7 @@ async def _permanently_delete_transaction(
     db: AsyncSession,
     transaction: Transaction,
 ) -> None:
-    _delete_document_files([document.file_path for document in transaction.documents])
+    await _delete_document_files([document.file_path for document in transaction.documents])
     await trash_repository.permanently_delete_transaction(db, transaction)
 
 
@@ -79,7 +80,7 @@ async def _permanently_delete_document(
     document_id: int,
     document_file_path: str,
 ) -> None:
-    _delete_document_files([document_file_path])
+    await _delete_document_files([document_file_path])
     document = await db.get(Document, document_id)
     if document is None:
         return
@@ -90,7 +91,7 @@ async def _permanently_delete_supplier(
     db: AsyncSession,
     supplier: Supplier,
 ) -> None:
-    _delete_document_files([document.file_path for document in supplier.documents])
+    await _delete_document_files([document.file_path for document in supplier.documents])
     await trash_repository.permanently_delete_supplier(db, supplier)
 
 
@@ -99,7 +100,7 @@ async def _permanently_delete_supplier_document(
     document_id: int,
     document_file_path: str,
 ) -> None:
-    _delete_document_files([document_file_path])
+    await _delete_document_files([document_file_path])
     document = await db.get(SupplierDocument, document_id)
     if document is None:
         return
@@ -224,7 +225,7 @@ async def empty_project_trash(
         project_id,
         current_user.id,
     )
-    _delete_document_files(
+    await _delete_document_files(
         [
             document.file_path
             for transaction in targets.transactions

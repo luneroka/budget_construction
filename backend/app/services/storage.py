@@ -1,5 +1,15 @@
+"""Cloudflare R2 access through boto3.
+
+These functions are synchronous (boto3 has no asyncio API). They must not be
+called directly from an ``async def`` route: a slow upload or a stalled R2
+call would block the uvicorn event loop for every other request on that
+worker. Call sites wrap them in ``starlette.concurrency.run_in_threadpool``.
+The functions stay sync so tests can monkeypatch them with plain fakes.
+"""
+
 from __future__ import annotations
 
+from functools import lru_cache
 from urllib.parse import quote
 from typing import TYPE_CHECKING, BinaryIO
 
@@ -18,7 +28,11 @@ def _required_setting(name: str, value: str | None) -> str:
     return value.strip()
 
 
+@lru_cache(maxsize=1)
 def get_r2_client() -> S3Client:
+    # Building a boto3 client loads botocore's service model and is by far
+    # the most expensive part of a small R2 call, so build it once. The
+    # client is thread-safe for the operations used here.
     return boto3.client(  # pyright: ignore[reportUnknownMemberType]
         's3',
         endpoint_url=_required_setting('R2_ENDPOINT_URL', settings.r2_endpoint_url),

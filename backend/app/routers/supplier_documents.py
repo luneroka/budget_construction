@@ -3,6 +3,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
 from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
@@ -65,8 +66,11 @@ async def create_supplier_document(
     )
 
     try:
-        upload_file_to_r2(
-            file=file.file, object_key=object_key, content_type=detected_mime_type
+        await run_in_threadpool(
+            upload_file_to_r2,
+            file=file.file,
+            object_key=object_key,
+            content_type=detected_mime_type,
         )
     except Exception as exc:
         logger.exception('Failed to upload supplier document to R2')
@@ -88,7 +92,7 @@ async def create_supplier_document(
         )
     except Exception as exc:
         await db.rollback()
-        cleanup_uploaded_file(object_key)
+        await run_in_threadpool(cleanup_uploaded_file, object_key)
         logger.exception('Failed to persist uploaded supplier document metadata')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -142,7 +146,8 @@ async def get_supplier_document_download_url(
             status_code=status.HTTP_404_NOT_FOUND, detail='Document not found'
         )
 
-    url = generate_download_url(
+    url = await run_in_threadpool(
+        generate_download_url,
         document.file_path,
         filename=document.original_filename,
         inline=inline,

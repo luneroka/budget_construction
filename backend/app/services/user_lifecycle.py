@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
 from app.models.document import Document
 from app.models.project import Project
@@ -263,7 +264,7 @@ async def hard_delete_user(db: AsyncSession, user_id: int) -> bool:
         file_paths = list(result.scalars().all())
 
         for file_path in file_paths:
-            delete_file_from_r2(file_path)
+            await run_in_threadpool(delete_file_from_r2, file_path)
 
         await db.execute(delete(User).where(User.id == user_id))
         await db.commit()

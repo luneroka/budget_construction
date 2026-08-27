@@ -3,6 +3,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
 from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
@@ -94,8 +95,11 @@ async def create_document(
     )
 
     try:
-        upload_file_to_r2(
-            file=file.file, object_key=object_key, content_type=detected_mime_type
+        await run_in_threadpool(
+            upload_file_to_r2,
+            file=file.file,
+            object_key=object_key,
+            content_type=detected_mime_type,
         )
     except Exception as exc:
         logger.exception('Failed to upload document to R2')
@@ -117,7 +121,7 @@ async def create_document(
         )
     except Exception as exc:
         await db.rollback()
-        _cleanup_uploaded_file(object_key)
+        await run_in_threadpool(_cleanup_uploaded_file, object_key)
         logger.exception('Failed to persist uploaded document metadata')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -234,7 +238,8 @@ async def get_document_download_url(
             detail='Document not found',
         )
 
-    url = generate_download_url(
+    url = await run_in_threadpool(
+        generate_download_url,
         document.file_path,
         filename=document.original_filename,
         inline=inline,
@@ -298,7 +303,7 @@ async def hard_delete_document(
         )
 
     try:
-        delete_file_from_r2(document.file_path)
+        await run_in_threadpool(delete_file_from_r2, document.file_path)
     except Exception as exc:
         logger.exception('Failed to delete document from R2')
         raise HTTPException(
