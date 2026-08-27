@@ -355,7 +355,7 @@ async def test_document_upload_rejects_another_users_transaction_before_storage(
         return 'unexpected'
 
     monkeypatch.setattr(
-        'app.routers.documents.upload_file_to_r2',
+        'app.routers.uploads.upload_file_to_r2',
         record_upload,
     )
 
@@ -421,7 +421,7 @@ async def test_document_upload_accepts_file_at_size_limit(
         return object_key
 
     monkeypatch.setattr(
-        'app.routers.documents.upload_file_to_r2',
+        'app.routers.uploads.upload_file_to_r2',
         record_upload,
     )
 

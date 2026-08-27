@@ -1,7 +1,4 @@
-import logging
-import uuid
-
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
@@ -10,16 +7,12 @@ from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.repositories import supplier as supplier_repository
 from app.repositories import supplier_document as supplier_document_repository
+from app.routers._helpers import require_found
+from app.routers.uploads import StoredFile, upload_document
 from app.schemas.document import DocumentDownloadUrl
 from app.schemas.supplier_document import SupplierDocumentRead
-from app.services.document_validation import (
-    DocumentUploadValidationError,
-    cleanup_uploaded_file,
-    validate_document_upload,
-)
-from app.services.storage import generate_download_url, upload_file_to_r2
+from app.services.storage import generate_download_url
 
-logger = logging.getLogger(__name__)
 router = APIRouter(prefix='/suppliers', tags=['Supplier Documents'])
 supplier_document_router = APIRouter(
     prefix='/supplier-documents', tags=['Supplier Documents']
@@ -38,66 +31,30 @@ async def create_supplier_document(
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
-    supplier = await supplier_repository.get_supplier_by_id(
-        db, supplier_id, current_user.id
+    require_found(
+        await supplier_repository.get_supplier_by_id(db, supplier_id, current_user.id),
+        'supplier_not_found',
     )
 
-    if supplier is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='Supplier not found'
-        )
-
-    try:
-        original_filename, extension, detected_mime_type, file_size = (
-            validate_document_upload(file)
-        )
-    except DocumentUploadValidationError as error:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(error),
-        ) from error
-
-    stored_filename = f'{uuid.uuid4()}.{extension}'
-
-    object_key = (
-        f'documents/user_{current_user.id}/'
-        f'supplier_{supplier_id}/'
-        f'{stored_filename}'
-    )
-
-    try:
-        await run_in_threadpool(
-            upload_file_to_r2,
-            file=file.file,
-            object_key=object_key,
-            content_type=detected_mime_type,
-        )
-    except Exception as exc:
-        logger.exception('Failed to upload supplier document to R2')
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail='Failed to upload document',
-        ) from exc
-
-    try:
+    async def persist(stored: StoredFile):
         return await supplier_document_repository.create_supplier_document(
             db=db,
             supplier_id=supplier_id,
             user_id=current_user.id,
-            original_filename=original_filename,
-            stored_filename=stored_filename,
-            file_path=object_key,
-            mime_type=detected_mime_type,
-            file_size=file_size,
+            original_filename=stored.original_filename,
+            stored_filename=stored.stored_filename,
+            file_path=stored.object_key,
+            mime_type=stored.mime_type,
+            file_size=stored.file_size,
         )
-    except Exception as exc:
-        await db.rollback()
-        await run_in_threadpool(cleanup_uploaded_file, object_key)
-        logger.exception('Failed to persist uploaded supplier document metadata')
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail='Failed to save document metadata',
-        ) from exc
+
+    return await upload_document(
+        db,
+        file,
+        object_prefix=f'documents/user_{current_user.id}/supplier_{supplier_id}',
+        persist=persist,
+        label='supplier document',
+    )
 
 
 @router.get(
@@ -109,14 +66,10 @@ async def get_documents_by_supplier(
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
-    supplier = await supplier_repository.get_supplier_by_id(
-        db, supplier_id, current_user.id
+    require_found(
+        await supplier_repository.get_supplier_by_id(db, supplier_id, current_user.id),
+        'supplier_not_found',
     )
-
-    if supplier is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='Supplier not found'
-        )
 
     return await supplier_document_repository.get_supplier_documents_by_supplier_id(
         db=db,
@@ -135,16 +88,12 @@ async def get_supplier_document_download_url(
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
-    document = await supplier_document_repository.get_supplier_document_by_id(
-        db=db,
-        document_id=document_id,
-        user_id=current_user.id,
+    document = require_found(
+        await supplier_document_repository.get_supplier_document_by_id(
+            db=db, document_id=document_id, user_id=current_user.id
+        ),
+        'document_not_found',
     )
-
-    if document is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='Document not found'
-        )
 
     url = await run_in_threadpool(
         generate_download_url,
@@ -165,18 +114,13 @@ async def soft_delete_supplier_document(
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
-    document = await supplier_document_repository.get_supplier_document_by_id(
-        db=db,
-        document_id=document_id,
-        user_id=current_user.id,
+    document = require_found(
+        await supplier_document_repository.get_supplier_document_by_id(
+            db=db, document_id=document_id, user_id=current_user.id
+        ),
+        'document_not_found',
     )
 
-    if document is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='Document not found'
-        )
-
     await supplier_document_repository.soft_delete_supplier_document(
-        db=db,
-        document=document,
+        db=db, document=document
     )

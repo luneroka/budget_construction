@@ -73,7 +73,7 @@ async def test_supplier_document_upload_and_list(
         return object_key
 
     monkeypatch.setattr(
-        'app.routers.supplier_documents.upload_file_to_r2',
+        'app.routers.uploads.upload_file_to_r2',
         record_upload,
     )
 
@@ -525,7 +525,7 @@ async def test_supplier_document_upload_accepts_file_at_size_limit(
         return object_key
 
     monkeypatch.setattr(
-        'app.routers.supplier_documents.upload_file_to_r2',
+        'app.routers.uploads.upload_file_to_r2',
         record_upload,
     )
 

@@ -1,5 +1,4 @@
 import logging
-import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,18 +10,14 @@ from app.models.user import User
 from app.repositories import document as document_repository
 from app.repositories import supplier_document as supplier_document_repository
 from app.repositories import transaction as transaction_repository
+from app.routers._helpers import require_found
+from app.routers.uploads import StoredFile, upload_document
 from app.schemas.document import DocumentListRead, DocumentRead, DocumentDownloadUrl
-from app.schemas.supplier_document import SupplierDocumentListRead
-from app.services.document_validation import (
-    DocumentUploadValidationError,
-    cleanup_uploaded_file as _cleanup_uploaded_file,
-    validate_document_upload as _validate_document_upload,
+from app.schemas.supplier_document import (
+    SupplierDocumentListRead,
+    SupplierDocumentRead,
 )
-from app.services.storage import (
-    upload_file_to_r2,
-    generate_download_url,
-    delete_file_from_r2,
-)
+from app.services.storage import delete_file_from_r2, generate_download_url
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix='/transactions', tags=['Documents'])
@@ -41,16 +36,14 @@ def _document_list_read(
         product_name,
         amount_ttc,
     ) = row
-    return DocumentListRead.model_validate(
-        {
-            **document.__dict__,
-            'project_id': project_id,
-            'transaction_type': transaction_type,
-            'transaction_description': transaction_description,
-            'supplier_name': supplier_name,
-            'product_name': product_name,
-            'amount_ttc': str(amount_ttc) if amount_ttc is not None else None,
-        }
+    return DocumentListRead(
+        **DocumentRead.model_validate(document).model_dump(),
+        project_id=project_id,
+        transaction_type=transaction_type,
+        transaction_description=transaction_description,
+        supplier_name=supplier_name,
+        product_name=product_name,
+        amount_ttc=str(amount_ttc) if amount_ttc is not None else None,
     )
 
 
@@ -66,67 +59,32 @@ async def create_document(
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
-    transaction = await transaction_repository.get_transaction_by_id_for_user(
-        db=db, transaction_id=transaction_id, user_id=current_user.id
+    require_found(
+        await transaction_repository.get_transaction_by_id_for_user(
+            db=db, transaction_id=transaction_id, user_id=current_user.id
+        ),
+        'transaction_not_found',
     )
 
-    if transaction is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='Transaction not found'
-        )
-
-    try:
-        original_filename, extension, detected_mime_type, file_size = (
-            _validate_document_upload(file)
-        )
-    except DocumentUploadValidationError as error:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(error),
-        ) from error
-
-    # Generate stored filename / R2 object key
-    stored_filename = f'{uuid.uuid4()}.{extension}'
-
-    object_key = (
-        f'documents/user_{current_user.id}/'
-        f'transaction_{transaction_id}/'
-        f'{stored_filename}'
-    )
-
-    try:
-        await run_in_threadpool(
-            upload_file_to_r2,
-            file=file.file,
-            object_key=object_key,
-            content_type=detected_mime_type,
-        )
-    except Exception as exc:
-        logger.exception('Failed to upload document to R2')
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail='Failed to upload document',
-        ) from exc
-
-    try:
+    async def persist(stored: StoredFile):
         return await document_repository.create_document(
             db=db,
             transaction_id=transaction_id,
             user_id=current_user.id,
-            original_filename=original_filename,
-            stored_filename=stored_filename,
-            file_path=object_key,
-            mime_type=detected_mime_type,
-            file_size=file_size,
+            original_filename=stored.original_filename,
+            stored_filename=stored.stored_filename,
+            file_path=stored.object_key,
+            mime_type=stored.mime_type,
+            file_size=stored.file_size,
         )
-    except Exception as exc:
-        await db.rollback()
-        await run_in_threadpool(_cleanup_uploaded_file, object_key)
-        logger.exception('Failed to persist uploaded document metadata')
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail='Failed to save document metadata',
-        ) from exc
+
+    return await upload_document(
+        db,
+        file,
+        object_prefix=f'documents/user_{current_user.id}/transaction_{transaction_id}',
+        persist=persist,
+        label='document',
+    )
 
 
 @router.get(
@@ -138,17 +96,12 @@ async def get_documents_by_transaction(
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
-    transaction = await transaction_repository.get_transaction_by_id_for_user(
-        db=db,
-        transaction_id=transaction_id,
-        user_id=current_user.id,
+    require_found(
+        await transaction_repository.get_transaction_by_id_for_user(
+            db=db, transaction_id=transaction_id, user_id=current_user.id
+        ),
+        'transaction_not_found',
     )
-
-    if transaction is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Transaction not found',
-        )
 
     return await document_repository.get_documents_by_transaction_id(
         db=db,
@@ -183,8 +136,9 @@ async def get_documents(
         _document_list_read(row) for row in rows
     ]
     items.extend(
-        SupplierDocumentListRead.model_validate(
-            {**document.__dict__, 'supplier_name': supplier_name}
+        SupplierDocumentListRead(
+            **SupplierDocumentRead.model_validate(document).model_dump(),
+            supplier_name=supplier_name,
         )
         for document, supplier_name in supplier_document_rows
     )
@@ -201,19 +155,12 @@ async def get_document(
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
-    document = await document_repository.get_document_by_id(
-        db=db,
-        document_id=document_id,
-        user_id=current_user.id,
+    return require_found(
+        await document_repository.get_document_by_id(
+            db=db, document_id=document_id, user_id=current_user.id
+        ),
+        'document_not_found',
     )
-
-    if document is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Document not found',
-        )
-
-    return document
 
 
 @document_router.get(
@@ -226,17 +173,12 @@ async def get_document_download_url(
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
-    document = await document_repository.get_document_by_id(
-        db=db,
-        document_id=document_id,
-        user_id=current_user.id,
+    document = require_found(
+        await document_repository.get_document_by_id(
+            db=db, document_id=document_id, user_id=current_user.id
+        ),
+        'document_not_found',
     )
-
-    if document is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Document not found',
-        )
 
     url = await run_in_threadpool(
         generate_download_url,
@@ -257,22 +199,14 @@ async def soft_delete_document(
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
-    document = await document_repository.get_document_by_id(
-        db=db,
-        document_id=document_id,
-        user_id=current_user.id,
+    document = require_found(
+        await document_repository.get_document_by_id(
+            db=db, document_id=document_id, user_id=current_user.id
+        ),
+        'document_not_found',
     )
 
-    if document is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Document not found',
-        )
-
-    await document_repository.soft_delete_document(
-        db=db,
-        document=document,
-    )
+    await document_repository.soft_delete_document(db=db, document=document)
 
 
 @document_router.delete(
@@ -284,17 +218,12 @@ async def hard_delete_document(
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
-    document = await document_repository.get_document_by_id_for_user(
-        db=db,
-        document_id=document_id,
-        user_id=current_user.id,
+    document = require_found(
+        await document_repository.get_document_by_id_for_user(
+            db=db, document_id=document_id, user_id=current_user.id
+        ),
+        'document_not_found',
     )
-
-    if document is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Document not found',
-        )
 
     if document.deleted_at is None:
         raise HTTPException(
