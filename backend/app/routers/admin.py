@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 from app.db.session import get_db_session
 from app.repositories import admin as admin_repository
+from app.routers._helpers import require_found
 from app.routers.integrity import raise_integrity_conflict
 from app.schemas.user import AdminUserCreate, AdminUserRead, AdminUserUpdate
 from app.core.security_log import security_event
@@ -78,10 +79,7 @@ async def get_user(
 ):
     user = await admin_repository.get_user_by_id_for_admin(db, user_id, include_deleted)
 
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='User not found'
-        )
+    user = require_found(user, 'user_not_found')
 
     return user
 
@@ -111,10 +109,7 @@ async def admin_update_user(
     except IntegrityError as error:
         await raise_integrity_conflict(db, error)
 
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='User not found'
-        )
+    user = require_found(user, 'user_not_found')
 
     security_event(
         'admin_user_updated', request=request, actor=admin.id, target=user.id,
@@ -145,10 +140,7 @@ async def admin_soft_delete_user(
             detail=str(error),
         ) from error
 
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='User not found'
-        )
+    user = require_found(user, 'user_not_found')
 
     security_event(
         'admin_user_deleted', request=request, actor=admin.id, target=user.id
@@ -172,10 +164,7 @@ async def admin_restore_user(
             detail=str(error),
         ) from error
 
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='User not found'
-        )
+    user = require_found(user, 'user_not_found')
 
     security_event(
         'admin_user_restored', request=request, actor=admin.id, target=user.id

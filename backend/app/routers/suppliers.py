@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,6 +6,7 @@ from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.repositories import supplier as supplier_repository
+from app.routers._helpers import require_found
 from app.routers.integrity import raise_integrity_conflict
 from app.schemas.supplier import SupplierCreate, SupplierRead, SupplierUpdate
 
@@ -46,11 +47,7 @@ async def get_supplier(
         db, supplier_id, current_user.id
     )
 
-    if supplier is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Supplier not found',
-        )
+    supplier = require_found(supplier, 'supplier_not_found')
 
     return supplier
 
@@ -70,10 +67,7 @@ async def update_supplier(
     except IntegrityError as error:
         await raise_integrity_conflict(db, error)
 
-    if supplier is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='Supplier not found'
-        )
+    supplier = require_found(supplier, 'supplier_not_found')
 
     return supplier
 
@@ -89,9 +83,6 @@ async def delete_supplier(
         db, supplier_id, current_user.id
     )
 
-    if supplier is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='Supplier not found'
-        )
+    supplier = require_found(supplier, 'supplier_not_found')
 
     return supplier

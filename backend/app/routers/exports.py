@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
 from app.models.user import User
+from app.routers._helpers import require_found
 from app.services.export import (
     AccountingExportFilters,
     ExportTransactionType,
@@ -42,11 +43,7 @@ async def export_project_accounting_csv(
             transaction_type=transaction_type,
         ),
     )
-    if export is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Project not found',
-        )
+    export = require_found(export, 'project_not_found')
 
     return Response(
         content=export.csv_content,

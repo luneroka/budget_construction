@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
 from app.dependencies.auth import get_current_admin_user, get_current_user
 from app.repositories import template as template_repository
+from app.routers._helpers import require_found
 from app.routers.integrity import raise_integrity_conflict
 from app.schemas.template import (
     TemplateCreate,
@@ -49,11 +50,7 @@ async def get_template(
     db: AsyncSession = Depends(get_db_session),
 ):
     template = await template_repository.get_template_by_id(db, template_id)
-    if template is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Template not found',
-        )
+    template = require_found(template, 'template_not_found')
 
     return template
 
@@ -69,11 +66,7 @@ async def update_template(
     db: AsyncSession = Depends(get_db_session),
 ):
     template = await template_repository.get_template_by_id(db, template_id)
-    if template is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Template not found',
-        )
+    template = require_found(template, 'template_not_found')
 
     try:
         return await template_repository.update_template(db, template, template_data)
@@ -91,10 +84,6 @@ async def deactivate_template(
     db: AsyncSession = Depends(get_db_session),
 ):
     template = await template_repository.get_template_by_id(db, template_id)
-    if template is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Template not found',
-        )
+    template = require_found(template, 'template_not_found')
 
     return await template_repository.deactivate_template(db, template)

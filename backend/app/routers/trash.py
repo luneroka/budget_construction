@@ -14,6 +14,7 @@ from app.models.supplier_document import SupplierDocument
 from app.models.transaction import Transaction
 from app.models.user import User
 from app.repositories import trash as trash_repository
+from app.routers._helpers import require_found
 from app.schemas.document import DocumentRead
 from app.schemas.supplier import SupplierRead
 from app.schemas.supplier_document import SupplierDocumentRead
@@ -32,12 +33,6 @@ logger = logging.getLogger(__name__)
 
 
 def _transaction_name(transaction: Transaction) -> str:
-    if transaction.description:
-        return transaction.description
-    return f'Transaction #{transaction.id}'
-
-
-def _document_transaction_name(transaction: Transaction) -> str:
     if transaction.description:
         return transaction.description
     return f'Transaction #{transaction.id}'
@@ -162,7 +157,7 @@ async def get_project_trash(
                 project_id=project_id,
                 transaction_id=document.transaction_id,
                 name=document.original_filename,
-                transaction_name=_document_transaction_name(transaction),
+                transaction_name=_transaction_name(transaction),
                 transaction_type=transaction.transaction_type,
                 transaction_deleted_at=transaction.deleted_at,
                 supplier_name=supplier_name,
@@ -258,11 +253,7 @@ async def hard_delete_transaction(
         transaction_id,
         current_user.id,
     )
-    if transaction is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Transaction not found',
-        )
+    transaction = require_found(transaction, 'transaction_not_found')
 
     await _permanently_delete_transaction(db, transaction)
 
@@ -283,11 +274,7 @@ async def hard_delete_document(
         document_id,
         current_user.id,
     )
-    if document is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Document not found',
-        )
+    document = require_found(document, 'document_not_found')
 
     await _permanently_delete_document(db, document.id, document.file_path)
 
@@ -310,11 +297,7 @@ async def hard_delete_supplier(
         supplier_id,
         current_user.id,
     )
-    if supplier is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Supplier not found',
-        )
+    supplier = require_found(supplier, 'supplier_not_found')
 
     await _permanently_delete_supplier(db, supplier)
 
@@ -338,11 +321,7 @@ async def hard_delete_supplier_document(
             current_user.id,
         )
     )
-    if document is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Document not found',
-        )
+    document = require_found(document, 'document_not_found')
 
     await _permanently_delete_supplier_document(db, document.id, document.file_path)
 
@@ -360,11 +339,7 @@ async def restore_transaction(
         transaction_id,
         current_user.id,
     )
-    if transaction is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Transaction not found',
-        )
+    transaction = require_found(transaction, 'transaction_not_found')
     return transaction
 
 
@@ -388,11 +363,7 @@ async def restore_document(
             detail=str(error),
         ) from error
 
-    if document is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Document not found',
-        )
+    document = require_found(document, 'document_not_found')
     return document
 
 
@@ -420,11 +391,7 @@ async def restore_supplier_document(
             detail=str(error),
         ) from error
 
-    if document is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Document not found',
-        )
+    document = require_found(document, 'document_not_found')
     return document
 
 
@@ -443,9 +410,5 @@ async def restore_supplier(
         supplier_id,
         current_user.id,
     )
-    if supplier is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Supplier not found',
-        )
+    supplier = require_found(supplier, 'supplier_not_found')
     return supplier

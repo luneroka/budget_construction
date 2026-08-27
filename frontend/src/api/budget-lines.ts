@@ -46,16 +46,6 @@ export function createBudgetLine(
   )
 }
 
-export function loadBudgetLinesFromTemplate(
-  projectId: number,
-  templateId: number,
-): Promise<BudgetLineRead[]> {
-  return apiPost<BudgetLineRead[], undefined>(
-    `/projects/${projectId}/budget-lines/from-template/${templateId}`,
-    undefined,
-  )
-}
-
 export function updateBudgetLine(
   projectId: number,
   budgetLineId: number,
@@ -141,18 +131,6 @@ export function useCreateBudgetLineMutation() {
       projectId: number
       budgetLine: BudgetLineCreate
     }) => createBudgetLine(projectId, budgetLine),
-  })
-}
-
-export function useLoadBudgetLinesFromTemplateMutation() {
-  return useMutation({
-    mutationFn: ({
-      projectId,
-      templateId,
-    }: {
-      projectId: number
-      templateId: number
-    }) => loadBudgetLinesFromTemplate(projectId, templateId),
   })
 }
 

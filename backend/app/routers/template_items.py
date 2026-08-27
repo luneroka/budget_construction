@@ -8,6 +8,7 @@ from app.db.session import get_db_session
 from app.dependencies.auth import get_current_admin_user, get_current_user
 from app.repositories import template as template_repository
 from app.repositories import template_item as template_item_repository
+from app.routers._helpers import require_found
 from app.routers.integrity import raise_integrity_conflict
 from app.schemas.template_item import (
     TemplateItemCreate,
@@ -56,11 +57,7 @@ async def create_template_item(
     except IntegrityError as error:
         await raise_integrity_conflict(db, error)
 
-    if template_item is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Template not found',
-        )
+    template_item = require_found(template_item, 'template_not_found')
 
     return template_item
 
@@ -85,11 +82,7 @@ async def create_template_items_bulk(
     except IntegrityError as error:
         await raise_integrity_conflict(db, error)
 
-    if template_items is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Template not found',
-        )
+    template_items = require_found(template_items, 'template_not_found')
 
     return template_items
 
@@ -115,11 +108,7 @@ async def get_template_item(
     template_item = await template_item_repository.get_template_item_by_id(
         db, template_id, template_item_id
     )
-    if template_item is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Template item not found',
-        )
+    template_item = require_found(template_item, 'template_item_not_found')
 
     return template_item
 
@@ -138,11 +127,7 @@ async def update_template_item(
     template_item = await template_item_repository.get_template_item_by_id(
         db, template_id, template_item_id
     )
-    if template_item is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Template item not found',
-        )
+    template_item = require_found(template_item, 'template_item_not_found')
 
     try:
         return await template_item_repository.update_template_item(
@@ -167,10 +152,6 @@ async def delete_template_item(
     template_item = await template_item_repository.get_template_item_by_id(
         db, template_id, template_item_id
     )
-    if template_item is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Template item not found',
-        )
+    template_item = require_found(template_item, 'template_item_not_found')
 
     await template_item_repository.delete_template_item(db, template_item)

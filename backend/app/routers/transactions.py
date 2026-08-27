@@ -17,6 +17,7 @@ from app.schemas.transaction import (
     TransactionRead,
     TransactionUpdate,
 )
+from app.routers._helpers import require_found
 from app.routers.integrity import raise_integrity_conflict
 from app.services.transaction import transaction_service
 
@@ -76,11 +77,7 @@ async def get_project_transactions(
         current_user.id,
     )
 
-    if transactions is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Project not found',
-        )
+    transactions = require_found(transactions, 'project_not_found')
 
     return [
         _to_project_transaction_read(transaction)
@@ -109,11 +106,7 @@ async def create_transaction(
     except IntegrityError as error:
         await raise_integrity_conflict(db, error)
 
-    if transaction is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Budget line not found',
-        )
+    transaction = require_found(transaction, 'budget_line_not_found')
 
     return transaction
 
@@ -146,11 +139,7 @@ async def create_transaction_for_product(
     except IntegrityError as error:
         await raise_integrity_conflict(db, error)
 
-    if transaction is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Project not found',
-        )
+    transaction = require_found(transaction, 'project_not_found')
 
     return transaction
 
@@ -169,11 +158,7 @@ async def get_transactions(
         current_user.id,
     )
 
-    if transactions is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Budget line not found',
-        )
+    transactions = require_found(transactions, 'budget_line_not_found')
 
     return transactions
 
@@ -194,11 +179,7 @@ async def get_transaction(
         current_user.id,
     )
 
-    if transaction is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Transaction not found',
-        )
+    transaction = require_found(transaction, 'transaction_not_found')
 
     return transaction
 
@@ -226,11 +207,7 @@ async def update_transaction(
     except IntegrityError as error:
         await raise_integrity_conflict(db, error)
 
-    if transaction is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Transaction not found',
-        )
+    transaction = require_found(transaction, 'transaction_not_found')
 
     return transaction
 
@@ -251,11 +228,7 @@ async def soft_delete_transaction(
         current_user.id,
     )
 
-    if transaction is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Transaction not found',
-        )
+    transaction = require_found(transaction, 'transaction_not_found')
 
     return transaction
 
@@ -281,11 +254,7 @@ async def select_budget_candidate(
     except IntegrityError as error:
         await raise_integrity_conflict(db, error)
 
-    if transaction is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Transaction not found',
-        )
+    transaction = require_found(transaction, 'transaction_not_found')
 
     return transaction
 
@@ -311,10 +280,6 @@ async def unselect_budget_candidate(
     except IntegrityError as error:
         await raise_integrity_conflict(db, error)
 
-    if transaction is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Transaction not found',
-        )
+    transaction = require_found(transaction, 'transaction_not_found')
 
     return transaction

@@ -12,6 +12,7 @@ from app.models.user import User
 from app.db.session import get_db_session
 from app.repositories import refresh_token as refresh_token_repository
 from app.repositories import user as user_repository
+from app.routers._helpers import require_found
 from app.routers.integrity import raise_integrity_conflict
 from app.schemas.user import UserProfileUpdate, UserRead
 from app.services import mailer as mailer_service
@@ -66,10 +67,7 @@ async def update_me(
     except IntegrityError as error:
         await raise_integrity_conflict(db, error)
 
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='User not found'
-        )
+    user = require_found(user, 'user_not_found')
 
     if email_changes:
         # Other sessions (and this one's refresh cookie) are cut off; the
@@ -83,28 +81,6 @@ async def update_me(
         security_event(
             'email_changed', request=request, user_id=user.id,
             previous_email=previous_email, new_email=user.email,
-        )
-
-    return user
-
-
-# API ENDPOINT TO GET USER BY ID
-@router.get('/{user_id}', response_model=UserRead)
-async def get_user(
-    user_id: int,
-    db: AsyncSession = Depends(get_db_session),
-    current_user: User = Depends(get_current_user),
-):
-    if user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='User not found'
-        )
-
-    user = await user_repository.get_user_by_id(db, user_id)
-
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='User not found'
         )
 
     return user
@@ -126,9 +102,6 @@ async def soft_delete_user(
             detail=str(error),
         ) from error
 
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail='User not found'
-        )
+    user = require_found(user, 'user_not_found')
 
     return user
