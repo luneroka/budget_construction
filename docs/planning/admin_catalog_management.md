@@ -69,9 +69,12 @@ prioritized.
 
 Category/Subcategory/Product are **100% read-only today, at every layer**:
 
-- Routers (`backend/app/routers/catalog.py`, `categories.py`,
-  `subcategories.py`, `products.py`) — GET only, no admin dependency needed
-  or present because there's nothing to protect.
+- Routers — only `backend/app/routers/catalog.py` (`GET /catalog/tree`,
+  login required) remains. The read-only `categories.py`, `subcategories.py`
+  and `products.py` routers, repositories and `CategoryRead`/`SubcategoryRead`
+  schemas were removed on 2026-08-27 (code sanity review, Q-03) because the
+  SPA never called them; recreate them as admin-guarded routers when this
+  plan is implemented.
 - Schemas (`backend/app/schemas/category.py`, `subcategory.py`, `product.py`)
   — only `*Base`/`*Read` classes exist. No `CategoryCreate`, `CategoryUpdate`,
   `SubcategoryCreate`, `ProductCreate`, etc. anywhere, not even unused.

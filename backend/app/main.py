@@ -24,9 +24,6 @@ from app.routers import (
     users,
     suppliers,
     projects,
-    categories,
-    subcategories,
-    products,
     catalog,
     templates,
     template_items,
@@ -144,9 +141,6 @@ async def readiness_check() -> dict[str, str]:
 app.include_router(auth.router)
 app.include_router(contact_requests.router)
 app.include_router(users.router)
-app.include_router(categories.router)
-app.include_router(subcategories.router)
-app.include_router(products.router)
 app.include_router(catalog.router)
 app.include_router(templates.router)
 app.include_router(template_items.router)
