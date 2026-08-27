@@ -57,6 +57,24 @@ Estimated effort for everything recommended below: **~3 working days**,
 split into four independently shippable packages. Nothing requires a
 database migration; every package is a code-only rollout.
 
+### Remediation status
+
+Validated by the owner on 2026-08-27 (all packages, incrementally; delete
+unused routers; backend invariant test replaces the frontend verification
+file; empty state — no first-project fallback — when nothing is selected).
+
+| Pkg | Status | Notes |
+|-----|--------|-------|
+| WP-1 Safety fixes | ✅ Done 2026-08-27 | Q-01…Q-05, Q-07 landed as 8 commits (`674ac6e`…`556da57`); the frontend CI job is live. `oxlint` runs with `--deny-warnings`, so the four warnings were fixed and the whole frontend was run through Prettier once. |
+| WP-2 Backend dedupe | ✅ Done 2026-08-27 | `repositories/common.py`, `core/time.py`, `routers/_helpers.py`, `routers/uploads.py`, `mailer._send`; 43 `if x is None: 404` blocks → `require_found`; the 13 financial projections are registered from a table; `GET /users/{id}` and `POST …/budget-lines/from-template/{id}` removed (repo function renamed `attach_template`). |
+| WP-3 Frontend dedupe | ⏳ | |
+| WP-4 Frontend tests | ⏳ | |
+
+Not re-run on the VPS yet: deploy with the usual `up -d --build` once WP-3
+is merged, or earlier if wanted — every package so far is backwards
+compatible with the deployed SPA except the two removed routes, which the
+SPA never called.
+
 ---
 
 ## 2. What is solid (keep as-is)
