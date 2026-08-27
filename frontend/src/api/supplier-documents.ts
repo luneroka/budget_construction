@@ -1,6 +1,5 @@
 import { useMutation, useQuery, type QueryClient } from '@tanstack/react-query'
 
-import { apiConfig } from './config'
 import { apiDelete, apiGet, apiPost } from './client'
 import { documentQueryKeys } from './documents'
 import type { DocumentDownloadUrl, SupplierDocumentRead } from './types'
@@ -74,8 +73,7 @@ export function useSupplierDocumentsQuery(
 
       return getSupplierDocuments(supplierId)
     },
-    enabled:
-      supplierId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
+    enabled: supplierId !== null && (options?.enabled ?? true),
   })
 }
 

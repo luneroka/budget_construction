@@ -1,4 +1,5 @@
 import type { ApiDecimal } from '@/api/types'
+import { decimalToNumber } from '@/lib/apiAdapters'
 import { formatCurrency } from '@/lib/format'
 
 export const chartColors = {
@@ -32,13 +33,6 @@ export function getPrimaryGradientColor(index: number, total: number): string {
     PRIMARY_LIGHTNESS_DARK +
     ratio * (PRIMARY_LIGHTNESS_LIGHT - PRIMARY_LIGHTNESS_DARK)
   return `hsl(${PRIMARY_HUE} ${PRIMARY_SATURATION}% ${lightness}%)`
-}
-
-export function decimalToNumber(
-  value: ApiDecimal | number | null | undefined,
-): number {
-  const parsed = Number(value ?? 0)
-  return Number.isFinite(parsed) ? parsed : 0
 }
 
 export function formatDashboardPercentage(value: ApiDecimal): string {

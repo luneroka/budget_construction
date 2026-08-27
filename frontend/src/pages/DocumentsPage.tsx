@@ -40,7 +40,7 @@ import {
 } from '@/lib/documents'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { notifyError, notifySuccess } from '@/lib/toasts'
-import { useAppState } from '@/state/appState'
+import { useSelectedProjectId } from '@/state/appState'
 
 type DocumentAction = 'view' | 'download'
 
@@ -113,7 +113,7 @@ function buildTransactionDocumentPositions(
 
 export function DocumentsPage() {
   const queryClient = useQueryClient()
-  const { selectedProjectId } = useAppState()
+  const projectId = useSelectedProjectId()
   const [search, setSearch] = useState('')
   const [actionError, setActionError] = useState<string | null>(null)
   const [activeDocumentId, setActiveDocumentId] = useState<number | null>(null)
@@ -125,7 +125,7 @@ export function DocumentsPage() {
   } | null>(null)
   const [viewerLoading, setViewerLoading] = useState(false)
   const [viewerError, setViewerError] = useState<string | null>(null)
-  const documentsQuery = useDocumentsQuery({ enabled: true })
+  const documentsQuery = useDocumentsQuery()
   const deleteDocumentMutation = useDeleteDocumentMutation()
   const deleteSupplierDocumentMutation = useDeleteSupplierDocumentMutation()
   const documents = useMemo(
@@ -271,8 +271,7 @@ export function DocumentsPage() {
               candidate.type !== document.type || candidate.id !== document.id,
           ) ?? [],
       )
-      const projectId = Number(selectedProjectId)
-      if (Number.isInteger(projectId) && projectId > 0) {
+      if (projectId !== null) {
         void queryClient.invalidateQueries({
           queryKey: trashQueryKeys.projectList(projectId),
         })

@@ -21,7 +21,7 @@ import {
 import { downloadBlob } from '@/lib/downloads'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import { DashboardPage } from '@/pages/DashboardPage'
-import { useAppState } from '@/state/appState'
+import { useSelectedProjectId } from '@/state/appState'
 
 const transactionTypeOptions: Array<{
   value: AccountingExportTransactionType
@@ -34,9 +34,8 @@ const transactionTypeOptions: Array<{
 ]
 
 export function ExportsSettingsPage() {
-  const { selectedProjectId } = useAppState()
-  const projectId = Number(selectedProjectId)
-  const hasSelectedProject = Number.isInteger(projectId) && projectId > 0
+  const projectId = useSelectedProjectId()
+  const hasSelectedProject = projectId !== null
   const exportMutation = useAccountingCsvExportMutation()
   const dashboardExportRef = useRef<HTMLDivElement | null>(null)
   const [startDate, setStartDate] = useState('')

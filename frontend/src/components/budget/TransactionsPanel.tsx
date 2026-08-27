@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { TableCell, TableRow } from '@/components/ui/table'
 import type { BudgetLine, Product, Transaction } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/format'
-import { transactionToDomain } from '@/lib/budgetWorkspaceApiAdapter'
+import { transactionToDomain } from '@/lib/apiAdapters'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import {
   canToggleBudgetSelection,

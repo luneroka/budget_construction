@@ -1,6 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 
-import { apiConfig } from './config'
 import { apiDelete, apiGet, apiPost } from './client'
 import type {
   DocumentRead,
@@ -114,8 +113,7 @@ export function useProjectTrashQuery(
 
       return getProjectTrash(projectId)
     },
-    enabled:
-      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
+    enabled: projectId !== null && (options?.enabled ?? true),
   })
 }
 

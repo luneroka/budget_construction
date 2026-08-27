@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { apiGet } from './client'
-import { apiConfig } from './config'
 import type { CatalogCategoryRead } from './types'
 
 export const catalogQueryKeys = {
@@ -17,6 +16,6 @@ export function useCatalogTreeQuery(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: catalogQueryKeys.tree(),
     queryFn: getCatalogTree,
-    enabled: options?.enabled ?? apiConfig.enableReadQueries,
+    enabled: options?.enabled ?? true,
   })
 }

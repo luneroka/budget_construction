@@ -24,29 +24,23 @@ import type {
 import { PageHeader } from '@/components/shared/PageHeader'
 import type { Transaction } from '@/types'
 import { canToggleBudgetSelection } from '@/lib/budgetDomain'
-import {
-  suppliersToDomain,
-  useBudgetWorkspaceQuery,
-} from '@/lib/budgetWorkspaceApiAdapter'
+import { useBudgetWorkspaceQuery } from '@/lib/budgetWorkspaceApiAdapter'
+import { suppliersToDomain } from '@/lib/apiAdapters'
 import {
   formatDocumentPositionLabel,
   formatOriginalFilename,
 } from '@/lib/documents'
 import { formatCurrency } from '@/lib/format'
-import { useAppState } from '@/state/appState'
+import { useSelectedProjectId } from '@/state/appState'
 import { useTransactionDocumentViewer } from '@/hooks/useTransactionDocumentViewer'
 
 export function BudgetPage() {
-  const { selectedProjectId } = useAppState()
   const [searchParams, setSearchParams] = useSearchParams()
   const productFocusParam = searchParams.get('product_id')
   const [focusedProductId, setFocusedProductId] = useState<string | null>(null)
   const [selectedCategoryId, setSelectedCategoryId] = useState('all')
   const [selectedSubcategoryName, setSelectedSubcategoryName] = useState('all')
-  const selectedProjectNumericId = Number(selectedProjectId)
-  const projectId = Number.isInteger(selectedProjectNumericId)
-    ? selectedProjectNumericId
-    : null
+  const projectId = useSelectedProjectId()
   const workspaceQuery = useBudgetWorkspaceQuery(projectId)
   const suppliersQuery = useSuppliersQuery({ enabled: projectId !== null })
   const workspace = workspaceQuery.workspace

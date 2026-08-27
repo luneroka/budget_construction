@@ -1,5 +1,6 @@
-import type { ApiDecimal, ProjectTransactionRead } from '@/api/types'
+import type { ProjectTransactionRead } from '@/api/types'
 import type { BudgetLine, Product, Transaction } from '@/types'
+import { decimalToNumber } from '@/lib/apiAdapters'
 import { formatCurrency } from '@/lib/format'
 import type { ViewedTransactionContext } from '@/components/budget/TransactionModal'
 
@@ -46,11 +47,6 @@ export const transactionTypeLabels: Record<
   quote: 'Devis',
   diy_estimate: 'Estimation DIY',
   invoice: 'Facture',
-}
-
-export function decimalToNumber(value: ApiDecimal | number | null | undefined) {
-  if (value == null) return 0
-  return typeof value === 'number' ? value : Number(value)
 }
 
 export function getTransactionStatus(transaction: Transaction) {

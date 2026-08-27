@@ -1,6 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 
-import { apiConfig } from './config'
 import { apiDelete, apiGet, apiPatch, apiPost } from './client'
 import type {
   DashboardBudgetAlertsRead,
@@ -214,207 +213,21 @@ export function getProjectDashboardBudgetAlerts(
   )
 }
 
-export function useProjectsQuery(options?: { enabled?: boolean }) {
-  return useQuery({
-    queryKey: projectQueryKeys.list(false),
-    queryFn: () => getProjects(false),
-    enabled: options?.enabled ?? apiConfig.enableReadQueries,
-  })
-}
+type ProjectQueryOptions = { enabled?: boolean }
 
-export function useProjectQuery(
+// Every project-scoped read has the same shape: a key derived from the project
+// id, a fetcher that needs it, and "disabled while no project is selected".
+function useProjectScopedQuery<TData>(
   projectId: number | null,
-  options?: { enabled?: boolean; includeDeleted?: boolean },
+  queryKey: (projectId: number) => readonly unknown[],
+  queryFn: (projectId: number) => Promise<TData>,
+  options?: ProjectQueryOptions,
 ) {
   return useQuery({
     queryKey:
       projectId === null
-        ? [...projectQueryKeys.all, 'missing-project', 'detail']
-        : projectQueryKeys.detail(projectId, options?.includeDeleted ?? false),
-    queryFn: () => {
-      if (projectId === null) {
-        throw new Error('Identifiant projet manquant.')
-      }
-
-      return getProject(projectId, options?.includeDeleted ?? false)
-    },
-    enabled:
-      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
-  })
-}
-
-export function useProjectFinancialSummaryQuery(
-  projectId: number | null,
-  options?: { enabled?: boolean },
-) {
-  return useQuery({
-    queryKey:
-      projectId === null
-        ? [...projectQueryKeys.all, 'missing-project', 'financial-summary']
-        : projectQueryKeys.financialSummary(projectId),
-    queryFn: () => {
-      if (projectId === null) {
-        throw new Error('Identifiant projet manquant.')
-      }
-
-      return getProjectFinancialSummary(projectId)
-    },
-    enabled:
-      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
-  })
-}
-
-export function useProjectDashboardFinancialOverviewQuery(
-  projectId: number | null,
-  options?: { enabled?: boolean },
-) {
-  return useQuery({
-    queryKey:
-      projectId === null
-        ? [
-            ...projectQueryKeys.all,
-            'missing-project',
-            'dashboard',
-            'financial-overview',
-          ]
-        : projectQueryKeys.dashboardFinancialOverview(projectId),
-    queryFn: () => {
-      if (projectId === null) {
-        throw new Error('Identifiant projet manquant.')
-      }
-
-      return getProjectDashboardFinancialOverview(projectId)
-    },
-    enabled:
-      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
-  })
-}
-
-export function useProjectDashboardSpendingOverTimeQuery(
-  projectId: number | null,
-  options?: { enabled?: boolean },
-) {
-  return useQuery({
-    queryKey:
-      projectId === null
-        ? [
-            ...projectQueryKeys.all,
-            'missing-project',
-            'dashboard',
-            'charts',
-            'spending-over-time',
-          ]
-        : projectQueryKeys.dashboardSpendingOverTime(projectId),
-    queryFn: () => {
-      if (projectId === null) {
-        throw new Error('Identifiant projet manquant.')
-      }
-
-      return getProjectDashboardSpendingOverTime(projectId)
-    },
-    enabled:
-      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
-  })
-}
-
-export function useProjectDashboardBudgetVsActualQuery(
-  projectId: number | null,
-  options?: { enabled?: boolean },
-) {
-  return useQuery({
-    queryKey:
-      projectId === null
-        ? [
-            ...projectQueryKeys.all,
-            'missing-project',
-            'dashboard',
-            'charts',
-            'budget-vs-actual',
-          ]
-        : projectQueryKeys.dashboardBudgetVsActual(projectId),
-    queryFn: () => {
-      if (projectId === null) {
-        throw new Error('Identifiant projet manquant.')
-      }
-
-      return getProjectDashboardBudgetVsActual(projectId)
-    },
-    enabled:
-      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
-  })
-}
-
-export function useProjectDashboardCategoryDistributionQuery(
-  projectId: number | null,
-  options?: { enabled?: boolean },
-) {
-  return useQuery({
-    queryKey:
-      projectId === null
-        ? [
-            ...projectQueryKeys.all,
-            'missing-project',
-            'dashboard',
-            'charts',
-            'category-distribution',
-          ]
-        : projectQueryKeys.dashboardCategoryDistribution(projectId),
-    queryFn: () => {
-      if (projectId === null) {
-        throw new Error('Identifiant projet manquant.')
-      }
-
-      return getProjectDashboardCategoryDistribution(projectId)
-    },
-    enabled:
-      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
-  })
-}
-
-export function useProjectDashboardSupplierDistributionQuery(
-  projectId: number | null,
-  options?: { enabled?: boolean },
-) {
-  return useQuery({
-    queryKey:
-      projectId === null
-        ? [
-            ...projectQueryKeys.all,
-            'missing-project',
-            'dashboard',
-            'charts',
-            'supplier-distribution',
-          ]
-        : projectQueryKeys.dashboardSupplierDistribution(projectId),
-    queryFn: () => {
-      if (projectId === null) {
-        throw new Error('Identifiant projet manquant.')
-      }
-
-      return getProjectDashboardSupplierDistribution(projectId)
-    },
-    enabled:
-      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
-  })
-}
-
-function useProjectDashboardTransactionWidgetQuery(
-  projectId: number | null,
-  widget: string,
-  queryFn: (projectId: number) => Promise<DashboardTransactionWidgetRead>,
-  options?: { enabled?: boolean },
-) {
-  return useQuery({
-    queryKey:
-      projectId === null
-        ? [
-            ...projectQueryKeys.all,
-            'missing-project',
-            'dashboard',
-            'widgets',
-            widget,
-          ]
-        : projectQueryKeys.dashboardWidget(projectId, widget),
+        ? ([...projectQueryKeys.all, 'missing-project'] as const)
+        : queryKey(projectId),
     queryFn: () => {
       if (projectId === null) {
         throw new Error('Identifiant projet manquant.')
@@ -422,16 +235,122 @@ function useProjectDashboardTransactionWidgetQuery(
 
       return queryFn(projectId)
     },
-    enabled:
-      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
+    enabled: projectId !== null && (options?.enabled ?? true),
   })
+}
+
+export function useProjectsQuery(options?: ProjectQueryOptions) {
+  return useQuery({
+    queryKey: projectQueryKeys.list(false),
+    queryFn: () => getProjects(false),
+    enabled: options?.enabled ?? true,
+  })
+}
+
+export function useProjectQuery(
+  projectId: number | null,
+  options?: ProjectQueryOptions & { includeDeleted?: boolean },
+) {
+  const includeDeleted = options?.includeDeleted ?? false
+  return useProjectScopedQuery(
+    projectId,
+    (id) => projectQueryKeys.detail(id, includeDeleted),
+    (id) => getProject(id, includeDeleted),
+    options,
+  )
+}
+
+export function useProjectFinancialSummaryQuery(
+  projectId: number | null,
+  options?: ProjectQueryOptions,
+) {
+  return useProjectScopedQuery(
+    projectId,
+    projectQueryKeys.financialSummary,
+    getProjectFinancialSummary,
+    options,
+  )
+}
+
+export function useProjectDashboardFinancialOverviewQuery(
+  projectId: number | null,
+  options?: ProjectQueryOptions,
+) {
+  return useProjectScopedQuery(
+    projectId,
+    projectQueryKeys.dashboardFinancialOverview,
+    getProjectDashboardFinancialOverview,
+    options,
+  )
+}
+
+export function useProjectDashboardSpendingOverTimeQuery(
+  projectId: number | null,
+  options?: ProjectQueryOptions,
+) {
+  return useProjectScopedQuery(
+    projectId,
+    projectQueryKeys.dashboardSpendingOverTime,
+    getProjectDashboardSpendingOverTime,
+    options,
+  )
+}
+
+export function useProjectDashboardBudgetVsActualQuery(
+  projectId: number | null,
+  options?: ProjectQueryOptions,
+) {
+  return useProjectScopedQuery(
+    projectId,
+    projectQueryKeys.dashboardBudgetVsActual,
+    getProjectDashboardBudgetVsActual,
+    options,
+  )
+}
+
+export function useProjectDashboardCategoryDistributionQuery(
+  projectId: number | null,
+  options?: ProjectQueryOptions,
+) {
+  return useProjectScopedQuery(
+    projectId,
+    projectQueryKeys.dashboardCategoryDistribution,
+    getProjectDashboardCategoryDistribution,
+    options,
+  )
+}
+
+export function useProjectDashboardSupplierDistributionQuery(
+  projectId: number | null,
+  options?: ProjectQueryOptions,
+) {
+  return useProjectScopedQuery(
+    projectId,
+    projectQueryKeys.dashboardSupplierDistribution,
+    getProjectDashboardSupplierDistribution,
+    options,
+  )
+}
+
+function useProjectDashboardWidgetQuery<TData>(
+  projectId: number | null,
+  widget: string,
+  queryFn: (projectId: number) => Promise<TData>,
+  options?: ProjectQueryOptions,
+) {
+  return useProjectScopedQuery(
+    projectId,
+    (id) => projectQueryKeys.dashboardWidget(id, widget),
+    queryFn,
+    options,
+  )
 }
 
 export function useProjectDashboardUnpaidInvoicesQuery(
   projectId: number | null,
-  options?: { enabled?: boolean },
+  options?: ProjectQueryOptions,
 ) {
-  return useProjectDashboardTransactionWidgetQuery(
+  return useProjectDashboardWidgetQuery(
     projectId,
     'unpaid-invoices',
     getProjectDashboardUnpaidInvoices,
@@ -441,9 +360,9 @@ export function useProjectDashboardUnpaidInvoicesQuery(
 
 export function useProjectDashboardQuotesToConfirmQuery(
   projectId: number | null,
-  options?: { enabled?: boolean },
+  options?: ProjectQueryOptions,
 ) {
-  return useProjectDashboardTransactionWidgetQuery(
+  return useProjectDashboardWidgetQuery(
     projectId,
     'quotes-to-confirm',
     getProjectDashboardQuotesToConfirm,
@@ -453,9 +372,9 @@ export function useProjectDashboardQuotesToConfirmQuery(
 
 export function useProjectDashboardQuotesToNegotiateQuery(
   projectId: number | null,
-  options?: { enabled?: boolean },
+  options?: ProjectQueryOptions,
 ) {
-  return useProjectDashboardTransactionWidgetQuery(
+  return useProjectDashboardWidgetQuery(
     projectId,
     'quotes-to-negotiate',
     getProjectDashboardQuotesToNegotiate,
@@ -465,9 +384,9 @@ export function useProjectDashboardQuotesToNegotiateQuery(
 
 export function useProjectDashboardBudgetToValidateQuery(
   projectId: number | null,
-  options?: { enabled?: boolean },
+  options?: ProjectQueryOptions,
 ) {
-  return useProjectDashboardTransactionWidgetQuery(
+  return useProjectDashboardWidgetQuery(
     projectId,
     'budget-to-validate',
     getProjectDashboardBudgetToValidate,
@@ -477,9 +396,9 @@ export function useProjectDashboardBudgetToValidateQuery(
 
 export function useProjectDashboardMissingDocumentsQuery(
   projectId: number | null,
-  options?: { enabled?: boolean },
+  options?: ProjectQueryOptions,
 ) {
-  return useProjectDashboardTransactionWidgetQuery(
+  return useProjectDashboardWidgetQuery(
     projectId,
     'missing-documents',
     getProjectDashboardMissingDocuments,
@@ -489,9 +408,9 @@ export function useProjectDashboardMissingDocumentsQuery(
 
 export function useProjectDashboardRecentTransactionsQuery(
   projectId: number | null,
-  options?: { enabled?: boolean },
+  options?: ProjectQueryOptions,
 ) {
-  return useProjectDashboardTransactionWidgetQuery(
+  return useProjectDashboardWidgetQuery(
     projectId,
     'recent-transactions',
     getProjectDashboardRecentTransactions,
@@ -501,29 +420,14 @@ export function useProjectDashboardRecentTransactionsQuery(
 
 export function useProjectDashboardBudgetAlertsQuery(
   projectId: number | null,
-  options?: { enabled?: boolean },
+  options?: ProjectQueryOptions,
 ) {
-  return useQuery({
-    queryKey:
-      projectId === null
-        ? [
-            ...projectQueryKeys.all,
-            'missing-project',
-            'dashboard',
-            'widgets',
-            'budget-alerts',
-          ]
-        : projectQueryKeys.dashboardWidget(projectId, 'budget-alerts'),
-    queryFn: () => {
-      if (projectId === null) {
-        throw new Error('Identifiant projet manquant.')
-      }
-
-      return getProjectDashboardBudgetAlerts(projectId)
-    },
-    enabled:
-      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
-  })
+  return useProjectDashboardWidgetQuery(
+    projectId,
+    'budget-alerts',
+    getProjectDashboardBudgetAlerts,
+    options,
+  )
 }
 
 export function useCreateProjectFromTemplateMutation() {

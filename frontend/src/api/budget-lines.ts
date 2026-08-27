@@ -1,7 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { apiDelete, apiGet, apiPatch, apiPost } from './client'
-import { apiConfig } from './config'
 import type {
   BudgetLineCreate,
   BudgetLineRead,
@@ -93,8 +92,7 @@ export function useBudgetLinesQuery(
 
       return getBudgetLines(projectId)
     },
-    enabled:
-      projectId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
+    enabled: projectId !== null && (options?.enabled ?? true),
   })
 }
 
@@ -116,9 +114,7 @@ export function useBudgetLineQuery(
       return getBudgetLine(projectId, budgetLineId)
     },
     enabled:
-      projectId !== null &&
-      budgetLineId !== null &&
-      (options?.enabled ?? apiConfig.enableReadQueries),
+      projectId !== null && budgetLineId !== null && (options?.enabled ?? true),
   })
 }
 

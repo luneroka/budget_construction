@@ -122,21 +122,19 @@ export function ProjectsSettingsPage() {
   const [selectedSettingsProjectId, setSelectedSettingsProjectId] = useState<
     number | null
   >(null)
-  const projectsQuery = useProjectsQuery({ enabled: true })
+  const projectsQuery = useProjectsQuery()
   const projects = useMemo(() => projectsQuery.data ?? [], [projectsQuery.data])
   const activeProjectId = selectedSettingsProjectId
-  const projectQuery = useProjectQuery(activeProjectId, { enabled: true })
+  const projectQuery = useProjectQuery(activeProjectId)
   const financialSummaryQuery = useProjectFinancialSummaryQuery(
     activeProjectId,
     {
       enabled: true,
     },
   )
-  const transactionsQuery = useProjectTransactionsQuery(activeProjectId, {
-    enabled: true,
-  })
-  const documentsQuery = useDocumentsQuery({ enabled: true })
-  const templatesQuery = useTemplatesQuery({ enabled: true })
+  const transactionsQuery = useProjectTransactionsQuery(activeProjectId)
+  const documentsQuery = useDocumentsQuery()
+  const templatesQuery = useTemplatesQuery()
   const updateProjectMutation = useUpdateProjectMutation()
   const deleteProjectMutation = useDeleteProjectMutation()
   const [form, setForm] = useState<ProjectFormState | null>(null)

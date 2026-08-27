@@ -75,7 +75,7 @@ function createAttachment(file: File): AttachmentItem {
 export function ReportIssueDrawer() {
   const location = useLocation()
   const { selectedProjectId } = useAppState()
-  const projectsQuery = useProjectsQuery({ enabled: true })
+  const projectsQuery = useProjectsQuery()
   const selectedProject = useMemo(
     () =>
       projectsQuery.data?.find(

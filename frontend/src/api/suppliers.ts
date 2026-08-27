@@ -1,6 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 
-import { apiConfig } from './config'
 import { apiDelete, apiGet, apiPatch, apiPost } from './client'
 import type { SupplierCreate, SupplierRead, SupplierUpdate } from './types'
 import { normalizePhoneNumber } from '@/lib/phone'
@@ -61,7 +60,7 @@ export function useSuppliersQuery(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: supplierQueryKeys.list(false),
     queryFn: () => getSuppliers(false),
-    enabled: options?.enabled ?? apiConfig.enableReadQueries,
+    enabled: options?.enabled ?? true,
   })
 }
 

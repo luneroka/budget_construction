@@ -6,14 +6,11 @@ import {
   useProjectQuery,
 } from '@/api/projects'
 import type {
-  ApiDecimal,
   BudgetLineRead,
   FinancialTotalsRead,
   ProductFinancialSummaryRead,
   ProjectFinancialSummaryRead,
   ProjectRead,
-  SupplierRead,
-  TransactionRead,
 } from '@/api/types'
 import type {
   BudgetCategory,
@@ -21,18 +18,8 @@ import type {
   BudgetWorkspace,
   FinancialSummary,
   Product,
-  Project,
-  Supplier,
-  Transaction,
 } from '@/types'
-import { verifyProjectFinancialSummary } from '@/lib/budgetWorkspaceVerification'
-
-function decimalToNumber(
-  value: ApiDecimal | number | null | undefined,
-): number {
-  if (value == null) return 0
-  return typeof value === 'number' ? value : Number(value)
-}
+import { decimalToNumber, projectToDomain } from '@/lib/apiAdapters'
 
 function totalsToNumbers(totals: FinancialTotalsRead) {
   return {
@@ -68,26 +55,6 @@ function totalsToNumbers(totals: FinancialTotalsRead) {
     validated_quote_count: totals.validated_quote_count,
     diy_estimate_count: totals.diy_estimate_count,
     invoice_count: totals.invoice_count,
-  }
-}
-
-function projectToDomain(
-  project: ProjectRead,
-  summary: ProjectFinancialSummaryRead,
-): Project {
-  return {
-    id: String(project.id),
-    user_id: String(project.user_id),
-    template_id: project.template_id ?? 0,
-    name: project.name,
-    description: project.description ?? '',
-    location: project.location ?? '',
-    start_date: project.start_date ?? '',
-    end_date: project.end_date ?? '',
-    project_status: project.project_status,
-    selected_budget_amount_ttc: decimalToNumber(
-      summary.selected_budget_amount_ttc,
-    ),
   }
 }
 
@@ -152,16 +119,6 @@ export function buildBudgetWorkspaceFromApi(
   summary: ProjectFinancialSummaryRead,
   budgetLines: BudgetLineRead[],
 ): BudgetWorkspace {
-  if (import.meta.env.DEV) {
-    const verificationIssues = verifyProjectFinancialSummary(summary)
-    if (verificationIssues.length > 0) {
-      console.warn(
-        'Budget financial summary verification failed',
-        verificationIssues,
-      )
-    }
-  }
-
   const products = summary.products.map(productToDomain)
   const financialSummary: FinancialSummary = {
     ...totalsToNumbers(summary),
@@ -185,78 +142,10 @@ export function buildBudgetWorkspaceFromApi(
   }
 }
 
-export function transactionToDomain(
-  transaction: TransactionRead,
-  suppliers: SupplierRead[],
-): Transaction {
-  const supplier = suppliers.find(
-    (candidate) => candidate.id === transaction.supplier_id,
-  )
-  const transactionId = String(transaction.id)
-
-  return {
-    id: transactionId,
-    budget_line_id: String(transaction.budget_line_id),
-    supplier_id:
-      transaction.supplier_id === null ? null : String(transaction.supplier_id),
-    supplier_name: supplier?.name ?? null,
-    transaction_type: transaction.transaction_type,
-    amount_ht: decimalToNumber(transaction.amount_ht),
-    vat_rate: decimalToNumber(transaction.vat_rate),
-    amount_vat: decimalToNumber(transaction.amount_vat),
-    amount_ttc: decimalToNumber(transaction.amount_ttc),
-    issued_date: transaction.issued_date,
-    due_date: transaction.due_date,
-    payment_date: transaction.payment_date,
-    created_at: transaction.created_at,
-    updated_at: transaction.updated_at,
-    deleted_at: transaction.deleted_at,
-    description: transaction.description ?? '',
-    quote_status: transaction.quote_status,
-    invoice_status: transaction.invoice_status,
-    invoice_type: transaction.invoice_type,
-    payment_method: transaction.payment_method,
-    select_as_budget: transaction.is_selected_budget,
-    document_state: transaction.has_documents ? 'attached' : 'missing',
-    document_count: transaction.document_count,
-  }
-}
-
-export function suppliersToDomain(
-  suppliers: SupplierRead[] | undefined,
-): Supplier[] {
-  return (suppliers ?? []).map((supplier) => ({
-    id: String(supplier.id),
-    user_id: String(supplier.user_id),
-    name: supplier.name,
-    siret: supplier.siret,
-    comment: supplier.comment ?? '',
-    street: supplier.street,
-    complement: supplier.complement,
-    postal_code: supplier.postal_code,
-    city: supplier.city,
-    contacts: supplier.contacts.map((contact) => ({
-      id: String(contact.id),
-      supplier_id: String(contact.supplier_id),
-      name: contact.name,
-      phone_number: contact.phone_number,
-      email: contact.email,
-      is_primary: contact.is_primary,
-      created_at: contact.created_at,
-      updated_at: contact.updated_at,
-    })),
-    created_at: supplier.created_at,
-    updated_at: supplier.updated_at,
-    deleted_at: supplier.deleted_at,
-  }))
-}
-
 export function useBudgetWorkspaceQuery(projectId: number | null) {
-  const projectQuery = useProjectQuery(projectId, { enabled: true })
-  const financialSummaryQuery = useProjectFinancialSummaryQuery(projectId, {
-    enabled: true,
-  })
-  const budgetLinesQuery = useBudgetLinesQuery(projectId, { enabled: true })
+  const projectQuery = useProjectQuery(projectId)
+  const financialSummaryQuery = useProjectFinancialSummaryQuery(projectId)
+  const budgetLinesQuery = useBudgetLinesQuery(projectId)
 
   const workspace = useMemo(() => {
     if (

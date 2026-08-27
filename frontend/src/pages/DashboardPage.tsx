@@ -33,7 +33,6 @@ import {
 } from '@/api/projects'
 import { useSuppliersQuery } from '@/api/suppliers'
 import { useProjectTransactionsQuery } from '@/api/transactions'
-import type { ProjectRead } from '@/api/types'
 import type { TransactionReviewState } from '@/components/budget/types'
 import { TransactionReviewModal } from '@/components/budget/TransactionModal'
 import { ChartCard } from '@/components/shared/ChartCard'
@@ -56,13 +55,16 @@ import { CategoryTreemapNode } from '@/components/dashboard/TreemapNode'
 import {
   chartColors,
   currencyTooltip,
-  decimalToNumber,
   distributionColors,
   formatDashboardPercentage,
   getPrimaryGradientColor,
 } from '@/components/dashboard/utils'
 import { formatCurrency, formatMonth } from '@/lib/format'
-import { suppliersToDomain } from '@/lib/budgetWorkspaceApiAdapter'
+import {
+  decimalToNumber,
+  projectToDomain,
+  suppliersToDomain,
+} from '@/lib/apiAdapters'
 import { canToggleBudgetSelection } from '@/lib/budgetDomain'
 import {
   buildTransactionRow,
@@ -70,23 +72,7 @@ import {
 } from '@/lib/transactionWorkspace'
 import { notifyError } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
-import { useAppState } from '@/state/appState'
-import type { Project } from '@/types'
-
-function projectToDomain(project: ProjectRead): Project {
-  return {
-    id: String(project.id),
-    user_id: String(project.user_id),
-    template_id: project.template_id ?? 0,
-    name: project.name,
-    description: project.description ?? '',
-    location: project.location ?? '',
-    start_date: project.start_date ?? '',
-    end_date: project.end_date ?? '',
-    project_status: project.project_status,
-    selected_budget_amount_ttc: 0,
-  }
-}
+import { useSelectedProjectId } from '@/state/appState'
 
 type DashboardPageProps = {
   includeActionCenter?: boolean
@@ -99,17 +85,9 @@ export function DashboardPage({
   exportLayout = false,
   onExportReadyChange,
 }: DashboardPageProps = {}) {
-  const { selectedProjectId } = useAppState()
+  const projectId = useSelectedProjectId()
   const navigate = useNavigate()
-  const projectsQuery = useProjectsQuery({ enabled: true })
-  const selectedProjectNumericId = selectedProjectId
-    ? Number(selectedProjectId)
-    : Number.NaN
-  const fallbackProjectId = projectsQuery.data?.[0]?.id ?? null
-  const projectId =
-    Number.isInteger(selectedProjectNumericId) && selectedProjectNumericId > 0
-      ? selectedProjectNumericId
-      : fallbackProjectId
+  const projectsQuery = useProjectsQuery()
   const financialOverviewQuery = useProjectDashboardFinancialOverviewQuery(
     projectId,
     { enabled: true },
@@ -125,9 +103,9 @@ export function DashboardPage({
     },
   )
   const categoryDistributionQuery =
-    useProjectDashboardCategoryDistributionQuery(projectId, { enabled: true })
+    useProjectDashboardCategoryDistributionQuery(projectId)
   const supplierDistributionQuery =
-    useProjectDashboardSupplierDistributionQuery(projectId, { enabled: true })
+    useProjectDashboardSupplierDistributionQuery(projectId)
   const unpaidInvoicesQuery = useProjectDashboardUnpaidInvoicesQuery(
     projectId,
     {

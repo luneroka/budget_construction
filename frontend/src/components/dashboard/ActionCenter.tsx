@@ -13,7 +13,7 @@ import { formatCurrency, formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { DashboardWidgetMessage } from './Messages'
 import { DashboardWidgetSkeleton } from './Skeletons'
-import { decimalToNumber } from './utils'
+import { decimalToNumber } from '@/lib/apiAdapters'
 
 export function ActionCenterWidget({
   children,

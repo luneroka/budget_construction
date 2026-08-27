@@ -37,34 +37,8 @@ import type { SupplierContact, Supplier } from '@/types'
 import { downloadSupplierDocument } from '@/lib/documents'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import { formatPhoneNumber, normalizePhoneNumber } from '@/lib/phone'
-import { useAppState } from '@/state/appState'
-
-function supplierToDomain(supplier: SupplierRead): Supplier {
-  return {
-    id: String(supplier.id),
-    user_id: String(supplier.user_id),
-    name: supplier.name,
-    siret: supplier.siret,
-    comment: supplier.comment ?? '',
-    street: supplier.street,
-    complement: supplier.complement,
-    postal_code: supplier.postal_code,
-    city: supplier.city,
-    contacts: supplier.contacts.map<SupplierContact>((contact) => ({
-      id: String(contact.id),
-      supplier_id: String(contact.supplier_id),
-      name: contact.name,
-      phone_number: contact.phone_number,
-      email: contact.email,
-      is_primary: contact.is_primary,
-      created_at: contact.created_at,
-      updated_at: contact.updated_at,
-    })),
-    created_at: supplier.created_at,
-    updated_at: supplier.updated_at,
-    deleted_at: supplier.deleted_at,
-  }
-}
+import { supplierToDomain } from '@/lib/apiAdapters'
+import { useSelectedProjectId } from '@/state/appState'
 
 function numberFromId(id: string): number {
   const value = Number(id)
@@ -101,14 +75,14 @@ function phoneHref(phoneNumber: string) {
 
 export function SuppliersPage() {
   const queryClient = useQueryClient()
-  const { selectedProjectId } = useAppState()
+  const projectId = useSelectedProjectId()
   const [search, setSearch] = useState('')
   const [modalMode, setModalMode] = useState<SupplierModalMode | null>(null)
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
     null,
   )
-  const suppliersQuery = useSuppliersQuery({ enabled: true })
-  const documentsQuery = useDocumentsQuery({ enabled: true })
+  const suppliersQuery = useSuppliersQuery()
+  const documentsQuery = useDocumentsQuery()
   const createSupplierMutation = useCreateSupplierMutation()
   const updateSupplierMutation = useUpdateSupplierMutation()
   const deleteSupplierMutation = useDeleteSupplierMutation()
@@ -216,8 +190,7 @@ export function SuppliersPage() {
       void queryClient.invalidateQueries({
         queryKey: supplierQueryKeys.list(false),
       })
-      const projectId = Number(selectedProjectId)
-      if (Number.isInteger(projectId) && projectId > 0) {
+      if (projectId !== null) {
         void queryClient.invalidateQueries({
           queryKey: trashQueryKeys.projectList(projectId),
         })

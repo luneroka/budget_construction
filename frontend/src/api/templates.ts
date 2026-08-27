@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { apiGet } from './client'
-import { apiConfig } from './config'
 import type { TemplateRead } from './types'
 
 export const templateQueryKeys = {
@@ -21,6 +20,6 @@ export function useTemplatesQuery(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: templateQueryKeys.list(false),
     queryFn: () => getTemplates(false),
-    enabled: options?.enabled ?? apiConfig.enableReadQueries,
+    enabled: options?.enabled ?? true,
   })
 }

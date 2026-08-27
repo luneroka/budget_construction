@@ -15,7 +15,6 @@ import { getApiErrorMessage } from '@/api/client'
 import { useProjectQuery } from '@/api/projects'
 import { useSuppliersQuery } from '@/api/suppliers'
 import { useProjectTransactionsQuery } from '@/api/transactions'
-import type { ProjectRead } from '@/api/types'
 import { DeleteTransactionDialog } from '@/components/budget/DeleteTransactionDialog'
 import type {
   TransactionDeleteState,
@@ -40,8 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { Project } from '@/types'
-import { suppliersToDomain } from '@/lib/budgetWorkspaceApiAdapter'
+import { projectToDomain, suppliersToDomain } from '@/lib/apiAdapters'
 import { canToggleBudgetSelection } from '@/lib/budgetDomain'
 import {
   buildTransactionRow,
@@ -63,7 +61,7 @@ import {
 import { formatCurrency, formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { notifyError } from '@/lib/toasts'
-import { useAppState } from '@/state/appState'
+import { useSelectedProjectId } from '@/state/appState'
 import { useTransactionDocumentViewer } from '@/hooks/useTransactionDocumentViewer'
 
 type TransactionTypeFilter =
@@ -81,21 +79,6 @@ const pageSizeOptions = [25, 50, 100]
 
 function isQuickViewId(value: string | null): value is QuickViewId {
   return quickViews.some((view) => view.id === value)
-}
-
-function projectToDomain(project: ProjectRead): Project {
-  return {
-    id: String(project.id),
-    user_id: String(project.user_id),
-    template_id: project.template_id ?? 0,
-    name: project.name,
-    description: project.description ?? '',
-    location: project.location ?? '',
-    start_date: project.start_date ?? '',
-    end_date: project.end_date ?? '',
-    project_status: project.project_status,
-    selected_budget_amount_ttc: 0,
-  }
 }
 
 function matchesDateFilter(row: TransactionWorkspaceRow, filter: DateFilter) {
@@ -195,17 +178,11 @@ function SortableHeader({
 }
 
 export function TransactionsPage() {
-  const { selectedProjectId } = useAppState()
+  const projectId = useSelectedProjectId()
   const [searchParams, setSearchParams] = useSearchParams()
   const quickViewParam = searchParams.get('quick_view')
-  const selectedProjectNumericId = Number(selectedProjectId)
-  const projectId = Number.isInteger(selectedProjectNumericId)
-    ? selectedProjectNumericId
-    : null
-  const projectQuery = useProjectQuery(projectId, { enabled: true })
-  const transactionsQuery = useProjectTransactionsQuery(projectId, {
-    enabled: true,
-  })
+  const projectQuery = useProjectQuery(projectId)
+  const transactionsQuery = useProjectTransactionsQuery(projectId)
   const suppliersQuery = useSuppliersQuery({ enabled: projectId !== null })
   const project = useMemo(
     () => (projectQuery.data ? projectToDomain(projectQuery.data) : null),

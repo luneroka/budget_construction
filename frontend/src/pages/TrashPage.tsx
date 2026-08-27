@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/table'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { notifyError, notifySuccess } from '@/lib/toasts'
-import { useAppState } from '@/state/appState'
+import { useSelectedProjectId } from '@/state/appState'
 
 type TrashFilter = 'all' | TrashItemRead['type']
 type PendingHardDelete =
@@ -58,13 +58,6 @@ const destructiveGhostButtonClass =
   'text-destructive hover:bg-destructive hover:text-destructive-foreground'
 const permanentDeleteDescription =
   'Cette action est irréversible. Les éléments supprimés définitivement ne pourront plus être restaurés.'
-
-function selectedProjectIdFromState(selectedProjectId: string): number | null {
-  const numericProjectId = Number(selectedProjectId)
-  return Number.isInteger(numericProjectId) && numericProjectId > 0
-    ? numericProjectId
-    : null
-}
 
 function itemContext(item: TrashItemRead): string {
   if (item.type === 'transaction') {
@@ -145,14 +138,13 @@ function itemMatchesSearch(item: TrashItemRead, search: string): boolean {
 
 export function TrashPage() {
   const queryClient = useQueryClient()
-  const { selectedProjectId } = useAppState()
-  const projectId = selectedProjectIdFromState(selectedProjectId)
+  const projectId = useSelectedProjectId()
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TrashFilter>('all')
   const [activeItemKey, setActiveItemKey] = useState<string | null>(null)
   const [pendingHardDelete, setPendingHardDelete] =
     useState<PendingHardDelete>(null)
-  const trashQuery = useProjectTrashQuery(projectId, { enabled: true })
+  const trashQuery = useProjectTrashQuery(projectId)
   const restoreTransactionMutation = useRestoreTrashTransactionMutation()
   const restoreDocumentMutation = useRestoreTrashDocumentMutation()
   const restoreSupplierMutation = useRestoreTrashSupplierMutation()

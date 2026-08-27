@@ -7,36 +7,20 @@ import {
   useProjectFinancialSummaryQuery,
   useProjectsQuery,
 } from '@/api/projects'
-import type { ProjectRead } from '@/api/types'
-import type { Project } from '@/types'
 import { Button } from '@/components/ui/button'
 import { useProjectOnboarding } from '@/hooks/useProjectOnboarding'
+import { projectToDomain } from '@/lib/apiAdapters'
 import { formatCurrency } from '@/lib/format'
 import { useAppState } from '@/state/appState'
 import { ProjectOnboardingDialog } from './ProjectOnboardingDialog'
 
-function toProject(project: ProjectRead): Project {
-  return {
-    id: String(project.id),
-    user_id: String(project.user_id),
-    template_id: project.template_id ?? 0,
-    name: project.name,
-    description: project.description ?? '',
-    location: project.location ?? '',
-    start_date: project.start_date ?? '',
-    end_date: project.end_date ?? '',
-    project_status: project.project_status,
-    selected_budget_amount_ttc: 0,
-  }
-}
-
 export function ProjectSwitcher() {
   const { selectedProjectId, setSelectedProjectId } = useAppState()
-  const projectsQuery = useProjectsQuery({ enabled: true })
+  const projectsQuery = useProjectsQuery()
   const [isProjectListOpen, setIsProjectListOpen] = useState(false)
   const projects = useMemo(() => {
     if (projectsQuery.data) {
-      return projectsQuery.data.map(toProject)
+      return projectsQuery.data.map((project) => projectToDomain(project))
     }
 
     return []

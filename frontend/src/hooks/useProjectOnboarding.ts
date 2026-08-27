@@ -28,7 +28,7 @@ export function useProjectOnboarding({
 }: UseProjectOnboardingOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const templatesQuery = useTemplatesQuery({ enabled: true })
+  const templatesQuery = useTemplatesQuery()
   const createProjectMutation = useCreateProjectFromTemplateMutation()
   const { reset: resetCreateProjectMutation } = createProjectMutation
   const [isOpen, setIsOpen] = useState(false)

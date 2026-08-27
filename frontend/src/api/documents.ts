@@ -1,6 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 
-import { apiConfig } from './config'
 import { apiDelete, apiGet, apiPost } from './client'
 import type {
   DocumentDownloadUrl,
@@ -69,7 +68,7 @@ export function useDocumentsQuery(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: documentQueryKeys.list(false),
     queryFn: () => getDocuments(false),
-    enabled: options?.enabled ?? apiConfig.enableReadQueries,
+    enabled: options?.enabled ?? true,
   })
 }
 
@@ -89,9 +88,7 @@ export function useTransactionDocumentsQuery(
 
       return getTransactionDocuments(transactionId)
     },
-    enabled:
-      transactionId !== null &&
-      (options?.enabled ?? apiConfig.enableReadQueries),
+    enabled: transactionId !== null && (options?.enabled ?? true),
   })
 }
 
@@ -111,8 +108,7 @@ export function useDocumentQuery(
 
       return getDocument(documentId)
     },
-    enabled:
-      documentId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
+    enabled: documentId !== null && (options?.enabled ?? true),
   })
 }
 
@@ -132,8 +128,7 @@ export function useDocumentDownloadUrlQuery(
 
       return getDocumentDownloadUrl(documentId)
     },
-    enabled:
-      documentId !== null && (options?.enabled ?? apiConfig.enableReadQueries),
+    enabled: documentId !== null && (options?.enabled ?? true),
   })
 }
 
