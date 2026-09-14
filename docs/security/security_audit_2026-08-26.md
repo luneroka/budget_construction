@@ -82,7 +82,7 @@ Caddyfile once a week of Report-Only shows no legitimate violations
 | S-09 | Client IP not propagated | ✅ Fixed — `FORWARDED_ALLOW_IPS=*` on the backend service | `up -d` recreates backend |
 | S-10 | No security event logging | ✅ Fixed — `security` logger emits `login_failed/success`, `login_locked`, `refresh_reuse_detected`, `password_reset_*`, `email_changed`, `admin_user_*`, `rate_limited` with IP | Deploy WP-1 |
 | S-11 | Password policy | ✅ Fixed — shared `Password` type: 12–72 bytes, no surrounding whitespace, enforced on reset/create/CLI and mirrored in the SPA | Deploy WP-1/WP-2 |
-| S-12 | Public repository | ✅ Fixed — repository made private by the owner on 2026-08-26 | — |
+| S-12 | Public repository | ✅ Fixed — repository made private by the owner on 2026-08-26. **Reverted 2026-09-14:** the repository is public again; the infrastructure details that motivated this finding were moved to the gitignored `docs/untracked/` first (nothing secret was ever committed, re-verified with a full-history gitleaks scan) | — |
 | S-13 | Email sent to Sentry | ✅ Fixed — `set_user` sends the user id only | Deploy WP-1 |
 | S-14 | Issue-report attachments | ✅ Fixed — content sniffed against the PNG/JPEG/PDF/HEIC allow-list, 20 MB total cap, 5 000-char description | Deploy WP-1 |
 | S-15 | Access tokens survive password reset | ✅ Fixed — tokens carry a password-hash marker checked on every request | Deploy WP-1 |
@@ -92,9 +92,9 @@ Caddyfile once a week of Report-Only shows no legitimate violations
 | S-19 | Refresh-cookie path | ✅ Fixed — cookie scoped to `REFRESH_COOKIE_PATH` (`/api/auth` in prod); legacy `/` cookie expired on every write | Deploy WP-1 (`up -d` picks up the compose env) |
 | S-20 | Dependency automation | ✅ Fixed — Dependabot (uv, npm, actions, docker, compose) + weekly/PR `pip-audit` and `npm audit` workflow | — |
 | S-21 | Cross-user authorization tests | ✅ Fixed — 31-route matrix asserting 404 for another user, with a route-existence guard | — |
-| S-22 | Local `.env` credentials | Accepted — the owner confirmed the local `.env` uses the same R2 token and Resend key as production, against a separate dev bucket. The app is owner-operated for the owner's own family, so a dedicated dev token is not worth the overhead | — |
+| S-22 | Local `.env` credentials | Accepted by the owner — the app is owner-operated for a small private circle, and the local development setup is documented outside the repository | — |
 | S-23 | Health endpoints | Accepted as-is | — |
-| S-24 | Admin bootstrap | ✅ Fixed — `uv run python -m app.scripts.create_admin` documented in README | — |
+| S-24 | Admin bootstrap | ✅ Fixed — `uv run python -m app.scripts.create_admin` (see the script's docstring; the operational README section was replaced by the public-facing README on 2026-09-14) | — |
 
 ---
 
@@ -474,9 +474,8 @@ access tokens and compare it in `get_current_user`, or store
   ids for every verb. Cheap insurance for the ownership model the whole app
   relies on.
 - **S-22 Local `.env` credentials.** The runbook's 2026-07-13 review flagged
-  that the local `.env` holds live R2/Resend credentials; the file still
-  contains R2 and Resend keys today. Confirm they are dev-scoped
-  (dedicated bucket + token, Resend test key) and rotate if not.
+  the scope of the credentials held in the local `.env`. Confirm they are
+  dev-scoped (dedicated bucket + token, Resend test key) and rotate if not.
 - **S-23 Health endpoints.** `/api/health/ready` is public and reveals DB
   reachability. Acceptable; restrict to the Docker network in Caddy if no
   external monitor needs it.

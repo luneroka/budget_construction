@@ -1,9 +1,12 @@
 # Bâti Budget
 
-Bâti Budget is a React/Vite frontend backed by a FastAPI API,
-PostgreSQL, Cloudflare R2 document storage, and Resend email delivery.
+<div align="center">
 
-## Tech Stack
+### Application web de budgétisation et de suivi financier de chantier
+
+Piloter le budget d'une construction ou d'une rénovation : devis, factures, fournisseurs, documents et tableau de bord, dans une application full-stack moderne issue d'un prototype Excel éprouvé.
+
+<br>
 
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
@@ -13,191 +16,237 @@ PostgreSQL, Cloudflare R2 document storage, and Resend email delivery.
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![Caddy](https://img.shields.io/badge/Caddy-1F88C0?style=for-the-badge&logo=caddy&logoColor=white)
 ![Cloudflare R2](https://img.shields.io/badge/Cloudflare_R2-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)
+![Power BI](https://img.shields.io/badge/Power_BI-F2C811?style=for-the-badge&logo=powerbi&logoColor=black)
 
-## Architecture
+<br>
 
-Local development uses `docker-compose.yml` with Vite and FastAPI reload.
-Production uses `docker-compose.prod.yml`: Caddy is the only public container,
-serving the built SPA and forwarding `/api/*` to FastAPI. PostgreSQL, FastAPI,
-and the Alembic migration job remain on the Docker network. Documents live in
-Cloudflare R2 rather than on the VPS.
+![Status](https://img.shields.io/badge/Statut-En_production-success?style=flat-square)
+![Code](https://img.shields.io/badge/Code_source-Public_(MIT)-blue?style=flat-square)
+![Tests](https://img.shields.io/badge/Tests_backend-258_pytest-blue?style=flat-square)
+![Origine](https://img.shields.io/badge/Origine-Prototype_Excel-orange?style=flat-square)
 
-## Local development
+</div>
 
-1. Copy `.env.example` to `.env` and replace the placeholder values.
-2. Start the stack with `docker compose up --build`.
-3. Open `http://localhost:5173`; the API is at `http://localhost:8000`.
+---
 
-The development stack intentionally exposes PostgreSQL on `localhost:5434` and
-includes `db-test`; do not use it for production.
+# Aperçu du projet
 
-## Production deployment
+**Bâti Budget** est une application web full-stack conçue pour centraliser et simplifier le pilotage financier d'un projet de construction ou de rénovation de maison : planification du budget, comparaison des devis, gestion des fournisseurs, suivi des factures, stockage des documents et reporting.
 
-Prerequisites: an Ubuntu 24.04 server with Docker Engine and the Compose
-plugin, a domain whose A/AAAA records point at the server, and inbound ports
-80/443 open. Follow the full operational checklist in
-[`docs/architecture/production_deployment_runbook.md`](docs/architecture/production_deployment_runbook.md).
+Elle est née d'un classeur Excel avancé — tables structurées, Power Query, formules et VBA — utilisé pendant plusieurs années pour suivre la construction d'une maison :
 
-1. Clone the repository on the server and copy `.env.production.example` to
-   `.env.production`. Set every placeholder with production values, then run
-   `chmod 600 .env.production`.
-2. Validate the resolved configuration without starting containers:
+[budget_construction_excel](https://github.com/luneroka/budget_construction_excel)
 
-   ```sh
-   docker compose --env-file .env.production -f docker-compose.prod.yml config
-   ```
+L'application web ne reproduit pas le classeur écran par écran. Elle conserve la logique métier éprouvée et remplace les mécanismes propres au tableur par une base de données normalisée, une API sécurisée, des services métier dédiés et une interface moderne organisée par projet.
 
-3. Build and start the production stack:
+Le produit est **« budget-first »** : il répond avant tout aux questions d'un particulier qui gère lui-même son chantier.
 
-   ```sh
-   docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
-   ```
+- Quels travaux et quels produits composent le projet ?
+- Quels devis ou estimations DIY définissent le budget prévisionnel actuel ?
+- Combien a réellement été facturé et payé ?
+- Quels fournisseurs, documents et transactions se rattachent à chaque poste ?
+- Où le projet est-il au-dessus ou en dessous du budget ?
+- Quelles actions financières restent à traiter ?
 
-The one-shot `migrate` service applies Alembic migrations before the API
-starts. Check it with `docker compose --env-file .env.production -f
-docker-compose.prod.yml ps`; do not seed production data during deployment.
+L'application est **déployée en production** depuis juillet 2026 et utilisée au quotidien. L'accès se fait sur invitation.
 
-For a safe local configuration review before creating the secret file, use
-`.env.production.example` in place of `.env.production` and prefix the command
-with `ENV_FILE=.env.production.example`.
+---
 
-Only Caddy publishes ports 80 and 443. Do not add host mappings for PostgreSQL
-or FastAPI.
+# Contenu du dépôt
 
-## Production configuration
+Ce dépôt contient le **code source complet** de Bâti Budget : API FastAPI (`backend/`), interface React (`frontend/`), infrastructure Docker Compose et Caddy, couche analytique et rapport Power BI (`analytics/`), ainsi que la documentation d'architecture, de déploiement et de sécurité (`docs/`). Le code est publié sous licence MIT.
 
-`.env.production` is a secret file and must never be committed. Important
-settings are:
+L'application est en production et contient des données financières personnelles : ces données ne font naturellement pas partie du dépôt, et l'accès à l'instance en ligne se fait uniquement sur invitation.
 
-| Variable                                                 | Purpose                                                                      |
-| -------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `DOMAIN`, `ACME_EMAIL`                                   | Caddy hostname and Let's Encrypt contact address.                            |
-| `POSTGRES_*`, `DATABASE_URL`                             | Internal PostgreSQL credentials and async API connection URL.                |
-| `MIGRATIONS_DATABASE_URL`                                | Optional superuser URL for the `migrate` service, so `DATABASE_URL` can use the least-privilege role created by `scripts/create_db_app_role.sh`. |
-| `APP_ENVIRONMENT=production`                             | Enables strict production configuration validation.                          |
-| `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT signing configuration; generate a high-entropy secret (≥32 characters).  |
-| `REFRESH_TOKEN_EXPIRE_DAYS`                              | Sliding session length in days for the httpOnly refresh cookie (default 30). |
-| `REFRESH_COOKIE_PATH`                                    | Browser-visible path the refresh cookie is scoped to (`/api/auth` in prod, set in the compose file). |
-| `APP_URL`, `CORS_ALLOWED_ORIGINS`                        | Public HTTPS URL and JSON array of permitted browser origins.                |
-| `R2_*`                                                   | Bucket-scoped Cloudflare R2 credentials.                                     |
-| `RESEND_*`, `SUPPORT_EMAIL`                              | Verified Resend sender and issue-report recipient.                           |
-| `VITE_API_BASE_URL=/api`                                 | Build-time, same-origin API path used by the browser.                        |
-| `SENTRY_DSN`                                              | Optional; captures unhandled backend exceptions. Unset = safe no-op.         |
+---
 
-The API refuses to start with incomplete production settings, an empty CORS
-allow-list, a non-HTTPS `APP_URL`, or `DATABASE_ECHO=true`.
+# Fonctionnalités principales
 
-## Error monitoring
+## Projets et modèles de chantier
 
-Unhandled backend exceptions are caught by a generic exception handler
-(`app/main.py`), logged, and reported to [Sentry](https://sentry.io) if
-`SENTRY_DSN` is set — including which user was affected
-(`sentry_sdk.set_user` with the user id only, no email or other personal
-data, set once they're authenticated). This is
-independent of the VPS's own container logs, which are discarded on every
-deploy, so it's the primary way to notice and investigate a bug without
-waiting for a user to report it. Leaving `SENTRY_DSN` unset is a safe
-no-op — the app behaves identically, it just isn't reported anywhere.
-Expected errors (4xx, validation errors) are not sent to Sentry, only
-genuinely unexpected ones. The container healthcheck (`/health/live`,
-`/health/ready`, hit every 15s) is filtered out of the access log so it
-doesn't drown out real traffic in the log budget.
+- création d'un projet à partir d'un **modèle de construction** prédéfini (catégories, sous-catégories, produits)
+- statut, dates et localisation du projet
+- plusieurs projets par utilisateur, chacun avec son propre périmètre
 
-## Authentication
+## Budget structuré
 
-There is no public sign-up. An administrator creates accounts from
-*Paramètres → Utilisateurs* in the app (or `POST /admin/users` with
-`{"name": ..., "email": ...}`); the new user receives a
-password-reset link by email and chooses their own password (12 to 72
-characters, see `app/schemas/password.py`). The first
-administrator is created on the server with
-`uv run python -m app.scripts.create_admin` (see the runbook).
+- hiérarchie **catégorie → sous-catégorie → produit** issue d'un catalogue géré par l'administrateur
+- **lignes budgétaires** représentant soit un produit entier, soit des sous-postes détaillés (répartition par lot, par pièce, par prestation)
+- conversion d'un produit entier en sous-postes sans perdre les transactions existantes
+- budget prévisionnel calculé à partir des devis ou estimations **sélectionnés comme budget**
+- comparaison permanente budget prévisionnel / engagé / facturé / payé
 
-Login (`POST /auth/login`) returns a short-lived JWT access token
-(`ACCESS_TOKEN_EXPIRE_MINUTES`, default 30) in the response body, which the
-frontend keeps in memory only (never `localStorage`), and sets a separate,
-long-lived refresh token as an `httpOnly`, `SameSite=Lax` cookie scoped to
-the auth routes (`REFRESH_COOKIE_PATH`; `REFRESH_TOKEN_EXPIRE_DAYS`, default
-30, sliding). `POST /auth/refresh`
-exchanges a valid refresh cookie for a new access token and rotates the
-refresh token; the previous one is invalidated. `POST /auth/logout` revokes
-the current refresh token. If a rotated-out or already-revoked refresh token
-is ever presented again, the entire session family is revoked as a
-theft signal, not just that one token. Resetting a password revokes all of a
-user's refresh tokens. Refresh tokens are stored hashed (SHA-256) in the
-`refresh_tokens` table, never in plaintext.
+## Transactions : devis, estimations DIY, factures
 
-## Abuse protection
+- trois types de transactions avec leurs statuts propres (devis à confirmer, à négocier, validé, rejeté ; facture d'acompte, intermédiaire, de solde ; facture payée / impayée)
+- montants HT, TVA et TTC avec validation croisée automatique
+- dates d'émission, d'échéance et de paiement
+- sélection d'un devis ou d'une estimation comme référence budgétaire d'un poste
+- rattachement à un fournisseur et à une ligne budgétaire
 
-Public and cheap-to-abuse endpoints are rate limited in the API
-(`app/core/rate_limit.py`): per client IP on `/auth/login`, `/auth/refresh`,
-`/auth/forgot-password`, `/auth/reset-password`, `/contact-requests` and
-`/issue-reports`, plus a per-account lockout after repeated failed logins and
-a per-address cap on password-reset emails. Limited requests get `429` with
-`detail.code = "rate_limited"` and a `Retry-After` header. Behind Caddy the
-backend runs with `FORWARDED_ALLOW_IPS=*` (set in `docker-compose.prod.yml`)
-so limits apply to the real client IP rather than the proxy. Caddy also caps
-request bodies at 25 MB and serves `/api/docs` and `/api/openapi.json` as
-`404` in production.
+## Fournisseurs et contacts
 
-Security-relevant events (failed/successful logins, lockouts, refresh-token
-reuse, password resets, email changes, admin user management, rate limiting)
-are written as one `key=value` line each on the `security` logger, e.g.
-`security: login_failed ip=203.0.113.9 email=someone@example.com`. Grep the
-backend container logs for `security:` to reconstruct what happened to an
-account.
+- fiche fournisseur avec SIRET, adresse normalisée et **plusieurs contacts** (un contact principal)
+- RIB et documents fournisseur stockés et consultables
+- historique des transactions et performance par fournisseur
 
-## Validation and operations
+## Documents
 
-After deployment, verify:
+- pièces jointes aux transactions (devis, factures) et aux fournisseurs (RIB) : PDF, JPEG, PNG, HEIC
+- validation du **contenu réel** des fichiers (signature binaire), pas seulement de l'extension
+- stockage privé sur Cloudflare R2, jamais exposé publiquement : téléchargement et prévisualisation via des liens signés à durée limitée
+- visionneuse intégrée avec navigation entre les documents d'une même transaction
 
-```sh
-curl -fsS https://your-domain.example/api/health/live
-curl -fsS https://your-domain.example/api/health/ready
-docker compose --env-file .env.production -f docker-compose.prod.yml ps
+## Tableau de bord
+
+- **KPIs financiers** : budget prévisionnel, engagé, facturé, payé, reste à payer, écart budget / réel
+- **graphiques** : dépenses dans le temps, budget vs réel par catégorie, répartition par catégorie et par fournisseur
+- **centre d'actions** : factures impayées, devis à confirmer, devis à négocier, budget à valider, documents manquants, transactions récentes, alertes de dépassement
+
+## Exports
+
+- export comptable **CSV** par projet, filtrable par période et par type de transaction
+- capture du tableau de bord en image pour partage
+
+## Corbeille et intégrité des données
+
+- suppression **douce** (soft delete) des transactions, documents et fournisseurs
+- corbeille par projet avec restauration ou suppression définitive, en respectant les dépendances (restaurer le parent avant l'enfant)
+- unicité et contraintes gérées en base, y compris pour les éléments supprimés
+
+## Comptes et administration
+
+- comptes créés par l'administrateur, mot de passe choisi par l'utilisateur via un lien sécurisé
+- réinitialisation de mot de passe par e-mail
+- signalement de bug ou suggestion depuis l'application, avec captures d'écran, envoyé par e-mail au support
+- gestion des utilisateurs, du catalogue et des modèles réservée aux administrateurs
+
+---
+
+# Architecture
+
+```text
+Navigateur (SPA React)
+    │  HTTPS
+    ▼
+Caddy  ──  fichiers statiques du frontend
+    │       + reverse proxy /api/*
+    ▼
+FastAPI (Python, async)
+    ├── PostgreSQL (SQLAlchemy async, migrations Alembic)
+    ├── Cloudflare R2 (documents, liens signés)
+    └── Resend (e-mails transactionnels)
 ```
 
-Also test login, a browser refresh on a nested route, that the session
-survives an access-token expiry (silent renewal via `/auth/refresh`), logout,
-document upload and download, password reset delivery, and issue-report
-email delivery.
+| Couche | Technologies et responsabilités |
+| --- | --- |
+| Frontend | React 19, TypeScript, Vite, React Router, TanStack Query & Table, React Hook Form, Zod, Recharts, Tailwind CSS |
+| API | Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2 async, asyncpg |
+| Base de données | PostgreSQL 15, migrations Alembic, contraintes et index partiels tenant compte du soft delete |
+| Authentification | JWT d'accès de courte durée en mémoire + refresh token rotatif en cookie `httpOnly`, détection de réutilisation, réinitialisation par lien signé |
+| Documents | Cloudflare R2 privé, accès exclusivement via l'API |
+| E-mails | Resend (réinitialisation, notifications de sécurité, signalements) |
+| Environnement de développement | Docker Compose : frontend (Vite), API (rechargement à chaud), PostgreSQL, base de test |
+| Production | Docker Compose sur VPS Ubuntu, Caddy en HTTPS automatique (Let's Encrypt), API et base de données sur le réseau interne uniquement |
+| Qualité | Pytest / pytest-asyncio, Ruff, TypeScript strict, GitHub Actions |
 
-Back up PostgreSQL daily to encrypted storage outside the VPS. A Docker volume
-is not a backup. `scripts/backup_db.sh` streams an encrypted
-(`pg_dump | gzip | openssl AES-256`) backup to `./backups` and off-host to a
-Cloudflare R2 bucket, with retention pruning; `scripts/restore_db.sh` restores
-one (optionally pulling it from R2). Any backup failure emails
-`BACKUP_ALERT_EMAIL` via the app's existing Resend config, so a broken
-nightly job doesn't go unnoticed. Configure the `BACKUP_*` variables in
-`.env.production` (see `.env.production.example`) and schedule the backup with
-the systemd units in `deploy/systemd/`. The full plan, one-time VPS setup, and
-restore procedure are in the "Disaster Recovery" section of
-[`docs/architecture/production_deployment_runbook.md`](docs/architecture/production_deployment_runbook.md).
+## Organisation du backend
 
-```sh
-./scripts/backup_db.sh                                   # backup now
-./scripts/restore_db.sh backups/db-<UTC>.sql.gz.enc --yes  # restore
+```text
+models → schemas → repositories → services → routers
 ```
 
-Test restores regularly on a separate database/container.
+- **Models** : entités persistées et relations
+- **Schemas** : validation des entrées / sorties de l'API
+- **Repositories** : accès aux données et règles de persistance, toujours filtrés par utilisateur
+- **Services** : orchestration des workflows et logique métier
+- **Routers** : endpoints HTTP authentifiés, sans duplication de logique
 
-R2 has no native versioning, so R2 documents are protected by a separate
-daily one-way mirror instead: `scripts/backup_documents.sh` copies (never
-deletes) the live documents bucket into a dedicated backup bucket, with
-retention enforced by an R2 Object Lifecycle Rule on that bucket. See
-"Documents mirror" in the runbook's Disaster Recovery section.
+Les calculs financiers sont centralisés dans un **moteur financier** unique plutôt que recalculés par chaque endpoint ou composant : une seule source de vérité pour les KPIs, les graphiques, les alertes et les exports.
 
-## Upgrade and rollback
+## Modèle de données
 
-Before an upgrade, create and verify a database backup, record the currently
-deployed Git revision, then pull the intended revision and run:
+![Schéma de la base de données](assets/database_diagram.png)
 
-```sh
-docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+---
+
+# Sécurité
+
+Le projet a fait l'objet d'une **revue de sécurité complète** avant sa mise à disposition, avec un plan de remédiation entièrement appliqué.
+
+- authentification : JWT d'accès court, refresh token rotatif stocké haché, révocation de toute la session en cas de réutilisation, tokens invalidés dès qu'un mot de passe change
+- pas d'inscription publique : comptes créés par l'administrateur, politique de mot de passe (12 caractères minimum)
+- limitation de débit sur la connexion, la réinitialisation et les formulaires publics, verrouillage de compte après échecs répétés
+- changement d'adresse e-mail soumis au mot de passe actuel, avec notification de l'ancienne adresse
+- cloisonnement strict des données par utilisateur, vérifié par une matrice de tests couvrant chaque ressource
+- validation des fichiers par signature binaire, limites de taille à la périphérie et dans l'API
+- en-têtes HTTP : HSTS, Content-Security-Policy, X-Frame-Options, Permissions-Policy, `Cache-Control: no-store` sur l'API
+- documentation OpenAPI désactivée en production
+- conteneurs durcis : utilisateur non root, système de fichiers en lecture seule, capacités Linux retirées, `no-new-privileges`
+- journal des événements de sécurité (connexions, verrouillages, réinitialisations, actions d'administration)
+- sauvegardes chiffrées quotidiennes hors serveur et miroir des documents, avec alerte en cas d'échec
+- audit automatique des dépendances (pip-audit, npm audit, Dependabot) et détection de secrets dans l'intégration continue
+
+---
+
+# Couche analytique et Power BI
+
+En plus de l'application, la base de données expose un schéma `analytics` composé de vues prêtes pour le reporting, alimentant un tableau de bord Power BI.
+
+```text
+FastAPI → PostgreSQL (schéma public) → vues analytics → Power BI
 ```
 
-Inspect `migrate`, container health, and the public health endpoints before
-accepting traffic. To roll back application code, return to the recorded Git
-revision and run the same command. Do not roll back database migrations unless
-the migration has an explicitly reviewed downgrade and a tested restore plan;
-restore the database backup instead when required.
+- vues de faits : lignes budgétaires, transactions
+- vues de synthèse : résumé par projet, performance fournisseurs, trésorerie mensuelle, activité de facturation mensuelle
+- jeu de données de démonstration généré pour illustrer un chantier complet
+
+<table>
+<tr>
+<td width="50%"><img src="assets/powerbi_project_overview.png" alt="Power BI – vue d'ensemble du projet" /></td>
+<td width="50%"><img src="assets/powerbi_cost_analysis.png" alt="Power BI – analyse des coûts" /></td>
+</tr>
+<tr>
+<td width="50%"><img src="assets/powerbi_detailed_analysis.png" alt="Power BI – analyse détaillée" /></td>
+<td width="50%"><img src="assets/powerbi_supplier_performance.png" alt="Power BI – performance fournisseurs" /></td>
+</tr>
+</table>
+
+---
+
+# Qualité et intégration continue
+
+- **258 tests backend** (unitaires, intégration, API) exécutés contre une vraie base PostgreSQL
+- vérification à chaque commit que l'ensemble des migrations s'applique sur une base vide, comme en production
+- lint Ruff côté Python, TypeScript strict et oxlint côté frontend
+- analyse de secrets (gitleaks), audit hebdomadaire des dépendances, mises à jour automatisées par Dependabot
+- convention d'erreurs API structurée (`code` stable + message), traduite côté interface
+
+---
+
+# Exploitation
+
+- déploiement par Docker Compose sur un VPS, une seule commande pour reconstruire et redémarrer, migrations appliquées automatiquement avant l'API
+- Caddy en façade : HTTPS automatique, en-têtes de sécurité, limite de taille des requêtes, seul conteneur exposé
+- sauvegardes PostgreSQL chiffrées (`pg_dump | gzip | AES-256`) vers un stockage hors serveur, rétention locale et distante, procédure de restauration testée
+- supervision des erreurs applicatives via Sentry (sans données personnelles)
+- runbook complet : installation, durcissement du serveur, déploiement, retour arrière, reprise après sinistre
+
+---
+
+# Origine et évolutions
+
+| Étape | Contenu |
+| --- | --- |
+| Prototype Excel | Suivi budgétaire complet sous Excel / VBA / Power Query, utilisé sur un chantier réel |
+| Migration web | Base normalisée, API FastAPI, interface React par projet, stockage documentaire cloud |
+| Production | Déploiement sur VPS, sauvegardes, supervision, revue de sécurité |
+| Pistes | Gestion du catalogue depuis l'interface d'administration, sélections budgétaires multiples, partage de projet entre utilisateurs |
+
+---
+
+<div align="center">
+
+Conçu et développé par **Yoann R.** — [luneroka.dev](https://luneroka.dev) · [LinkedIn](https://www.linkedin.com/in/robertyoann/) · [GitHub](https://github.com/luneroka)
+
+</div>

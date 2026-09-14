@@ -52,7 +52,7 @@ docs/untracked/
 .ruff_cache
 
 # Power BI local/cache files
-*.pbi/cache.abf
-*.pbi/localSettings.json
-*.pbi/unappliedChanges.json
-*.pbi/editorSettings.json
+**/*.pbi/cache.abf
+**/*.pbi/localSettings.json
+**/*.pbi/unappliedChanges.json
+**/*.pbi/editorSettings.json
