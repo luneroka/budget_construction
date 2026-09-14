@@ -3,6 +3,10 @@
   "plugins": ["react", "typescript", "oxc"],
   "rules": {
     "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+    "react/only-export-components": ["warn", { "allowConstantExport": true }],
+    // oxlint 1.81 turned this React Compiler advisory on by default; the 12
+    // existing sync-setState-in-effect sites are deliberate (derived state
+    // resets on prop change) and CI runs with --deny-warnings.
+    "react/set-state-in-effect": "off"
   }
 }
