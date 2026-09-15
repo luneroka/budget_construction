@@ -13,12 +13,12 @@
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
 		Cross-Origin-Opener-Policy "same-origin"
-		# Report-Only for one release so any legitimate resource the policy
-		# misses shows up in the browser console instead of breaking the app;
-		# then rename to Content-Security-Policy. Allowances: Google Fonts
-		# (index.css), R2 presigned URLs in the document viewer iframe/img,
-		# inline styles from React style props and Tailwind.
-		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.r2.cloudflarestorage.com; connect-src 'self'; frame-src https://*.r2.cloudflarestorage.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+		# Enforced since 2026-09-15, after a report-only release surfaced no
+		# violations. Allowances: Google Fonts (index.css; also in connect-src
+		# because html-to-image fetches the stylesheet and font files to embed
+		# them in dashboard captures), R2 presigned URLs in the document viewer
+		# iframe/img, inline styles from React style props and Tailwind.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.r2.cloudflarestorage.com; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; frame-src https://*.r2.cloudflarestorage.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
 	}
 
 	# The API disables these itself in production; this keeps them hidden at
