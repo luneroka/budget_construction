@@ -508,6 +508,26 @@ Expect `migrate` and `frontend` to show `Exited (0)` (one-shot services);
 smoke test: log in, reload a few times (confirms the refresh-token session
 survives), and log out.
 
+### Caddyfile-only change
+
+The Caddyfile is bind-mounted read-only into the `caddy` container, so a
+change to it needs no image rebuild and no backup: pull, validate the new
+file with the running container's own binary, and restart only Caddy (about
+two seconds of downtime). Used for the CSP enforcement and the cache/CORP
+headers on 2026-09-15.
+
+```sh
+cd ~/budget_construction
+git pull origin main
+docker compose --env-file .env.production -f docker-compose.prod.yml exec caddy caddy validate --config /etc/caddy/Caddyfile
+# Only if the line above ends with "Valid configuration":
+docker compose --env-file .env.production -f docker-compose.prod.yml restart caddy
+curl -sI https://batibudget.com/ | grep -iE "content-security|cross-origin|cache-control"
+```
+
+A bad file is harmless until the restart: the running Caddy keeps its loaded
+config, so a failed validation just means "fix and pull again".
+
 ## Rollback
 
 Code-only rollback (the common case — a bad application revision, database
@@ -827,7 +847,8 @@ docker-compose.prod.yml config --quiet` completed successfully (with
 | 2026-07-13 | v1.3.0  | Backup failure alerting (commit `1f5cdf2`) and R2 documents mirror (commit `a95c858`) deployed. Any `backup_db.sh`/`backup_documents.sh` failure now emails `BACKUP_ALERT_EMAIL` via Resend (verified with a real accepted alert and a simulated-outage case). R2 has no native versioning (confirmed against current Cloudflare docs), so `scripts/backup_documents.sh` substitutes a daily one-way `rclone copy` (never `sync`) of the live documents bucket into a dedicated `budget-construction-documents-backup` mirror bucket, retained via a 30-day R2 Object Lifecycle Rule. VPS setup completed: mirror bucket + scoped token + lifecycle rule created, a real uploaded document confirmed mirrored (`Copied (server-side copy)`), `batibudget-docs-mirror.timer` enabled (daily 04:16 UTC, alongside the 03:33 DB backup). **Closes the original Chunk 0 audit's open R2 lifecycle/retention item.** |
 | 2026-07-14 | v1.3.1  | Fixed `www.batibudget.com`, unresolved since Chunk 4: its DNS still pointed at an OVH redirect/parking IP that reset the TLS handshake (perceived as the site "crashing"), and Caddy had no site block for the host regardless. Added it to the existing `.fr` redirect block (commit `5189774`), project owner repointed DNS at the VPS in OVH, deployed with `--force-recreate caddy`. Verified: `301` to `https://batibudget.com/` then `200`, valid certificate. |
 | 2026-07-14 | v1.4.0  | Sentry error monitoring deployed (commit `801a1a2`): unhandled exceptions are caught, logged, and reported with user context via a generic exception handler; healthcheck requests filtered out of the access log. Verified with real test exceptions in both `development` and `production` Sentry environments after a `.env.production` DSN + backend rebuild. Incidental fix: `gitleaks-action` CI was failing on an unauthenticated GitHub API rate limit (not a real secret leak); fixed by passing `GITHUB_TOKEN` to the step. |
-|            |         |                                                                                                                                                             |
+| 2026-09-14 | v1.5.0  | Repository made public (commit `813662a`: portfolio README, MIT license, VPS details moved to the gitignored `docs/untracked/`; full-history gitleaks scan clean). Dependabot backlog merged and deployed: FastAPI 0.141, SQLAlchemy 2.0.52, Sentry 2.68, TypeScript 7, Vitest 5, React 19.2.8, checkout/setup-node/setup-uv v7, gitleaks-action v3 (Node 20 runner removal on 2026-09-16); bcrypt kept at 4.0.1 because passlib 1.7.4 fails against bcrypt 5, and ruff's rule set pinned to the pre-0.16 defaults. Postgres 15→18 bump closed (needs a dump/restore, not a compose edit). Pending kernel updates applied and the VPS rebooted (6.8.0-139); all containers came back on their own. |
+| 2026-09-15 | v1.5.1  | Content-Security-Policy switched from Report-Only to enforced (commit `d86a1a6`; `connect-src` also allows Google Fonts for html-to-image captures). OWASP ZAP scans: baseline (passive) against production, 0 failures; authenticated API scan (active) against the local stack, 0 failures and one bug — ids beyond the 32-bit range answered 500 — fixed in commit `652338c` (`DBAPIError` handler → `422 invalid_input_value`, regression tests) and deployed. Then `Cross-Origin-Resource-Policy: same-origin` and the SPA cache policy (`no-cache` on `index.html`, one-year `immutable` on existing hashed `/assets/`) in commit `b167a74`, deployed with the Caddyfile-only procedure above. Details in the audit doc's 2026-09-15 addendum. |
 
 ## Production Configuration Review (2026-07-13)
 

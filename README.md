@@ -180,7 +180,7 @@ Le projet a fait l'objet d'une **revue de sécurité complète** avant sa mise �
 - changement d'adresse e-mail soumis au mot de passe actuel, avec notification de l'ancienne adresse
 - cloisonnement strict des données par utilisateur, vérifié par une matrice de tests couvrant chaque ressource
 - validation des fichiers par signature binaire, limites de taille à la périphérie et dans l'API
-- en-têtes HTTP : HSTS, Content-Security-Policy, X-Frame-Options, Permissions-Policy, `Cache-Control: no-store` sur l'API
+- en-têtes HTTP : HSTS, Content-Security-Policy, X-Frame-Options, Permissions-Policy, Cross-Origin-Opener-Policy, Cross-Origin-Resource-Policy, `Cache-Control: no-store` sur l'API
 - documentation OpenAPI désactivée en production
 - conteneurs durcis : utilisateur non root, système de fichiers en lecture seule, capacités Linux retirées, `no-new-privileges`
 - journal des événements de sécurité (connexions, verrouillages, réinitialisations, actions d'administration)
@@ -228,7 +228,7 @@ FastAPI → PostgreSQL (schéma public) → vues analytics → Power BI
 # Exploitation
 
 - déploiement par Docker Compose sur un VPS, une seule commande pour reconstruire et redémarrer, migrations appliquées automatiquement avant l'API
-- Caddy en façade : HTTPS automatique, en-têtes de sécurité, limite de taille des requêtes, seul conteneur exposé
+- Caddy en façade : HTTPS automatique, en-têtes de sécurité, limite de taille des requêtes, cache long des assets fingerprintés et revalidation systématique de `index.html`, seul conteneur exposé
 - sauvegardes PostgreSQL chiffrées (`pg_dump | gzip | AES-256`) vers un stockage hors serveur, rétention locale et distante, procédure de restauration testée
 - supervision des erreurs applicatives via Sentry (sans données personnelles)
 - runbook complet : installation, durcissement du serveur, déploiement, retour arrière, reprise après sinistre
