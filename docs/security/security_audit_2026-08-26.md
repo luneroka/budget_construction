@@ -91,7 +91,7 @@ Caddyfile once a week of Report-Only shows no legitimate violations
 | S-18 | CORS tightening | ✅ Fixed — explicit method/header allow-lists | Deploy WP-1 |
 | S-19 | Refresh-cookie path | ✅ Fixed — cookie scoped to `REFRESH_COOKIE_PATH` (`/api/auth` in prod); legacy `/` cookie expired on every write | Deploy WP-1 (`up -d` picks up the compose env) |
 | S-20 | Dependency automation | ✅ Fixed — Dependabot (uv, npm, actions, docker, compose) + weekly/PR `pip-audit` and `npm audit` workflow | — |
-| S-21 | Cross-user authorization tests | ✅ Fixed — 31-route matrix asserting 404 for another user, with a route-existence guard | — |
+| S-21 | Cross-user authorization tests | ✅ Fixed — matrix asserting 404 for another user, with a route-existence guard. Extended 2026-09-15 after an IDOR review: 55 direct routes (every id-bearing user route incl. dashboards, trash variants, creates and uploads), 14 mixed-parent routes (the victim's child ids under the attacker's own project/budget line), and a body-level check that a foreign `supplier_id` is rejected on create and update | — |
 | S-22 | Local `.env` credentials | Accepted by the owner — the app is owner-operated for a small private circle, and the local development setup is documented outside the repository | — |
 | S-23 | Health endpoints | Accepted as-is | — |
 | S-24 | Admin bootstrap | ✅ Fixed — `uv run python -m app.scripts.create_admin` (see the script's docstring; the operational README section was replaced by the public-facing README on 2026-09-14) | — |

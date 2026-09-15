@@ -178,7 +178,7 @@ Le projet a fait l'objet d'une **revue de sécurité complète** avant sa mise �
 - pas d'inscription publique : comptes créés par l'administrateur, politique de mot de passe (12 caractères minimum)
 - limitation de débit sur la connexion, la réinitialisation et les formulaires publics, verrouillage de compte après échecs répétés
 - changement d'adresse e-mail soumis au mot de passe actuel, avec notification de l'ancienne adresse
-- cloisonnement strict des données par utilisateur, vérifié par une matrice de tests couvrant chaque ressource
+- cloisonnement strict des données par utilisateur, vérifié par une matrice de tests couvrant chaque ressource, y compris les identifiants croisés (parent d'un utilisateur, enfant d'un autre) et ceux transmis dans le corps des requêtes
 - validation des fichiers par signature binaire, limites de taille à la périphérie et dans l'API
 - en-têtes HTTP : HSTS, Content-Security-Policy, X-Frame-Options, Permissions-Policy, Cross-Origin-Opener-Policy, Cross-Origin-Resource-Policy, `Cache-Control: no-store` sur l'API
 - documentation OpenAPI désactivée en production
