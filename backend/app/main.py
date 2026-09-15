@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 import sentry_sdk
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
+from sqlalchemy.exc import DBAPIError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.rate_limit import limiter, rate_limit_exceeded_handler
@@ -16,6 +17,7 @@ from app.core.sentry import init_sentry
 from app.db.session import engine, init_db
 from app.errors import (
     error_detail,
+    database_data_error_detail,
     http_exception_handler,
     request_validation_exception_handler,
 )
@@ -100,12 +102,11 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 
-@app.exception_handler(Exception)
-async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    # A registered handler for a specific exception type (StarletteHTTPException,
-    # RequestValidationError above) always wins over this one, so only truly
-    # unexpected exceptions land here. Sentry does not auto-capture exceptions
-    # that a custom handler intercepts, hence the explicit capture_exception.
+async def _internal_server_error_response(
+    request: Request, exc: Exception
+) -> JSONResponse:
+    # Sentry does not auto-capture exceptions that a custom handler intercepts,
+    # hence the explicit capture_exception.
     logger.exception('Unhandled exception on %s %s', request.method, request.url.path)
     sentry_sdk.capture_exception(exc)
 
@@ -117,6 +118,31 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
             )
         },
     )
+
+
+@app.exception_handler(DBAPIError)
+async def database_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    # A value the driver cannot represent (an id beyond the INTEGER range, a
+    # string longer than its column) is the client's mistake: answer 422 and
+    # keep it out of the error log and Sentry. Any other database failure is
+    # a real incident and gets the same treatment as an unhandled exception.
+    data_error = database_data_error_detail(exc)
+    if data_error is None:
+        return await _internal_server_error_response(request, exc)
+
+    logger.info('Rejected malformed value on %s %s', request.method, request.url.path)
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        content={'detail': data_error},
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    # A registered handler for a specific exception type (StarletteHTTPException,
+    # RequestValidationError, DBAPIError above) always wins over this one, so
+    # only truly unexpected exceptions land here.
+    return await _internal_server_error_response(request, exc)
 
 
 @app.get('/health/live', include_in_schema=False)

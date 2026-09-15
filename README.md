@@ -186,6 +186,7 @@ Le projet a fait l'objet d'une **revue de sécurité complète** avant sa mise �
 - journal des événements de sécurité (connexions, verrouillages, réinitialisations, actions d'administration)
 - sauvegardes chiffrées quotidiennes hors serveur et miroir des documents, avec alerte en cas d'échec
 - audit automatique des dépendances (pip-audit, npm audit, Dependabot) et détection de secrets dans l'intégration continue
+- scans OWASP ZAP : passif sur le site en production, actif sur l'API (authentifié, piloté par la spécification OpenAPI) sur un environnement local
 
 ---
 

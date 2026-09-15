@@ -763,3 +763,35 @@ ever seen:
   grounds; the CSP then drops both Google hosts.
 - Business-logic authorization (which user may see which project) is
   single-owner by design; there is no sharing model to audit.
+
+---
+
+## Addendum — OWASP ZAP scans (2026-09-15)
+
+Two scans run after the repository went public, both from the ZAP Docker
+image (`ghcr.io/zaproxy/zaproxy:stable`); reports kept outside the repo.
+
+- **Baseline scan (passive) against `https://batibudget.com`.** 0 failures,
+  61 passes, 6 informational warnings: no explicit `Cache-Control` on the SPA
+  files, a false-positive "suspicious comment" in minified vendor JS, the
+  accepted `style-src 'unsafe-inline'`, no `Cross-Origin-Embedder-Policy`
+  (would break Google Fonts and the R2 viewer; not applicable), the SPA
+  fallback answering `/robots.txt` and `/sitemap.xml`, and the informational
+  "modern web application" notice. Anti-CSRF, cookie flags, version
+  disclosure and the enforced CSP all pass.
+- **API scan (active) against the local dev backend**, authenticated with a
+  bearer token, driven by the OpenAPI spec (62 paths, 233 URLs, ~7 300
+  requests; mail and R2 disabled, disposable test database). 0 failures,
+  116 passes. One real finding: **any resource id above the 32-bit range, in
+  a path or a JSON body, answered 500** because Pydantic accepts the int and
+  asyncpg raises `DataError` on the `INTEGER` bind. Fixed the same day: a
+  `DBAPIError` handler answers `422 invalid_input_value` for driver data
+  errors (`app/main.py`, `app/errors.py`), with regression tests in
+  `tests/api/test_out_of_range_ids.py`. The other two warnings (missing
+  `X-Content-Type-Options` and `Cross-Origin-Resource-Policy` on API
+  responses) only apply to the bare dev server: Caddy adds `nosniff` to every
+  production response, and CORP is a possible cheap addition.
+
+Left as follow-ups: `Cache-Control` for the SPA (`no-cache` on `index.html`,
+long-lived on hashed `/assets/`), `Cross-Origin-Resource-Policy: same-origin`
+at the edge, and rerunning the API scan after any large API change.

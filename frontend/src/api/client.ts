@@ -73,6 +73,7 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
   inactive_user: 'Ce compte est désactivé.',
   internal_server_error:
     'Une erreur serveur est survenue. Réessayez dans quelques instants.',
+  invalid_input_value: 'Une valeur saisie est hors limites ou invalide.',
   invoice_status_not_allowed:
     'Le statut de facture est disponible uniquement pour les factures.',
   invoice_status_required: 'Le statut de la facture est obligatoire.',

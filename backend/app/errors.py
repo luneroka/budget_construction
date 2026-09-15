@@ -1,5 +1,6 @@
 from typing import Never, NotRequired, TypedDict, cast
 
+from asyncpg.exceptions import DataError as AsyncpgDataError
 from fastapi import HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -393,6 +394,9 @@ ERROR_DEFINITIONS: dict[str, ErrorDefinition] = {
     'database_unavailable': {
         'message': 'Database is unavailable',
     },
+    'invalid_input_value': {
+        'message': 'A submitted value is out of range or malformed',
+    },
     'internal_server_error': {
         'message': 'Internal server error',
     },
@@ -521,6 +525,32 @@ def validation_error_detail(exc: RequestValidationError) -> ErrorDetail:
         field=first_field,
         context={'errors': errors},
     )
+
+
+def database_data_error_detail(exc: BaseException) -> ErrorDetail | None:
+    """The 422 detail to answer with when the database driver rejected a
+    submitted value, or None when the exception is something else.
+
+    Pydantic validates types, not database ranges: an id such as
+    ``9999999999`` is a valid ``int`` but overflows the ``INTEGER`` columns,
+    and asyncpg raises ``DataError`` before the query is even sent. Without
+    this the request ends as a 500 (and a Sentry event) although the client
+    simply sent a value that cannot exist.
+    """
+    current: BaseException | None = exc
+    for _ in range(6):
+        if current is None:
+            return None
+        if isinstance(current, AsyncpgDataError):
+            return error_detail('invalid_input_value')
+        # SQLAlchemy wraps the driver error as DBAPIError.orig, whose own
+        # __cause__ is the asyncpg exception.
+        current = (
+            cast(BaseException | None, getattr(current, 'orig', None))
+            or current.__cause__
+            or current.__context__
+        )
+    return None
 
 
 async def http_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
