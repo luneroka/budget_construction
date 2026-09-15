@@ -792,6 +792,8 @@ image (`ghcr.io/zaproxy/zaproxy:stable`); reports kept outside the repo.
   responses) only apply to the bare dev server: Caddy adds `nosniff` to every
   production response, and CORP is a possible cheap addition.
 
-Left as follow-ups: `Cache-Control` for the SPA (`no-cache` on `index.html`,
-long-lived on hashed `/assets/`), `Cross-Origin-Resource-Policy: same-origin`
-at the edge, and rerunning the API scan after any large API change.
+Follow-ups applied the same day in the Caddyfile: `Cache-Control` for the SPA
+(`no-cache` on `index.html` and the SPA fallback, one year `immutable` on
+hashed `/assets/` files that exist on disk) and
+`Cross-Origin-Resource-Policy: same-origin` on every response. Still worth
+doing: rerun the API scan after any large API change.
