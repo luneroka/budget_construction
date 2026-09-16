@@ -65,6 +65,7 @@ export function StatusBadge({ status, disabled = false }: StatusBadgeProps) {
   return (
     <Badge
       variant={statusVariants[status] ?? 'muted'}
+      tone="soft"
       className={disabled ? 'opacity-45 saturate-50' : undefined}
       aria-disabled={disabled || undefined}
     >
