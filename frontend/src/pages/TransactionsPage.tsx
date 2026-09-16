@@ -7,7 +7,6 @@ import {
   Eye,
   FileText,
   Files,
-  Paperclip,
   Trash2,
 } from 'lucide-react'
 
@@ -426,7 +425,7 @@ export function TransactionsPage() {
     if (isLoading) {
       return (
         <TransactionTableMessage
-          colSpan={9}
+          colSpan={8}
           className="py-8 text-center text-muted-foreground"
           message="Chargement des transactions..."
         />
@@ -436,7 +435,7 @@ export function TransactionsPage() {
     if (pageError) {
       return (
         <TransactionTableMessage
-          colSpan={9}
+          colSpan={8}
           className="py-8 text-center text-destructive"
           message="Impossible de charger les transactions."
         />
@@ -446,7 +445,7 @@ export function TransactionsPage() {
     if (paginatedRows.length === 0) {
       return (
         <TransactionTableMessage
-          colSpan={9}
+          colSpan={8}
           className="py-8 text-center text-muted-foreground"
           message={
             search.trim()
@@ -486,40 +485,26 @@ export function TransactionsPage() {
           <TableCell className="whitespace-nowrap">
             {status ? <StatusBadge status={status} /> : null}
           </TableCell>
-          <TableCell className="whitespace-nowrap">
-            {transaction.document_state === 'attached' ? (
-              <Button
-                className="w-32"
-                size="sm"
-                variant="outline"
-                aria-label={`${documentLabel} pour cette transaction`}
-                disabled={openingDocumentsTransactionId === transaction.id}
-                onClick={() => void openTransactionDocumentsViewer(context)}
-              >
-                {transaction.document_count > 1 ? (
-                  <Files aria-hidden />
-                ) : (
-                  <FileText aria-hidden />
-                )}
-                Ouvrir ({transaction.document_count})
-              </Button>
-            ) : (
-              <Button
-                className="w-32"
-                size="sm"
-                variant="outline"
-                aria-label={`${documentLabel} pour cette transaction`}
-                onClick={() =>
-                  setTransactionReview({ context, initialMode: 'view' })
-                }
-              >
-                <Paperclip aria-hidden />
-                Ajouter
-              </Button>
-            )}
-          </TableCell>
-          <TableCell className="whitespace-nowrap text-center">
-            <div className="inline-flex justify-center gap-1">
+          <TableCell className="whitespace-nowrap text-right">
+            {/* Right-aligned so the rail keeps its position whether or not the
+                documents icon is there, matching the budget page's inline
+                table. */}
+            <div className="inline-flex justify-end gap-1">
+              {transaction.document_state === 'attached' ? (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label={`${documentLabel} pour cette transaction`}
+                  disabled={openingDocumentsTransactionId === transaction.id}
+                  onClick={() => void openTransactionDocumentsViewer(context)}
+                >
+                  {transaction.document_count > 1 ? (
+                    <Files aria-hidden />
+                  ) : (
+                    <FileText aria-hidden />
+                  )}
+                </Button>
+              ) : null}
               <Button
                 size="icon"
                 variant="ghost"
@@ -745,8 +730,7 @@ export function TransactionsPage() {
                 Montant TTC
               </SortableHeader>
               <TableHead className="whitespace-nowrap">Statut</TableHead>
-              <TableHead className="whitespace-nowrap">Documents</TableHead>
-              <TableHead className="text-center! whitespace-nowrap">
+              <TableHead className="text-right! whitespace-nowrap">
                 Actions
               </TableHead>
             </TableRow>
