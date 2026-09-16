@@ -315,10 +315,10 @@ export function formatPhoneNumber(value: string | null | undefined): string {
   try {
     normalized = normalizePhoneNumber(value)
   } catch {
-    return value?.trim() || '-'
+    return value?.trim() || ''
   }
 
-  if (normalized === null) return '-'
+  if (normalized === null) return ''
 
   if (normalized.startsWith('+')) {
     const countryCode = detectCountryCode(normalized)

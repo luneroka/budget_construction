@@ -1,6 +1,6 @@
 import { type SyntheticEvent, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Edit3, Eye, Trash2 } from 'lucide-react'
+import { Edit3, Eye } from 'lucide-react'
 
 import { invalidateBudgetWorkspaceQueries } from '@/api/budget-workspace-cache'
 import { getApiErrorMessage } from '@/api/client'
@@ -13,6 +13,7 @@ import { DeleteTransactionDialog } from '@/components/budget/DeleteTransactionDi
 import {
   ModalCancelButton,
   ModalCloseButton,
+  ModalDeleteButton,
   ModalSaveButton,
   ModalShell,
 } from '@/components/shared/ModalShell'
@@ -222,39 +223,32 @@ export function TransactionReviewModal({
           )
         }
         onClose={onClose}
+        footerLeading={
+          !isEditing && !readOnly ? (
+            <ModalDeleteButton
+              disabled={isMutating}
+              onClick={() => setIsDeleteConfirmationOpen(true)}
+            >
+              Supprimer la transaction
+            </ModalDeleteButton>
+          ) : null
+        }
         footer={
-          <>
-            <div>
-              {!isEditing && !readOnly ? (
-                <Button
-                  variant="ghost"
-                  disabled={isMutating}
-                  className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  onClick={() => setIsDeleteConfirmationOpen(true)}
-                >
-                  <Trash2 aria-hidden />
-                  Supprimer la transaction
-                </Button>
-              ) : null}
-            </div>
-            <div className="flex justify-end gap-2">
-              {isEditing ? (
-                <>
-                  <ModalCancelButton
-                    onClick={resetEditMode}
-                    disabled={isMutating}
-                  />
-                  <ModalSaveButton
-                    form="transaction-review-form"
-                    disabled={isMutating}
-                    isSaving={isMutating}
-                  />
-                </>
-              ) : (
-                <ModalCloseButton onClick={onClose} />
-              )}
-            </div>
-          </>
+          isEditing ? (
+            <>
+              <ModalCancelButton
+                onClick={resetEditMode}
+                disabled={isMutating}
+              />
+              <ModalSaveButton
+                form="transaction-review-form"
+                disabled={isMutating}
+                isSaving={isMutating}
+              />
+            </>
+          ) : (
+            <ModalCloseButton onClick={onClose} />
+          )
         }
       >
         <form
@@ -386,9 +380,7 @@ export function TransactionReviewModal({
                       <StatusBadge status={transaction.quote_status} />
                     ) : isInvoice && transaction.invoice_status ? (
                       <StatusBadge status={transaction.invoice_status} />
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
+                    ) : null}
                   </div>
                 )}
               </Field>
@@ -547,7 +539,7 @@ export function TransactionReviewModal({
                           value={
                             transaction.invoice_type
                               ? invoiceTypeLabels[transaction.invoice_type]
-                              : '-'
+                              : ''
                           }
                           readOnly
                         />
@@ -584,7 +576,7 @@ export function TransactionReviewModal({
                           value={
                             transaction.payment_method
                               ? paymentMethodLabels[transaction.payment_method]
-                              : '-'
+                              : ''
                           }
                           readOnly
                         />

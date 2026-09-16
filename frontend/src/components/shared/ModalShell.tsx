@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Check, Eye, X } from 'lucide-react'
+import { Check, Eye, Trash2, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 
@@ -9,6 +9,7 @@ export function ModalShell({
   icon = <Eye className="h-5 w-5" aria-hidden="true" />,
   headerActions,
   footer,
+  footerLeading,
   closeDisabled,
   onClose,
   children,
@@ -17,7 +18,14 @@ export function ModalShell({
   subtitle?: ReactNode
   icon?: ReactNode
   headerActions?: ReactNode
+  /** Primary actions. Always grouped at the trailing edge. */
   footer?: ReactNode
+  /**
+   * A secondary action set apart from the primary ones — deleting the thing
+   * the modal is about, typically. Sits at the leading edge, far enough from
+   * Enregistrer that it cannot be hit by accident.
+   */
+  footerLeading?: ReactNode
   closeDisabled?: boolean
   onClose: () => void
   children: ReactNode
@@ -60,9 +68,10 @@ export function ModalShell({
 
         <div className="overflow-y-auto px-5 py-4 text-sm">{children}</div>
 
-        {footer ? (
+        {footer || footerLeading ? (
           <div className="flex items-center justify-between gap-2 border-t border-border px-5 py-3">
-            {footer}
+            <div className="flex items-center gap-2">{footerLeading}</div>
+            <div className="flex items-center justify-end gap-2">{footer}</div>
           </div>
         ) : null}
       </div>
@@ -101,7 +110,12 @@ export function ModalCloseButton({
   children?: ReactNode
 }) {
   return (
-    <Button variant="ghost" type="button" onClick={onClick} disabled={disabled}>
+    <Button
+      variant="outline"
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+    >
       <X aria-hidden />
       {children}
     </Button>
@@ -135,6 +149,28 @@ export function ModalSaveButton({
     >
       <Check aria-hidden />
       {isSaving ? savingLabel : children}
+    </Button>
+  )
+}
+
+export function ModalDeleteButton({
+  onClick,
+  disabled,
+  children,
+}: {
+  onClick: () => void
+  disabled?: boolean
+  children: ReactNode
+}) {
+  return (
+    <Button
+      variant="destructiveOutline"
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <Trash2 aria-hidden />
+      {children}
     </Button>
   )
 }

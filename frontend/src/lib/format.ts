@@ -25,7 +25,9 @@ export function formatMonth(value: string): string {
 }
 
 export function formatDate(value: string | null | undefined): string {
-  if (!value) return '-'
+  // Empty stays empty: a placeholder dash in a table cell or a read-only field
+  // is noise, not information.
+  if (!value) return ''
 
   return new Intl.DateTimeFormat('fr-FR', {
     day: '2-digit',

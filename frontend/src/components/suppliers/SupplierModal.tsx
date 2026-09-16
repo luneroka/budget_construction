@@ -13,6 +13,7 @@ import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
 import {
   ModalCancelButton,
   ModalCloseButton,
+  ModalDeleteButton,
   ModalSaveButton,
   ModalShell,
 } from '@/components/shared/ModalShell'
@@ -120,7 +121,7 @@ function normalizeBusinessIdentifier(value: string): string | null {
 }
 
 function readValue(value: string | null | undefined): string {
-  return value?.trim() ? value : '-'
+  return value?.trim() ? value : ''
 }
 
 function formatAddressForClipboard(supplier: Supplier): string {
@@ -392,38 +393,33 @@ export function SupplierModal({
             </Button>
           ) : null
         }
+        footerLeading={
+          isReadOnly && supplier && onDelete ? (
+            <ModalDeleteButton
+              disabled={isBusy}
+              onClick={() => {
+                setDeleteError(null)
+                setDeleteConfirmationOpen(true)
+              }}
+            >
+              Supprimer le fournisseur
+            </ModalDeleteButton>
+          ) : null
+        }
         footer={
           <>
-            <div>
-              {isReadOnly && supplier && onDelete ? (
-                <Button
-                  variant="ghost"
-                  disabled={isBusy}
-                  className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  onClick={() => {
-                    setDeleteError(null)
-                    setDeleteConfirmationOpen(true)
-                  }}
-                >
-                  <Trash2 aria-hidden />
-                  Supprimer le fournisseur
-                </Button>
-              ) : null}
-            </div>
-            <div className="flex justify-end gap-2">
-              {currentMode === 'edit' ? (
-                <ModalCancelButton onClick={cancelEdit} disabled={isBusy} />
-              ) : (
-                <ModalCloseButton onClick={onClose} disabled={isBusy} />
-              )}
-              {!isReadOnly ? (
-                <ModalSaveButton
-                  onClick={saveSupplier}
-                  disabled={isBusy}
-                  isSaving={isSaving}
-                />
-              ) : null}
-            </div>
+            {currentMode === 'edit' ? (
+              <ModalCancelButton onClick={cancelEdit} disabled={isBusy} />
+            ) : (
+              <ModalCloseButton onClick={onClose} disabled={isBusy} />
+            )}
+            {!isReadOnly ? (
+              <ModalSaveButton
+                onClick={saveSupplier}
+                disabled={isBusy}
+                isSaving={isSaving}
+              />
+            ) : null}
           </>
         }
       >

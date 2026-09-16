@@ -8,6 +8,7 @@ export type ButtonVariant =
   | 'ghost'
   | 'link'
   | 'gold'
+  | 'destructiveOutline'
 
 export type ButtonSize = 'default' | 'sm' | 'lg' | 'icon' | 'icon-sm'
 
@@ -25,6 +26,13 @@ const variantClasses: Record<ButtonVariant, string> = {
   ghost: 'hover:bg-accent hover:text-accent-foreground',
   link: 'text-accent underline-offset-4 hover:underline',
   gold: 'bg-gold text-gold-foreground hover:bg-gold/90',
+  // A destructive action that is not the primary one -- deleting the record a
+  // modal is about, offered alongside Fermer. A real variant rather than
+  // `outline` plus a text-destructive className: `cn` here is a plain
+  // concatenator, not tailwind-merge, so layering would emit both
+  // `text-foreground` and `text-destructive` and let stylesheet order pick.
+  destructiveOutline:
+    'border border-destructive/30 bg-background text-destructive hover:bg-destructive hover:text-destructive-foreground',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {

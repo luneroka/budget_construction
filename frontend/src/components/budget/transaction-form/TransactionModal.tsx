@@ -209,18 +209,15 @@ export function TransactionModal({
       onClose={onClose}
       footer={
         <>
-          <div />
-          <div className="flex justify-end gap-2">
-            <ModalCloseButton onClick={onClose} disabled={isSubmitting} />
-            <ModalSaveButton
-              form="transaction-create-form"
-              disabled={isSubmitting}
-              isSaving={isSubmitting}
-              savingLabel="Création..."
-            >
-              Créer
-            </ModalSaveButton>
-          </div>
+          <ModalCloseButton onClick={onClose} disabled={isSubmitting} />
+          <ModalSaveButton
+            form="transaction-create-form"
+            disabled={isSubmitting}
+            isSaving={isSubmitting}
+            savingLabel="Création..."
+          >
+            Créer
+          </ModalSaveButton>
         </>
       }
     >
