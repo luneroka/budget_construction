@@ -114,15 +114,18 @@ function CategoryCard({
   onSelect: () => void
 }) {
   const Icon = category.icon
+  const labelClass = isSelected
+    ? 'text-primary-foreground/65'
+    : 'text-muted-foreground'
 
   return (
     <button
       type="button"
       className={cn(
-        'rounded-lg border bg-card px-2.5 py-2 text-left transition-colors hover:border-primary/60 hover:bg-primary/5',
+        'rounded-lg border px-2.5 py-2 text-left transition-colors',
         isSelected
-          ? 'border-primary bg-primary/10 ring-1 ring-primary/20'
-          : 'border-border',
+          ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/95'
+          : 'border-border bg-card text-foreground hover:border-primary/60 hover:bg-primary/5',
       )}
       onClick={onSelect}
       aria-pressed={isSelected}
@@ -132,7 +135,7 @@ function CategoryCard({
           className={cn(
             'flex h-7 w-7 shrink-0 items-center justify-center rounded-md',
             isSelected
-              ? 'bg-primary text-primary-foreground'
+              ? 'bg-primary-foreground/15 text-primary-foreground'
               : 'bg-primary/10 text-primary',
           )}
           aria-hidden="true"
@@ -140,33 +143,45 @@ function CategoryCard({
           <Icon className="h-4 w-4" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold leading-5 text-foreground">
+          <span className="block truncate text-sm font-semibold leading-5">
             {category.name}
           </span>
         </span>
-        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[0.7rem] font-medium text-muted-foreground">
+        <span
+          className={cn(
+            'shrink-0 rounded-full px-2 py-0.5 text-[0.7rem] font-medium',
+            isSelected
+              ? 'bg-primary-foreground/15 text-primary-foreground'
+              : 'bg-muted text-muted-foreground',
+          )}
+        >
           {category.productCount}
         </span>
       </div>
-      <div className="mt-2 grid grid-cols-[1fr_1fr_auto] items-end gap-2 border-t border-border/60 pt-1.5 text-[0.7rem] leading-4">
+      <div
+        className={cn(
+          'mt-2 grid grid-cols-[1fr_1fr_auto] items-end gap-2 border-t pt-1.5 text-[0.7rem] leading-4',
+          isSelected ? 'border-primary-foreground/25' : 'border-border/60',
+        )}
+      >
         <span className="min-w-0">
-          <span className="block text-muted-foreground">Budget</span>
-          <span className="block truncate font-semibold text-foreground">
+          <span className={cn('block', labelClass)}>Budget</span>
+          <span className="block truncate font-semibold">
             {formatCurrency(category.selectedBudgetAmountTtc)}
           </span>
         </span>
         <span className="min-w-0">
-          <span className="block text-muted-foreground">Facturé</span>
-          <span className="block truncate font-semibold text-foreground">
+          <span className={cn('block', labelClass)}>Facturé</span>
+          <span className="block truncate font-semibold">
             {formatCurrency(category.actualCostAmountTtc)}
           </span>
         </span>
         <span className="min-w-0 text-right">
-          <span className="block text-muted-foreground">Écart</span>
+          <span className={cn('block', labelClass)}>Écart</span>
           <span
             className={cn(
               'block truncate font-semibold',
-              varianceClass(category.varianceTtc),
+              !isSelected && varianceClass(category.varianceTtc),
             )}
           >
             {formatCurrency(category.varianceTtc)}
