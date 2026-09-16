@@ -43,7 +43,7 @@ services:
       - db
 
   db:
-    image: postgres:15
+    image: postgres:17
     env_file: .env
     ports:
       - '5434:5432'
@@ -51,7 +51,7 @@ services:
       - db_data:/var/lib/postgresql/data
 
   db-test:
-    image: postgres:15
+    image: postgres:17
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
