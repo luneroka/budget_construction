@@ -294,20 +294,7 @@ export function SuppliersPage() {
               ) : null}
             </button>
           </TableCell>
-          <TableCell className="text-center">
-            {rib ? (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="text-muted-foreground hover:bg-gold/15 hover:text-gold"
-                aria-label={`Voir le RIB de ${supplier.name}`}
-                onClick={() => void openRibViewer(rib)}
-              >
-                <Eye aria-hidden />
-              </Button>
-            ) : null}
-          </TableCell>
-          <TableCell>{contact?.name ?? '-'}</TableCell>
+          <TableCell>{contact?.name}</TableCell>
           <TableCell className="whitespace-nowrap">
             {contact?.phone_number ? (
               <a
@@ -316,13 +303,11 @@ export function SuppliersPage() {
               >
                 {formatPhoneNumber(contact.phone_number)}
               </a>
-            ) : (
-              '-'
-            )}
+            ) : null}
           </TableCell>
           <TableCell>
-            <div className="flex min-w-0 items-center justify-between gap-3">
-              <span className="min-w-0 truncate">{contact?.email ?? '-'}</span>
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="min-w-0 flex-1 truncate">{contact?.email}</span>
               <span className="inline-flex shrink-0 justify-center gap-1">
                 <Button
                   size="icon"
@@ -356,6 +341,19 @@ export function SuppliersPage() {
                 </Button>
               </span>
             </div>
+          </TableCell>
+          <TableCell className="text-center">
+            {rib ? (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="text-muted-foreground hover:bg-gold/15 hover:text-gold"
+                aria-label={`Voir le RIB de ${supplier.name}`}
+                onClick={() => void openRibViewer(rib)}
+              >
+                <Eye aria-hidden />
+              </Button>
+            ) : null}
           </TableCell>
         </TableRow>
       )
@@ -404,12 +402,12 @@ export function SuppliersPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Fournisseur</TableHead>
-              <TableHead>
-                <span className="block text-center">RIB</span>
-              </TableHead>
               <TableHead>Contact principal</TableHead>
               <TableHead>Téléphone</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead className="w-20">
+                <span className="block text-center">RIB</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>{renderTableBody()}</TableBody>
