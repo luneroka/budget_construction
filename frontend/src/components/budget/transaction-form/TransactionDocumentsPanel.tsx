@@ -12,13 +12,9 @@ import {
 import { trashQueryKeys } from '@/api/trash'
 import type { DocumentRead } from '@/api/types'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
-import { Input } from '@/components/ui/input'
+import { FilePickerButton } from '@/components/shared/FilePickerButton'
 import { downloadDocument } from '@/lib/documents'
-import {
-  documentInputAccept,
-  formatFileSize,
-  getSelectedFile,
-} from '@/lib/files'
+import { documentInputAccept, formatFileSize } from '@/lib/files'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 
 export function TransactionDocumentsPanel({
@@ -108,15 +104,10 @@ export function TransactionDocumentsPanel({
       ) : (
         <>
           {canUploadDocument ? (
-            <Input
-              type="file"
+            <FilePickerButton
               accept={documentInputAccept}
               disabled={isMutating}
-              onChange={(event) => {
-                const file = getSelectedFile(event)
-                event.currentTarget.value = ''
-                void handleUpload(file)
-              }}
+              onSelect={(file) => void handleUpload(file)}
             />
           ) : null}
 

@@ -12,13 +12,9 @@ import {
 import type { SupplierDocumentRead } from '@/api/types'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { FilePickerButton } from '@/components/shared/FilePickerButton'
 import { downloadSupplierDocument } from '@/lib/documents'
-import {
-  documentInputAccept,
-  formatFileSize,
-  getSelectedFile,
-} from '@/lib/files'
+import { documentInputAccept, formatFileSize } from '@/lib/files'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 
 function SelectedRibPreview({
@@ -62,12 +58,11 @@ export function NewSupplierRibField({
         <Paperclip className="h-4 w-4" aria-hidden />
         RIB
       </h3>
-      <Input
-        key={file ? 'rib-selected' : 'rib-empty'}
-        type="file"
+      <FilePickerButton
         accept={documentInputAccept}
         disabled={disabled}
-        onChange={(event) => onFileChange(getSelectedFile(event))}
+        label="Choisir un RIB"
+        onSelect={onFileChange}
       />
       {file ? <SelectedRibPreview file={file} onClear={onClear} /> : null}
     </section>
@@ -148,15 +143,11 @@ export function SupplierRibPanel({ supplierId }: { supplierId: number }) {
           {getApiErrorMessage(documentsQuery.error)}
         </p>
       ) : canUploadDocument ? (
-        <Input
-          type="file"
+        <FilePickerButton
           accept={documentInputAccept}
           disabled={isMutating}
-          onChange={(event) => {
-            const file = getSelectedFile(event)
-            event.currentTarget.value = ''
-            void handleUpload(file)
-          }}
+          label="Choisir un RIB"
+          onSelect={(file) => void handleUpload(file)}
         />
       ) : null}
 

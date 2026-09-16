@@ -2,13 +2,9 @@ import type { ReactNode } from 'react'
 import { Paperclip } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { FilePickerButton } from '@/components/shared/FilePickerButton'
 import { Label } from '@/components/ui/label'
-import {
-  documentInputAccept,
-  formatFileSize,
-  getSelectedFile,
-} from '@/lib/files'
+import { documentInputAccept, formatFileSize } from '@/lib/files'
 import type { BudgetLine, Product, Project } from '@/types'
 
 export function Field({
@@ -118,12 +114,10 @@ export function NewTransactionDocumentField({
         <Paperclip className="h-4 w-4 text-muted-foreground" aria-hidden />
         Document
       </div>
-      <Input
-        key={file ? 'document-selected' : 'document-empty'}
-        type="file"
+      <FilePickerButton
         accept={documentInputAccept}
         disabled={disabled}
-        onChange={(event) => onFileChange(getSelectedFile(event))}
+        onSelect={onFileChange}
       />
       {file ? <SelectedDocumentPreview file={file} onClear={onClear} /> : null}
     </div>
