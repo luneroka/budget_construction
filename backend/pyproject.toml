@@ -5,21 +5,21 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "alembic>=1.19.1",
+    "alembic>=1.20.0",
     "asyncpg>=0.31.0",
     # Pinned: passlib 1.7.4 fails its bcrypt self-test against bcrypt >= 5
     # (ValueError: password cannot be longer than 72 bytes).
-    "bcrypt==4.0.1",
+    "bcrypt==5.0.0",
     "fastapi[standard]>=0.141.1",
     "greenlet>=3.5.5",
     "passlib[bcrypt]>=1.7.4",
     "pydantic-settings>=2.11.0",
     "sqlalchemy>=2.0.52",
     "httpx>=0.24.0",
-    "boto3>=1.43.78",
-    "sentry-sdk>=2.68.1",
+    "boto3>=1.43.93",
+    "sentry-sdk>=2.69.1",
     "slowapi>=0.1.10",
-    "pyjwt>=2.13.0",
+    "pyjwt>=2.14.0",
 ]
 
 [tool.black]
@@ -69,12 +69,12 @@ prepend_sys_path = [
 [dependency-groups]
 dev = [
     "black>=25.11.0",
-    "boto3-stubs[s3]>=1.43.78",
-    "faker>=40.37.0",
+    "boto3-stubs[s3]>=1.43.93",
+    "faker>=40.38.0",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
-    "ruff>=0.16.4",
+    "ruff>=0.16.7",
 ]
 
 # timezone to use when rendering the date within the migration file
