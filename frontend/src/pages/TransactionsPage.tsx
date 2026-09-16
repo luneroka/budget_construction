@@ -196,6 +196,14 @@ export function TransactionsPage() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [supplierFilter, setSupplierFilter] = useState('all')
   const [dateFilter, setDateFilter] = useState<DateFilter>('all')
+
+  // The Type / Catégorie / Fournisseur / Date selects are hidden for now to
+  // steer people to the search bar, but the row is kept in the tree rather than
+  // deleted: flip this to true to get it back exactly as it was. The filter
+  // state above stays at 'all' while hidden, so results are unaffected. The
+  // annotation is load-bearing -- without it TS narrows the flag to `false`,
+  // marks the JSX unreachable and `noUnusedLocals` then fails on the setters.
+  const showSecondaryFilters: boolean = false
   const [sort, setSort] = useState<SortState>({
     field: 'date',
     direction: 'desc',
@@ -593,97 +601,99 @@ export function TransactionsPage() {
         })}
       </div>
 
-      <div className="mt-2 grid gap-2 bg-muted/15 py-2 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="space-y-1">
-          <label
-            className="text-xs font-medium text-muted-foreground"
-            htmlFor="transactions-type-filter"
-          >
-            Type
-          </label>
-          <Select
-            id="transactions-type-filter"
-            className="h-8 px-2 text-xs"
-            value={typeFilter}
-            onChange={(event) =>
-              setTypeFilter(event.target.value as TransactionTypeFilter)
-            }
-          >
-            <option value="all">Tous les types</option>
-            {Object.entries(transactionTypeLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
+      {showSecondaryFilters ? (
+        <div className="mt-2 grid gap-2 bg-muted/15 py-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-1">
+            <label
+              className="text-xs font-medium text-muted-foreground"
+              htmlFor="transactions-type-filter"
+            >
+              Type
+            </label>
+            <Select
+              id="transactions-type-filter"
+              className="h-8 px-2 text-xs"
+              value={typeFilter}
+              onChange={(event) =>
+                setTypeFilter(event.target.value as TransactionTypeFilter)
+              }
+            >
+              <option value="all">Tous les types</option>
+              {Object.entries(transactionTypeLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <label
+              className="text-xs font-medium text-muted-foreground"
+              htmlFor="transactions-category-filter"
+            >
+              Catégorie
+            </label>
+            <Select
+              id="transactions-category-filter"
+              className="h-8 px-2 text-xs"
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value)}
+            >
+              <option value="all">Toutes les catégories</option>
+              {categoryOptions.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <label
+              className="text-xs font-medium text-muted-foreground"
+              htmlFor="transactions-supplier-filter"
+            >
+              Fournisseur
+            </label>
+            <Select
+              id="transactions-supplier-filter"
+              className="h-8 px-2 text-xs"
+              value={supplierFilter}
+              onChange={(event) => setSupplierFilter(event.target.value)}
+            >
+              <option value="all">Tous les fournisseurs</option>
+              {supplierOptions.hasAutoconstruction ? (
+                <option value="none">Autoconstruction</option>
+              ) : null}
+              {supplierOptions.suppliers.map(([supplierId, supplierName]) => (
+                <option key={supplierId} value={supplierId}>
+                  {supplierName}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <label
+              className="text-xs font-medium text-muted-foreground"
+              htmlFor="transactions-date-filter"
+            >
+              Date
+            </label>
+            <Select
+              id="transactions-date-filter"
+              className="h-8 px-2 text-xs"
+              value={dateFilter}
+              onChange={(event) =>
+                setDateFilter(event.target.value as DateFilter)
+              }
+            >
+              <option value="all">Toutes les dates</option>
+              <option value="last_7_days">7 derniers jours</option>
+              <option value="last_30_days">30 derniers jours</option>
+              <option value="current_month">Mois en cours</option>
+            </Select>
+          </div>
         </div>
-        <div className="space-y-1">
-          <label
-            className="text-xs font-medium text-muted-foreground"
-            htmlFor="transactions-category-filter"
-          >
-            Catégorie
-          </label>
-          <Select
-            id="transactions-category-filter"
-            className="h-8 px-2 text-xs"
-            value={categoryFilter}
-            onChange={(event) => setCategoryFilter(event.target.value)}
-          >
-            <option value="all">Toutes les catégories</option>
-            {categoryOptions.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <label
-            className="text-xs font-medium text-muted-foreground"
-            htmlFor="transactions-supplier-filter"
-          >
-            Fournisseur
-          </label>
-          <Select
-            id="transactions-supplier-filter"
-            className="h-8 px-2 text-xs"
-            value={supplierFilter}
-            onChange={(event) => setSupplierFilter(event.target.value)}
-          >
-            <option value="all">Tous les fournisseurs</option>
-            {supplierOptions.hasAutoconstruction ? (
-              <option value="none">Autoconstruction</option>
-            ) : null}
-            {supplierOptions.suppliers.map(([supplierId, supplierName]) => (
-              <option key={supplierId} value={supplierId}>
-                {supplierName}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <label
-            className="text-xs font-medium text-muted-foreground"
-            htmlFor="transactions-date-filter"
-          >
-            Date
-          </label>
-          <Select
-            id="transactions-date-filter"
-            className="h-8 px-2 text-xs"
-            value={dateFilter}
-            onChange={(event) =>
-              setDateFilter(event.target.value as DateFilter)
-            }
-          >
-            <option value="all">Toutes les dates</option>
-            <option value="last_7_days">7 derniers jours</option>
-            <option value="last_30_days">30 derniers jours</option>
-            <option value="current_month">Mois en cours</option>
-          </Select>
-        </div>
-      </div>
+      ) : null}
 
       {pageError ? (
         <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -706,7 +716,7 @@ export function TransactionsPage() {
           onSearchChange={setSearch}
           actions={
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>{transactionCountLabel}</span>
+              <span className="whitespace-nowrap">{transactionCountLabel}</span>
               <Select
                 className="h-9 w-24"
                 aria-label="Transactions par page"

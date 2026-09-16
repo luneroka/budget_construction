@@ -36,8 +36,24 @@ export const quickViews: Array<{ id: QuickViewId; label: string }> = [
   { id: 'budget_to_validate', label: 'Budget à valider' },
 ]
 
+// Quick views that stay in the model but are no longer offered as pills, so
+// the page steers people to the search bar instead. They are deliberately kept
+// in `quickViews` above: `matchesQuickView` still handles them and deep links
+// still resolve them, so nothing breaks if one is linked to. Drop an id from
+// this set to put its pill back.
+//
+// `missing_documents` and `budget_to_validate` stay visible on purpose -- the
+// dashboard links straight to them (`?quick_view=...`), so hiding their pills
+// would land people on a filtered table with nothing showing why.
+const hiddenQuickViewIds = new Set<QuickViewId>([
+  'recent',
+  'quotes_rejected',
+  'budget_selected',
+  'budget_not_selected',
+])
+
 export const visibleQuickViews = quickViews.filter(
-  (view) => view.id !== 'recent',
+  (view) => !hiddenQuickViewIds.has(view.id),
 )
 
 export const transactionTypeLabels: Record<
