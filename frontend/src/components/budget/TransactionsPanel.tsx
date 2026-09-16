@@ -126,16 +126,11 @@ function TransactionRows({
           {formatCurrency(transaction.amount_ttc)}
         </div>
         <div className="px-3 py-2 whitespace-nowrap">
-          {financialStatus ? (
-            <StatusBadge status={financialStatus} />
-          ) : (
-            <span className="text-muted-foreground">-</span>
-          )}
+          {financialStatus ? <StatusBadge status={financialStatus} /> : null}
         </div>
         <div className="px-3 py-2 whitespace-nowrap">
-          {transaction.transaction_type === 'invoice' ? (
-            <span className="text-muted-foreground">-</span>
-          ) : isSelectedBudget ? (
+          {transaction.transaction_type ===
+          'invoice' ? null : isSelectedBudget ? (
             readOnly ? (
               <Badge variant="gold">Sélectionné</Badge>
             ) : (

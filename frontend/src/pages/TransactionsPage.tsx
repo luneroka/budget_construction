@@ -4,9 +4,9 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
-  Edit3,
   Eye,
-  FileSearch,
+  FileText,
+  Files,
   Paperclip,
   Trash2,
 } from 'lucide-react'
@@ -484,26 +484,28 @@ export function TransactionsPage() {
             {formatCurrency(transaction.amount_ttc)}
           </TableCell>
           <TableCell className="whitespace-nowrap">
-            {status ? (
-              <StatusBadge status={status} />
-            ) : (
-              <span className="text-muted-foreground">-</span>
-            )}
+            {status ? <StatusBadge status={status} /> : null}
           </TableCell>
           <TableCell className="whitespace-nowrap">
             {transaction.document_state === 'attached' ? (
               <Button
+                className="w-32"
                 size="sm"
                 variant="outline"
                 aria-label={`${documentLabel} pour cette transaction`}
                 disabled={openingDocumentsTransactionId === transaction.id}
                 onClick={() => void openTransactionDocumentsViewer(context)}
               >
-                <FileSearch aria-hidden />
+                {transaction.document_count > 1 ? (
+                  <Files aria-hidden />
+                ) : (
+                  <FileText aria-hidden />
+                )}
                 Ouvrir ({transaction.document_count})
               </Button>
             ) : (
               <Button
+                className="w-32"
                 size="sm"
                 variant="outline"
                 aria-label={`${documentLabel} pour cette transaction`}
@@ -527,16 +529,6 @@ export function TransactionsPage() {
                 }
               >
                 <Eye aria-hidden />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                aria-label="Modifier la transaction"
-                onClick={() =>
-                  setTransactionReview({ context, initialMode: 'edit' })
-                }
-              >
-                <Edit3 aria-hidden />
               </Button>
               <Button
                 size="icon"
