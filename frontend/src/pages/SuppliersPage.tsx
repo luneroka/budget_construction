@@ -19,12 +19,18 @@ import {
 import type { SupplierDocumentListRead, SupplierRead } from '@/api/types'
 import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { PaginationFooter } from '@/components/shared/PaginationFooter'
 import { TableToolbar } from '@/components/shared/TableToolbar'
+import {
+  paginationPageSizeOptions,
+  usePagination,
+} from '@/components/shared/usePagination'
 import {
   SupplierModal,
   type SupplierModalMode,
 } from '@/components/suppliers/SupplierModal'
 import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -126,6 +132,19 @@ export function SuppliersPage() {
         ),
     )
   }, [normalizedSearch, suppliers])
+  const {
+    pageItems: paginatedSuppliers,
+    pageSize,
+    setPageSize,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    pageStart,
+    totalCount,
+  } = usePagination(filteredSuppliers, `${normalizedSearch}|${projectId}`)
+  const supplierCountLabel = `${filteredSuppliers.length} fournisseur${
+    filteredSuppliers.length > 1 ? 's' : ''
+  }`
   const isLoadingSuppliers = suppliersQuery.isLoading
   const suppliersError = suppliersQuery.isError
     ? getApiErrorMessage(suppliersQuery.error)
@@ -270,7 +289,7 @@ export function SuppliersPage() {
       )
     }
 
-    return filteredSuppliers.map((supplier) => {
+    return paginatedSuppliers.map((supplier) => {
       const contact = primaryContact(supplier)
       const contactEmail = contact?.email?.trim() ?? ''
       const hasEmail = contactEmail !== ''
@@ -392,6 +411,23 @@ export function SuppliersPage() {
           searchValue={search}
           searchPlaceholder="Rechercher fournisseur, contact, email..."
           onSearchChange={setSearch}
+          actions={
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="whitespace-nowrap">{supplierCountLabel}</span>
+              <Select
+                className="h-9 w-24"
+                aria-label="Fournisseurs par page"
+                value={String(pageSize)}
+                onChange={(event) => setPageSize(Number(event.target.value))}
+              >
+                {paginationPageSizeOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option} / p.
+                  </option>
+                ))}
+              </Select>
+            </div>
+          }
         />
         {showRefreshState ? (
           <div className="border-b border-border px-4 py-2 text-xs text-muted-foreground">
@@ -412,6 +448,14 @@ export function SuppliersPage() {
           </TableHeader>
           <TableBody>{renderTableBody()}</TableBody>
         </Table>
+        <PaginationFooter
+          pageStart={pageStart}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
         {showEmptyState ? (
           <div className="border-t border-border px-5 py-8 text-center text-sm text-muted-foreground">
             {emptyStateMessage()}
