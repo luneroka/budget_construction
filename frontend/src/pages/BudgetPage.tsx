@@ -195,12 +195,6 @@ export function BudgetPage() {
         onToggleBudgetSelection={() => {}}
         onRequestDeleteBudgetLine={setBudgetLineDelete}
         onRequestDeleteTransaction={setTransactionDelete}
-        onEditTransaction={(context) =>
-          setTransactionReview({
-            context,
-            initialMode: 'edit',
-          })
-        }
         onViewTransaction={(context) =>
           setTransactionReview({
             context,

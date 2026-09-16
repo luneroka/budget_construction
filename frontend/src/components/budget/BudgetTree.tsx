@@ -47,7 +47,6 @@ type BudgetTreeProps = {
   onToggleBudgetSelection: (line: BudgetLine, transaction: Transaction) => void
   onRequestDeleteBudgetLine: (context: BudgetLineDeleteState) => void
   onRequestDeleteTransaction: (context: ViewedTransactionContext) => void
-  onEditTransaction: (context: ViewedTransactionContext) => void
   onViewTransaction: (context: ViewedTransactionContext) => void
   onViewTransactionDocuments: (transaction: Transaction) => void
   onSelectCategory: (categoryId: string) => void
@@ -206,7 +205,6 @@ export function BudgetTree({
   onToggleBudgetSelection,
   onRequestDeleteBudgetLine,
   onRequestDeleteTransaction,
-  onEditTransaction,
   onViewTransaction,
   onViewTransactionDocuments,
   onSelectCategory,
@@ -556,7 +554,6 @@ export function BudgetTree({
                               onRequestDeleteTransaction={
                                 onRequestDeleteTransaction
                               }
-                              onEditTransaction={onEditTransaction}
                               onViewTransaction={onViewTransaction}
                               onViewTransactionDocuments={
                                 onViewTransactionDocuments
@@ -603,7 +600,6 @@ export function BudgetTree({
                                         onRequestDeleteTransaction={
                                           onRequestDeleteTransaction
                                         }
-                                        onEditTransaction={onEditTransaction}
                                         onViewTransaction={onViewTransaction}
                                         onViewTransactionDocuments={
                                           onViewTransactionDocuments

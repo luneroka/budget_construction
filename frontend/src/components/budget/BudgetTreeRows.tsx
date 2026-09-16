@@ -139,7 +139,7 @@ export function ProductContextRows({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
+                    className="h-7 bg-gold/15 text-gold hover:bg-gold/25! hover:text-gold!"
                     onClick={() =>
                       onAddTransaction({ budgetLine: line, product })
                     }
@@ -218,7 +218,7 @@ export function BudgetLineContextRow({
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
+              className="h-7 bg-gold/15 text-gold hover:bg-gold/25! hover:text-gold!"
               onClick={() => onAddTransaction({ budgetLine: line, product })}
             >
               <Plus aria-hidden="true" />

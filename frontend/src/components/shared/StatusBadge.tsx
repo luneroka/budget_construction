@@ -3,6 +3,13 @@ import { Badge, type BadgeVariant } from '@/components/ui/badge'
 type StatusBadgeProps = {
   status: string
   disabled?: boolean
+  /**
+   * Drop the status colour and render grey, for rows that are present but not
+   * carrying weight — a budget candidate that was not retained, say. Unlike
+   * `disabled` this is purely visual: the badge still states a real status, so
+   * it must not be announced as disabled.
+   */
+  dimmed?: boolean
 }
 
 const statusVariants: Record<string, BadgeVariant> = {
@@ -61,10 +68,14 @@ const statusLabels: Record<string, string> = {
   upload_error: 'Erreur',
 }
 
-export function StatusBadge({ status, disabled = false }: StatusBadgeProps) {
+export function StatusBadge({
+  status,
+  disabled = false,
+  dimmed = false,
+}: StatusBadgeProps) {
   return (
     <Badge
-      variant={statusVariants[status] ?? 'muted'}
+      variant={dimmed ? 'muted' : (statusVariants[status] ?? 'muted')}
       tone="soft"
       className={disabled ? 'opacity-45 saturate-50' : undefined}
       aria-disabled={disabled || undefined}

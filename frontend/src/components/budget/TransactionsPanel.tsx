@@ -1,4 +1,4 @@
-import { Edit3, Eye, Paperclip, Trash2 } from 'lucide-react'
+import { Eye, FileText, Files, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
@@ -25,7 +25,7 @@ import {
 import { cn } from '@/lib/utils'
 
 const transactionGridClass =
-  'grid min-w-[55rem] grid-cols-[5rem_8rem_minmax(10rem,1fr)_7rem_6.25rem_7rem_6rem_4rem] items-center'
+  'grid min-w-[51rem] grid-cols-[5rem_8rem_minmax(10rem,1fr)_7rem_6.25rem_7rem_6.5rem] items-center'
 
 type TransactionsPanelProps = {
   transactions: Transaction[]
@@ -38,7 +38,6 @@ type TransactionsPanelProps = {
     transaction: Transaction,
   ) => void
   onRequestDeleteTransaction: (context: ViewedTransactionContext) => void
-  onEditTransaction: (context: ViewedTransactionContext) => void
   onViewTransaction: (context: ViewedTransactionContext) => void
   onViewTransactionDocuments: (transaction: Transaction) => void
 }
@@ -46,21 +45,28 @@ type TransactionsPanelProps = {
 function TransactionSectionDivider({
   label,
   totalTtc,
+  spaced = false,
 }: {
   label: string
   totalTtc: number
+  /** Opens a gap above, separating this block from the one before it. */
+  spaced?: boolean
 }) {
   return (
     <div
-      className={cn(transactionGridClass, 'border-y border-border bg-muted/55')}
+      className={cn(
+        transactionGridClass,
+        'border-t-2 border-b border-border bg-muted',
+        spaced && 'mt-3',
+      )}
     >
-      <div className="col-span-3 px-2.5 py-2 text-[11px] font-bold tracking-normal text-foreground uppercase">
+      <div className="col-span-3 px-2.5 py-3 text-[11px] font-bold tracking-wide text-foreground uppercase">
         {label}
       </div>
-      <div className="px-3 py-2 text-right text-[11px] font-bold tracking-normal text-foreground whitespace-nowrap">
+      <div className="px-3 py-3 text-right text-xs font-bold tracking-normal text-foreground whitespace-nowrap">
         {formatCurrency(totalTtc)}
       </div>
-      <div className="col-span-4" />
+      <div className="col-span-3" />
     </div>
   )
 }
@@ -68,7 +74,7 @@ function TransactionSectionDivider({
 function EmptyTransactionRows() {
   return (
     <div className={cn(transactionGridClass, 'border-t border-border/40')}>
-      <div className="col-span-8 px-2 py-2 text-muted-foreground">
+      <div className="col-span-7 px-2 py-2 text-muted-foreground">
         Aucune transaction
       </div>
     </div>
@@ -78,7 +84,7 @@ function EmptyTransactionRows() {
 function TransactionPanelMessage({ message }: { message: string }) {
   return (
     <div className={cn(transactionGridClass, 'border-t border-border/40')}>
-      <div className="col-span-8 px-2 py-2 text-muted-foreground">
+      <div className="col-span-7 px-2 py-2 text-muted-foreground">
         {message}
       </div>
     </div>
@@ -92,7 +98,6 @@ function TransactionRows({
   readOnly,
   onToggleBudgetSelection,
   onRequestDeleteTransaction,
-  onEditTransaction,
   onViewTransaction,
   onViewTransactionDocuments,
 }: TransactionsPanelProps) {
@@ -103,6 +108,8 @@ function TransactionRows({
       transaction.quote_status ?? transaction.invoice_status
     const isSelectedBudget = transaction.select_as_budget
     const canToggleSelection = canToggleBudgetSelection(transaction)
+    const isUnretainedCandidate =
+      transaction.transaction_type !== 'invoice' && !isSelectedBudget
 
     return (
       <div
@@ -110,14 +117,17 @@ function TransactionRows({
         className={cn(
           transactionGridClass,
           'border-t border-border/40',
-          isSelectedBudget && 'bg-gold/10',
+          isUnretainedCandidate && 'text-muted-foreground',
         )}
       >
         <div className="px-1.5 py-2 whitespace-nowrap">
           {formatDate(transaction.issued_date)}
         </div>
         <div className="px-1.5 py-2 whitespace-nowrap">
-          <StatusBadge status={transaction.transaction_type} />
+          <StatusBadge
+            status={transaction.transaction_type}
+            dimmed={isUnretainedCandidate}
+          />
         </div>
         <div className="min-w-0 px-2 py-2 leading-snug wrap-break-words">
           {transaction.supplier_name ?? 'Autoconstruction'}
@@ -126,7 +136,12 @@ function TransactionRows({
           {formatCurrency(transaction.amount_ttc)}
         </div>
         <div className="px-3 py-2 whitespace-nowrap">
-          {financialStatus ? <StatusBadge status={financialStatus} /> : null}
+          {financialStatus ? (
+            <StatusBadge
+              status={financialStatus}
+              dimmed={isUnretainedCandidate}
+            />
+          ) : null}
         </div>
         <div className="px-3 py-2 whitespace-nowrap">
           {transaction.transaction_type ===
@@ -160,8 +175,27 @@ function TransactionRows({
             </button>
           )}
         </div>
-        <div className="px-1 py-2 text-center whitespace-nowrap">
-          <div className="inline-flex justify-center gap-1">
+        <div className="px-1 py-2 text-right whitespace-nowrap">
+          {/* Right-aligned so the rail keeps its position whether or not the
+              documents icon is there: a centred group would shift Voir and
+              Supprimer sideways on every row that has no attachment. */}
+          <div className="inline-flex justify-end gap-1">
+            {transaction.document_state === 'attached' ? (
+              <button
+                type="button"
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
+                onClick={() => onViewTransactionDocuments(transaction)}
+                aria-label={`Voir les ${transaction.document_count} documents de la transaction`}
+              >
+                {/* Stacked sheets say "more than one here" at a glance, the
+                    same signal ccig-app's CerfaButton uses. */}
+                {transaction.document_count > 1 ? (
+                  <Files className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <FileText className="h-4 w-4" aria-hidden="true" />
+                )}
+              </button>
+            ) : null}
             <button
               type="button"
               className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
@@ -177,53 +211,22 @@ function TransactionRows({
               <Eye className="h-4 w-4" aria-hidden="true" />
             </button>
             {readOnly ? null : (
-              <>
-                <button
-                  type="button"
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
-                  onClick={() =>
-                    onEditTransaction({
-                      budgetLine,
-                      product,
-                      transaction,
-                    })
-                  }
-                  aria-label="Modifier la transaction"
-                >
-                  <Edit3 className="h-4 w-4" aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() =>
-                    onRequestDeleteTransaction({
-                      budgetLine,
-                      product,
-                      transaction,
-                    })
-                  }
-                  aria-label="Supprimer la transaction"
-                >
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                </button>
-              </>
+              <button
+                type="button"
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                onClick={() =>
+                  onRequestDeleteTransaction({
+                    budgetLine,
+                    product,
+                    transaction,
+                  })
+                }
+                aria-label="Supprimer la transaction"
+              >
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+              </button>
             )}
           </div>
-        </div>
-        <div className="px-1 py-2 text-center whitespace-nowrap">
-          {transaction.document_state === 'attached' ? (
-            <button
-              type="button"
-              className="inline-flex h-6 items-center gap-1 rounded-md px-1 text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
-              onClick={() => onViewTransactionDocuments(transaction)}
-              aria-label={`Voir les ${transaction.document_count} documents de la transaction`}
-            >
-              <Paperclip className="h-4 w-4" aria-hidden="true" />
-              <span className="text-xs font-medium">
-                {transaction.document_count}
-              </span>
-            </button>
-          ) : null}
         </div>
       </div>
     )
@@ -362,11 +365,8 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
               <div className="px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase">
                 Budget
               </div>
-              <div className="px-1 py-2 text-center text-[11px] font-semibold text-muted-foreground uppercase">
+              <div className="px-1 py-2 text-right text-[11px] font-semibold text-muted-foreground uppercase">
                 Actions
-              </div>
-              <div className="px-1 py-2 text-center text-[11px] font-semibold text-muted-foreground uppercase">
-                Doc
               </div>
             </div>
 
@@ -393,6 +393,7 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
             <TransactionSectionDivider
               label="Dépenses réelles"
               totalTtc={invoicesTotalTtc}
+              spaced
             />
             {isLoadingApiRows ? (
               <TransactionPanelMessage message="Chargement des transactions" />
