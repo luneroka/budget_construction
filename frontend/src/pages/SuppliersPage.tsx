@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Copy, Eye, Mail, Plus } from 'lucide-react'
+import { Copy, FileText, Mail, Plus } from 'lucide-react'
 
 import { useDocumentsQuery } from '@/api/documents'
 import { getApiErrorMessage } from '@/api/client'
@@ -370,7 +370,7 @@ export function SuppliersPage() {
                 aria-label={`Voir le RIB de ${supplier.name}`}
                 onClick={() => void openRibViewer(rib)}
               >
-                <Eye aria-hidden />
+                <FileText aria-hidden />
               </Button>
             ) : null}
           </TableCell>
