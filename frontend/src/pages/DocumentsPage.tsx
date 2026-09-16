@@ -21,8 +21,14 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
 import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { PaginationFooter } from '@/components/shared/PaginationFooter'
 import { TableToolbar } from '@/components/shared/TableToolbar'
+import {
+  paginationPageSizeOptions,
+  usePagination,
+} from '@/components/shared/usePagination'
 import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -192,6 +198,19 @@ export function DocumentsPage() {
         .some((value) => String(value).toLowerCase().includes(normalizedSearch))
     })
   }, [documents, normalizedSearch])
+  const {
+    pageItems: paginatedDocuments,
+    pageSize,
+    setPageSize,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    pageStart,
+    totalCount,
+  } = usePagination(filteredDocuments, `${normalizedSearch}|${projectId}`)
+  const documentCountLabel = `${filteredDocuments.length} document${
+    filteredDocuments.length > 1 ? 's' : ''
+  }`
   const documentsError = documentsQuery.isError
     ? getApiErrorMessage(documentsQuery.error)
     : null
@@ -346,7 +365,7 @@ export function DocumentsPage() {
       )
     }
 
-    return filteredDocuments.map((document) => {
+    return paginatedDocuments.map((document) => {
       const isBusy = activeDocumentId === document.id
       const displayName = formatViewerTitle(document)
 
@@ -441,6 +460,23 @@ export function DocumentsPage() {
           searchValue={search}
           searchPlaceholder="Rechercher fichier, type, transaction..."
           onSearchChange={setSearch}
+          actions={
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="whitespace-nowrap">{documentCountLabel}</span>
+              <Select
+                className="h-9 w-24"
+                aria-label="Documents par page"
+                value={String(pageSize)}
+                onChange={(event) => setPageSize(Number(event.target.value))}
+              >
+                {paginationPageSizeOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option} / p.
+                  </option>
+                ))}
+              </Select>
+            </div>
+          }
         />
         {showRefreshState ? (
           <div className="border-b border-border px-4 py-2 text-xs text-muted-foreground">
@@ -459,6 +495,14 @@ export function DocumentsPage() {
           </TableHeader>
           <TableBody>{renderTableBody()}</TableBody>
         </Table>
+        <PaginationFooter
+          pageStart={pageStart}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
         {showEmptyState ? (
           <div className="border-t border-border px-5 py-8 text-center text-sm text-muted-foreground">
             {emptyStateMessage()}

@@ -27,7 +27,12 @@ import {
 import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { PaginationFooter } from '@/components/shared/PaginationFooter'
 import { TableToolbar } from '@/components/shared/TableToolbar'
+import {
+  paginationPageSizeOptions,
+  usePagination,
+} from '@/components/shared/usePagination'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
@@ -74,8 +79,6 @@ type SortState = {
   field: SortField
   direction: SortDirection
 }
-
-const pageSizeOptions = [25, 50, 100]
 
 function isQuickViewId(value: string | null): value is QuickViewId {
   return quickViews.some((view) => view.id === value)
@@ -208,8 +211,6 @@ export function TransactionsPage() {
     field: 'date',
     direction: 'desc',
   })
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(pageSizeOptions[0])
   const [transactionReview, setTransactionReview] =
     useState<TransactionReviewState | null>(null)
   const [transactionDelete, setTransactionDelete] =
@@ -323,19 +324,6 @@ export function TransactionsPage() {
   }, [transactionRows])
 
   useEffect(() => {
-    setCurrentPage(1)
-  }, [
-    activeQuickView,
-    categoryFilter,
-    dateFilter,
-    normalizedSearch,
-    pageSize,
-    projectId,
-    supplierFilter,
-    typeFilter,
-  ])
-
-  useEffect(() => {
     const nextQuickView = isQuickViewId(quickViewParam) ? quickViewParam : 'all'
 
     if (nextQuickView !== activeQuickView) {
@@ -356,10 +344,19 @@ export function TransactionsPage() {
     })
   }
 
-  const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize))
-  const safeCurrentPage = Math.min(currentPage, totalPages)
-  const pageStart = (safeCurrentPage - 1) * pageSize
-  const paginatedRows = sortedRows.slice(pageStart, pageStart + pageSize)
+  const {
+    pageItems: paginatedRows,
+    pageSize,
+    setPageSize,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    pageStart,
+    totalCount,
+  } = usePagination(
+    sortedRows,
+    `${activeQuickView}|${categoryFilter}|${dateFilter}|${normalizedSearch}|${projectId}|${supplierFilter}|${typeFilter}`,
+  )
   const pageError =
     projectQuery.error ??
     transactionsQuery.error ??
@@ -723,7 +720,7 @@ export function TransactionsPage() {
                 value={String(pageSize)}
                 onChange={(event) => setPageSize(Number(event.target.value))}
               >
-                {pageSizeOptions.map((option) => (
+                {paginationPageSizeOptions.map((option) => (
                   <option key={option} value={option}>
                     {option} / p.
                   </option>
@@ -764,35 +761,14 @@ export function TransactionsPage() {
           </TableHeader>
           <TableBody>{renderTableBody()}</TableBody>
         </Table>
-        {sortedRows.length > pageSize ? (
-          <div className="flex flex-col gap-3 border-t border-border px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <span>
-              {pageStart + 1}-
-              {Math.min(pageStart + pageSize, sortedRows.length)} sur{' '}
-              {sortedRows.length}
-            </span>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={safeCurrentPage <= 1}
-                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-              >
-                Précédent
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={safeCurrentPage >= totalPages}
-                onClick={() =>
-                  setCurrentPage((page) => Math.min(totalPages, page + 1))
-                }
-              >
-                Suivant
-              </Button>
-            </div>
-          </div>
-        ) : null}
+        <PaginationFooter
+          pageStart={pageStart}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {project && transactionReview ? (
