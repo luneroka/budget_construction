@@ -1,12 +1,17 @@
 services:
   db:
-    image: postgres:15-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # From 18 the image keeps PGDATA at /var/lib/postgresql/18/docker and
+      # declares its volume at /var/lib/postgresql: mount there, or the data
+      # lands in an anonymous volume instead of this named one. A new name
+      # (was postgres_data, PostgreSQL 15), which is deliberately no longer
+      # declared below: it survives `down -v` and stays the rollback target.
+      - postgres18_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
@@ -141,7 +146,7 @@ services:
         max-file: "3"
 
 volumes:
-  postgres_data:
+  postgres18_data:
   frontend_assets:
   caddy_data:
   caddy_config:

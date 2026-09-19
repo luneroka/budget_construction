@@ -43,15 +43,19 @@ services:
       - db
 
   db:
-    image: postgres:15
+    image: postgres:18
     env_file: .env
     ports:
       - '5434:5432'
     volumes:
-      - db_data:/var/lib/postgresql/data
+      # From 18 the image keeps PGDATA at /var/lib/postgresql/18/docker and
+      # declares its volume at /var/lib/postgresql: mount there, or the data
+      # lands in an anonymous volume instead of this named one. A new name
+      # (was db_data, PostgreSQL 15) so the old cluster stays intact.
+      - db18_data:/var/lib/postgresql
 
   db-test:
-    image: postgres:15
+    image: postgres:18
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -59,8 +63,8 @@ services:
     ports:
       - '5435:5432'
     tmpfs:
-      - /var/lib/postgresql/data
+      - /var/lib/postgresql
 
 volumes:
-  db_data:
+  db18_data:
   backend_venv:

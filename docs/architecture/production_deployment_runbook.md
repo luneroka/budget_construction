@@ -528,6 +528,51 @@ curl -sI https://batibudget.com/ | grep -iE "content-security|cross-origin|cache
 A bad file is harmless until the restart: the running Caddy keeps its loaded
 config, so a failed validation just means "fix and pull again".
 
+### One-time: PostgreSQL 15 → 18
+
+A major version changes the on-disk format, so this is a dump and restore, not
+a tag bump. The 18 image also moved its data path: `PGDATA` is now
+`/var/lib/postgresql/18/docker` and the volume is declared at
+`/var/lib/postgresql`, which is why 18 runs on a **new** volume,
+`postgres18_data`. The PostgreSQL 15 volume, `postgres_data`, is left exactly as
+it was and is no longer declared in the compose file, so `down -v` cannot remove
+it: it is the rollback target.
+
+A plain deploy of the 18 revision is safe to attempt by mistake: `db` would
+start empty, and `migrate` refuses to build a schema over a database that has
+never been migrated (`ALEMBIC_REFUSE_EMPTY_DATABASE`, see
+`backend/alembic/env.py`), so the backend never starts and nothing is served.
+
+```sh
+cd ~/budget_construction
+C="docker compose --env-file .env.production -f docker-compose.prod.yml"
+
+# 1. Rollback point. Stop the API first so nothing writes after the backup.
+git rev-parse HEAD | tee ~/last-deploy-revision.txt
+$C stop backend
+
+# 2. Final PostgreSQL 15 backup: this exact file is what gets restored.
+./scripts/backup_db.sh           # note backups/db-<timestamp>.sql.gz.enc
+
+# 3. Switch to the 18 revision and start only the new, empty db.
+git pull origin main
+$C up -d db
+
+# 4. Restore, then recreate the API role: the backup carries no privileges.
+#    APP_DB_PASSWORD is the password in DATABASE_URL (URL-decoded).
+scripts/restore_db.sh backups/db-<timestamp>.sql.gz.enc --yes
+APP_DB_PASSWORD='...' scripts/create_db_app_role.sh
+
+# 5. Check row counts against step 2, then bring everything up as usual.
+$C up -d --build --pull always
+```
+
+Rollback: `git checkout "$(cat ~/last-deploy-revision.txt)"` then
+`$C up -d --build`. That brings PostgreSQL 15 back on the untouched
+`postgres_data`, and nothing is lost because the API was stopped before the
+backup. Once 18 has run cleanly for a while, `docker volume rm
+budget_construction_postgres_data` reclaims the space.
+
 ## Rollback
 
 Code-only rollback (the common case — a bad application revision, database
@@ -707,7 +752,7 @@ API if preferred.
 ### Restore procedure
 
 To restore a backup into a database, use `scripts/restore_db.sh`. For a real
-recovery you restore into a **fresh, empty** database (a new `postgres_data`
+recovery you restore into a **fresh, empty** database (a new `postgres18_data`
 volume), then bring the app up against it.
 
 ```sh
@@ -797,7 +842,9 @@ restore path proven against production data.
 in named volumes, serves the React build from the `frontend_assets` volume, and
 forwards `/api/*` to the internal FastAPI service after removing `/api`.
 
-`db` stores PostgreSQL data in `postgres_data` and must pass `pg_isready`.
+`db` runs PostgreSQL 18 and stores its data in `postgres18_data`, mounted at
+`/var/lib/postgresql` (the 18 image keeps `PGDATA` at
+`/var/lib/postgresql/18/docker` under it). It must pass `pg_isready`.
 `migrate` runs `alembic upgrade head` exactly once after that check; `backend`
 starts only after it succeeds and exposes liveness/readiness checks for Caddy
 and operations. The backend connects outward to R2 and Resend over HTTPS.
