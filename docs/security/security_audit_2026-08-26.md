@@ -87,7 +87,7 @@ Caddyfile once a week of Report-Only shows no legitimate violations
 | S-14 | Issue-report attachments | ✅ Fixed — content sniffed against the PNG/JPEG/PDF/HEIC allow-list, 20 MB total cap, 5 000-char description | Deploy WP-1 |
 | S-15 | Access tokens survive password reset | ✅ Fixed — tokens carry a password-hash marker checked on every request | Deploy WP-1 |
 | S-16 | Container hardening | ✅ Fixed — `no-new-privileges` on every service, `cap_drop: ALL` (+`NET_BIND_SERVICE` for Caddy only), read-only rootfs + tmpfs `/tmp` for backend/migrate; `--pull` on deploy | Deploy WP-1 (`up -d --build --pull always`) |
-| S-17 | Least-privilege DB role | ✅ Tooling merged — `scripts/create_db_app_role.sh` + `MIGRATIONS_DATABASE_URL` split; opt-in | Manual: run the script, edit `.env.production`, `up -d` (section 5, "Least-privilege database role") |
+| S-17 | Least-privilege DB role | ⚠️ Tooling merged but **could not run until 2026-09-19**: psql never interpolated the variables inside the script's `DO $$` blocks. Fixed and rehearsed on PostgreSQL 18 that day. **Still not activated**: production connects as the superuser. Opt-in — Manual: run the script, edit `.env.production`, `up -d` (section 5, "Least-privilege database role") |
 | S-18 | CORS tightening | ✅ Fixed — explicit method/header allow-lists | Deploy WP-1 |
 | S-19 | Refresh-cookie path | ✅ Fixed — cookie scoped to `REFRESH_COOKIE_PATH` (`/api/auth` in prod); legacy `/` cookie expired on every write | Deploy WP-1 (`up -d` picks up the compose env) |
 | S-20 | Dependency automation | ✅ Fixed — Dependabot (uv, npm, actions, docker, compose) + weekly/PR `pip-audit` and `npm audit` workflow | — |

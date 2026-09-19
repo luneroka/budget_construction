@@ -558,14 +558,24 @@ $C stop backend
 git pull origin main
 $C up -d db
 
-# 4. Restore, then recreate the API role: the backup carries no privileges.
-#    APP_DB_PASSWORD is the password in DATABASE_URL (URL-decoded).
+# 4. Restore. The backup carries no roles or privileges, so only if the API
+#    connects as the least-privilege role (DATABASE_URL user != POSTGRES_USER)
+#    recreate it; the superuser itself is created by the image on first start.
 scripts/restore_db.sh backups/db-<timestamp>.sql.gz.enc --yes
-APP_DB_PASSWORD='...' scripts/create_db_app_role.sh
+# APP_DB_PASSWORD='<password in DATABASE_URL, URL-decoded>' scripts/create_db_app_role.sh
 
 # 5. Check row counts against step 2, then bring everything up as usual.
 $C up -d --build --pull always
 ```
+
+**Done 2026-09-19**, 2571eef → f28850b. The API was down for about 94 seconds
+(images were pre-built with `$C build` while the site was still up, so the
+window covered only the backup, restore and restart). A row-count and object
+snapshot taken after stopping the API matched exactly on 18: 15 tables, 516
+rows, 6 analytics views, 14 sequences, 62 indexes, same alembic head, and every
+sequence at or past its column's max. The API connects as the superuser, so
+step 4's role script was not needed. Rehearsed on dev first, where it also
+surfaced the broken `create_db_app_role.sh` (fixed in 39e96e1).
 
 Rollback: `git checkout "$(cat ~/last-deploy-revision.txt)"` then
 `$C up -d --build`. That brings PostgreSQL 15 back on the untouched
