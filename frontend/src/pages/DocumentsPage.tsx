@@ -76,7 +76,7 @@ function formatDocumentDisplayName(document: DocumentsListItem): string {
   }
 
   const typeLabel = documentTransactionTypeLabels[document.transaction_type]
-  const supplier = document.supplier_name ?? 'Autoconstruction'
+  const supplier = document.supplier_name
   const amount = document.amount_ttc
     ? formatCurrency(Number(document.amount_ttc))
     : null
@@ -389,7 +389,7 @@ export function DocumentsPage() {
             />
           </TableCell>
           <TableCell className="font-medium whitespace-nowrap">
-            {document.supplier_name ?? 'Autoconstruction'}
+            {document.supplier_name}
           </TableCell>
           <TableCell className="whitespace-nowrap">
             {formatDate(document.created_at)}

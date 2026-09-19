@@ -301,11 +301,11 @@ export function TransactionsPage() {
   )
   const supplierOptions = useMemo(() => {
     const options = new Map<string, string>()
-    let hasAutoconstruction = false
+    let hasNoSupplier = false
 
     transactionRows.forEach((row) => {
       if (row.transaction.supplier_id === null) {
-        hasAutoconstruction = true
+        hasNoSupplier = true
       } else {
         options.set(
           row.transaction.supplier_id,
@@ -315,7 +315,7 @@ export function TransactionsPage() {
     })
 
     return {
-      hasAutoconstruction,
+      hasNoSupplier,
       suppliers: [...options.entries()].sort((left, right) =>
         left[1].localeCompare(right[1], 'fr'),
       ),
@@ -397,11 +397,14 @@ export function TransactionsPage() {
   function formatTransactionContextLabel(context: ViewedTransactionContext) {
     const typeLabel =
       transactionTypeLabels[context.transaction.transaction_type]
-    const supplier = context.transaction.supplier_name ?? 'Autoconstruction'
-
-    return `${typeLabel} • ${context.product.category_name} • ${supplier} • ${formatCurrency(
-      context.transaction.amount_ttc,
-    )}`
+    return [
+      typeLabel,
+      context.product.category_name,
+      context.transaction.supplier_name,
+      formatCurrency(context.transaction.amount_ttc),
+    ]
+      .filter(Boolean)
+      .join(' • ')
   }
 
   async function openTransactionDocumentsViewer(
@@ -473,7 +476,7 @@ export function TransactionsPage() {
             <StatusBadge status={transaction.transaction_type} />
           </TableCell>
           <TableCell className="min-w-40 font-medium">
-            {transaction.supplier_name ?? 'Autoconstruction'}
+            {transaction.supplier_name}
           </TableCell>
           <TableCell className="min-w-44">{product.category_name}</TableCell>
           <TableCell className="min-w-44">
@@ -627,8 +630,8 @@ export function TransactionsPage() {
               onChange={(event) => setSupplierFilter(event.target.value)}
             >
               <option value="all">Tous les fournisseurs</option>
-              {supplierOptions.hasAutoconstruction ? (
-                <option value="none">Autoconstruction</option>
+              {supplierOptions.hasNoSupplier ? (
+                <option value="none">Sans fournisseur</option>
               ) : null}
               {supplierOptions.suppliers.map(([supplierId, supplierName]) => (
                 <option key={supplierId} value={supplierId}>

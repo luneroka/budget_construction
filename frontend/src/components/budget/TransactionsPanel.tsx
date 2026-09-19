@@ -130,7 +130,7 @@ function TransactionRows({
           />
         </div>
         <div className="min-w-0 px-2 py-2 leading-snug wrap-break-word">
-          {transaction.supplier_name ?? 'Autoconstruction'}
+          {transaction.supplier_name}
         </div>
         <div className="px-3 py-2 text-right font-medium whitespace-nowrap">
           {formatCurrency(transaction.amount_ttc)}

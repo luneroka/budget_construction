@@ -62,17 +62,18 @@ const permanentDeleteDescription =
 function itemContext(item: TrashItemRead): string {
   if (item.type === 'transaction') {
     return [
-      item.supplier_name ?? 'Autoconstruction',
+      item.supplier_name,
       item.product_name,
       formatCurrency(Number(item.amount_ttc)),
-    ].join(' · ')
+    ]
+      .filter(Boolean)
+      .join(' · ')
   }
 
   if (item.type === 'document') {
-    return [
-      item.transaction_name,
-      item.supplier_name ?? 'Autoconstruction',
-    ].join(' · ')
+    return [item.transaction_name, item.supplier_name]
+      .filter(Boolean)
+      .join(' · ')
   }
 
   if (item.type === 'supplier_document') {

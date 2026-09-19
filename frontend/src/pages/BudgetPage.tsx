@@ -92,7 +92,7 @@ export function BudgetPage() {
   function formatTransactionDocumentTitle(transaction: Transaction): string {
     const typeLabel =
       transactionDocumentTypeLabels[transaction.transaction_type]
-    const supplier = transaction.supplier_name ?? 'Autoconstruction'
+    const supplier = transaction.supplier_name
     const amount = Number.isFinite(transaction.amount_ttc)
       ? formatCurrency(transaction.amount_ttc)
       : null

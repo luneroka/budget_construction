@@ -8,6 +8,7 @@ import {
 import { getApiErrorMessage } from '@/api/client'
 import { trashQueryKeys } from '@/api/trash'
 import { useDeleteBudgetLineTransactionMutation } from '@/api/transactions'
+import { transactionTypeLabels } from '@/components/budget/transaction-form/transactionForm'
 import type { TransactionDeleteState } from '@/components/budget/types'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
 import { formatCurrency, formatDate } from '@/lib/format'
@@ -82,7 +83,8 @@ export function DeleteTransactionDialog({
       onConfirm={handleConfirm}
     >
       <p className="font-medium text-foreground">
-        {transaction.supplier_name ?? 'Autoconstruction'}
+        {transaction.supplier_name ??
+          transactionTypeLabels[transaction.transaction_type]}
       </p>
       <p className="mt-1 text-muted-foreground">{budgetContextLabel}</p>
       <p className="mt-1 text-muted-foreground">

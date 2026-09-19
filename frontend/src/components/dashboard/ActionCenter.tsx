@@ -97,8 +97,9 @@ export function TransactionWidgetContent({
                 {transactionItemTitle(item)}
               </p>
               <p className="mt-1 truncate text-xs text-muted-foreground">
-                {item.supplier_name ?? 'Autoconstruction'} ·{' '}
-                {item.category_name}
+                {[item.supplier_name, item.category_name]
+                  .filter(Boolean)
+                  .join(' · ')}
               </p>
             </div>
             <div className="text-right">

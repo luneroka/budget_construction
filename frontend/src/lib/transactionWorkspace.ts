@@ -91,7 +91,7 @@ function buildSearchText({
   documentFilenames,
 }: TransactionWorkspaceRow) {
   return [
-    transaction.supplier_name ?? 'Autoconstruction',
+    transaction.supplier_name ?? '',
     product.category_name,
     product.product_name,
     budgetLine.name,
