@@ -559,14 +559,10 @@ export function TransactionsPage() {
             <Button
               key={view.id}
               variant={isActive ? 'gold' : 'outline'}
-              className="text-xs"
               onClick={() => selectQuickView(view.id)}
             >
               {view.label}
-              <Badge
-                variant={isActive ? 'default' : 'muted'}
-                className="text-[10px] leading-4"
-              >
+              <Badge variant={isActive ? 'default' : 'muted'}>
                 {quickViewCounts[view.id] ?? 0}
               </Badge>
             </Button>
@@ -585,7 +581,6 @@ export function TransactionsPage() {
             </label>
             <Select
               id="transactions-type-filter"
-              className="text-xs"
               value={typeFilter}
               onChange={(event) =>
                 setTypeFilter(event.target.value as TransactionTypeFilter)
@@ -608,7 +603,6 @@ export function TransactionsPage() {
             </label>
             <Select
               id="transactions-category-filter"
-              className="text-xs"
               value={categoryFilter}
               onChange={(event) => setCategoryFilter(event.target.value)}
             >
@@ -629,7 +623,6 @@ export function TransactionsPage() {
             </label>
             <Select
               id="transactions-supplier-filter"
-              className="text-xs"
               value={supplierFilter}
               onChange={(event) => setSupplierFilter(event.target.value)}
             >
@@ -653,7 +646,6 @@ export function TransactionsPage() {
             </label>
             <Select
               id="transactions-date-filter"
-              className="text-xs"
               value={dateFilter}
               onChange={(event) =>
                 setDateFilter(event.target.value as DateFilter)

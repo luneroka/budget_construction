@@ -58,7 +58,7 @@ export function ContactOwnerDialog() {
     <>
       <button
         type="button"
-        className="mt-6 block w-full text-center text-sm text-muted-foreground underline-offset-4 hover:text-accent hover:underline"
+        className="mt-6 block w-full text-center text-base text-muted-foreground underline-offset-4 hover:text-accent hover:underline"
         onClick={() => setIsOpen(true)}
       >
         Vous souhaitez essayer l’application&nbsp;? <br />

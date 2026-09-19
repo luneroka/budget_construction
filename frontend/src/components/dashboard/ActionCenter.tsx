@@ -38,12 +38,7 @@ export function ActionCenterWidget({
         </Badge>
       ) : null}
       {showActionButton ? (
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={!onViewAll}
-          onClick={onViewAll}
-        >
+        <Button variant="outline" disabled={!onViewAll} onClick={onViewAll}>
           Voir tout
         </Button>
       ) : null}

@@ -388,7 +388,6 @@ export function ProjectsSettingsPage() {
           <div className="flex items-center justify-between gap-3">
             <Button
               variant="outline"
-              size="sm"
               onClick={() => setSelectedSettingsProjectId(null)}
             >
               <ArrowLeft aria-hidden />
@@ -396,7 +395,6 @@ export function ProjectsSettingsPage() {
             </Button>
             <Button
               variant="outline"
-              size="sm"
               disabled={isEditingProjectInfo || updateProjectMutation.isPending}
               onClick={() => setIsEditingProjectInfo(true)}
             >
@@ -594,7 +592,6 @@ export function ProjectsSettingsPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    size="sm"
                     disabled={updateProjectMutation.isPending}
                     onClick={handleCancelEdit}
                   >
@@ -603,7 +600,6 @@ export function ProjectsSettingsPage() {
                   {hasChanges ? (
                     <Button
                       type="submit"
-                      size="sm"
                       disabled={updateProjectMutation.isPending}
                     >
                       {updateProjectMutation.isPending ? (
@@ -703,7 +699,6 @@ export function ProjectsSettingsPage() {
                   </div>
                   <Button
                     variant="destructive"
-                    size="sm"
                     className="w-full"
                     onClick={() => setShowDeleteDialog(true)}
                   >
@@ -802,12 +797,7 @@ function DangerAction({
         </div>
         <p className="mt-1 text-sm text-muted-foreground">{description}</p>
       </div>
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full"
-        disabled={disabled}
-      >
+      <Button variant="outline" className="w-full" disabled={disabled}>
         Indisponible
       </Button>
     </div>

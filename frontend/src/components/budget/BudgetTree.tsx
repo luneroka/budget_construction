@@ -403,7 +403,7 @@ export function BudgetTree({
         <button
           type="button"
           className={cn(
-            'rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
+            'h-10 rounded-full border px-3 text-base font-normal transition-colors',
             selectedSubcategoryName === ALL_SUBCATEGORIES_ID
               ? 'border-primary bg-primary text-primary-foreground'
               : 'border-border bg-card text-muted-foreground hover:border-primary/60 hover:text-primary',
@@ -418,7 +418,7 @@ export function BudgetTree({
             key={group.name}
             type="button"
             className={cn(
-              'rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
+              'h-10 rounded-full border px-3 text-base font-normal transition-colors',
               selectedSubcategoryName === group.name
                 ? 'border-primary bg-primary text-primary-foreground'
                 : 'border-border bg-card text-muted-foreground hover:border-primary/60 hover:text-primary',
