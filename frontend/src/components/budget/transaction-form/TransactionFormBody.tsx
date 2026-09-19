@@ -66,10 +66,10 @@ export function TransactionFormBody({
   form,
   suppliers,
   disabled,
-  autoFocusAmount,
   detailsOpenByDefault,
   budgetSelection,
   documents,
+  documentsFirst,
   footnote,
   onFieldChange,
   onQuoteStatusChange,
@@ -82,12 +82,12 @@ export function TransactionFormBody({
   form: TransactionBodyForm
   suppliers: Supplier[]
   disabled?: boolean
-  /** Puts the cursor in the amount, for a transaction being created. */
-  autoFocusAmount?: boolean
   detailsOpenByDefault?: boolean
   /** The "sélectionner pour le calcul du budget" row, for quotes and estimates. */
   budgetSelection?: ReactNode
   documents: ReactNode
+  /** Puts the document first instead of under "Plus de détails". */
+  documentsFirst?: boolean
   footnote?: ReactNode
   onFieldChange: (key: TransactionTextField, value: string) => void
   onQuoteStatusChange: (status: QuoteStatus) => void
@@ -102,11 +102,12 @@ export function TransactionFormBody({
 
   return (
     <div className="space-y-5">
+      {documentsFirst ? documents : null}
+
       <TtcAmountField
         idPrefix={idPrefix}
         form={form}
         disabled={disabled}
-        autoFocus={autoFocusAmount}
         onChange={onFieldChange}
       />
 
@@ -257,7 +258,7 @@ export function TransactionFormBody({
             }
           />
         </Field>
-        {documents}
+        {documentsFirst ? null : documents}
         {footnote}
       </DetailsDisclosure>
     </div>

@@ -1,5 +1,5 @@
 import { type ReactNode, useId, useState } from 'react'
-import { ChevronDown, Paperclip } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 
 import { AmountInput } from '@/components/ui/amount-input'
 import { Button } from '@/components/ui/button'
@@ -71,13 +71,11 @@ export function TtcAmountField({
   idPrefix,
   form,
   disabled,
-  autoFocus,
   onChange,
 }: {
   idPrefix: string
   form: AmountFields
   disabled?: boolean
-  autoFocus?: boolean
   onChange: (
     key: 'amount_ttc' | 'amount_ht' | 'vat_rate',
     value: string,
@@ -117,7 +115,6 @@ export function TtcAmountField({
           placeholder={`0${AMOUNT_GROUP_SEPARATOR}000,00`}
           required
           disabled={disabled}
-          autoFocus={autoFocus}
           value={form.amount_ttc}
           onValueChange={(value) => onChange('amount_ttc', value)}
           className="h-12 pr-10 text-2xl font-medium tabular-nums"
@@ -204,36 +201,26 @@ export function TtcAmountField({
 export function BudgetSelectionRow({
   checked,
   disabled,
-  hint,
   onChange,
 }: {
   checked: boolean
   disabled?: boolean
-  hint?: string
   onChange: (checked: boolean) => void
 }) {
   return (
     <label
       className={cn(
-        'flex items-start gap-3 rounded-md border border-border px-3 py-2.5 text-sm',
+        'flex items-center gap-3 rounded-md border border-border px-3 py-2.5 text-sm',
         disabled ? 'cursor-not-allowed bg-muted/30' : 'cursor-pointer',
       )}
     >
       <Checkbox
-        className="mt-0.5"
         checked={checked}
         disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
       />
-      <span>
-        <span className="block font-medium text-foreground">
-          Sélectionner pour le calcul du budget
-        </span>
-        {hint ? (
-          <span className="mt-0.5 block text-xs text-muted-foreground">
-            {hint}
-          </span>
-        ) : null}
+      <span className="font-medium text-foreground">
+        Sélectionner pour le calcul du budget
       </span>
     </label>
   )
@@ -310,18 +297,21 @@ export function NewTransactionDocumentField({
   onFileChange: (file: File | null) => void
   onClear: () => void
 }) {
+  // A field like the others: its label, then the picker, or the picked file
+  // with a way to take it back.
   return (
-    <div className="space-y-2 rounded-md border border-border bg-background p-3">
-      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-        <Paperclip className="h-4 w-4 text-muted-foreground" aria-hidden />
-        Document
-      </div>
-      <FilePickerButton
-        accept={documentInputAccept}
-        disabled={disabled}
-        onSelect={onFileChange}
-      />
-      {file ? <SelectedDocumentPreview file={file} onClear={onClear} /> : null}
-    </div>
+    <FieldGroup label="Document">
+      {() =>
+        file ? (
+          <SelectedDocumentPreview file={file} onClear={onClear} />
+        ) : (
+          <FilePickerButton
+            accept={documentInputAccept}
+            disabled={disabled}
+            onSelect={onFileChange}
+          />
+        )
+      }
+    </FieldGroup>
   )
 }

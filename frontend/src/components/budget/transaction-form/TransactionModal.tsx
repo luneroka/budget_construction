@@ -105,8 +105,6 @@ export function TransactionModal({
         transaction.select_as_budget,
     ) ?? false
   const retainByDefault = !lineHasRetainedBudget
-  const lineScope =
-    budgetLine?.item_type === 'breakdown' ? 'ce sous-produit' : 'ce produit'
   const { form, setForm, updateField } = useTransactionAmountForm(
     () =>
       createInitialFormState({
@@ -279,7 +277,12 @@ export function TransactionModal({
           transactionType={transactionType}
           form={form}
           suppliers={suppliers}
-          autoFocusAmount
+          // A quote or an invoice arrives as a document: attaching it comes
+          // first. A self-built estimate rarely has one, so it waits under
+          // "Plus de détails", unless a file was already picked.
+          documentsFirst={
+            transactionType !== 'diy_estimate' || documentFile !== null
+          }
           budgetSelection={
             <BudgetSelectionRow
               checked={
@@ -287,13 +290,6 @@ export function TransactionModal({
                 form.select_as_budget
               }
               disabled={!canSelectCreatedTransactionAsBudget(form)}
-              hint={
-                !canSelectCreatedTransactionAsBudget(form)
-                  ? 'Un devis rejeté ne peut pas être sélectionné.'
-                  : lineHasRetainedBudget
-                    ? `Son montant s’ajoutera aux transactions déjà sélectionnées pour ${lineScope}.`
-                    : `Aucune transaction n’est encore sélectionnée pour ${lineScope}.`
-              }
               onChange={(checked) => updateField('select_as_budget', checked)}
             />
           }

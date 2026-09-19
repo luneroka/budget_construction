@@ -251,11 +251,6 @@ export function TransactionReviewModal({
               <BudgetSelectionRow
                 checked={localIsBudgetSelected}
                 disabled={isBudgetSelectionDisabled}
-                hint={
-                  isQuote && form.quote_status === 'rejected'
-                    ? 'Un devis rejeté ne peut pas être sélectionné.'
-                    : undefined
-                }
                 onChange={() => void handleBudgetSelectionToggle()}
               />
             }
