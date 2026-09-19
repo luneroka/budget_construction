@@ -6,7 +6,7 @@ FROM ghcr.io/astral-sh/uv:debian-slim AS development
 
 WORKDIR /app
 
-COPY pyproject.toml uv.lock /app/
+COPY pyproject.toml uv.lock .python-version /app/
 
 RUN uv sync --locked --no-install-project
 
@@ -24,9 +24,13 @@ FROM ghcr.io/astral-sh/uv:debian-slim AS production
 
 WORKDIR /app
 
-COPY pyproject.toml uv.lock /app/
+COPY pyproject.toml uv.lock .python-version /app/
 
 ENV UV_PYTHON_INSTALL_DIR=/app/.uv-python
+
+# .python-version is copied with the lockfile above: without it uv picks the
+# newest interpreter requires-python allows, so production silently ran 3.14
+# while dev and CI tested 3.12 (both of which read the file).
 
 RUN groupadd --system app && useradd --system --gid app --home-dir /app app \
     && uv sync --locked --no-dev --no-install-project
