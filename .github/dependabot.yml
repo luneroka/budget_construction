@@ -30,3 +30,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # A Postgres major upgrade changes the on-disk format: a new server will
+      # not start on the old data volume. That needs a dump/restore, not a tag
+      # bump, so majors are done by hand. Minor/patch updates still come in.
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
