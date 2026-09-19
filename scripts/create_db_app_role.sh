@@ -54,18 +54,15 @@ docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T \
   sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
            -v app_user="$APP_DB_USER" -v app_password="$APP_DB_PASSWORD" \
            -v db_name="$POSTGRES_DB" -v owner="$POSTGRES_USER"' <<'SQL'
+-- psql never substitutes :'var' inside a dollar-quoted body (DO $$ ... $$ is a
+-- string literal to it), so conditional DDL is built as plain SQL and run
+-- with \gexec: a SELECT that yields zero rows executes nothing.
+
 -- Role: login only, no superuser/createdb/createrole, no inheritance games.
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'app_user') THEN
-    EXECUTE format('CREATE ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT',
-                   :'app_user', :'app_password');
-  ELSE
-    EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE',
-                   :'app_user', :'app_password');
-  END IF;
-END
-$$;
+SELECT format('CREATE ROLE %I NOINHERIT', :'app_user')
+WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'app_user') \gexec
+SELECT format('ALTER ROLE %I WITH LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE',
+              :'app_user', :'app_password') \gexec
 
 GRANT CONNECT ON DATABASE :"db_name" TO :"app_user";
 GRANT USAGE ON SCHEMA public TO :"app_user";
@@ -77,16 +74,13 @@ ALTER DEFAULT PRIVILEGES FOR ROLE :"owner" IN SCHEMA public
   GRANT USAGE, SELECT ON SEQUENCES TO :"app_user";
 
 -- Analytics views (read-only by nature; created by a migration).
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'analytics') THEN
-    EXECUTE format('GRANT USAGE ON SCHEMA analytics TO %I', :'app_user');
-    EXECUTE format('GRANT SELECT ON ALL TABLES IN SCHEMA analytics TO %I', :'app_user');
-    EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA analytics GRANT SELECT ON TABLES TO %I',
-                   :'owner', :'app_user');
-  END IF;
-END
-$$;
+SELECT format('GRANT USAGE ON SCHEMA analytics TO %I', :'app_user')
+WHERE EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'analytics') \gexec
+SELECT format('GRANT SELECT ON ALL TABLES IN SCHEMA analytics TO %I', :'app_user')
+WHERE EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'analytics') \gexec
+SELECT format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA analytics GRANT SELECT ON TABLES TO %I',
+              :'owner', :'app_user')
+WHERE EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'analytics') \gexec
 SQL
 
 log "done. Now point DATABASE_URL at '$APP_DB_USER' and keep the superuser URL in MIGRATIONS_DATABASE_URL (see script header)."
