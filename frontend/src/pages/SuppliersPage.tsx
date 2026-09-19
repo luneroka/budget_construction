@@ -415,7 +415,7 @@ export function SuppliersPage() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span className="whitespace-nowrap">{supplierCountLabel}</span>
               <Select
-                className="h-9 w-24"
+                className="w-24"
                 aria-label="Fournisseurs par page"
                 value={String(pageSize)}
                 onChange={(event) => setPageSize(Number(event.target.value))}

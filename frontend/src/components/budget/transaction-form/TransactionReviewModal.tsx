@@ -212,7 +212,6 @@ export function TransactionReviewModal({
         headerActions={
           isEditing || readOnly ? null : (
             <Button
-              size="sm"
               variant="outline"
               type="button"
               onClick={() => setIsEditing(true)}
@@ -283,7 +282,7 @@ export function TransactionReviewModal({
               >
                 <Input
                   id="review-transaction-issued-date"
-                  className="h-9 text-sm"
+                  className="text-sm"
                   type={isEditing ? 'date' : 'text'}
                   value={
                     isEditing
@@ -302,7 +301,7 @@ export function TransactionReviewModal({
                 {isEditing ? (
                   <SupplierSelectField
                     id="review-transaction-supplier"
-                    className="h-9 text-sm"
+                    className="text-sm"
                     value={form.supplier_id}
                     suppliers={suppliers}
                     onChange={(supplierId) =>
@@ -312,18 +311,20 @@ export function TransactionReviewModal({
                 ) : (
                   <Input
                     id="review-transaction-supplier"
-                    className="h-9 text-sm"
+                    className="text-sm"
                     value={transaction.supplier_name ?? selectedSupplierName}
                     readOnly
                     disabled
                   />
                 )}
               </Field>
-              <div>
-                <p className="text-xs font-medium">Type</p>
+              <div className="space-y-1.5">
+                <span className="text-sm font-medium leading-none text-foreground">
+                  Type
+                </span>
                 <div
                   className={cn(
-                    'mt-1 flex h-9 items-center rounded-md border border-input bg-muted/30 px-3',
+                    'flex h-10 items-center rounded-md border border-input bg-muted/30 px-3',
                     !isEditing && 'cursor-not-allowed',
                   )}
                 >
@@ -337,7 +338,7 @@ export function TransactionReviewModal({
                 {isEditing && isQuote ? (
                   <Select
                     id="review-transaction-status"
-                    className="h-9 text-sm"
+                    className="text-sm"
                     value={form.quote_status}
                     onChange={(event) =>
                       updateField(
@@ -355,7 +356,7 @@ export function TransactionReviewModal({
                 ) : isEditing && isInvoice ? (
                   <Select
                     id="review-transaction-status"
-                    className="h-9 text-sm"
+                    className="text-sm"
                     value={form.invoice_status}
                     onChange={(event) =>
                       updateInvoiceStatus(event.target.value as InvoiceStatus)
@@ -372,7 +373,7 @@ export function TransactionReviewModal({
                 ) : (
                   <div
                     className={cn(
-                      'flex h-9 items-center rounded-md border border-input bg-muted/30 px-3',
+                      'flex h-10 items-center rounded-md border border-input bg-muted/30 px-3',
                       !isEditing && 'cursor-not-allowed',
                     )}
                   >
@@ -388,7 +389,7 @@ export function TransactionReviewModal({
               <Field label="Montant HT" htmlFor="review-transaction-amount-ht">
                 <Input
                   id="review-transaction-amount-ht"
-                  className="h-9 text-sm"
+                  className="text-sm"
                   type={isEditing ? 'number' : 'text'}
                   min="0"
                   step="0.01"
@@ -408,7 +409,7 @@ export function TransactionReviewModal({
               <Field label="TVA" htmlFor="review-transaction-vat-rate">
                 <Input
                   id="review-transaction-vat-rate"
-                  className="h-9 text-sm"
+                  className="text-sm"
                   type={isEditing ? 'number' : 'text'}
                   min="0"
                   step="0.01"
@@ -428,7 +429,7 @@ export function TransactionReviewModal({
               >
                 <Input
                   id="review-transaction-amount-vat"
-                  className="h-9 text-sm"
+                  className="text-sm"
                   value={
                     isEditing
                       ? form.amount_vat
@@ -444,7 +445,7 @@ export function TransactionReviewModal({
               >
                 <Input
                   id="review-transaction-amount-ttc"
-                  className="h-9 text-sm"
+                  className="text-sm"
                   type={isEditing ? 'number' : 'text'}
                   min="0"
                   step="0.01"
@@ -471,7 +472,7 @@ export function TransactionReviewModal({
                 >
                   <Input
                     id="review-transaction-due-date"
-                    className="h-9 text-sm"
+                    className="text-sm"
                     type={isEditing ? 'date' : 'text'}
                     value={
                       isEditing
@@ -493,7 +494,7 @@ export function TransactionReviewModal({
                     >
                       <Input
                         id="review-transaction-payment-date"
-                        className="h-9 text-sm"
+                        className="text-sm"
                         type={isEditing ? 'date' : 'text'}
                         value={
                           isEditing
@@ -515,7 +516,7 @@ export function TransactionReviewModal({
                       {isEditing ? (
                         <Select
                           id="review-transaction-invoice-type"
-                          className="h-9 text-sm"
+                          className="text-sm"
                           value={form.invoice_type}
                           onChange={(event) =>
                             updateField(
@@ -535,7 +536,7 @@ export function TransactionReviewModal({
                       ) : (
                         <Input
                           id="review-transaction-invoice-type"
-                          className="h-9 text-sm"
+                          className="text-sm"
                           value={
                             transaction.invoice_type
                               ? invoiceTypeLabels[transaction.invoice_type]
@@ -552,7 +553,7 @@ export function TransactionReviewModal({
                       {isEditing ? (
                         <Select
                           id="review-transaction-payment-method"
-                          className="h-9 text-sm"
+                          className="text-sm"
                           value={form.payment_method}
                           onChange={(event) =>
                             updateField(
@@ -572,7 +573,7 @@ export function TransactionReviewModal({
                       ) : (
                         <Input
                           id="review-transaction-payment-method"
-                          className="h-9 text-sm"
+                          className="text-sm"
                           value={
                             transaction.payment_method
                               ? paymentMethodLabels[transaction.payment_method]
@@ -603,7 +604,7 @@ export function TransactionReviewModal({
               >
                 <Input
                   id="review-transaction-description"
-                  className="h-9 text-sm"
+                  className="text-sm"
                   value={form.description}
                   readOnly={!isEditing}
                   disabled={!isEditing}
@@ -615,7 +616,7 @@ export function TransactionReviewModal({
               {isInvoice ? null : (
                 <label
                   className={cn(
-                    'flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm',
+                    'flex h-10 items-center gap-2 rounded-md border border-border px-3 text-sm',
                     isBudgetSelectionDisabled
                       ? 'cursor-not-allowed'
                       : 'cursor-pointer',

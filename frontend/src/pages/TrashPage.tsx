@@ -443,7 +443,6 @@ export function TrashPage() {
               {filterOptions.map((option) => (
                 <Button
                   key={option.value}
-                  size="sm"
                   variant={
                     typeFilter === option.value ? 'secondary' : 'outline'
                   }
@@ -453,7 +452,6 @@ export function TrashPage() {
                 </Button>
               ))}
               <Button
-                size="sm"
                 variant="ghost"
                 className={destructiveGhostButtonClass}
                 disabled={

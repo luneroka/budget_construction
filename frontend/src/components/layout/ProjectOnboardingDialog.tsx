@@ -187,7 +187,6 @@ export function ProjectOnboardingDialog({
                     value={form.description}
                     placeholder="Décrire l'objectif et le périmètre du projet..."
                     disabled={isCreating}
-                    className="min-h-20"
                     onChange={(event) =>
                       setForm((current) => ({
                         ...current,

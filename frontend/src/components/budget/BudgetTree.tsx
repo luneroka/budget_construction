@@ -87,8 +87,8 @@ function ProductSearchBreadcrumb({
   searchQuery: string
 }) {
   return (
-    <TableRow className="border-b-0 bg-muted/20 hover:bg-muted/20">
-      <TableCell colSpan={7} className="px-4 pt-2 pb-0">
+    <TableRow className="border-b-0 bg-muted/20">
+      <TableCell colSpan={7} className="pt-2 pb-0">
         <div className="text-[0.7rem] font-medium tracking-wide text-muted-foreground">
           <span>
             {highlightSearchMatches(product.category_name, searchQuery)}
@@ -475,7 +475,7 @@ export function BudgetTree({
               <TableRow>
                 <TableCell
                   colSpan={7}
-                  className="px-4 py-6 text-sm text-muted-foreground"
+                  className="py-6 text-sm text-muted-foreground"
                 >
                   {isSearchActive
                     ? 'Aucun produit ne correspond à votre recherche.'

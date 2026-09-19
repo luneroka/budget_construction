@@ -119,7 +119,7 @@ export function ProductContextRows({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
+                  className="text-muted-foreground hover:bg-gold/15! hover:text-gold!"
                   onClick={() => onAddBreakdown({ product })}
                 >
                   <Layers3 aria-hidden="true" />
@@ -130,7 +130,7 @@ export function ProductContextRows({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 text-muted-foreground hover:bg-gold/15! hover:text-gold!"
+                    className="text-muted-foreground hover:bg-gold/15! hover:text-gold!"
                     onClick={() => onDecomposeProduct({ product })}
                   >
                     <Layers3 aria-hidden="true" />
@@ -139,7 +139,7 @@ export function ProductContextRows({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 bg-gold/15 text-gold hover:bg-gold/25! hover:text-gold!"
+                    className="bg-gold/15 text-gold hover:bg-gold/25! hover:text-gold!"
                     onClick={() =>
                       onAddTransaction({ budgetLine: line, product })
                     }
@@ -218,7 +218,7 @@ export function BudgetLineContextRow({
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 bg-gold/15 text-gold hover:bg-gold/25! hover:text-gold!"
+              className="bg-gold/15 text-gold hover:bg-gold/25! hover:text-gold!"
               onClick={() => onAddTransaction({ budgetLine: line, product })}
             >
               <Plus aria-hidden="true" />
@@ -242,7 +242,7 @@ export function SubcategoryRow({
 }) {
   return (
     <TableRow className="border-y border-primary/40 bg-primary/10 hover:bg-primary/10">
-      <TableCell colSpan={7} className="px-4 py-2">
+      <TableCell colSpan={7}>
         <button
           type="button"
           className="grid w-full grid-cols-1 gap-y-3 text-left sm:grid-cols-[minmax(18rem,1fr)_7.25rem_7.25rem_7.25rem] sm:items-center sm:gap-x-1"
@@ -310,12 +310,9 @@ export const ProductRow = forwardRef<
   return (
     <TableRow
       ref={ref}
-      className={cn(
-        'bg-card hover:bg-muted/40',
-        isFocused && 'ring-2 ring-gold ring-inset',
-      )}
+      className={cn('bg-card', isFocused && 'ring-2 ring-gold ring-inset')}
     >
-      <TableCell colSpan={7} className="px-4 py-2">
+      <TableCell colSpan={7}>
         <button
           type="button"
           className="grid w-full grid-cols-1 gap-y-3 text-left sm:grid-cols-[minmax(18rem,1fr)_7.25rem_7.25rem_7.25rem] sm:items-center sm:gap-x-1"
@@ -381,7 +378,7 @@ export function BudgetLineRow({
 }) {
   return (
     <TableRow className="bg-muted/25 hover:bg-muted/50">
-      <TableCell colSpan={7} className="px-4 py-2 pl-12">
+      <TableCell colSpan={7} className="pl-12">
         <div className="grid w-full grid-cols-1 gap-y-3 text-left sm:grid-cols-[minmax(18rem,1fr)_7.25rem_7.25rem_7.25rem] sm:items-center sm:gap-x-1">
           <span className="flex min-w-0 items-center justify-between gap-2">
             <button

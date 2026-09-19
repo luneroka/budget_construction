@@ -383,7 +383,6 @@ export function SupplierModal({
         headerActions={
           currentMode === 'view' ? (
             <Button
-              size="sm"
               variant="outline"
               disabled={isBusy}
               onClick={() => setCurrentMode('edit')}
@@ -439,7 +438,7 @@ export function SupplierModal({
                   </label>
                   <Input
                     id="supplier-name"
-                    className="mt-1 h-9 text-sm"
+                    className="mt-1 text-sm"
                     value={readValue(supplier?.name)}
                     readOnly
                     disabled
@@ -454,7 +453,7 @@ export function SupplierModal({
                   </label>
                   <Input
                     id="supplier-siret"
-                    className="mt-1 h-9 text-sm"
+                    className="mt-1 text-sm"
                     value={readValue(supplier?.siret)}
                     readOnly
                     disabled
@@ -470,7 +469,7 @@ export function SupplierModal({
                 </label>
                 <Input
                   id="supplier-comment"
-                  className="mt-1 h-9 text-sm"
+                  className="mt-1 text-sm"
                   value={readValue(supplier?.comment)}
                   readOnly
                   disabled
@@ -506,7 +505,7 @@ export function SupplierModal({
                 </label>
                 <Input
                   id="supplier-street"
-                  className="mt-1 h-9 text-sm"
+                  className="mt-1 text-sm"
                   value={readValue(supplier?.street)}
                   readOnly
                   disabled
@@ -521,7 +520,7 @@ export function SupplierModal({
                 </label>
                 <Input
                   id="supplier-complement"
-                  className="mt-1 h-9 text-sm"
+                  className="mt-1 text-sm"
                   value={readValue(supplier?.complement)}
                   readOnly
                   disabled
@@ -537,7 +536,7 @@ export function SupplierModal({
                   </label>
                   <Input
                     id="supplier-postal-code"
-                    className="mt-1 h-9 text-sm"
+                    className="mt-1 text-sm"
                     value={readValue(supplier?.postal_code)}
                     readOnly
                     disabled
@@ -552,7 +551,7 @@ export function SupplierModal({
                   </label>
                   <Input
                     id="supplier-city"
-                    className="mt-1 h-9 text-sm"
+                    className="mt-1 text-sm"
                     value={readValue(supplier?.city)}
                     readOnly
                     disabled
@@ -572,21 +571,21 @@ export function SupplierModal({
                     className="grid gap-2 px-1 py-1 md:grid-cols-[minmax(11rem,1.1fr)_minmax(10rem,0.9fr)_minmax(16rem,1.4fr)_88px]"
                   >
                     <Input
-                      className="h-9 text-sm"
+                      className="text-sm"
                       aria-label="Nom du contact"
                       value={readValue(contact.name)}
                       readOnly
                       disabled
                     />
                     <Input
-                      className="h-9 text-sm"
+                      className="text-sm"
                       aria-label="Téléphone du contact"
                       value={formatPhoneNumber(contact.phone_number)}
                       readOnly
                       disabled
                     />
                     <Input
-                      className="h-9 text-sm"
+                      className="text-sm"
                       aria-label="Email du contact"
                       value={readValue(contact.email)}
                       readOnly
@@ -621,7 +620,7 @@ export function SupplierModal({
                   </label>
                   <Input
                     id="supplier-name"
-                    className="mt-1 h-9 text-sm"
+                    className="mt-1 text-sm"
                     value={form.name}
                     onChange={(event) =>
                       setForm({ ...form, name: event.target.value })
@@ -637,7 +636,7 @@ export function SupplierModal({
                   </label>
                   <Input
                     id="supplier-siret"
-                    className="mt-1 h-9 text-sm"
+                    className="mt-1 text-sm"
                     value={form.siret}
                     onChange={(event) =>
                       setForm({ ...form, siret: event.target.value })
@@ -654,7 +653,7 @@ export function SupplierModal({
                 </label>
                 <Input
                   id="supplier-comment"
-                  className="mt-1 h-9 text-sm"
+                  className="mt-1 text-sm"
                   value={form.comment}
                   onChange={(event) =>
                     setForm({ ...form, comment: event.target.value })
@@ -676,7 +675,7 @@ export function SupplierModal({
                 </label>
                 <Input
                   id="supplier-street"
-                  className="mt-1 h-9 text-sm"
+                  className="mt-1 text-sm"
                   value={form.street}
                   onChange={(event) =>
                     setForm({ ...form, street: event.target.value })
@@ -692,7 +691,7 @@ export function SupplierModal({
                 </label>
                 <Input
                   id="supplier-complement"
-                  className="mt-1 h-9 text-sm"
+                  className="mt-1 text-sm"
                   value={form.complement}
                   onChange={(event) =>
                     setForm({ ...form, complement: event.target.value })
@@ -709,7 +708,7 @@ export function SupplierModal({
                   </label>
                   <Input
                     id="supplier-postal-code"
-                    className="mt-1 h-9 text-sm"
+                    className="mt-1 text-sm"
                     inputMode="numeric"
                     maxLength={5}
                     value={form.postal_code}
@@ -727,7 +726,7 @@ export function SupplierModal({
                   </label>
                   <Input
                     id="supplier-city"
-                    className="mt-1 h-9 text-sm"
+                    className="mt-1 text-sm"
                     value={form.city}
                     onChange={(event) =>
                       setForm({ ...form, city: event.target.value })
@@ -760,7 +759,7 @@ export function SupplierModal({
                     className="grid gap-2 py-1 lg:grid-cols-[minmax(12rem,1.1fr)_72px_minmax(10rem,0.9fr)_minmax(17rem,1.45fr)_92px_40px]"
                   >
                     <Input
-                      className="h-9 text-sm"
+                      className="text-sm"
                       aria-label="Nom du contact"
                       placeholder="Nom"
                       value={contact.name}
@@ -771,7 +770,7 @@ export function SupplierModal({
                       }
                     />
                     <Input
-                      className="h-9 text-sm"
+                      className="text-sm"
                       aria-label="Indicatif téléphonique"
                       placeholder="+33"
                       value={contact.phone_country_code}
@@ -782,7 +781,7 @@ export function SupplierModal({
                       }
                     />
                     <Input
-                      className="h-9 text-sm"
+                      className="text-sm"
                       aria-label="Téléphone du contact"
                       placeholder="7 90 90 90 90"
                       value={contact.phone_number}
@@ -793,7 +792,7 @@ export function SupplierModal({
                       }
                     />
                     <Input
-                      className="h-9 text-sm"
+                      className="text-sm"
                       aria-label="Email du contact"
                       placeholder="Email"
                       value={contact.email}

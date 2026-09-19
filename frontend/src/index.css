@@ -175,7 +175,7 @@ h6 {
 }
 
 /* Shared <Select> (components/ui/select.tsx) wrapper defaults. Lives in the
-   `components` layer so caller utilities (w-24, text-xs, hidden…) win.
+   `components` layer so caller utilities (w-24, hidden…) win.
    Height is deliberately NOT here — see the comment in select.tsx. */
 @layer components {
   .app-select {

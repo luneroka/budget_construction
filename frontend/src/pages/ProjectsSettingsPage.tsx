@@ -421,7 +421,6 @@ export function ProjectsSettingsPage() {
                     </Label>
                     <Input
                       id="project-settings-name"
-                      className="h-8"
                       value={form.name}
                       disabled={
                         !isEditingProjectInfo || updateProjectMutation.isPending
@@ -445,7 +444,6 @@ export function ProjectsSettingsPage() {
                     </Label>
                     <Input
                       id="project-settings-location"
-                      className="h-8"
                       value={form.location}
                       disabled={
                         !isEditingProjectInfo || updateProjectMutation.isPending
@@ -471,7 +469,6 @@ export function ProjectsSettingsPage() {
                     </Label>
                     <Select
                       id="project-settings-status"
-                      className="h-8"
                       value={form.status}
                       disabled={
                         !isEditingProjectInfo || updateProjectMutation.isPending
@@ -508,7 +505,6 @@ export function ProjectsSettingsPage() {
                       placeholder={
                         isEditingProjectInfo ? undefined : 'Non renseignée'
                       }
-                      className="h-8"
                       value={
                         isEditingProjectInfo
                           ? form.startDate
@@ -542,7 +538,6 @@ export function ProjectsSettingsPage() {
                       placeholder={
                         isEditingProjectInfo ? undefined : 'Non renseignée'
                       }
-                      className="h-8"
                       value={
                         isEditingProjectInfo
                           ? form.endDate
@@ -573,7 +568,6 @@ export function ProjectsSettingsPage() {
                   </Label>
                   <Input
                     id="project-settings-description"
-                    className="h-8"
                     value={form.description}
                     disabled={
                       !isEditingProjectInfo || updateProjectMutation.isPending

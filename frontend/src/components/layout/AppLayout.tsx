@@ -45,7 +45,7 @@ export function AppLayout() {
           <Button
             size="icon"
             variant="ghost"
-            className="h-9 w-9 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            className="text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
             aria-label="Fermer le menu"
             onClick={() => setIsSidebarOpen(false)}
           >
@@ -70,7 +70,7 @@ export function AppLayout() {
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 shrink-0 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              className="shrink-0 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
               aria-label="Se deconnecter"
               onClick={logout}
             >
@@ -85,7 +85,6 @@ export function AppLayout() {
           <Button
             size="icon"
             variant="outline"
-            className="h-9 w-9"
             aria-label="Ouvrir le menu"
             aria-expanded={isSidebarOpen}
             onClick={() => setIsSidebarOpen(true)}

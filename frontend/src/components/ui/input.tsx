@@ -4,6 +4,9 @@ import { cn } from '@/lib/utils'
 
 export type InputProps = React.InputHTMLAttributes<HTMLInputElement>
 
+// `h-10` is the app's one form-field height, shared with <Select> and
+// Button's default size. Don't override it per call site: a field set to
+// another height stops lining up with its neighbours.
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, ...props }, ref) => (
     <input

@@ -244,7 +244,7 @@ export function ReportIssueDrawer() {
         type="button"
         variant="gold"
         className={cn(
-          'fixed bottom-5 right-5 z-40 h-11 rounded-full px-4 shadow-lg',
+          'fixed bottom-5 right-5 z-40 h-11 px-4 shadow-lg',
           isHiddenForCapture && 'hidden',
         )}
         data-capture-ignore="true"
@@ -278,7 +278,6 @@ export function ReportIssueDrawer() {
             type="button"
             size="icon"
             variant="ghost"
-            className="h-8 w-8"
             aria-label="Fermer"
             onClick={() => setIsOpen(false)}
           >
@@ -408,7 +407,7 @@ export function ReportIssueDrawer() {
                       type="button"
                       size="icon"
                       variant="ghost"
-                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                      className="shrink-0 text-muted-foreground hover:text-destructive"
                       aria-label="Supprimer la pièce jointe"
                       disabled={busy}
                       onClick={() => removeAttachment(attachment.id)}

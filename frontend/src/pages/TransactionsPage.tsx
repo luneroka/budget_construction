@@ -558,15 +558,14 @@ export function TransactionsPage() {
           return (
             <Button
               key={view.id}
-              size="sm"
               variant={isActive ? 'gold' : 'outline'}
-              className="h-7 gap-1.5 rounded-full px-2.5 text-xs"
+              className="text-xs"
               onClick={() => selectQuickView(view.id)}
             >
               {view.label}
               <Badge
                 variant={isActive ? 'default' : 'muted'}
-                className="px-1.5 py-0 text-[10px] leading-4"
+                className="text-[10px] leading-4"
               >
                 {quickViewCounts[view.id] ?? 0}
               </Badge>
@@ -586,7 +585,7 @@ export function TransactionsPage() {
             </label>
             <Select
               id="transactions-type-filter"
-              className="h-8 px-2 text-xs"
+              className="text-xs"
               value={typeFilter}
               onChange={(event) =>
                 setTypeFilter(event.target.value as TransactionTypeFilter)
@@ -609,7 +608,7 @@ export function TransactionsPage() {
             </label>
             <Select
               id="transactions-category-filter"
-              className="h-8 px-2 text-xs"
+              className="text-xs"
               value={categoryFilter}
               onChange={(event) => setCategoryFilter(event.target.value)}
             >
@@ -630,7 +629,7 @@ export function TransactionsPage() {
             </label>
             <Select
               id="transactions-supplier-filter"
-              className="h-8 px-2 text-xs"
+              className="text-xs"
               value={supplierFilter}
               onChange={(event) => setSupplierFilter(event.target.value)}
             >
@@ -654,7 +653,7 @@ export function TransactionsPage() {
             </label>
             <Select
               id="transactions-date-filter"
-              className="h-8 px-2 text-xs"
+              className="text-xs"
               value={dateFilter}
               onChange={(event) =>
                 setDateFilter(event.target.value as DateFilter)
@@ -692,7 +691,7 @@ export function TransactionsPage() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span className="whitespace-nowrap">{transactionCountLabel}</span>
               <Select
-                className="h-9 w-24"
+                className="w-24"
                 aria-label="Transactions par page"
                 value={String(pageSize)}
                 onChange={(event) => setPageSize(Number(event.target.value))}

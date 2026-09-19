@@ -265,11 +265,11 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       if (disabled) setIsOpen(false)
     }, [disabled])
 
-    // `h-10` is a utility on purpose, like the one on <Input>: cn merges with
-    // tailwind-merge, so a caller's `h-9` replaces it identically on both and a
-    // select and an input given the same height stay aligned. Width and font
-    // defaults live in the components layer (index.css) instead, which any
-    // caller utility (`w-24`, `text-xs`) outranks.
+    // `h-10` is the app's one form-field height, shared with <Input> and
+    // Button's default size, and never set per call site: every select and
+    // input is 40px, so any two in a row line up. Width and font defaults
+    // live in the components layer (index.css) instead, so a caller's width
+    // (`w-24`) still applies.
     return (
       <div className={cn('app-select relative h-10', className)}>
         <select

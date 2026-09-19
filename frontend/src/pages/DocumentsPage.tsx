@@ -464,7 +464,7 @@ export function DocumentsPage() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span className="whitespace-nowrap">{documentCountLabel}</span>
               <Select
-                className="h-9 w-24"
+                className="w-24"
                 aria-label="Documents par page"
                 value={String(pageSize)}
                 onChange={(event) => setPageSize(Number(event.target.value))}
