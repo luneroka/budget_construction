@@ -4,9 +4,9 @@ import hmac
 import secrets
 from typing import TypeVar, cast
 
+import bcrypt
 import jwt
 from jwt import PyJWTError
-from passlib.context import CryptContext
 
 from app.core.settings import settings
 
@@ -42,15 +42,31 @@ ACCESS_TOKEN_EXPIRE_MINUTES = _require_setting(
 )
 REFRESH_TOKEN_EXPIRE_DAYS = settings.refresh_token_expire_days
 
-pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
+# bcrypt only ever reads the first 72 bytes of a password. passlib, which this
+# replaced, truncated to that silently; bcrypt >= 5 raises instead. Truncating
+# here keeps both behaviours working: every hash stored under passlib -- where a
+# longer password was hashed as its first 72 bytes -- still verifies, and a
+# login with a longer password is answered rather than crashing, since only
+# *setting* a password is capped (app/schemas/password.py), not logging in.
+_BCRYPT_MAX_BYTES = 72
+
+
+def _bcrypt_secret(password: str) -> bytes:
+    return password.encode('utf-8')[:_BCRYPT_MAX_BYTES]
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(_bcrypt_secret(password), bcrypt.gensalt()).decode('ascii')
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return bcrypt.checkpw(
+            _bcrypt_secret(plain_password), hashed_password.encode('ascii')
+        )
+    except ValueError:
+        # Not a well-formed bcrypt hash (or not ASCII): a mismatch, not a 500.
+        return False
 
 
 def _password_marker(hashed_password: str) -> str:
