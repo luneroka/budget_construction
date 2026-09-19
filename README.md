@@ -141,8 +141,8 @@ FastAPI (Python, async)
 | Couche | Technologies et responsabilités |
 | --- | --- |
 | Frontend | React 19, TypeScript, Vite, React Router, TanStack Query & Table, React Hook Form, Zod, Recharts, Tailwind CSS |
-| API | Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2 async, asyncpg |
-| Base de données | PostgreSQL 15, migrations Alembic, contraintes et index partiels tenant compte du soft delete |
+| API | Python 3.14, FastAPI, Pydantic v2, SQLAlchemy 2 async, asyncpg |
+| Base de données | PostgreSQL 18, migrations Alembic, contraintes et index partiels tenant compte du soft delete |
 | Authentification | JWT d'accès de courte durée en mémoire + refresh token rotatif en cookie `httpOnly`, détection de réutilisation, réinitialisation par lien signé |
 | Documents | Cloudflare R2 privé, accès exclusivement via l'API |
 | E-mails | Resend (réinitialisation, notifications de sécurité, signalements) |
