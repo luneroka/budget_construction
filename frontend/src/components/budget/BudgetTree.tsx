@@ -211,18 +211,21 @@ export function BudgetTree({
   onSelectSubcategory,
 }: BudgetTreeProps) {
   const {
-    openProducts,
-    openBudgetLines,
+    openProductId,
+    openBudgetLineId,
     toggleProduct,
     toggleBudgetLine,
     openProduct,
     closeBudgetLines,
     collapseAllProducts,
   } = useBudgetExpansion()
-  const focusedProductRef = useRef<HTMLTableRowElement | null>(null)
+  const appliedFocusRef = useRef<string | null>(null)
+  const openProductBodyRef = useRef<HTMLTableSectionElement | null>(null)
+  const pendingScrollRef = useRef<string | null>(null)
   const [productSearch, setProductSearch] = useState('')
-  const [searchOpenProductIds, setSearchOpenProductIds] = useState<Set<string>>(
-    () => new Set(),
+  // Search results are an accordion of their own, reset with each query.
+  const [searchOpenProductId, setSearchOpenProductId] = useState<string | null>(
+    null,
   )
   const normalizedProductSearch = useMemo(
     () => normalizeSearchText(productSearch),
@@ -312,27 +315,43 @@ export function BudgetTree({
     visibleTotals.actual_cost_amount_ttc
 
   useEffect(() => {
-    setSearchOpenProductIds(new Set())
+    setSearchOpenProductId(null)
   }, [normalizedProductSearch])
 
-  function toggleSearchProduct(productId: string) {
-    setSearchOpenProductIds((current) => {
-      const next = new Set(current)
-      if (next.has(productId)) next.delete(productId)
-      else next.add(productId)
-      return next
-    })
+  const openProductIdInView = isSearchActive
+    ? searchOpenProductId
+    : openProductId
+
+  // Opening a product collapses the one that was open, and with it the
+  // sub-products expanded under it, as closing it by hand does.
+  function toggleProductRow(product: Product) {
+    const wasOpen = allProducts.find(
+      (candidate) => candidate.product_id === openProductIdInView,
+    )
+    if (wasOpen) {
+      closeBudgetLines(wasOpen.budget_lines.map((line) => line.budget_line_id))
+    }
+    if (openProductIdInView !== product.product_id) {
+      pendingScrollRef.current = product.product_id
+    }
+    if (isSearchActive) {
+      setSearchOpenProductId((current) =>
+        current === product.product_id ? null : product.product_id,
+      )
+    } else {
+      toggleProduct(product.product_id)
+    }
   }
 
   function handleSelectCategory(categoryId: string) {
     collapseAllProducts()
-    setSearchOpenProductIds(new Set())
+    setSearchOpenProductId(null)
     onSelectCategory(categoryId)
   }
 
   function handleSelectSubcategory(subcategoryName: string) {
     collapseAllProducts()
-    setSearchOpenProductIds(new Set())
+    setSearchOpenProductId(null)
     onSelectSubcategory(subcategoryName)
   }
 
@@ -356,8 +375,13 @@ export function BudgetTree({
     }
   }, [onSelectSubcategory, selectedSubcategoryName, subcategoryGroups])
 
+  // Applied once per focus request (a dashboard alert link), not again on
+  // every refetch of `categories`: that would re-open the focused product and
+  // collapse whichever one the user has opened since.
   useEffect(() => {
-    if (!focusedProductId) return
+    if (!focusedProductId || appliedFocusRef.current === focusedProductId) {
+      return
+    }
 
     for (const category of categories) {
       for (const group of groupProductsBySubcategory(category.products)) {
@@ -365,26 +389,51 @@ export function BudgetTree({
           (candidate) => candidate.product_id === focusedProductId,
         )
         if (product) {
+          appliedFocusRef.current = focusedProductId
           onSelectCategory(category.category_id)
           onSelectSubcategory(group.name)
+          collapseAllProducts()
           openProduct(product.product_id)
-          window.setTimeout(() => {
-            focusedProductRef.current?.scrollIntoView({
-              behavior: 'smooth',
-              block: 'center',
-            })
-          }, 0)
+          pendingScrollRef.current = product.product_id
           return
         }
       }
     }
   }, [
     categories,
+    collapseAllProducts,
     focusedProductId,
     onSelectCategory,
     onSelectSubcategory,
     openProduct,
   ])
+
+  // Opening a product (a click, or a dashboard alert link) recentres the
+  // page on it: the product that collapses above it could otherwise pull it
+  // out of view. A block taller than the screen is aligned at the top instead.
+  // Its transactions load after it opens, so it is recentred as it grows for
+  // a moment, and never again once the user starts working in it.
+  useEffect(() => {
+    const productId = pendingScrollRef.current
+    const body = openProductBodyRef.current
+    if (!productId || productId !== openProductIdInView || !body) return
+    pendingScrollRef.current = null
+    const recentre = () => {
+      const fitsOnScreen =
+        body.getBoundingClientRect().height < window.innerHeight - 96
+      body.scrollIntoView({
+        behavior: 'smooth',
+        block: fitsOnScreen ? 'center' : 'start',
+      })
+    }
+    const observer = new ResizeObserver(recentre)
+    observer.observe(body)
+    const stop = window.setTimeout(() => observer.disconnect(), 1500)
+    return () => {
+      observer.disconnect()
+      window.clearTimeout(stop)
+    }
+  }, [openProductIdInView])
 
   return (
     <div className="space-y-5">
@@ -470,8 +519,8 @@ export function BudgetTree({
 
       <div className="overflow-hidden rounded-lg border border-border bg-card">
         <Table>
-          <TableBody>
-            {visibleProducts.length === 0 ? (
+          {visibleProducts.length === 0 ? (
+            <TableBody>
               <TableRow>
                 <TableCell
                   colSpan={7}
@@ -482,143 +531,129 @@ export function BudgetTree({
                     : 'Aucun produit dans cette sélection.'}
                 </TableCell>
               </TableRow>
-            ) : (
-              visibleProducts.map((product) => {
-                const isProductOpen = isSearchActive
-                  ? searchOpenProductIds.has(product.product_id)
-                  : openProducts.has(product.product_id)
-                const selectedWholeProductLine =
-                  getWholeProductBudgetLine(product)
-                const isEmptyProduct = isProductEmpty(product)
+            </TableBody>
+          ) : (
+            visibleProducts.map((product) => {
+              const isProductOpen = openProductIdInView === product.product_id
+              const selectedWholeProductLine =
+                getWholeProductBudgetLine(product)
+              const isEmptyProduct = isProductEmpty(product)
 
-                return (
-                  <Fragment key={product.product_id}>
-                    {isSearchActive ? (
-                      <ProductSearchBreadcrumb
-                        product={product}
-                        searchQuery={productSearch}
-                      />
-                    ) : null}
-                    <ProductRow
-                      ref={
-                        focusedProductId === product.product_id
-                          ? focusedProductRef
-                          : undefined
-                      }
+              // Each product is its own row group, so the open one can be
+              // outlined whole, sub-products included.
+              return (
+                <TableBody
+                  key={product.product_id}
+                  ref={isProductOpen ? openProductBodyRef : undefined}
+                  className={cn(
+                    isProductOpen &&
+                      'scroll-mt-20 outline-2 -outline-offset-2 outline-gold min-[1600px]:scroll-mt-4',
+                  )}
+                >
+                  {isSearchActive ? (
+                    <ProductSearchBreadcrumb
                       product={product}
-                      isFocused={focusedProductId === product.product_id}
-                      isOpen={isProductOpen}
-                      searchQuery={isSearchActive ? productSearch : ''}
-                      onToggle={() => {
-                        if (isProductOpen) {
-                          closeBudgetLines(
-                            product.budget_lines.map(
-                              (line) => line.budget_line_id,
-                            ),
-                          )
-                        }
-                        if (isSearchActive) {
-                          toggleSearchProduct(product.product_id)
-                        } else {
-                          toggleProduct(product.product_id)
-                        }
-                      }}
+                      searchQuery={productSearch}
                     />
-                    {isProductOpen ? (
-                      isEmptyProduct ? (
-                        <EmptyProductRow
+                  ) : null}
+                  <ProductRow
+                    product={product}
+                    isFocused={focusedProductId === product.product_id}
+                    isOpen={isProductOpen}
+                    searchQuery={isSearchActive ? productSearch : ''}
+                    onToggle={() => toggleProductRow(product)}
+                  />
+                  {isProductOpen ? (
+                    isEmptyProduct ? (
+                      <EmptyProductRow
+                        product={product}
+                        readOnly={readOnly}
+                        onAddFirstTransaction={onAddFirstTransaction}
+                      />
+                    ) : (
+                      <>
+                        <ProductContextRows
                           product={product}
+                          line={selectedWholeProductLine}
                           readOnly={readOnly}
-                          onAddFirstTransaction={onAddFirstTransaction}
+                          onAddBreakdown={onAddBreakdown}
+                          onAddTransaction={onAddTransaction}
+                          onDecomposeProduct={onDecomposeProduct}
                         />
-                      ) : (
-                        <>
-                          <ProductContextRows
+                        {selectedWholeProductLine ? (
+                          <TransactionsPanel
+                            transactions={selectedWholeProductLine.transactions}
+                            budgetLine={selectedWholeProductLine}
+                            projectId={projectId}
                             product={product}
-                            line={selectedWholeProductLine}
                             readOnly={readOnly}
-                            onAddBreakdown={onAddBreakdown}
-                            onAddTransaction={onAddTransaction}
-                            onDecomposeProduct={onDecomposeProduct}
+                            onToggleBudgetSelection={onToggleBudgetSelection}
+                            onRequestDeleteTransaction={
+                              onRequestDeleteTransaction
+                            }
+                            onViewTransaction={onViewTransaction}
+                            onViewTransactionDocuments={
+                              onViewTransactionDocuments
+                            }
                           />
-                          {selectedWholeProductLine ? (
-                            <TransactionsPanel
-                              transactions={
-                                selectedWholeProductLine.transactions
-                              }
-                              budgetLine={selectedWholeProductLine}
-                              projectId={projectId}
-                              product={product}
-                              readOnly={readOnly}
-                              onToggleBudgetSelection={onToggleBudgetSelection}
-                              onRequestDeleteTransaction={
-                                onRequestDeleteTransaction
-                              }
-                              onViewTransaction={onViewTransaction}
-                              onViewTransactionDocuments={
-                                onViewTransactionDocuments
-                              }
-                            />
-                          ) : (
-                            product.budget_lines.map((line) => {
-                              const isLineOpen = openBudgetLines.has(
-                                line.budget_line_id,
-                              )
+                        ) : (
+                          product.budget_lines.map((line) => {
+                            const isLineOpen =
+                              openBudgetLineId === line.budget_line_id
 
-                              return (
-                                <Fragment key={line.budget_line_id}>
-                                  <BudgetLineRow
-                                    line={line}
-                                    product={product}
-                                    isOpen={isLineOpen}
-                                    readOnly={readOnly}
-                                    searchQuery={
-                                      isSearchActive ? productSearch : ''
-                                    }
-                                    onRequestDelete={onRequestDeleteBudgetLine}
-                                    onToggle={() =>
-                                      toggleBudgetLine(line.budget_line_id)
-                                    }
-                                  />
-                                  {isLineOpen ? (
-                                    <>
-                                      <BudgetLineContextRow
-                                        line={line}
-                                        product={product}
-                                        readOnly={readOnly}
-                                        onAddTransaction={onAddTransaction}
-                                      />
-                                      <TransactionsPanel
-                                        transactions={line.transactions}
-                                        budgetLine={line}
-                                        projectId={projectId}
-                                        product={product}
-                                        readOnly={readOnly}
-                                        onToggleBudgetSelection={
-                                          onToggleBudgetSelection
-                                        }
-                                        onRequestDeleteTransaction={
-                                          onRequestDeleteTransaction
-                                        }
-                                        onViewTransaction={onViewTransaction}
-                                        onViewTransactionDocuments={
-                                          onViewTransactionDocuments
-                                        }
-                                      />
-                                    </>
-                                  ) : null}
-                                </Fragment>
-                              )
-                            })
-                          )}
-                        </>
-                      )
-                    ) : null}
-                  </Fragment>
-                )
-              })
-            )}
-          </TableBody>
+                            return (
+                              <Fragment key={line.budget_line_id}>
+                                <BudgetLineRow
+                                  line={line}
+                                  product={product}
+                                  isOpen={isLineOpen}
+                                  readOnly={readOnly}
+                                  searchQuery={
+                                    isSearchActive ? productSearch : ''
+                                  }
+                                  onRequestDelete={onRequestDeleteBudgetLine}
+                                  onToggle={() =>
+                                    toggleBudgetLine(line.budget_line_id)
+                                  }
+                                />
+                                {isLineOpen ? (
+                                  <>
+                                    <BudgetLineContextRow
+                                      line={line}
+                                      product={product}
+                                      readOnly={readOnly}
+                                      onAddTransaction={onAddTransaction}
+                                    />
+                                    <TransactionsPanel
+                                      transactions={line.transactions}
+                                      budgetLine={line}
+                                      projectId={projectId}
+                                      product={product}
+                                      readOnly={readOnly}
+                                      onToggleBudgetSelection={
+                                        onToggleBudgetSelection
+                                      }
+                                      onRequestDeleteTransaction={
+                                        onRequestDeleteTransaction
+                                      }
+                                      onViewTransaction={onViewTransaction}
+                                      onViewTransactionDocuments={
+                                        onViewTransactionDocuments
+                                      }
+                                    />
+                                  </>
+                                ) : null}
+                              </Fragment>
+                            )
+                          })
+                        )}
+                      </>
+                    )
+                  ) : null}
+                </TableBody>
+              )
+            })
+          )}
         </Table>
       </div>
     </div>

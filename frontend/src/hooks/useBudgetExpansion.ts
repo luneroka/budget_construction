@@ -14,10 +14,11 @@ export function useBudgetExpansion() {
   const [openSubcategories, setOpenSubcategories] = useState<Set<string>>(
     () => new Set(),
   )
-  const [openProducts, setOpenProducts] = useState<Set<string>>(() => new Set())
-  const [openBudgetLines, setOpenBudgetLines] = useState<Set<string>>(
-    () => new Set(),
-  )
+  // One product open at a time, and within it one sub-product at a time:
+  // opening either collapses the one that was open (the budget page is an
+  // accordion at both levels).
+  const [openProductId, setOpenProductId] = useState<string | null>(null)
+  const [openBudgetLineId, setOpenBudgetLineId] = useState<string | null>(null)
   const openCategory = useCallback(
     (id: string) => setOpenCategories((current) => new Set(current).add(id)),
     [],
@@ -26,28 +27,21 @@ export function useBudgetExpansion() {
     (id: string) => setOpenSubcategories((current) => new Set(current).add(id)),
     [],
   )
-  const openProduct = useCallback(
-    (id: string) => setOpenProducts((current) => new Set(current).add(id)),
-    [],
-  )
+  const openProduct = useCallback((id: string) => setOpenProductId(id), [])
   const openBudgetLine = useCallback(
-    (id: string) => setOpenBudgetLines((current) => new Set(current).add(id)),
+    (id: string) => setOpenBudgetLineId(id),
     [],
   )
-  const closeBudgetLines = useCallback((ids: string[]) => {
-    if (ids.length === 0) return
-    setOpenBudgetLines((current) => {
-      const next = new Set(current)
-      let changed = false
-      for (const id of ids) {
-        if (next.delete(id)) changed = true
-      }
-      return changed ? next : current
-    })
-  }, [])
+  const closeBudgetLines = useCallback(
+    (ids: string[]) =>
+      setOpenBudgetLineId((current) =>
+        current !== null && ids.includes(current) ? null : current,
+      ),
+    [],
+  )
   const collapseAllProducts = useCallback(() => {
-    setOpenProducts(new Set())
-    setOpenBudgetLines(new Set())
+    setOpenProductId(null)
+    setOpenBudgetLineId(null)
   }, [])
   const toggleCategory = useCallback(
     (id: string) => setOpenCategories((current) => toggleSetValue(current, id)),
@@ -59,20 +53,20 @@ export function useBudgetExpansion() {
     [],
   )
   const toggleProduct = useCallback(
-    (id: string) => setOpenProducts((current) => toggleSetValue(current, id)),
+    (id: string) => setOpenProductId((current) => (current === id ? null : id)),
     [],
   )
   const toggleBudgetLine = useCallback(
     (id: string) =>
-      setOpenBudgetLines((current) => toggleSetValue(current, id)),
+      setOpenBudgetLineId((current) => (current === id ? null : id)),
     [],
   )
 
   return {
     openCategories,
     openSubcategories,
-    openProducts,
-    openBudgetLines,
+    openProductId,
+    openBudgetLineId,
     openCategory,
     openSubcategory,
     openProduct,
