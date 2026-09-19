@@ -79,11 +79,11 @@ function formatDocumentDisplayName(document: DocumentsListItem): string {
   const supplier = document.supplier_name ?? 'Autoconstruction'
   const amount = document.amount_ttc
     ? formatCurrency(Number(document.amount_ttc))
-    : '-'
+    : null
   const productLabel = document.product_name?.trim()
   const primaryLabel = productLabel ? `${typeLabel} ${productLabel}` : typeLabel
 
-  return `${primaryLabel} • ${supplier} • ${amount}`
+  return [primaryLabel, supplier, amount].filter(Boolean).join(' • ')
 }
 
 function sortDocuments(documents: DocumentsListItem[]): DocumentsListItem[] {

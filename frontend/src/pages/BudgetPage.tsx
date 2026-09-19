@@ -95,9 +95,9 @@ export function BudgetPage() {
     const supplier = transaction.supplier_name ?? 'Autoconstruction'
     const amount = Number.isFinite(transaction.amount_ttc)
       ? formatCurrency(transaction.amount_ttc)
-      : '-'
+      : null
 
-    return `${typeLabel} • ${supplier} • ${amount}`
+    return [typeLabel, supplier, amount].filter(Boolean).join(' • ')
   }
 
   async function openTransactionDocumentsViewer(transaction: Transaction) {
