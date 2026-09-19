@@ -31,6 +31,10 @@ services:
       # (see docs/security, S-17). Falls back to DATABASE_URL when unset.
       DATABASE_URL: ${MIGRATIONS_DATABASE_URL:-${DATABASE_URL}}
       PYTHONDONTWRITEBYTECODE: "1"
+      # Fail closed on a database that has never been migrated (a new or
+      # wrongly mounted volume) instead of serving an empty app: see
+      # backend/alembic/env.py. Export =0 only for a deliberate first install.
+      ALEMBIC_REFUSE_EMPTY_DATABASE: ${ALEMBIC_REFUSE_EMPTY_DATABASE:-1}
     command: ["uv", "run", "--no-sync", "alembic", "upgrade", "head"]
     depends_on:
       db:

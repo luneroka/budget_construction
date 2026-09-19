@@ -1,7 +1,8 @@
 import asyncio
 from logging.config import fileConfig
+import os
 
-from sqlalchemy import pool
+from sqlalchemy import inspect, pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
@@ -61,7 +62,32 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+def refuse_empty_database(connection: Connection) -> None:
+    """Fail closed instead of building a fresh schema over missing data.
+
+    `alembic upgrade head` on a database that has never been migrated creates
+    an empty schema, after which the API comes up healthy with no data at all.
+    In production that is never a first install: it is a new or wrongly
+    mounted data volume (a PostgreSQL major upgrade moves the mount path, for
+    one). So when ALEMBIC_REFUSE_EMPTY_DATABASE=1 -- set by the production
+    migrate service -- an unmigrated database stops the deploy, and the backend,
+    which waits on migrate, never starts. CI and tests leave it unset.
+    """
+    if os.environ.get('ALEMBIC_REFUSE_EMPTY_DATABASE', '0') != '1':
+        return
+    if inspect(connection).has_table('alembic_version'):
+        return
+    raise RuntimeError(
+        'Refusing to migrate a database that has never been migrated: in '
+        'production this means a new or wrongly mounted data volume, not a '
+        'first install. Restore a backup into it first (see the runbook). For '
+        'a deliberate first install, run once with '
+        'ALEMBIC_REFUSE_EMPTY_DATABASE=0.'
+    )
+
+
 def do_run_migrations(connection: Connection) -> None:
+    refuse_empty_database(connection)
     context.configure(connection=connection, target_metadata=target_metadata)
 
     with context.begin_transaction():
