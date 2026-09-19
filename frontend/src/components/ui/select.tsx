@@ -342,11 +342,13 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                     aria-disabled={item.disabled || undefined}
                     data-index={index}
                     className={cn(
-                      'relative flex cursor-pointer select-none items-center py-1.5 pl-3 pr-9 whitespace-nowrap',
+                      'relative flex select-none items-center py-1.5 pl-3 pr-9 whitespace-nowrap',
+                      item.disabled
+                        ? 'cursor-not-allowed opacity-50'
+                        : 'cursor-pointer',
                       index === highlighted &&
                         'bg-accent text-accent-foreground',
                       index === selectedIndex && 'font-medium',
-                      item.disabled && 'cursor-not-allowed opacity-50',
                     )}
                     onMouseMove={() => {
                       if (!item.disabled && highlighted !== index)

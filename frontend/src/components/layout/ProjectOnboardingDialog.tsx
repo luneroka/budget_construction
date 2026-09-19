@@ -246,11 +246,11 @@ export function ProjectOnboardingDialog({
                     return (
                       <label
                         key={template.id}
-                        className={`relative flex min-h-28 cursor-pointer flex-col rounded-md border px-3 py-3 transition-colors ${
+                        className={`relative flex min-h-28 flex-col rounded-md border px-3 py-3 transition-colors ${
                           isSelected
                             ? 'border-accent bg-accent/5'
                             : 'border-border bg-background hover:bg-muted/60'
-                        } ${isCreating ? 'cursor-not-allowed opacity-70' : ''}`}
+                        } ${isCreating ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
                       >
                         <input
                           type="radio"

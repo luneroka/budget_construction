@@ -1,5 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
 @import 'tailwindcss';
+/* The crop dialog's own stylesheet (ReportIssueDrawer), layered like the rest
+   so nothing unlayered can outrank a utility. */
+@import 'react-easy-crop/react-easy-crop.css' layer(components);
 
 @theme {
   --font-heading: 'Playfair Display', Georgia, serif;
@@ -102,77 +105,83 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-* {
-  box-sizing: border-box;
-  border-color: hsl(var(--border));
-}
+/* Element defaults go in the base layer, never unlayered: an unlayered rule
+   outranks every Tailwind utility whatever its specificity. `* { border-color }`
+   here once silently cancelled every border-<colour> class, and
+   `button, input, select, textarea { font: inherit }` every text-*, font-* and
+   leading-* class on form controls. Form controls need no font reset of our
+   own: Tailwind's preflight already sets `font: inherit` on them, in this same
+   layer. */
+@layer base {
+  * {
+    box-sizing: border-box;
+    border-color: hsl(var(--border));
+  }
 
-html {
-  min-width: 320px;
-  min-height: 100%;
-  background: hsl(var(--background));
-}
+  html {
+    min-width: 320px;
+    min-height: 100%;
+    background: hsl(var(--background));
+  }
 
-body {
-  min-width: 320px;
-  min-height: 100vh;
-  margin: 0;
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
-  font-family: var(--font-body);
-}
+  body {
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-body);
+  }
 
-#root {
-  min-height: 100vh;
-}
+  #root {
+    min-height: 100vh;
+  }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
+  button:not(:disabled),
+  a[href],
+  [role='button'] {
+    cursor: pointer;
+  }
 
-button:not(:disabled),
-a[href],
-[role='button'] {
-  cursor: pointer;
-}
+  button:disabled,
+  [aria-disabled='true'] {
+    cursor: not-allowed;
+  }
 
-button:disabled,
-[aria-disabled='true'] {
-  cursor: not-allowed;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: var(--font-heading);
-}
-
-@media (min-width: 900px) {
-  .project-settings-grid-three,
-  .exports-settings-grid-three {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
   }
 }
 
-@media (min-width: 768px) {
-  .project-settings-grid-two {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+/* Settings grids: one column, then two or three as the page widens. In the
+   components layer so a caller utility can still override them. */
+@layer components {
+  @media (min-width: 900px) {
+    .project-settings-grid-three,
+    .exports-settings-grid-three {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
-}
 
-@media (min-width: 1280px) {
-  .project-settings-grid-three {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  @media (min-width: 768px) {
+    .project-settings-grid-two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 
-  .exports-settings-grid-three {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  @media (min-width: 1280px) {
+    .project-settings-grid-three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .exports-settings-grid-three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
   }
 }
 
