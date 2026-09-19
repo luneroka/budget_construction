@@ -462,10 +462,6 @@ export function TransactionsPage() {
     return paginatedRows.map(({ budgetLine, product, transaction }) => {
       const status = getTransactionStatus(transaction)
       const context = { budgetLine, product, transaction }
-      const documentLabel =
-        transaction.document_state === 'attached'
-          ? 'Documents joints'
-          : 'Documents manquants'
 
       return (
         <TableRow key={transaction.id}>
@@ -497,7 +493,11 @@ export function TransactionsPage() {
                 <Button
                   size="icon"
                   variant="ghost"
-                  aria-label={`${documentLabel} pour cette transaction`}
+                  aria-label={
+                    transaction.document_count > 1
+                      ? 'Voir les documents'
+                      : 'Voir le document'
+                  }
                   disabled={openingDocumentsTransactionId === transaction.id}
                   onClick={() => void openTransactionDocumentsViewer(context)}
                 >

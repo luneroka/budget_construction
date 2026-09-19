@@ -256,7 +256,6 @@ function TransactionRows({
                   })
                 }
                 aria-label="Ajouter une facture pour ce devis"
-                title="Ajouter une facture pour ce devis"
               >
                 <ReceiptText className="h-4 w-4" aria-hidden="true" />
               </button>
@@ -266,7 +265,11 @@ function TransactionRows({
                 type="button"
                 className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
                 onClick={() => onViewTransactionDocuments(transaction)}
-                aria-label={`Voir les ${transaction.document_count} documents de la transaction`}
+                aria-label={
+                  transaction.document_count > 1
+                    ? 'Voir les documents'
+                    : 'Voir le document'
+                }
               >
                 {/* Stacked sheets say "more than one here" at a glance, the
                     same signal ccig-app's CerfaButton uses. */}

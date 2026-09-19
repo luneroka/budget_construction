@@ -52,6 +52,13 @@ the app.
   passe oublié ? » sits flush with the fields, a disabled select's chevron is
   paler, a disabled option or template card shows one cursor.
 
+- **Icon-only controls**: an `aria-label` is required, and it is also the
+  tooltip. `IconTooltips` (`components/ui/icon-tooltips.tsx`, mounted once in
+  `App.tsx`) shows it instantly on mouse hover or keyboard focus for any
+  button or link without visible text. Never add a `title`: its native
+  tooltip comes late and doubles the custom one. Screen-reader text in an
+  `.sr-only` span works too. Touch shows nothing, and a press hides it.
+
 ## 3. Global rules in `@layer base`
 
 An unlayered rule outranks every Tailwind utility whatever its specificity.

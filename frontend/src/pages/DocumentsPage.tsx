@@ -399,7 +399,7 @@ export function DocumentsPage() {
               <Button
                 size="icon"
                 variant="ghost"
-                aria-label={`Voir ${document.original_filename}`}
+                aria-label="Voir le document"
                 onClick={() => openDocumentAction('view', document)}
               >
                 <Eye aria-hidden />
@@ -407,7 +407,7 @@ export function DocumentsPage() {
               <Button
                 size="icon"
                 variant="ghost"
-                aria-label={`Télécharger ${document.original_filename}`}
+                aria-label="Télécharger le document"
                 disabled={isBusy}
                 onClick={() => openDocumentAction('download', document)}
               >
@@ -416,7 +416,7 @@ export function DocumentsPage() {
               <Button
                 size="icon"
                 variant="ghost"
-                aria-label={`Supprimer ${document.original_filename}`}
+                aria-label="Supprimer le document"
                 disabled={isBusy}
                 onClick={() => {
                   setActionError(null)

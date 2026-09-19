@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import { RedirectAuthenticated } from '@/auth/RedirectAuthenticated'
 import { RequireAuth } from '@/auth/RequireAuth'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { IconTooltips } from '@/components/ui/icon-tooltips'
 import { AdminUsersPage } from '@/pages/AdminUsersPage'
 import { BudgetPage } from '@/pages/BudgetPage'
 import { DashboardPage } from '@/pages/DashboardPage'
@@ -49,6 +50,7 @@ export default function App() {
           },
         }}
       />
+      <IconTooltips />
       <Routes>
         <Route element={<RedirectAuthenticated />}>
           <Route path="login" element={<LoginPage />} />

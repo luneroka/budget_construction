@@ -31,7 +31,6 @@ export const PasswordInput = React.forwardRef<
         type="button"
         className="absolute right-1 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
         aria-label={label}
-        title={label}
         disabled={disabled}
         onClick={() => onVisibilityChange(!isVisible)}
       >
