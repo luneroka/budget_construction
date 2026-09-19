@@ -9,12 +9,12 @@ dependencies = [
     "asyncpg>=0.31.0",
     "bcrypt>=5.0.0",
     "fastapi[standard]>=0.141.1",
-    "greenlet>=3.5.5",
+    "greenlet>=3.5.6",
     "pydantic-settings>=2.11.0",
-    "sqlalchemy>=2.0.52",
+    "sqlalchemy>=2.0.54",
     "httpx>=0.24.0",
-    "boto3>=1.43.93",
-    "sentry-sdk>=2.69.1",
+    "boto3>=1.43.95",
+    "sentry-sdk>=2.69.2",
     "slowapi>=0.1.10",
     "pyjwt>=2.14.0",
 ]
@@ -66,8 +66,8 @@ prepend_sys_path = [
 [dependency-groups]
 dev = [
     "black>=25.11.0",
-    "boto3-stubs[s3]>=1.43.93",
-    "faker>=40.38.0",
+    "boto3-stubs[s3]>=1.43.95",
+    "faker>=40.39.0",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
