@@ -4,6 +4,8 @@ import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 type ConfirmationDialogProps = {
+  /** Defaults to the bin: most confirmations are deletions. */
+  icon?: ReactNode
   title: string
   description: string
   children?: ReactNode
@@ -17,6 +19,7 @@ type ConfirmationDialogProps = {
 }
 
 export function ConfirmationDialog({
+  icon = <Trash2 className="h-5 w-5" aria-hidden="true" />,
   title,
   description,
   children,
@@ -38,7 +41,7 @@ export function ConfirmationDialog({
       <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-foreground shadow-lg">
         <div className="flex items-start gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-destructive/10 text-destructive">
-            <Trash2 className="h-5 w-5" aria-hidden="true" />
+            {icon}
           </span>
           <div className="min-w-0 flex-1">
             <p

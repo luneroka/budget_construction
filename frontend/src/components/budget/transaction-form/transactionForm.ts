@@ -225,6 +225,13 @@ export function recalculateAmounts<T extends AmountFields>(
   }
 }
 
+// Whether a form still holds what it started with, field by field.
+export function isSameFormState<T extends object>(left: T, right: T) {
+  return (Object.keys(left) as (keyof T)[]).every(
+    (key) => left[key] === right[key],
+  )
+}
+
 // A paid invoice needs a payment date, never before the invoice date.
 export function defaultPaymentDate(issuedDate: string) {
   const today = todayAsInputValue()

@@ -43,6 +43,7 @@ import {
   createInitialFormState,
   createTransactionLabels,
   defaultPaymentDate,
+  isSameFormState,
   newTransactionTitles,
   normalizeForType,
   requiredId,
@@ -105,15 +106,19 @@ export function TransactionModal({
         transaction.select_as_budget,
     ) ?? false
   const retainByDefault = !lineHasRetainedBudget
+  const [initialForm] = useState(() =>
+    createInitialFormState({
+      transactionType: initialType,
+      selectAsBudget: retainByDefault,
+      prefill,
+    }),
+  )
   const { form, setForm, updateField } = useTransactionAmountForm(
-    () =>
-      createInitialFormState({
-        transactionType: initialType,
-        selectAsBudget: retainByDefault,
-        prefill,
-      }),
+    () => initialForm,
     { onChange: () => setMutationError(null) },
   )
+  const hasUnsavedChanges =
+    documentFile !== null || !isSameFormState(form, initialForm)
   const transactionType = form.transaction_type
   const isSubmitting =
     createBudgetLineTransactionMutation.isPending ||
@@ -244,6 +249,7 @@ export function TransactionModal({
       subtitle={transactionBreadcrumb(product, budgetLine)}
       icon={<FilePlus2 className="h-5 w-5" aria-hidden="true" />}
       closeDisabled={isSubmitting}
+      hasUnsavedChanges={hasUnsavedChanges}
       onClose={onClose}
       footer={
         <>

@@ -71,6 +71,9 @@ export function ContactOwnerDialog() {
           subtitle="Présentez-vous et dites-nous pourquoi vous souhaitez essayer l’application."
           icon={<Mail className="h-5 w-5" aria-hidden="true" />}
           closeDisabled={busy}
+          hasUnsavedChanges={[name, email, reason, message].some(
+            (value) => value.trim() !== '',
+          )}
           onClose={closeDialog}
           footer={
             <>

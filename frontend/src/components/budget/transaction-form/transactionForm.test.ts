@@ -11,6 +11,7 @@ import {
   createInitialUpdateFormState,
   defaultPaymentDate,
   invoicePrefillFromQuote,
+  isSameFormState,
   normalizeForType,
   recalculateAmounts,
   todayAsInputValue,
@@ -316,5 +317,14 @@ describe('buildTransactionUpdate', () => {
     expect(payload.due_date).toBe('2026-03-31')
     expect(payload).not.toHaveProperty('invoice_status')
     expect(payload).not.toHaveProperty('payment_date')
+  })
+})
+
+describe('isSameFormState', () => {
+  it('sees a form as unchanged until one field differs', () => {
+    const form = quoteForm()
+
+    expect(isSameFormState(form, { ...form })).toBe(true)
+    expect(isSameFormState(form, { ...form, amount_ttc: '120' })).toBe(false)
   })
 })

@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import type { ActiveAction } from '@/components/budget/types'
+import { useDiscardConfirmation } from '@/components/shared/useDiscardConfirmation'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 
 export function ProductStructureDialog({
@@ -33,6 +34,9 @@ export function ProductStructureDialog({
   const isMutating =
     createBudgetLineMutation.isPending || convertProductLineMutation.isPending
   const productId = Number(activeAction.product.product_id)
+  const { confirmDiscard, discardDialog } = useDiscardConfirmation(
+    breakdownName.trim() !== '' || breakdownNames.trim() !== '',
+  )
 
   function parseBreakdownNames(value: string) {
     return value
@@ -98,83 +102,93 @@ export function ProductStructureDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 px-4">
-      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-6 text-foreground shadow-lg">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-md bg-gold/15 text-gold">
-            <FilePlus2 className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="font-heading text-xl font-semibold">
-              {activeAction.kind === 'decompose-product'
-                ? 'Décomposer le produit'
-                : 'Ajouter un sous-produit'}
-            </p>
-            {activeAction.kind === 'decompose-product' ? (
-              <div className="mt-4 space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Convertissez le produit « {activeAction.product.product_name}{' '}
-                  » en plusieurs sous-produits.
-                </p>
-                <div className="rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
-                  <p>
-                    Le poste de budget actuel sera remplacé par les
-                    sous-produits listés ci-dessous.
-                  </p>
-                  <p className="mt-1">
-                    Chaque ligne devient un sous-produit distinct. Les
-                    transactions existantes restent rattachées au premier
-                    sous-produit.
-                  </p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="breakdown-names">Sous-produits</Label>
-                  <Textarea
-                    id="breakdown-names"
-                    value={breakdownNames}
-                    placeholder="Sous-produit A&#10;Sous-produit B"
-                    onChange={(event) => setBreakdownNames(event.target.value)}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="mt-4 space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Ajoutez un sous-produit au produit «{' '}
-                  {activeAction.product.product_name} ».
-                </p>
-                <div className="space-y-1.5">
-                  <Label htmlFor="breakdown-name">Nom du sous-produit</Label>
-                  <Input
-                    id="breakdown-name"
-                    value={breakdownName}
-                    onChange={(event) => setBreakdownName(event.target.value)}
-                  />
-                </div>
-              </div>
-            )}
-            {error ? (
-              <p className="mt-4 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-                {error}
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 px-4">
+        <div className="w-full max-w-lg rounded-lg border border-border bg-card p-6 text-foreground shadow-lg">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-gold/15 text-gold">
+              <FilePlus2 className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-heading text-xl font-semibold">
+                {activeAction.kind === 'decompose-product'
+                  ? 'Décomposer le produit'
+                  : 'Ajouter un sous-produit'}
               </p>
-            ) : null}
+              {activeAction.kind === 'decompose-product' ? (
+                <div className="mt-4 space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Convertissez le produit «{' '}
+                    {activeAction.product.product_name} » en plusieurs
+                    sous-produits.
+                  </p>
+                  <div className="rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
+                    <p>
+                      Le poste de budget actuel sera remplacé par les
+                      sous-produits listés ci-dessous.
+                    </p>
+                    <p className="mt-1">
+                      Chaque ligne devient un sous-produit distinct. Les
+                      transactions existantes restent rattachées au premier
+                      sous-produit.
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="breakdown-names">Sous-produits</Label>
+                    <Textarea
+                      id="breakdown-names"
+                      value={breakdownNames}
+                      placeholder="Sous-produit A&#10;Sous-produit B"
+                      onChange={(event) =>
+                        setBreakdownNames(event.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Ajoutez un sous-produit au produit «{' '}
+                    {activeAction.product.product_name} ».
+                  </p>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="breakdown-name">Nom du sous-produit</Label>
+                    <Input
+                      id="breakdown-name"
+                      value={breakdownName}
+                      onChange={(event) => setBreakdownName(event.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+              {error ? (
+                <p className="mt-4 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                  {error}
+                </p>
+              ) : null}
+            </div>
+          </div>
+          <div className="mt-6 flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => confirmDiscard(onClose)}
+              disabled={isMutating}
+            >
+              Fermer
+            </Button>
+            {activeAction.kind === 'decompose-product' ? (
+              <Button onClick={submitConvertProduct} disabled={isMutating}>
+                {isMutating ? 'Conversion...' : 'Convertir'}
+              </Button>
+            ) : (
+              <Button onClick={submitAddBreakdown} disabled={isMutating}>
+                {isMutating ? 'Ajout...' : 'Ajouter'}
+              </Button>
+            )}
           </div>
         </div>
-        <div className="mt-6 flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose} disabled={isMutating}>
-            Fermer
-          </Button>
-          {activeAction.kind === 'decompose-product' ? (
-            <Button onClick={submitConvertProduct} disabled={isMutating}>
-              {isMutating ? 'Conversion...' : 'Convertir'}
-            </Button>
-          ) : (
-            <Button onClick={submitAddBreakdown} disabled={isMutating}>
-              {isMutating ? 'Ajout...' : 'Ajouter'}
-            </Button>
-          )}
-        </div>
       </div>
-    </div>
+      {discardDialog}
+    </>
   )
 }

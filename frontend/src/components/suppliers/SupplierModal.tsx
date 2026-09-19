@@ -168,9 +168,12 @@ export function SupplierModal({
   const queryClient = useQueryClient()
   const uploadRibMutation = useUploadSupplierDocumentMutation()
   const [currentMode, setCurrentMode] = useState<SupplierModalMode>(mode)
-  const [form, setForm] = useState<SupplierFormState>(() =>
+  // What the form held when it opened, kept rather than rebuilt for the
+  // comparison: a new supplier's form draws random ids.
+  const [initialForm, setInitialForm] = useState<SupplierFormState>(() =>
     supplierToForm(supplier),
   )
+  const [form, setForm] = useState<SupplierFormState>(initialForm)
   const [formError, setFormError] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false)
@@ -180,12 +183,17 @@ export function SupplierModal({
   const [createdSupplierForRib, setCreatedSupplierForRib] =
     useState<Supplier | null>(null)
   const isReadOnly = currentMode === 'view'
+  const hasUnsavedChanges =
+    !isReadOnly &&
+    (ribFile !== null || JSON.stringify(form) !== JSON.stringify(initialForm))
   const isBusy = isSaving || isDeleting
   const existingSupplierId = numericSupplierId(supplier?.id ?? null)
 
   useEffect(() => {
+    const nextForm = supplierToForm(supplier)
     setCurrentMode(mode)
-    setForm(supplierToForm(supplier))
+    setInitialForm(nextForm)
+    setForm(nextForm)
     setFormError(null)
     setDeleteError(null)
     setDeleteConfirmationOpen(false)
@@ -338,7 +346,7 @@ export function SupplierModal({
   }
 
   function cancelEdit() {
-    setForm(supplierToForm(supplier))
+    setForm(initialForm)
     setFormError(null)
     setRibFile(null)
     setCreatedSupplierForRib(null)
@@ -379,6 +387,7 @@ export function SupplierModal({
           ) : undefined
         }
         closeDisabled={isBusy}
+        hasUnsavedChanges={hasUnsavedChanges}
         onClose={onClose}
         headerActions={
           currentMode === 'view' ? (

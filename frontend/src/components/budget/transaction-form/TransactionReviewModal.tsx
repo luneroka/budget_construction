@@ -25,11 +25,11 @@ import { TransactionDocumentsPanel } from './TransactionDocumentsPanel'
 import { TransactionFormBody } from './TransactionFormBody'
 import { BudgetSelectionRow } from './TransactionFormFields'
 import {
-  type TransactionUpdateFormState,
   type ViewedTransactionContext,
   buildTransactionUpdate,
   createInitialUpdateFormState,
   defaultPaymentDate,
+  isSameFormState,
   requiredId,
   transactionBreadcrumb,
   transactionTypeLabels,
@@ -45,15 +45,6 @@ type TransactionReviewModalProps = {
   canToggleBudgetSelection: boolean
   onToggleBudgetSelection: () => void
   onClose: () => void
-}
-
-function isSameForm(
-  left: TransactionUpdateFormState,
-  right: TransactionUpdateFormState,
-) {
-  return (Object.keys(left) as (keyof TransactionUpdateFormState)[]).every(
-    (key) => left[key] === right[key],
-  )
 }
 
 // Opening a transaction opens it for editing: every field is live, so a
@@ -89,7 +80,7 @@ export function TransactionReviewModal({
     selectBudgetCandidateMutation.isPending ||
     unselectBudgetCandidateMutation.isPending
   const isQuote = transaction.transaction_type === 'quote'
-  const isDirty = !isSameForm(form, savedForm)
+  const isDirty = !isSameFormState(form, savedForm)
   const canToggleBudgetSelectionFromForm =
     localIsBudgetSelected ||
     canToggleBudgetSelection ||
@@ -205,6 +196,7 @@ export function TransactionReviewModal({
         subtitle={transactionBreadcrumb(product, budgetLine)}
         icon={<Edit3 className="h-5 w-5" aria-hidden="true" />}
         closeDisabled={isMutating}
+        hasUnsavedChanges={isDirty}
         onClose={onClose}
         footerLeading={
           readOnly ? null : (

@@ -1,8 +1,16 @@
-import type { ReactNode } from 'react'
+import { createContext, type ReactNode, useContext } from 'react'
 import { Check, Eye, Trash2, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+
+import { useDiscardConfirmation } from './useDiscardConfirmation'
+
+// Lets the footer's Annuler and Fermer go through the shell's unsaved-changes
+// check without every modal wiring it by hand.
+const ConfirmDiscardContext = createContext<
+  ((action: () => void) => void) | null
+>(null)
 
 export function ModalShell({
   title,
@@ -13,6 +21,7 @@ export function ModalShell({
   footerLeading,
   closeDisabled,
   size = 'default',
+  hasUnsavedChanges = false,
   onClose,
   children,
 }: {
@@ -31,61 +40,78 @@ export function ModalShell({
   closeDisabled?: boolean
   /** `narrow` for a single form (a transaction); `default` for wide content. */
   size?: 'default' | 'narrow'
+  /** Makes the ×, Annuler and Fermer ask before losing the changes. */
+  hasUnsavedChanges?: boolean
   onClose: () => void
   children: ReactNode
 }) {
+  const { confirmDiscard, discardDialog } =
+    useDiscardConfirmation(hasUnsavedChanges)
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label={typeof title === 'string' ? title : undefined}
-    >
+    <ConfirmDiscardContext.Provider value={confirmDiscard}>
       <div
-        className={cn(
-          'flex max-h-[92vh] w-full flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-xl',
-          size === 'narrow' ? 'max-w-2xl' : 'max-w-5xl',
-        )}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-4"
+        role="dialog"
+        aria-modal="true"
+        aria-label={typeof title === 'string' ? title : undefined}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
-          <div className="flex min-w-0 items-center gap-3">
-            {icon ? (
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gold/15 text-gold">
-                {icon}
-              </span>
-            ) : null}
-            <div className="min-w-0">
-              <p className="truncate text-base font-semibold">{title}</p>
-              {subtitle ? (
-                <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+        <div
+          className={cn(
+            'flex max-h-[92vh] w-full flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-xl',
+            size === 'narrow' ? 'max-w-2xl' : 'max-w-5xl',
+          )}
+        >
+          <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+            <div className="flex min-w-0 items-center gap-3">
+              {icon ? (
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gold/15 text-gold">
+                  {icon}
+                </span>
               ) : null}
+              <div className="min-w-0">
+                <p className="truncate text-base font-semibold">{title}</p>
+                {subtitle ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {subtitle}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {headerActions}
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Fermer"
+                disabled={closeDisabled}
+                onClick={() => confirmDiscard(onClose)}
+              >
+                <X aria-hidden />
+              </Button>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {headerActions}
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label="Fermer"
-              disabled={closeDisabled}
-              onClick={onClose}
-            >
-              <X aria-hidden />
-            </Button>
-          </div>
+
+          <div className="overflow-y-auto px-5 py-4 text-sm">{children}</div>
+
+          {footer || footerLeading ? (
+            <div className="flex items-center justify-between gap-2 border-t border-border px-5 py-3">
+              <div className="flex items-center gap-2">{footerLeading}</div>
+              <div className="flex items-center justify-end gap-2">
+                {footer}
+              </div>
+            </div>
+          ) : null}
         </div>
-
-        <div className="overflow-y-auto px-5 py-4 text-sm">{children}</div>
-
-        {footer || footerLeading ? (
-          <div className="flex items-center justify-between gap-2 border-t border-border px-5 py-3">
-            <div className="flex items-center gap-2">{footerLeading}</div>
-            <div className="flex items-center justify-end gap-2">{footer}</div>
-          </div>
-        ) : null}
       </div>
-    </div>
+      {discardDialog}
+    </ConfirmDiscardContext.Provider>
   )
+}
+
+function useGuardedClick(onClick: () => void) {
+  const confirmDiscard = useContext(ConfirmDiscardContext)
+  return () => (confirmDiscard ? confirmDiscard(onClick) : onClick())
 }
 
 export function ModalCancelButton({
@@ -97,11 +123,13 @@ export function ModalCancelButton({
   disabled?: boolean
   children?: ReactNode
 }) {
+  const handleClick = useGuardedClick(onClick)
+
   return (
     <Button
       variant="outline"
       type="button"
-      onClick={onClick}
+      onClick={handleClick}
       disabled={disabled}
     >
       {children}
@@ -118,11 +146,13 @@ export function ModalCloseButton({
   disabled?: boolean
   children?: ReactNode
 }) {
+  const handleClick = useGuardedClick(onClick)
+
   return (
     <Button
       variant="outline"
       type="button"
-      onClick={onClick}
+      onClick={handleClick}
       disabled={disabled}
     >
       <X aria-hidden />
