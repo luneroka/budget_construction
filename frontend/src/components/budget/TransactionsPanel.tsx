@@ -129,7 +129,7 @@ function TransactionRows({
             dimmed={isUnretainedCandidate}
           />
         </div>
-        <div className="min-w-0 px-2 py-2 leading-snug wrap-break-words">
+        <div className="min-w-0 px-2 py-2 leading-snug wrap-break-word">
           {transaction.supplier_name ?? 'Autoconstruction'}
         </div>
         <div className="px-3 py-2 text-right font-medium whitespace-nowrap">
