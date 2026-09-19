@@ -250,7 +250,14 @@ export const ProductRow = forwardRef<
         >
           <span className="flex min-w-0 items-center gap-3">
             <ToggleIcon isOpen={isOpen} />
-            <span className="block font-medium text-foreground">
+            {/* Bold while open: with every other product folded, the name
+                says at a glance which one the rows below belong to. */}
+            <span
+              className={cn(
+                'block text-foreground',
+                isOpen ? 'font-bold' : 'font-medium',
+              )}
+            >
               {highlightSearchMatches(product.product_name, searchQuery)}
               {transactionCount > 0 ? (
                 <span className="ml-1 text-xs font-normal text-muted-foreground">
