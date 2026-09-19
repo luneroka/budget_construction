@@ -64,10 +64,9 @@ An unlayered rule outranks every Tailwind utility whatever its specificity.
   preflight already sets it, in the base layer. Unlayered, it cancelled every
   `text-*`, `font-*` and `leading-*` class on form controls, including
   Button's own `text-sm font-medium`.
-- The cursor and heading rules are layered, the settings grid classes (still
-  used here) moved into `@layer components`, and react-easy-crop's stylesheet
-  is imported into `@layer components`. `:root` is the only unlayered rule in
-  the built CSS.
+- The cursor and heading rules are layered, and the settings grid classes
+  (still used here) moved into `@layer components`. `:root` is the only
+  unlayered rule in the built CSS.
 
 ## 4. Muted grey
 

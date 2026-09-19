@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Cropper, { type Area } from 'react-easy-crop'
 import {
   Camera,
-  Crop,
   HelpCircle,
   Image as ImageIcon,
   Loader2,
@@ -26,7 +24,6 @@ import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { formatFileSize } from '@/lib/format'
 import { captureElementPng } from '@/lib/htmlCapture'
-import { cropImageToBlob } from '@/lib/imageCrop'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
 import { useAppState } from '@/state/appState'
@@ -90,21 +87,11 @@ export function ReportIssueDrawer() {
   const [description, setDescription] = useState('')
   const [attachments, setAttachments] = useState<AttachmentItem[]>([])
   const [isCapturing, setIsCapturing] = useState(false)
-  const [cropImageUrl, setCropImageUrl] = useState<string | null>(null)
-  const [cropSourceUrl, setCropSourceUrl] = useState<string | null>(null)
-  const [crop, setCrop] = useState({ x: 0, y: 0 })
-  const [zoom, setZoom] = useState(1)
-  const [croppedPixels, setCroppedPixels] = useState<Area | null>(null)
   const attachmentsRef = useRef<AttachmentItem[]>([])
-  const cropImageUrlRef = useRef<string | null>(null)
 
   useEffect(() => {
     attachmentsRef.current = attachments
   }, [attachments])
-
-  useEffect(() => {
-    cropImageUrlRef.current = cropImageUrl
-  }, [cropImageUrl])
 
   useEffect(() => {
     return () => {
@@ -112,9 +99,6 @@ export function ReportIssueDrawer() {
         if (attachment.previewUrl) {
           URL.revokeObjectURL(attachment.previewUrl)
         }
-      }
-      if (cropImageUrlRef.current) {
-        URL.revokeObjectURL(cropImageUrlRef.current)
       }
     }
   }, [])
@@ -149,52 +133,6 @@ export function ReportIssueDrawer() {
       setIsHiddenForCapture(false)
       setIsCapturing(false)
       setIsOpen(true)
-    }
-  }
-
-  async function captureSelectedArea() {
-    setIsCapturing(true)
-    setIsHiddenForCapture(true)
-
-    try {
-      await nextAnimationFrame()
-      const target = document.querySelector('main') ?? document.body
-      const blob = await captureElementPng(target as HTMLElement)
-      const imageUrl = URL.createObjectURL(blob)
-      setCropImageUrl(imageUrl)
-      setCropSourceUrl(imageUrl)
-      setCrop({ x: 0, y: 0 })
-      setZoom(1)
-      setCroppedPixels(null)
-    } catch (error) {
-      setIsHiddenForCapture(false)
-      setIsOpen(true)
-      notifyError(getApiErrorMessage(error))
-    } finally {
-      setIsCapturing(false)
-    }
-  }
-
-  function closeCropper() {
-    if (cropImageUrl) {
-      URL.revokeObjectURL(cropImageUrl)
-    }
-    setCropImageUrl(null)
-    setCropSourceUrl(null)
-    setIsHiddenForCapture(false)
-    setIsOpen(true)
-  }
-
-  async function applyCrop() {
-    if (!cropSourceUrl || !croppedPixels) return
-
-    try {
-      const blob = await cropImageToBlob(cropSourceUrl, croppedPixels)
-      addFiles([fileFromBlob(blob, screenshotFilename('area-capture'))])
-      notifySuccess('Zone capturée ajoutée au rapport.')
-      closeCropper()
-    } catch (error) {
-      notifyError(getApiErrorMessage(error))
     }
   }
 
@@ -346,16 +284,6 @@ export function ReportIssueDrawer() {
                 variant="outline"
                 className="justify-start"
                 disabled={busy}
-                onClick={captureSelectedArea}
-              >
-                <Crop aria-hidden />
-                Capturer une zone
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="justify-start"
-                disabled={busy}
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload aria-hidden />
@@ -448,47 +376,6 @@ export function ReportIssueDrawer() {
           </Button>
         </div>
       </aside>
-
-      {cropImageUrl ? (
-        <div
-          className="fixed inset-0 z-60 flex flex-col bg-slate-950"
-          data-capture-ignore="true"
-        >
-          <div className="relative min-h-0 flex-1">
-            <Cropper
-              image={cropImageUrl}
-              crop={crop}
-              zoom={zoom}
-              aspect={4 / 3}
-              onCropChange={setCrop}
-              onZoomChange={setZoom}
-              onCropComplete={(_, croppedAreaPixels) =>
-                setCroppedPixels(croppedAreaPixels)
-              }
-            />
-          </div>
-          <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-slate-950 px-4 py-3">
-            <label className="flex min-w-0 flex-1 items-center gap-3 text-sm text-white">
-              <span className="shrink-0">Zoom</span>
-              <input
-                type="range"
-                min={1}
-                max={3}
-                step={0.1}
-                value={zoom}
-                className="w-full"
-                onChange={(event) => setZoom(Number(event.target.value))}
-              />
-            </label>
-            <Button type="button" variant="secondary" onClick={closeCropper}>
-              Annuler
-            </Button>
-            <Button type="button" variant="gold" onClick={applyCrop}>
-              Joindre la zone
-            </Button>
-          </div>
-        </div>
-      ) : null}
     </>
   )
 }
