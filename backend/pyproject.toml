@@ -9,7 +9,7 @@ dependencies = [
     "asyncpg>=0.31.0",
     # Pinned: passlib 1.7.4 fails its bcrypt self-test against bcrypt >= 5
     # (ValueError: password cannot be longer than 72 bytes).
-    "bcrypt==5.0.0",
+    "bcrypt==4.0.1",
     "fastapi[standard]>=0.141.1",
     "greenlet>=3.5.5",
     "passlib[bcrypt]>=1.7.4",
