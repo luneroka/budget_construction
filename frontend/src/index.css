@@ -60,7 +60,9 @@
   --secondary: 215 25% 94%;
   --secondary-foreground: 220 30% 15%;
 
-  --muted: 215 20% 95%;
+  /* Dark enough to read as a fill on a white card (table headers, count
+     badges, the budget cards' counts); at 95% those were barely visible. */
+  --muted: 215 20% 92%;
   --muted-foreground: 215 15% 50%;
 
   --accent: 220 55% 42%;
