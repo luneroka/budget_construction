@@ -27,10 +27,8 @@ const variantClasses: Record<ButtonVariant, string> = {
   link: 'text-accent underline-offset-4 hover:underline',
   gold: 'bg-gold text-gold-foreground hover:bg-gold/90',
   // A destructive action that is not the primary one -- deleting the record a
-  // modal is about, offered alongside Fermer. A real variant rather than
-  // `outline` plus a text-destructive className: `cn` here is a plain
-  // concatenator, not tailwind-merge, so layering would emit both
-  // `text-foreground` and `text-destructive` and let stylesheet order pick.
+  // modal is about, offered alongside Fermer: bordered in the destructive
+  // colour and filling in on hover, the tone of ccig-app's ModalActionButton.
   destructiveOutline:
     'border border-destructive/30 bg-background text-destructive hover:bg-destructive hover:text-destructive-foreground',
 }
