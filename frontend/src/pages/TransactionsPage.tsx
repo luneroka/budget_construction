@@ -721,7 +721,7 @@ export function TransactionsPage() {
                 Montant TTC
               </SortableHeader>
               <TableHead className="whitespace-nowrap">Statut</TableHead>
-              <TableHead className="text-right! whitespace-nowrap">
+              <TableHead className="text-right whitespace-nowrap">
                 Actions
               </TableHead>
             </TableRow>

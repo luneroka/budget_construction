@@ -490,7 +490,7 @@ export function DocumentsPage() {
               <TableHead className="min-w-32">Type</TableHead>
               <TableHead>Fournisseur</TableHead>
               <TableHead>Ajouté le</TableHead>
-              <TableHead className="text-center!">Actions</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>{renderTableBody()}</TableBody>

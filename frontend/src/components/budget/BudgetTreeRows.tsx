@@ -105,8 +105,8 @@ export function ProductContextRows({
   const supportsBreakdowns = line === null
 
   return (
-    <TableRow className="border-t-0 bg-card hover:bg-card!">
-      <TableCell colSpan={7} className="px-6! pt-0! pb-0!">
+    <TableRow className="border-t-0 bg-card hover:bg-card">
+      <TableCell colSpan={7} className="px-6 pt-0 pb-0">
         <div className="flex items-center justify-between pt-1 pb-3">
           <span className="text-xs text-muted-foreground">
             {supportsBreakdowns
@@ -119,7 +119,7 @@ export function ProductContextRows({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="text-muted-foreground hover:bg-gold/15! hover:text-gold!"
+                  className="text-muted-foreground hover:bg-gold/15 hover:text-gold"
                   onClick={() => onAddBreakdown({ product })}
                 >
                   <Layers3 aria-hidden="true" />
@@ -130,7 +130,7 @@ export function ProductContextRows({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="text-muted-foreground hover:bg-gold/15! hover:text-gold!"
+                    className="text-muted-foreground hover:bg-gold/15 hover:text-gold"
                     onClick={() => onDecomposeProduct({ product })}
                   >
                     <Layers3 aria-hidden="true" />
@@ -139,7 +139,7 @@ export function ProductContextRows({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="bg-gold/15 text-gold hover:bg-gold/25! hover:text-gold!"
+                    className="bg-gold/15 text-gold hover:bg-gold/25 hover:text-gold"
                     onClick={() =>
                       onAddTransaction({ budgetLine: line, product })
                     }
@@ -167,7 +167,7 @@ export function EmptyProductRow({
   onAddFirstTransaction: (action: BreakdownAction) => void
 }) {
   return (
-    <TableRow className="border-t-0 bg-card hover:bg-card!">
+    <TableRow className="border-t-0 bg-card hover:bg-card">
       <TableCell colSpan={7} className="px-6 py-4">
         <div className="flex items-center justify-between border-t border-border/50 pt-4 pl-7">
           <div>
@@ -208,8 +208,8 @@ export function BudgetLineContextRow({
   onAddTransaction: (action: TransactionAction) => void
 }) {
   return (
-    <TableRow className="border-t-0 bg-muted/25 hover:bg-muted/25!">
-      <TableCell colSpan={7} className="px-6! pt-1! pb-0!">
+    <TableRow className="border-t-0 bg-muted/25 hover:bg-muted/25">
+      <TableCell colSpan={7} className="px-6 pt-1 pb-0">
         <div className="flex items-center justify-between pt-1 pb-3">
           <span className="text-xs text-muted-foreground">
             Transactions pour ce sous-produit
@@ -218,7 +218,7 @@ export function BudgetLineContextRow({
             <Button
               size="sm"
               variant="ghost"
-              className="bg-gold/15 text-gold hover:bg-gold/25! hover:text-gold!"
+              className="bg-gold/15 text-gold hover:bg-gold/25 hover:text-gold"
               onClick={() => onAddTransaction({ budgetLine: line, product })}
             >
               <Plus aria-hidden="true" />

@@ -282,7 +282,6 @@ export function TransactionReviewModal({
               >
                 <Input
                   id="review-transaction-issued-date"
-                  className="text-sm"
                   type={isEditing ? 'date' : 'text'}
                   value={
                     isEditing
@@ -301,7 +300,6 @@ export function TransactionReviewModal({
                 {isEditing ? (
                   <SupplierSelectField
                     id="review-transaction-supplier"
-                    className="text-sm"
                     value={form.supplier_id}
                     suppliers={suppliers}
                     onChange={(supplierId) =>
@@ -311,7 +309,6 @@ export function TransactionReviewModal({
                 ) : (
                   <Input
                     id="review-transaction-supplier"
-                    className="text-sm"
                     value={transaction.supplier_name ?? selectedSupplierName}
                     readOnly
                     disabled
@@ -338,7 +335,6 @@ export function TransactionReviewModal({
                 {isEditing && isQuote ? (
                   <Select
                     id="review-transaction-status"
-                    className="text-sm"
                     value={form.quote_status}
                     onChange={(event) =>
                       updateField(
@@ -356,7 +352,6 @@ export function TransactionReviewModal({
                 ) : isEditing && isInvoice ? (
                   <Select
                     id="review-transaction-status"
-                    className="text-sm"
                     value={form.invoice_status}
                     onChange={(event) =>
                       updateInvoiceStatus(event.target.value as InvoiceStatus)
@@ -389,7 +384,6 @@ export function TransactionReviewModal({
               <Field label="Montant HT" htmlFor="review-transaction-amount-ht">
                 <Input
                   id="review-transaction-amount-ht"
-                  className="text-sm"
                   type={isEditing ? 'number' : 'text'}
                   min="0"
                   step="0.01"
@@ -409,7 +403,6 @@ export function TransactionReviewModal({
               <Field label="TVA" htmlFor="review-transaction-vat-rate">
                 <Input
                   id="review-transaction-vat-rate"
-                  className="text-sm"
                   type={isEditing ? 'number' : 'text'}
                   min="0"
                   step="0.01"
@@ -429,7 +422,6 @@ export function TransactionReviewModal({
               >
                 <Input
                   id="review-transaction-amount-vat"
-                  className="text-sm"
                   value={
                     isEditing
                       ? form.amount_vat
@@ -445,7 +437,6 @@ export function TransactionReviewModal({
               >
                 <Input
                   id="review-transaction-amount-ttc"
-                  className="text-sm"
                   type={isEditing ? 'number' : 'text'}
                   min="0"
                   step="0.01"
@@ -472,7 +463,6 @@ export function TransactionReviewModal({
                 >
                   <Input
                     id="review-transaction-due-date"
-                    className="text-sm"
                     type={isEditing ? 'date' : 'text'}
                     value={
                       isEditing
@@ -494,7 +484,6 @@ export function TransactionReviewModal({
                     >
                       <Input
                         id="review-transaction-payment-date"
-                        className="text-sm"
                         type={isEditing ? 'date' : 'text'}
                         value={
                           isEditing
@@ -516,7 +505,6 @@ export function TransactionReviewModal({
                       {isEditing ? (
                         <Select
                           id="review-transaction-invoice-type"
-                          className="text-sm"
                           value={form.invoice_type}
                           onChange={(event) =>
                             updateField(
@@ -536,7 +524,6 @@ export function TransactionReviewModal({
                       ) : (
                         <Input
                           id="review-transaction-invoice-type"
-                          className="text-sm"
                           value={
                             transaction.invoice_type
                               ? invoiceTypeLabels[transaction.invoice_type]
@@ -553,7 +540,6 @@ export function TransactionReviewModal({
                       {isEditing ? (
                         <Select
                           id="review-transaction-payment-method"
-                          className="text-sm"
                           value={form.payment_method}
                           onChange={(event) =>
                             updateField(
@@ -573,7 +559,6 @@ export function TransactionReviewModal({
                       ) : (
                         <Input
                           id="review-transaction-payment-method"
-                          className="text-sm"
                           value={
                             transaction.payment_method
                               ? paymentMethodLabels[transaction.payment_method]
@@ -604,7 +589,6 @@ export function TransactionReviewModal({
               >
                 <Input
                   id="review-transaction-description"
-                  className="text-sm"
                   value={form.description}
                   readOnly={!isEditing}
                   disabled={!isEditing}

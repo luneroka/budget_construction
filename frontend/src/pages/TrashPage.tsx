@@ -483,7 +483,7 @@ export function TrashPage() {
                 Supprimé le
               </TableHead>
               <TableHead>Statut</TableHead>
-              <TableHead className="text-right!">Action</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>{renderTableBody()}</TableBody>

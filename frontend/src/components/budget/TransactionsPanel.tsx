@@ -333,8 +333,8 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
   }
 
   return (
-    <TableRow className="border-t-0 bg-muted/10 hover:bg-muted/10!">
-      <TableCell colSpan={7} className="max-w-0 p-0!">
+    <TableRow className="border-t-0 bg-muted/10 hover:bg-muted/10">
+      <TableCell colSpan={7} className="max-w-0 p-0">
         <div className="min-w-0 px-6 pb-5">
           <div className="w-full min-w-0 overflow-x-auto border border-border bg-background/70 text-xs">
             <div className="hidden border-t border-border/50 px-2 py-2">
