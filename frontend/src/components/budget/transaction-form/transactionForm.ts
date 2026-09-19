@@ -17,8 +17,6 @@ import type {
   TransactionType,
 } from '@/types'
 
-export type ProductStructureChoice = 'single' | 'breakdown'
-export type BudgetConcern = 'entire_product' | 'specific_element'
 export type AmountSource = 'ht' | 'ttc'
 
 export type AmountFields = {
@@ -44,9 +42,15 @@ export type TransactionFormState = {
   invoice_type: InvoiceType
   payment_method: PaymentMethod
   select_as_budget: boolean
-  budget_concern: BudgetConcern
-  budget_line_name: string
 }
+
+// What a new transaction can start from, e.g. an invoice for a quote.
+export type TransactionPrefill = Partial<
+  Pick<
+    TransactionFormState,
+    'supplier_id' | 'amount_ttc' | 'vat_rate' | 'description' | 'invoice_type'
+  >
+>
 
 export type TransactionUpdateFormState = {
   supplier_id: string
@@ -75,6 +79,21 @@ export const transactionTypeLabels: Record<TransactionType, string> = {
   diy_estimate: 'Estimation DIY',
   invoice: 'Facture',
 }
+
+export const newTransactionTitles: Record<TransactionType, string> = {
+  quote: 'Nouveau devis',
+  diy_estimate: 'Nouvelle estimation DIY',
+  invoice: 'Nouvelle facture',
+}
+
+export const createTransactionLabels: Record<TransactionType, string> = {
+  quote: 'Créer le devis',
+  diy_estimate: 'Créer l’estimation',
+  invoice: 'Créer la facture',
+}
+
+// The French rates a construction budget meets; any other can be typed.
+export const vatRatePresets = ['20', '10', '5.5', '0'] as const
 
 export const issuedDateLabels: Record<TransactionType, string> = {
   quote: 'Date du devis',
@@ -106,6 +125,21 @@ export const paymentMethodLabels: Record<PaymentMethod, string> = {
   cash: 'Espèces',
   card: 'Carte',
   wire: 'Virement',
+}
+
+// Where a transaction sits, for a modal's subtitle.
+export function transactionBreadcrumb(
+  product: Product,
+  budgetLine?: BudgetLine,
+) {
+  return [
+    product.category_name,
+    product.subcategory_name,
+    product.product_name,
+    budgetLine?.item_type === 'breakdown' ? budgetLine.name : null,
+  ]
+    .filter(Boolean)
+    .join(' › ')
 }
 
 export function todayAsInputValue() {
@@ -191,11 +225,23 @@ export function recalculateAmounts<T extends AmountFields>(
   }
 }
 
-export function createInitialFormState(
-  initialStructure?: ProductStructureChoice,
-): TransactionFormState {
-  return {
-    transaction_type: 'quote',
+// A paid invoice needs a payment date, never before the invoice date.
+export function defaultPaymentDate(issuedDate: string) {
+  const today = todayAsInputValue()
+  return issuedDate > today ? issuedDate : today
+}
+
+export function createInitialFormState({
+  transactionType = 'quote',
+  selectAsBudget = false,
+  prefill,
+}: {
+  transactionType?: TransactionType
+  selectAsBudget?: boolean
+  prefill?: TransactionPrefill
+} = {}): TransactionFormState {
+  const state: TransactionFormState = {
+    transaction_type: transactionType,
     supplier_id: '',
     amount_ht: '',
     vat_rate: '20',
@@ -209,10 +255,36 @@ export function createInitialFormState(
     invoice_status: 'unpaid',
     invoice_type: 'full',
     payment_method: 'wire',
-    select_as_budget: false,
-    budget_concern:
-      initialStructure === 'breakdown' ? 'specific_element' : 'entire_product',
-    budget_line_name: '',
+    select_as_budget: transactionType !== 'invoice' && selectAsBudget,
+    ...prefill,
+  }
+
+  return prefill?.amount_ttc ? recalculateAmounts(state, 'ttc') : state
+}
+
+// An invoice for a quote: same supplier, rate and description, and what is
+// left to invoice on that quote (its amount minus the supplier's invoices
+// already on the line). A later invoice for the same quote is most likely
+// the balance.
+export function invoicePrefillFromQuote(
+  quote: Transaction,
+  lineTransactions: Transaction[],
+): TransactionPrefill {
+  const invoicedTtc = lineTransactions
+    .filter(
+      (transaction) =>
+        transaction.transaction_type === 'invoice' &&
+        transaction.supplier_id === quote.supplier_id,
+    )
+    .reduce((total, transaction) => total + transaction.amount_ttc, 0)
+  const remainingTtc = Math.round((quote.amount_ttc - invoicedTtc) * 100) / 100
+
+  return {
+    supplier_id: quote.supplier_id ?? '',
+    vat_rate: formatNumberInput(quote.vat_rate),
+    description: quote.description,
+    amount_ttc: remainingTtc > 0 ? formatCalculatedAmount(remainingTtc) : '',
+    invoice_type: invoicedTtc > 0 ? 'balance' : 'full',
   }
 }
 
@@ -246,8 +318,6 @@ export function normalizeForType(
       transaction_type: transactionType,
       quote_status: 'to_confirm',
       select_as_budget: false,
-      budget_concern: 'entire_product',
-      budget_line_name: '',
     }
   }
 
@@ -319,7 +389,12 @@ export function buildTransactionCreate({
   form: TransactionFormState
 }): TransactionCreate {
   const payload: TransactionCreate = {
-    supplier_id: optionalId(form.supplier_id),
+    // A self-built estimate has no supplier, whatever the field held before
+    // switching type.
+    supplier_id:
+      form.transaction_type === 'diy_estimate'
+        ? null
+        : optionalId(form.supplier_id),
     transaction_type: form.transaction_type,
     amount_ht: form.amount_ht,
     vat_rate: optionalDecimal(form.vat_rate),
@@ -342,7 +417,8 @@ export function buildTransactionCreate({
     payload.invoice_type = form.invoice_type
     payload.payment_method = form.payment_method
     payload.due_date = emptyToNull(form.due_date)
-    payload.payment_date = emptyToNull(form.payment_date)
+    payload.payment_date =
+      form.invoice_status === 'paid' ? emptyToNull(form.payment_date) : null
   }
 
   return payload
@@ -353,11 +429,10 @@ export function buildProductTransactionCreate(
 ): TransactionCreateForProduct {
   const payload: TransactionCreateForProduct = buildTransactionCreate({ form })
 
+  // A product's first quote or estimate opens its single budget line;
+  // splitting it into sub-products is an explicit action of its own.
   if (form.transaction_type !== 'invoice') {
-    payload.budget_concern = form.budget_concern
-    if (form.budget_concern === 'specific_element') {
-      payload.budget_line_name = emptyToNull(form.budget_line_name)
-    }
+    payload.budget_concern = 'entire_product'
   }
 
   return payload

@@ -236,7 +236,7 @@ export function DashboardPage({
       notifyError('Transaction introuvable dans le projet sélectionné.')
       return
     }
-    setTransactionReview({ context, initialMode: 'view' })
+    setTransactionReview({ context })
   }
 
   function viewAllTransactions(quickView: QuickViewId) {
@@ -650,7 +650,6 @@ export function DashboardPage({
             <TransactionReviewModal
               project={project}
               context={transactionReview.context}
-              initialMode={transactionReview.initialMode}
               suppliers={suppliers}
               isBudgetSelected={
                 transactionReview.context.transaction.select_as_budget

@@ -6,15 +6,16 @@ import {
   recalculateAmounts,
 } from './transactionForm'
 
-// Form state whose HT / VAT rate / TTC fields stay consistent: editing HT or
-// the rate recomputes VAT and TTC, editing TTC recomputes HT and VAT. Shared
-// by the create and review modals.
+// Form state whose HT / VAT rate / TTC fields stay consistent: editing HT
+// recomputes VAT and TTC, editing TTC recomputes HT and VAT, and a new rate
+// recomputes from whichever of the two was typed last. TTC is the amount the
+// forms lead with, so it is the starting point. Shared by both modals.
 export function useTransactionAmountForm<T extends AmountFields>(
   createInitial: () => T,
   options?: { onChange?: () => void },
 ) {
   const [form, setForm] = useState<T>(createInitial)
-  const [amountSource, setAmountSource] = useState<AmountSource>('ht')
+  const [amountSource, setAmountSource] = useState<AmountSource>('ttc')
 
   function updateField<K extends keyof T>(key: K, value: T[K]) {
     const nextAmountSource =
@@ -36,7 +37,7 @@ export function useTransactionAmountForm<T extends AmountFields>(
 
   function resetForm(next: T) {
     setForm(next)
-    setAmountSource('ht')
+    setAmountSource('ttc')
   }
 
   return { form, setForm, updateField, resetForm }

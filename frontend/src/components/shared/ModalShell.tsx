@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Check, Eye, Trash2, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 export function ModalShell({
   title,
@@ -11,6 +12,7 @@ export function ModalShell({
   footer,
   footerLeading,
   closeDisabled,
+  size = 'default',
   onClose,
   children,
 }: {
@@ -27,6 +29,8 @@ export function ModalShell({
    */
   footerLeading?: ReactNode
   closeDisabled?: boolean
+  /** `narrow` for a single form (a transaction); `default` for wide content. */
+  size?: 'default' | 'narrow'
   onClose: () => void
   children: ReactNode
 }) {
@@ -37,7 +41,12 @@ export function ModalShell({
       aria-modal="true"
       aria-label={typeof title === 'string' ? title : undefined}
     >
-      <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-xl">
+      <div
+        className={cn(
+          'flex max-h-[92vh] w-full flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-xl',
+          size === 'narrow' ? 'max-w-2xl' : 'max-w-5xl',
+        )}
+      >
         <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
           <div className="flex min-w-0 items-center gap-3">
             {icon ? (

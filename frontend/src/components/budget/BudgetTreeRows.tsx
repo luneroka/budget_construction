@@ -1,4 +1,4 @@
-import { ChevronDown, Hammer, Layers3, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, Hammer, Layers3, Trash2 } from 'lucide-react'
 import { forwardRef } from 'react'
 
 import { categoryIcons } from '@/components/budget/budgetCategoryIcons'
@@ -7,7 +7,6 @@ import { TableCell, TableRow } from '@/components/ui/table'
 import type {
   BudgetLineDeleteState,
   BreakdownAction,
-  TransactionAction,
 } from '@/components/budget/types'
 import type { BudgetCategory, BudgetLine, Product } from '@/types'
 import { formatCurrency } from '@/lib/format'
@@ -90,32 +89,33 @@ export function CategoryHeader({
 export function ProductContextRows({
   product,
   line,
+  isEmpty = false,
   readOnly,
   onAddBreakdown,
-  onAddTransaction,
   onDecomposeProduct,
 }: {
   product: Product
   line: BudgetLine | null
+  /** No transaction yet: splitting it up is the one structural choice left. */
+  isEmpty?: boolean
   readOnly?: boolean
   onAddBreakdown: (action: BreakdownAction) => void
-  onAddTransaction: (action: TransactionAction) => void
   onDecomposeProduct: (action: BreakdownAction) => void
 }) {
-  const supportsBreakdowns = line === null
+  const caption = isEmpty
+    ? 'Aucune transaction pour ce produit'
+    : line === null
+      ? 'Produit décomposé en sous-produits'
+      : 'Transactions rattachées directement au produit'
 
   return (
     <TableRow className="border-t-0 bg-card hover:bg-card">
       <TableCell colSpan={7} className="px-6 pt-0 pb-0">
         <div className="flex items-center justify-between pt-1 pb-3">
-          <span className="text-xs text-muted-foreground">
-            {supportsBreakdowns
-              ? 'Produit décomposé en sous-produits'
-              : 'Transactions rattachées directement au produit'}
-          </span>
+          <span className="text-xs text-muted-foreground">{caption}</span>
           {readOnly ? null : (
             <div className="flex items-center justify-end gap-1">
-              {supportsBreakdowns ? (
+              {isEmpty || line === null ? (
                 <Button
                   size="sm"
                   variant="ghost"
@@ -123,32 +123,21 @@ export function ProductContextRows({
                   onClick={() => onAddBreakdown({ product })}
                 >
                   <Layers3 aria-hidden="true" />
-                  Ajouter un sous-produit
+                  {isEmpty
+                    ? 'Décomposer en sous-produits'
+                    : 'Ajouter un sous-produit'}
                 </Button>
-              ) : line ? (
-                <>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-muted-foreground hover:bg-gold/15 hover:text-gold"
-                    onClick={() => onDecomposeProduct({ product })}
-                  >
-                    <Layers3 aria-hidden="true" />
-                    Décomposer le produit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="bg-gold/15 text-gold hover:bg-gold/25 hover:text-gold"
-                    onClick={() =>
-                      onAddTransaction({ budgetLine: line, product })
-                    }
-                  >
-                    <Plus aria-hidden="true" />
-                    Ajouter une transaction
-                  </Button>
-                </>
-              ) : null}
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-muted-foreground hover:bg-gold/15 hover:text-gold"
+                  onClick={() => onDecomposeProduct({ product })}
+                >
+                  <Layers3 aria-hidden="true" />
+                  Décomposer le produit
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -157,74 +146,14 @@ export function ProductContextRows({
   )
 }
 
-export function EmptyProductRow({
-  product,
-  readOnly,
-  onAddFirstTransaction,
-}: {
-  product: Product
-  readOnly?: boolean
-  onAddFirstTransaction: (action: BreakdownAction) => void
-}) {
-  return (
-    <TableRow className="border-t-0 bg-card hover:bg-card">
-      <TableCell colSpan={7} className="px-6 py-4">
-        <div className="flex items-center justify-between border-t border-border/50 pt-4 pl-7">
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              Aucune transaction
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {readOnly
-                ? 'Ce produit ne contient pas encore de transaction.'
-                : 'Commencez par ajouter une première transaction pour ce produit.'}
-            </p>
-          </div>
-          {readOnly ? null : (
-            <Button
-              size="sm"
-              variant="gold"
-              onClick={() => onAddFirstTransaction({ product })}
-            >
-              <Plus aria-hidden="true" />
-              Ajouter une première transaction
-            </Button>
-          )}
-        </div>
-      </TableCell>
-    </TableRow>
-  )
-}
-
-export function BudgetLineContextRow({
-  line,
-  product,
-  readOnly,
-  onAddTransaction,
-}: {
-  line: BudgetLine
-  product: Product
-  readOnly?: boolean
-  onAddTransaction: (action: TransactionAction) => void
-}) {
+// The caption above a sub-product's transactions; adding one starts from the
+// table's own sections.
+export function BudgetLineContextRow() {
   return (
     <TableRow className="border-t-0 bg-muted/25 hover:bg-muted/25">
       <TableCell colSpan={7} className="px-6 pt-1 pb-0">
-        <div className="flex items-center justify-between pt-1 pb-3">
-          <span className="text-xs text-muted-foreground">
-            Transactions pour ce sous-produit
-          </span>
-          {readOnly ? null : (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="bg-gold/15 text-gold hover:bg-gold/25 hover:text-gold"
-              onClick={() => onAddTransaction({ budgetLine: line, product })}
-            >
-              <Plus aria-hidden="true" />
-              Ajouter une transaction
-            </Button>
-          )}
+        <div className="pt-1 pb-3 text-xs text-muted-foreground">
+          Transactions pour ce sous-produit
         </div>
       </TableCell>
     </TableRow>

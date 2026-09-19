@@ -12,27 +12,16 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import type {
-  ActiveAction,
-  BreakdownAction,
-  ProductStructureChoice,
-} from '@/components/budget/types'
+import type { ActiveAction } from '@/components/budget/types'
 import { notifyError, notifySuccess } from '@/lib/toasts'
-import { cn } from '@/lib/utils'
 
 export function ProductStructureDialog({
   activeAction,
   projectId,
-  selectedStructureChoice,
-  onSelectStructureChoice,
-  onContinue,
   onClose,
 }: {
   activeAction: Exclude<ActiveAction, { kind: 'transaction' }>
   projectId: number
-  selectedStructureChoice: ProductStructureChoice
-  onSelectStructureChoice: (choice: ProductStructureChoice) => void
-  onContinue: (action: BreakdownAction) => void
   onClose: () => void
 }) {
   const queryClient = useQueryClient()
@@ -117,61 +106,11 @@ export function ProductStructureDialog({
           </span>
           <div className="min-w-0 flex-1">
             <p className="font-heading text-xl font-semibold">
-              {activeAction.kind === 'structure-choice'
-                ? 'Comment souhaitez-vous gérer ce produit ?'
-                : activeAction.kind === 'decompose-product'
-                  ? 'Décomposer le produit'
-                  : 'Ajouter un sous-produit'}
+              {activeAction.kind === 'decompose-product'
+                ? 'Décomposer le produit'
+                : 'Ajouter un sous-produit'}
             </p>
-            {activeAction.kind === 'structure-choice' ? (
-              <>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Ce choix détermine l'organisation de vos postes de budget.
-                  Vous pourrez le modifier ultérieurement.
-                </p>
-                <div className="mt-4 grid gap-2">
-                  {(
-                    [
-                      {
-                        value: 'single',
-                        title: 'Un seul poste de budget',
-                        description:
-                          'Recommandé si vous souhaitez suivre le produit dans son ensemble.',
-                      },
-                      {
-                        value: 'breakdown',
-                        title: 'Plusieurs sous-produits',
-                        description:
-                          'Recommandé si vous souhaitez décomposer un poste budgétaire en plusieurs éléments complémentaires.',
-                      },
-                    ] satisfies Array<{
-                      value: ProductStructureChoice
-                      title: string
-                      description: string
-                    }>
-                  ).map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={cn(
-                        'rounded-md border px-4 py-3 text-left transition-colors',
-                        selectedStructureChoice === option.value
-                          ? 'border-gold bg-gold/10'
-                          : 'border-border bg-background hover:border-gold/60',
-                      )}
-                      onClick={() => onSelectStructureChoice(option.value)}
-                    >
-                      <span className="block font-medium text-foreground">
-                        {option.title}
-                      </span>
-                      <span className="mt-1 block text-sm text-muted-foreground">
-                        {option.description}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </>
-            ) : activeAction.kind === 'decompose-product' ? (
+            {activeAction.kind === 'decompose-product' ? (
               <div className="mt-4 space-y-4">
                 <p className="text-sm text-muted-foreground">
                   Convertissez le produit « {activeAction.product.product_name}{' '}
@@ -225,9 +164,7 @@ export function ProductStructureDialog({
           <Button variant="outline" onClick={onClose} disabled={isMutating}>
             Fermer
           </Button>
-          {activeAction.kind === 'structure-choice' ? (
-            <Button onClick={() => onContinue(activeAction)}>Continuer</Button>
-          ) : activeAction.kind === 'decompose-product' ? (
+          {activeAction.kind === 'decompose-product' ? (
             <Button onClick={submitConvertProduct} disabled={isMutating}>
               {isMutating ? 'Conversion...' : 'Convertir'}
             </Button>

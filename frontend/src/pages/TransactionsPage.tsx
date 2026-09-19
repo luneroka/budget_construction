@@ -512,9 +512,7 @@ export function TransactionsPage() {
                 size="icon"
                 variant="ghost"
                 aria-label="Voir la transaction"
-                onClick={() =>
-                  setTransactionReview({ context, initialMode: 'view' })
-                }
+                onClick={() => setTransactionReview({ context })}
               >
                 <Eye aria-hidden />
               </Button>
@@ -745,7 +743,6 @@ export function TransactionsPage() {
         <TransactionReviewModal
           project={project}
           context={transactionReview.context}
-          initialMode={transactionReview.initialMode}
           suppliers={suppliers}
           isBudgetSelected={
             transactionReview.context.transaction.select_as_budget

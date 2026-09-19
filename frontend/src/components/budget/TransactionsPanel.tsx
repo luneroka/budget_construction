@@ -1,5 +1,5 @@
-import { Eye, FileText, Files, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Eye, FileText, Files, Plus, ReceiptText, Trash2 } from 'lucide-react'
+import { type ReactNode, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { invalidateBudgetWorkspaceQueries } from '@/api/budget-workspace-cache'
@@ -11,8 +11,11 @@ import {
 } from '@/api/transactions'
 import { useSuppliersQuery } from '@/api/suppliers'
 import type { ViewedTransactionContext } from '@/components/budget/TransactionModal'
+import { invoicePrefillFromQuote } from '@/components/budget/transaction-form/transactionForm'
+import type { TransactionAction } from '@/components/budget/types'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { TableCell, TableRow } from '@/components/ui/table'
 import type { BudgetLine, Product, Transaction } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/format'
@@ -25,7 +28,7 @@ import {
 import { cn } from '@/lib/utils'
 
 const transactionGridClass =
-  'grid min-w-[51rem] grid-cols-[5rem_8rem_minmax(10rem,1fr)_7rem_6.25rem_7rem_6.5rem] items-center'
+  'grid min-w-[52rem] grid-cols-[5rem_8rem_minmax(10rem,1fr)_7rem_6.25rem_7rem_7.5rem] items-center'
 
 type TransactionsPanelProps = {
   transactions: Transaction[]
@@ -40,24 +43,76 @@ type TransactionsPanelProps = {
   onRequestDeleteTransaction: (context: ViewedTransactionContext) => void
   onViewTransaction: (context: ViewedTransactionContext) => void
   onViewTransactionDocuments: (transaction: Transaction) => void
+  onAddTransaction?: (action: TransactionAction) => void
+}
+
+// Adding a quote or an invoice starts where the new row will appear: in the
+// section it belongs to. An estimate is a quote's sibling, picked in the modal.
+function AddTransactionButton({
+  transactionType,
+  onClick,
+}: {
+  transactionType: 'quote' | 'invoice'
+  onClick: () => void
+}) {
+  const isQuote = transactionType === 'quote'
+
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="bg-gold/15 text-gold hover:bg-gold/25 hover:text-gold"
+      aria-label={isQuote ? 'Ajouter un devis' : 'Ajouter une facture'}
+      onClick={onClick}
+    >
+      <Plus aria-hidden="true" />
+      {isQuote ? 'Devis' : 'Facture'}
+    </Button>
+  )
+}
+
+function TransactionTableHeader() {
+  return (
+    <div className={transactionGridClass}>
+      <div className="px-1.5 py-2 text-[11px] font-semibold text-muted-foreground uppercase">
+        Date
+      </div>
+      <div className="px-1.5 py-2 text-[11px] font-semibold text-muted-foreground uppercase">
+        Type
+      </div>
+      <div className="px-2 py-2 text-[11px] font-semibold text-muted-foreground uppercase">
+        Fournisseur
+      </div>
+      <div className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground uppercase">
+        Montant TTC
+      </div>
+      <div className="px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase">
+        Statut
+      </div>
+      <div className="px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase">
+        Budget
+      </div>
+      <div className="px-1 py-2 text-right text-[11px] font-semibold text-muted-foreground uppercase">
+        Actions
+      </div>
+    </div>
+  )
 }
 
 function TransactionSectionDivider({
   label,
   totalTtc,
-  spaced = false,
+  action,
 }: {
   label: string
   totalTtc: number
-  /** Opens a gap above, separating this block from the one before it. */
-  spaced?: boolean
+  action?: ReactNode
 }) {
   return (
     <div
       className={cn(
         transactionGridClass,
         'border-t-2 border-b border-border bg-muted',
-        spaced && 'mt-3',
       )}
     >
       <div className="col-span-3 px-2.5 py-3 text-[11px] font-bold tracking-wide text-foreground uppercase">
@@ -66,7 +121,7 @@ function TransactionSectionDivider({
       <div className="px-3 py-3 text-right text-xs font-bold tracking-normal text-foreground whitespace-nowrap">
         {formatCurrency(totalTtc)}
       </div>
-      <div className="col-span-3" />
+      <div className="col-span-3 flex justify-end px-2">{action}</div>
     </div>
   )
 }
@@ -93,6 +148,7 @@ function TransactionPanelMessage({ message }: { message: string }) {
 
 function TransactionRows({
   transactions,
+  lineTransactions,
   budgetLine,
   product,
   readOnly,
@@ -100,7 +156,8 @@ function TransactionRows({
   onRequestDeleteTransaction,
   onViewTransaction,
   onViewTransactionDocuments,
-}: TransactionsPanelProps) {
+  onAddTransaction,
+}: TransactionsPanelProps & { lineTransactions: Transaction[] }) {
   if (transactions.length === 0) return <EmptyTransactionRows />
 
   return transactions.map((transaction) => {
@@ -180,6 +237,30 @@ function TransactionRows({
               documents icon is there: a centred group would shift Voir and
               Supprimer sideways on every row that has no attachment. */}
           <div className="inline-flex justify-end gap-1">
+            {onAddTransaction &&
+            !readOnly &&
+            transaction.transaction_type === 'quote' &&
+            transaction.quote_status !== 'rejected' ? (
+              <button
+                type="button"
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gold/15 hover:text-gold"
+                onClick={() =>
+                  onAddTransaction({
+                    budgetLine,
+                    product,
+                    transactionType: 'invoice',
+                    prefill: invoicePrefillFromQuote(
+                      transaction,
+                      lineTransactions,
+                    ),
+                  })
+                }
+                aria-label="Ajouter une facture pour ce devis"
+                title="Ajouter une facture pour ce devis"
+              >
+                <ReceiptText className="h-4 w-4" aria-hidden="true" />
+              </button>
+            ) : null}
             {transaction.document_state === 'attached' ? (
               <button
                 type="button"
@@ -283,6 +364,24 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
   const isSelectionMutating =
     selectBudgetCandidateMutation.isPending ||
     unselectBudgetCandidateMutation.isPending
+  const { onAddTransaction } = props
+  const canAdd = onAddTransaction !== undefined && !props.readOnly
+  const addQuote = canAdd
+    ? () =>
+        onAddTransaction({
+          budgetLine: props.budgetLine,
+          product: props.product,
+          transactionType: 'quote',
+        })
+    : null
+  const addInvoice = canAdd
+    ? () =>
+        onAddTransaction({
+          budgetLine: props.budgetLine,
+          product: props.product,
+          transactionType: 'invoice',
+        })
+    : null
 
   async function handleToggleBudgetSelection(
     budgetLine: BudgetLine,
@@ -346,33 +445,19 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
                 </span>
               </p>
             </div>
-            <div className={transactionGridClass}>
-              <div className="px-1.5 py-2 text-[11px] font-semibold text-muted-foreground uppercase">
-                Date
-              </div>
-              <div className="px-1.5 py-2 text-[11px] font-semibold text-muted-foreground uppercase">
-                Type
-              </div>
-              <div className="px-2 py-2 text-[11px] font-semibold text-muted-foreground uppercase">
-                Fournisseur
-              </div>
-              <div className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground uppercase">
-                Montant TTC
-              </div>
-              <div className="px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase">
-                Statut
-              </div>
-              <div className="px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase">
-                Budget
-              </div>
-              <div className="px-1 py-2 text-right text-[11px] font-semibold text-muted-foreground uppercase">
-                Actions
-              </div>
-            </div>
+            <TransactionTableHeader />
 
             <TransactionSectionDivider
               label="Candidats budget"
               totalTtc={budgetCandidatesTotalTtc}
+              action={
+                addQuote ? (
+                  <AddTransactionButton
+                    transactionType="quote"
+                    onClick={addQuote}
+                  />
+                ) : null
+              }
             />
             {selectionError ? (
               <TransactionPanelMessage message={selectionError} />
@@ -386,6 +471,7 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
                 {...props}
                 readOnly={props.readOnly || isSelectionMutating}
                 transactions={budgetCandidates}
+                lineTransactions={transactions}
                 onToggleBudgetSelection={handleToggleBudgetSelection}
               />
             )}
@@ -393,7 +479,14 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
             <TransactionSectionDivider
               label="Dépenses réelles"
               totalTtc={invoicesTotalTtc}
-              spaced
+              action={
+                addInvoice ? (
+                  <AddTransactionButton
+                    transactionType="invoice"
+                    onClick={addInvoice}
+                  />
+                ) : null
+              }
             />
             {isLoadingApiRows ? (
               <TransactionPanelMessage message="Chargement des transactions" />
@@ -404,9 +497,67 @@ export function TransactionsPanel(props: TransactionsPanelProps) {
                 {...props}
                 readOnly={props.readOnly || isSelectionMutating}
                 transactions={invoices}
+                lineTransactions={transactions}
                 onToggleBudgetSelection={handleToggleBudgetSelection}
               />
             )}
+          </div>
+        </div>
+      </TableCell>
+    </TableRow>
+  )
+}
+
+// A product with no transaction yet: the same table, empty, with the same two
+// buttons, so the first quote or invoice starts the way every later one does.
+export function EmptyTransactionsPanel({
+  product,
+  readOnly,
+  onAddTransaction,
+}: {
+  product: Product
+  readOnly?: boolean
+  onAddTransaction: (action: TransactionAction) => void
+}) {
+  return (
+    <TableRow className="border-t-0 bg-muted/10 hover:bg-muted/10">
+      <TableCell colSpan={7} className="max-w-0 p-0">
+        <div className="min-w-0 px-6 pb-5">
+          <div className="w-full min-w-0 overflow-x-auto border border-border bg-background/70 text-xs">
+            <TransactionTableHeader />
+            <TransactionSectionDivider
+              label="Candidats budget"
+              totalTtc={0}
+              action={
+                readOnly ? null : (
+                  <AddTransactionButton
+                    transactionType="quote"
+                    onClick={() =>
+                      onAddTransaction({ product, transactionType: 'quote' })
+                    }
+                  />
+                )
+              }
+            />
+            <EmptyTransactionRows />
+            <TransactionSectionDivider
+              label="Dépenses réelles"
+              totalTtc={0}
+              action={
+                readOnly ? null : (
+                  <AddTransactionButton
+                    transactionType="invoice"
+                    onClick={() =>
+                      onAddTransaction({
+                        product,
+                        transactionType: 'invoice',
+                      })
+                    }
+                  />
+                )
+              }
+            />
+            <EmptyTransactionRows />
           </div>
         </div>
       </TableCell>

@@ -15,8 +15,6 @@ import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
 import type {
   ActiveAction,
   BudgetLineDeleteState,
-  BreakdownAction,
-  ProductStructureChoice,
   TransactionDeleteState,
   TransactionReviewState,
   TransactionAction,
@@ -52,8 +50,6 @@ export function BudgetPage() {
     useState<TransactionDeleteState | null>(null)
   const [budgetLineDelete, setBudgetLineDelete] =
     useState<BudgetLineDeleteState | null>(null)
-  const [selectedStructureChoice, setSelectedStructureChoice] =
-    useState<ProductStructureChoice>('single')
   const suppliers = useMemo(
     () => suppliersToDomain(suppliersQuery.data),
     [suppliersQuery.data],
@@ -157,18 +153,6 @@ export function BudgetPage() {
     setActiveAction({ kind: 'transaction', ...action })
   }
 
-  function openStructureChoice(action: BreakdownAction) {
-    setSelectedStructureChoice('single')
-    setActiveAction({ kind: 'structure-choice', ...action })
-  }
-
-  function continueFromStructureChoice(action: BreakdownAction) {
-    openTransactionAction({
-      product: action.product,
-      initialStructure: selectedStructureChoice,
-    })
-  }
-
   return (
     <section>
       <PageHeader
@@ -187,7 +171,6 @@ export function BudgetPage() {
         onAddBreakdown={(action) =>
           setActiveAction({ kind: 'breakdown', ...action })
         }
-        onAddFirstTransaction={openStructureChoice}
         onAddTransaction={openTransactionAction}
         onDecomposeProduct={(action) =>
           setActiveAction({ kind: 'decompose-product', ...action })
@@ -195,12 +178,7 @@ export function BudgetPage() {
         onToggleBudgetSelection={() => {}}
         onRequestDeleteBudgetLine={setBudgetLineDelete}
         onRequestDeleteTransaction={setTransactionDelete}
-        onViewTransaction={(context) =>
-          setTransactionReview({
-            context,
-            initialMode: 'view',
-          })
-        }
+        onViewTransaction={(context) => setTransactionReview({ context })}
         onViewTransactionDocuments={openTransactionDocumentsViewer}
       />
 
@@ -209,7 +187,8 @@ export function BudgetPage() {
           project={project}
           product={activeAction.product}
           budgetLine={activeAction.budgetLine}
-          initialStructure={activeAction.initialStructure}
+          initialType={activeAction.transactionType}
+          prefill={activeAction.prefill}
           suppliers={suppliers}
           onClose={() => setActiveAction(null)}
         />
@@ -219,9 +198,6 @@ export function BudgetPage() {
         <ProductStructureDialog
           activeAction={activeAction}
           projectId={projectId}
-          selectedStructureChoice={selectedStructureChoice}
-          onSelectStructureChoice={setSelectedStructureChoice}
-          onContinue={continueFromStructureChoice}
           onClose={() => setActiveAction(null)}
         />
       ) : null}
@@ -252,7 +228,6 @@ export function BudgetPage() {
         <TransactionReviewModal
           project={project}
           context={transactionReview.context}
-          initialMode={transactionReview.initialMode}
           suppliers={suppliers}
           isBudgetSelected={
             transactionReview.context.transaction.select_as_budget

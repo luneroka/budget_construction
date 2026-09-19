@@ -9,8 +9,11 @@ import {
   buildTransactionUpdate,
   createInitialFormState,
   createInitialUpdateFormState,
+  defaultPaymentDate,
+  invoicePrefillFromQuote,
   normalizeForType,
   recalculateAmounts,
+  todayAsInputValue,
 } from './transactionForm'
 
 const amounts = {
@@ -112,20 +115,45 @@ describe('recalculateAmounts', () => {
   })
 })
 
-describe('normalizeForType', () => {
-  it('drops budget selection and scope when switching to an invoice', () => {
-    const form = quoteForm({
-      select_as_budget: true,
-      budget_concern: 'specific_element',
-      budget_line_name: 'Fondations',
-    })
+describe('createInitialFormState', () => {
+  it('starts from the type of the button that opened it', () => {
+    expect(
+      createInitialFormState({ transactionType: 'invoice' }),
+    ).toMatchObject({ transaction_type: 'invoice', invoice_status: 'unpaid' })
+  })
 
-    const invoice = normalizeForType(form, 'invoice')
+  it('retains a quote as budget when asked, never an invoice', () => {
+    expect(
+      createInitialFormState({ transactionType: 'quote', selectAsBudget: true })
+        .select_as_budget,
+    ).toBe(true)
+    expect(
+      createInitialFormState({
+        transactionType: 'invoice',
+        selectAsBudget: true,
+      }).select_as_budget,
+    ).toBe(false)
+  })
+
+  it('derives HT and VAT from a prefilled TTC', () => {
+    expect(
+      createInitialFormState({
+        transactionType: 'invoice',
+        prefill: { amount_ttc: '120.00', vat_rate: '20' },
+      }),
+    ).toMatchObject({ amount_ht: '100.00', amount_vat: '20.00' })
+  })
+})
+
+describe('normalizeForType', () => {
+  it('drops budget selection when switching to an invoice', () => {
+    const invoice = normalizeForType(
+      quoteForm({ select_as_budget: true }),
+      'invoice',
+    )
 
     expect(invoice.transaction_type).toBe('invoice')
     expect(invoice.select_as_budget).toBe(false)
-    expect(invoice.budget_concern).toBe('entire_product')
-    expect(invoice.budget_line_name).toBe('')
   })
 
   it('clears the dates an estimate cannot carry', () => {
@@ -166,25 +194,89 @@ describe('buildTransactionCreate', () => {
     expect(payload.due_date).toBeNull()
   })
 
-  it('only names a budget line for a specific element', () => {
-    const whole = buildProductTransactionCreate(
-      quoteForm({ amount_ht: '100', budget_line_name: 'ignored' }),
-    )
-    const split = buildProductTransactionCreate(
-      quoteForm({
-        amount_ht: '100',
-        budget_concern: 'specific_element',
-        budget_line_name: 'Fondations',
-      }),
-    )
+  it('opens the whole product for a first quote, nothing for an invoice', () => {
+    const quote = buildProductTransactionCreate(quoteForm({ amount_ht: '100' }))
     const invoice = buildProductTransactionCreate(
       normalizeForType(quoteForm({ amount_ht: '100' }), 'invoice'),
     )
 
-    expect(whole.budget_concern).toBe('entire_product')
-    expect(whole).not.toHaveProperty('budget_line_name')
-    expect(split.budget_line_name).toBe('Fondations')
+    expect(quote.budget_concern).toBe('entire_product')
+    expect(quote).not.toHaveProperty('budget_line_name')
     expect(invoice).not.toHaveProperty('budget_concern')
+  })
+
+  it('never sends a supplier for a self-built estimate', () => {
+    const payload = buildTransactionCreate({
+      form: normalizeForType(
+        quoteForm({ amount_ht: '100', supplier_id: '12' }),
+        'diy_estimate',
+      ),
+    })
+
+    expect(payload.supplier_id).toBeNull()
+  })
+
+  it('only sends the payment date for a paid invoice', () => {
+    const invoice = normalizeForType(
+      quoteForm({ amount_ht: '100', payment_date: '2026-04-10' }),
+      'invoice',
+    )
+
+    expect(buildTransactionCreate({ form: invoice }).payment_date).toBeNull()
+    expect(
+      buildTransactionCreate({
+        form: { ...invoice, invoice_status: 'paid' },
+      }).payment_date,
+    ).toBe('2026-04-10')
+  })
+})
+
+describe('invoicePrefillFromQuote', () => {
+  const quote: Transaction = {
+    ...transaction,
+    id: '8',
+    transaction_type: 'quote',
+    quote_status: 'validated',
+    invoice_status: null,
+    invoice_type: null,
+    payment_method: null,
+    amount_ht: 1000,
+    vat_rate: 10,
+    amount_vat: 100,
+    amount_ttc: 1100,
+    description: 'Menuiseries',
+  }
+
+  it('starts a first invoice from the whole quote', () => {
+    expect(invoicePrefillFromQuote(quote, [quote])).toEqual({
+      supplier_id: '12',
+      vat_rate: '10',
+      description: 'Menuiseries',
+      amount_ttc: '1100.00',
+      invoice_type: 'full',
+    })
+  })
+
+  it('suggests the balance left after the supplier’s invoices', () => {
+    const deposit = { ...transaction, amount_ttc: 330 }
+    const otherSupplier = { ...transaction, supplier_id: '99', amount_ttc: 500 }
+
+    expect(
+      invoicePrefillFromQuote(quote, [quote, deposit, otherSupplier]),
+    ).toMatchObject({ amount_ttc: '770.00', invoice_type: 'balance' })
+  })
+
+  it('leaves the amount empty once the quote is fully invoiced', () => {
+    const full = { ...transaction, amount_ttc: 1100 }
+
+    expect(invoicePrefillFromQuote(quote, [quote, full]).amount_ttc).toBe('')
+  })
+})
+
+describe('defaultPaymentDate', () => {
+  it('is today, never before the invoice date', () => {
+    expect(defaultPaymentDate('2000-01-01')).toBe(todayAsInputValue())
+    expect(defaultPaymentDate('2999-12-31')).toBe('2999-12-31')
   })
 })
 

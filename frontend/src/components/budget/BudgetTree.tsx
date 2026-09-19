@@ -5,11 +5,13 @@ import type { ViewedTransactionContext } from '@/components/budget/TransactionMo
 import {
   BudgetLineContextRow,
   BudgetLineRow,
-  EmptyProductRow,
   ProductContextRows,
   ProductRow,
 } from '@/components/budget/BudgetTreeRows'
-import { TransactionsPanel } from '@/components/budget/TransactionsPanel'
+import {
+  EmptyTransactionsPanel,
+  TransactionsPanel,
+} from '@/components/budget/TransactionsPanel'
 import { categoryIcons } from '@/components/budget/budgetCategoryIcons'
 import type {
   BudgetLineDeleteState,
@@ -41,7 +43,6 @@ type BudgetTreeProps = {
   focusedProductId?: string | null
   readOnly?: boolean
   onAddBreakdown: (action: BreakdownAction) => void
-  onAddFirstTransaction: (action: BreakdownAction) => void
   onAddTransaction: (action: TransactionAction) => void
   onDecomposeProduct: (action: BreakdownAction) => void
   onToggleBudgetSelection: (line: BudgetLine, transaction: Transaction) => void
@@ -199,7 +200,6 @@ export function BudgetTree({
   projectId,
   readOnly,
   onAddBreakdown,
-  onAddFirstTransaction,
   onAddTransaction,
   onDecomposeProduct,
   onToggleBudgetSelection,
@@ -565,11 +565,21 @@ export function BudgetTree({
                   />
                   {isProductOpen ? (
                     isEmptyProduct ? (
-                      <EmptyProductRow
-                        product={product}
-                        readOnly={readOnly}
-                        onAddFirstTransaction={onAddFirstTransaction}
-                      />
+                      <>
+                        <ProductContextRows
+                          product={product}
+                          line={null}
+                          isEmpty
+                          readOnly={readOnly}
+                          onAddBreakdown={onAddBreakdown}
+                          onDecomposeProduct={onDecomposeProduct}
+                        />
+                        <EmptyTransactionsPanel
+                          product={product}
+                          readOnly={readOnly}
+                          onAddTransaction={onAddTransaction}
+                        />
+                      </>
                     ) : (
                       <>
                         <ProductContextRows
@@ -577,7 +587,6 @@ export function BudgetTree({
                           line={selectedWholeProductLine}
                           readOnly={readOnly}
                           onAddBreakdown={onAddBreakdown}
-                          onAddTransaction={onAddTransaction}
                           onDecomposeProduct={onDecomposeProduct}
                         />
                         {selectedWholeProductLine ? (
@@ -595,6 +604,7 @@ export function BudgetTree({
                             onViewTransactionDocuments={
                               onViewTransactionDocuments
                             }
+                            onAddTransaction={onAddTransaction}
                           />
                         ) : (
                           product.budget_lines.map((line) => {
@@ -618,12 +628,7 @@ export function BudgetTree({
                                 />
                                 {isLineOpen ? (
                                   <>
-                                    <BudgetLineContextRow
-                                      line={line}
-                                      product={product}
-                                      readOnly={readOnly}
-                                      onAddTransaction={onAddTransaction}
-                                    />
+                                    <BudgetLineContextRow />
                                     <TransactionsPanel
                                       transactions={line.transactions}
                                       budgetLine={line}
@@ -640,6 +645,7 @@ export function BudgetTree({
                                       onViewTransactionDocuments={
                                         onViewTransactionDocuments
                                       }
+                                      onAddTransaction={onAddTransaction}
                                     />
                                   </>
                                 ) : null}
