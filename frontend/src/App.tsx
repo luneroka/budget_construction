@@ -15,6 +15,7 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 import { ProjectsSettingsPage } from '@/pages/ProjectsSettingsPage'
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { SupplierDetailPage } from '@/pages/SupplierDetailPage'
 import { SuppliersPage } from '@/pages/SuppliersPage'
 import { TransactionsPage } from '@/pages/TransactionsPage'
 import { TrashPage } from '@/pages/TrashPage'
@@ -64,6 +65,10 @@ export default function App() {
             <Route path="budget" element={<BudgetPage />} />
             <Route path="transactions" element={<TransactionsPage />} />
             <Route path="suppliers" element={<SuppliersPage />} />
+            <Route
+              path="suppliers/:supplierId"
+              element={<SupplierDetailPage />}
+            />
             <Route path="documents" element={<DocumentsPage />} />
             <Route path="trash" element={<TrashPage />} />
             <Route path="settings" element={<SettingsPage />} />

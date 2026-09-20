@@ -1,22 +1,11 @@
 import { useMemo, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { Copy, FileText, Mail, Plus } from 'lucide-react'
 
 import { useDocumentsQuery } from '@/api/documents'
 import { getApiErrorMessage } from '@/api/client'
-import { getSupplierDocumentDownloadUrl } from '@/api/supplier-documents'
-import { trashQueryKeys } from '@/api/trash'
-import {
-  supplierQueryKeys,
-  supplierToCreatePayload,
-  supplierToUpdatePayload,
-  useCreateSupplierMutation,
-  useDeleteSupplierMutation,
-  useSuppliersQuery,
-  useUpdateSupplierMutation,
-  upsertSupplier,
-} from '@/api/suppliers'
-import type { SupplierDocumentListRead, SupplierRead } from '@/api/types'
+import { useSuppliersQuery } from '@/api/suppliers'
+import type { SupplierDocumentListRead } from '@/api/types'
 import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { PaginationFooter } from '@/components/shared/PaginationFooter'
@@ -25,10 +14,7 @@ import {
   paginationPageSizeOptions,
   usePagination,
 } from '@/components/shared/usePagination'
-import {
-  SupplierModal,
-  type SupplierModalMode,
-} from '@/components/suppliers/SupplierModal'
+import { SupplierModal } from '@/components/suppliers/SupplierModal'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import {
@@ -39,65 +25,26 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { SupplierContact, Supplier } from '@/types'
-import { downloadSupplierDocument } from '@/lib/documents'
-import { notifyError, notifySuccess } from '@/lib/toasts'
-import { formatPhoneNumber, normalizePhoneNumber } from '@/lib/phone'
+import { formatPhoneNumber } from '@/lib/phone'
+import {
+  copyEmailToClipboard,
+  phoneHref,
+  primaryContact,
+} from '@/lib/supplierContact'
 import { supplierToDomain } from '@/lib/apiAdapters'
+import { useSupplierActions } from '@/hooks/useSupplierActions'
+import { useSupplierRibViewer } from '@/hooks/useSupplierRibViewer'
 import { useSelectedProjectId } from '@/state/appState'
 
-function numberFromId(id: string): number {
-  const value = Number(id)
-  if (!Number.isInteger(value)) {
-    throw new Error('Identifiant fournisseur invalide.')
-  }
-
-  return value
-}
-
-function primaryContact(supplier: Supplier): SupplierContact | undefined {
-  return (
-    supplier.contacts.find((contact) => contact.is_primary) ??
-    supplier.contacts[0]
-  )
-}
-
-async function copyEmailToClipboard(email: string) {
-  try {
-    await navigator.clipboard.writeText(email)
-    notifySuccess('Email copié dans le presse-papiers.')
-  } catch {
-    notifyError('Impossible de copier l’email.')
-  }
-}
-
-function phoneHref(phoneNumber: string) {
-  try {
-    return `tel:${normalizePhoneNumber(phoneNumber) ?? ''}`
-  } catch {
-    return `tel:${phoneNumber.replace(/[^\d+]/g, '')}`
-  }
-}
-
 export function SuppliersPage() {
-  const queryClient = useQueryClient()
   const projectId = useSelectedProjectId()
   const [search, setSearch] = useState('')
-  const [modalMode, setModalMode] = useState<SupplierModalMode | null>(null)
-  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
-    null,
-  )
+  // The list creates; a supplier's own page is where one is read and edited.
+  const [isCreating, setIsCreating] = useState(false)
   const suppliersQuery = useSuppliersQuery()
   const documentsQuery = useDocumentsQuery()
-  const createSupplierMutation = useCreateSupplierMutation()
-  const updateSupplierMutation = useUpdateSupplierMutation()
-  const deleteSupplierMutation = useDeleteSupplierMutation()
-  const [viewerRib, setViewerRib] = useState<{
-    document: SupplierDocumentListRead
-    url: string
-  } | null>(null)
-  const [viewerLoading, setViewerLoading] = useState(false)
-  const [viewerError, setViewerError] = useState<string | null>(null)
+  const { saveSupplier } = useSupplierActions(projectId)
+  const ribViewer = useSupplierRibViewer()
   const suppliers = useMemo(
     () => (suppliersQuery.data ?? []).map(supplierToDomain),
     [suppliersQuery.data],
@@ -154,109 +101,6 @@ export function SuppliersPage() {
   const showRefreshState =
     suppliersQuery.isFetching && !isLoadingSuppliers && !suppliersError
 
-  function openCreateModal() {
-    setSelectedSupplier(null)
-    setModalMode('create')
-  }
-
-  function openDetailModal(supplier: Supplier) {
-    setSelectedSupplier(supplier)
-    setModalMode('view')
-  }
-
-  function closeModal() {
-    setModalMode(null)
-    setSelectedSupplier(null)
-  }
-
-  async function saveSupplier(savedSupplier: Supplier): Promise<Supplier> {
-    try {
-      const isCreating = selectedSupplier === null
-      const saved = isCreating
-        ? await createSupplierMutation.mutateAsync(
-            supplierToCreatePayload(savedSupplier),
-          )
-        : await updateSupplierMutation.mutateAsync({
-            supplierId: numberFromId(selectedSupplier.id),
-            supplier: supplierToUpdatePayload(savedSupplier),
-          })
-
-      queryClient.setQueryData<SupplierRead[]>(
-        supplierQueryKeys.list(false),
-        (current) => upsertSupplier(current, saved),
-      )
-      void queryClient.invalidateQueries({
-        queryKey: supplierQueryKeys.list(false),
-      })
-      notifySuccess(isCreating ? 'Fournisseur ajouté.' : 'Fournisseur modifié.')
-      return supplierToDomain(saved)
-    } catch (error) {
-      const message = getApiErrorMessage(error)
-      notifyError(`Impossible d’enregistrer le fournisseur. ${message}`)
-      throw new Error(message)
-    }
-  }
-
-  async function deleteSupplier(supplier: Supplier) {
-    try {
-      const supplierId = numberFromId(supplier.id)
-      await deleteSupplierMutation.mutateAsync(supplierId)
-      queryClient.setQueryData<SupplierRead[]>(
-        supplierQueryKeys.list(false),
-        (current) =>
-          current?.filter((candidate) => candidate.id !== supplierId) ?? [],
-      )
-      void queryClient.invalidateQueries({
-        queryKey: supplierQueryKeys.list(false),
-      })
-      if (projectId !== null) {
-        void queryClient.invalidateQueries({
-          queryKey: trashQueryKeys.projectList(projectId),
-        })
-      }
-      notifySuccess('Fournisseur déplacé dans la corbeille.')
-    } catch (error) {
-      const message = getApiErrorMessage(error)
-      notifyError(`Impossible de supprimer le fournisseur. ${message}`)
-      throw new Error(message)
-    }
-  }
-
-  async function openRibViewer(document: SupplierDocumentListRead) {
-    setViewerLoading(true)
-    setViewerError(null)
-
-    try {
-      const { url } = await getSupplierDocumentDownloadUrl(document.id, true)
-      setViewerRib({ document, url })
-    } catch (error) {
-      const message = getApiErrorMessage(error)
-      notifyError(`Impossible d’ouvrir le RIB. ${message}`)
-    } finally {
-      setViewerLoading(false)
-    }
-  }
-
-  async function handleViewerDownload() {
-    if (!viewerRib) return
-
-    setViewerLoading(true)
-    setViewerError(null)
-
-    try {
-      await downloadSupplierDocument(
-        viewerRib.document.id,
-        viewerRib.document.original_filename,
-      )
-    } catch (error) {
-      const message = getApiErrorMessage(error)
-      setViewerError(message)
-      notifyError(`Impossible de télécharger le RIB. ${message}`)
-    } finally {
-      setViewerLoading(false)
-    }
-  }
-
   function emptyStateMessage() {
     if (search.trim() !== '') {
       return 'Aucun fournisseur ne correspond à la recherche.'
@@ -298,10 +142,9 @@ export function SuppliersPage() {
       return (
         <TableRow key={supplier.id}>
           <TableCell className="group transition-colors hover:bg-gold/15">
-            <button
-              type="button"
+            <Link
+              to={`/suppliers/${supplier.id}`}
               className="flex w-full flex-col items-start text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              onClick={() => openDetailModal(supplier)}
             >
               <span className="w-full truncate font-medium text-foreground group-hover:text-gold">
                 {supplier.name}
@@ -311,7 +154,7 @@ export function SuppliersPage() {
                   {supplier.comment}
                 </span>
               ) : null}
-            </button>
+            </Link>
           </TableCell>
           <TableCell>{contact?.name}</TableCell>
           <TableCell className="whitespace-nowrap">
@@ -368,7 +211,7 @@ export function SuppliersPage() {
                 variant="ghost"
                 className="text-muted-foreground hover:bg-gold/15 hover:text-gold"
                 aria-label={`Voir le RIB de ${supplier.name}`}
-                onClick={() => void openRibViewer(rib)}
+                onClick={() => void ribViewer.open(rib)}
               >
                 <FileText aria-hidden />
               </Button>
@@ -385,7 +228,7 @@ export function SuppliersPage() {
         title="Fournisseurs"
         description="Répertoire des artisans et fournisseurs."
         actions={
-          <Button variant="gold" onClick={openCreateModal}>
+          <Button variant="gold" onClick={() => setIsCreating(true)}>
             <Plus aria-hidden />
             Nouveau fournisseur
           </Button>
@@ -463,27 +306,23 @@ export function SuppliersPage() {
         ) : null}
       </div>
 
-      {modalMode !== null ? (
+      {isCreating ? (
         <SupplierModal
-          mode={modalMode}
-          supplier={selectedSupplier}
-          onClose={closeModal}
-          onSave={saveSupplier}
-          onDelete={deleteSupplier}
+          mode="create"
+          supplier={null}
+          onClose={() => setIsCreating(false)}
+          onSave={(supplier) => saveSupplier(supplier, null)}
         />
       ) : null}
 
-      {viewerRib ? (
+      {ribViewer.rib ? (
         <DocumentViewerDialog
-          title={`RIB • ${viewerRib.document.supplier_name}`}
-          url={viewerRib.url}
-          isPending={viewerLoading}
-          error={viewerError}
-          onClose={() => {
-            setViewerRib(null)
-            setViewerError(null)
-          }}
-          onDownload={() => void handleViewerDownload()}
+          title={`RIB • ${ribViewer.rib.document.supplier_name}`}
+          url={ribViewer.rib.url}
+          isPending={ribViewer.isLoading}
+          error={ribViewer.error}
+          onClose={ribViewer.close}
+          onDownload={() => void ribViewer.download()}
         />
       ) : null}
     </section>

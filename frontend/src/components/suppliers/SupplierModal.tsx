@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Copy, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 
 import {
   invalidateSupplierDocumentQueries,
@@ -12,22 +12,17 @@ import { Input } from '@/components/ui/input'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
 import {
   ModalCancelButton,
-  ModalCloseButton,
   ModalDeleteButton,
   ModalSaveButton,
   ModalShell,
 } from '@/components/shared/ModalShell'
-import {
-  buildPhoneNumber,
-  formatPhoneNumber,
-  splitPhoneNumber,
-} from '@/lib/phone'
-import { notifyError, notifySuccess } from '@/lib/toasts'
+import { buildPhoneNumber, splitPhoneNumber } from '@/lib/phone'
+import { notifySuccess } from '@/lib/toasts'
 import type { Supplier } from '@/types'
 
 import { NewSupplierRibField, SupplierRibPanel } from './SupplierRibPanel'
 
-export type SupplierModalMode = 'create' | 'view' | 'edit'
+export type SupplierModalMode = 'create' | 'edit'
 
 type ContactDraft = {
   id: string
@@ -120,39 +115,6 @@ function normalizeBusinessIdentifier(value: string): string | null {
   return normalized === '' ? null : normalized
 }
 
-function readValue(value: string | null | undefined): string {
-  return value?.trim() ? value : ''
-}
-
-function formatAddressForClipboard(supplier: Supplier): string {
-  const lines: string[] = []
-
-  if (supplier.street?.trim()) lines.push(supplier.street.trim())
-  if (supplier.complement?.trim()) lines.push(supplier.complement.trim())
-
-  const postalCity = [
-    supplier.postal_code?.trim(),
-    supplier.city?.trim().toUpperCase(),
-  ]
-    .filter((part) => part)
-    .join(' ')
-  if (postalCity) lines.push(postalCity)
-
-  return lines.join('\n')
-}
-
-async function copyAddressToClipboard(supplier: Supplier) {
-  const address = formatAddressForClipboard(supplier)
-  if (address === '') return
-
-  try {
-    await navigator.clipboard.writeText(address)
-    notifySuccess('Adresse copiée dans le presse-papiers.')
-  } catch {
-    notifyError('Impossible de copier l’adresse.')
-  }
-}
-
 function numericSupplierId(supplierId: string | null): number | null {
   const parsed = Number(supplierId)
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null
@@ -167,7 +129,6 @@ export function SupplierModal({
 }: SupplierModalProps) {
   const queryClient = useQueryClient()
   const uploadRibMutation = useUploadSupplierDocumentMutation()
-  const [currentMode, setCurrentMode] = useState<SupplierModalMode>(mode)
   // What the form held when it opened, kept rather than rebuilt for the
   // comparison: a new supplier's form draws random ids.
   const [initialForm, setInitialForm] = useState<SupplierFormState>(() =>
@@ -175,30 +136,27 @@ export function SupplierModal({
   )
   const [form, setForm] = useState<SupplierFormState>(initialForm)
   const [formError, setFormError] = useState<string | null>(null)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
-  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
   const [ribFile, setRibFile] = useState<File | null>(null)
   const [createdSupplierForRib, setCreatedSupplierForRib] =
     useState<Supplier | null>(null)
-  const isReadOnly = currentMode === 'view'
   const hasUnsavedChanges =
-    !isReadOnly &&
-    (ribFile !== null || JSON.stringify(form) !== JSON.stringify(initialForm))
+    ribFile !== null || JSON.stringify(form) !== JSON.stringify(initialForm)
   const isBusy = isSaving || isDeleting
   const existingSupplierId = numericSupplierId(supplier?.id ?? null)
 
   useEffect(() => {
     const nextForm = supplierToForm(supplier)
-    setCurrentMode(mode)
     setInitialForm(nextForm)
     setForm(nextForm)
     setFormError(null)
-    setDeleteError(null)
-    setDeleteConfirmationOpen(false)
     setIsSaving(false)
     setIsDeleting(false)
+    setDeleteError(null)
+    setIsConfirmingDelete(false)
     setRibFile(null)
     setCreatedSupplierForRib(null)
   }, [mode, supplier])
@@ -345,14 +303,6 @@ export function SupplierModal({
     }
   }
 
-  function cancelEdit() {
-    setForm(initialForm)
-    setFormError(null)
-    setRibFile(null)
-    setCreatedSupplierForRib(null)
-    setCurrentMode('view')
-  }
-
   async function deleteSupplier() {
     if (!supplier || !onDelete) return
 
@@ -375,39 +325,23 @@ export function SupplierModal({
     <>
       <ModalShell
         title={
-          currentMode === 'create'
-            ? 'Nouveau fournisseur'
-            : currentMode === 'edit'
-              ? 'Modifier le fournisseur'
-              : 'Détails du fournisseur'
+          mode === 'create' ? 'Nouveau fournisseur' : 'Modifier le fournisseur'
         }
         icon={
-          currentMode === 'edit' ? (
+          mode === 'edit' ? (
             <Pencil className="h-5 w-5" aria-hidden="true" />
           ) : undefined
         }
         closeDisabled={isBusy}
         hasUnsavedChanges={hasUnsavedChanges}
         onClose={onClose}
-        headerActions={
-          currentMode === 'view' ? (
-            <Button
-              variant="outline"
-              disabled={isBusy}
-              onClick={() => setCurrentMode('edit')}
-            >
-              <Pencil aria-hidden />
-              Modifier
-            </Button>
-          ) : null
-        }
         footerLeading={
-          isReadOnly && supplier && onDelete ? (
+          supplier && onDelete ? (
             <ModalDeleteButton
               disabled={isBusy}
               onClick={() => {
                 setDeleteError(null)
-                setDeleteConfirmationOpen(true)
+                setIsConfirmingDelete(true)
               }}
             >
               Supprimer le fournisseur
@@ -416,444 +350,240 @@ export function SupplierModal({
         }
         footer={
           <>
-            {currentMode === 'edit' ? (
-              <ModalCancelButton onClick={cancelEdit} disabled={isBusy} />
-            ) : (
-              <ModalCloseButton onClick={onClose} disabled={isBusy} />
-            )}
-            {!isReadOnly ? (
-              <ModalSaveButton
-                onClick={saveSupplier}
-                disabled={isBusy}
-                isSaving={isSaving}
-              />
-            ) : null}
+            <ModalCancelButton onClick={onClose} disabled={isBusy} />
+            <ModalSaveButton
+              onClick={saveSupplier}
+              disabled={isBusy}
+              isSaving={isSaving}
+            />
           </>
         }
       >
-        {isReadOnly ? (
-          <div className="space-y-4">
-            <section className="space-y-3 rounded-md border border-border p-4">
-              <h3 className="text-xs font-semibold uppercase text-muted-foreground">
-                Entreprise
-              </h3>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label
-                    className="text-xs font-medium"
-                    htmlFor="supplier-name"
-                  >
-                    Nom
-                  </label>
-                  <Input
-                    id="supplier-name"
-                    className="mt-1"
-                    value={readValue(supplier?.name)}
-                    readOnly
-                    disabled
-                  />
-                </div>
-                <div>
-                  <label
-                    className="text-xs font-medium"
-                    htmlFor="supplier-siret"
-                  >
-                    SIRET / SIREN
-                  </label>
-                  <Input
-                    id="supplier-siret"
-                    className="mt-1"
-                    value={readValue(supplier?.siret)}
-                    readOnly
-                    disabled
-                  />
-                </div>
-              </div>
+        <div className="space-y-4">
+          <section className="space-y-3 rounded-md border border-border p-4">
+            <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+              Entreprise
+            </h3>
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label
-                  className="text-xs font-medium"
-                  htmlFor="supplier-comment"
-                >
-                  Commentaire
+                <label className="text-xs font-medium" htmlFor="supplier-name">
+                  Fournisseur
                 </label>
                 <Input
-                  id="supplier-comment"
+                  id="supplier-name"
                   className="mt-1"
-                  value={readValue(supplier?.comment)}
-                  readOnly
-                  disabled
-                />
-              </div>
-            </section>
-
-            <section className="space-y-3 rounded-md border border-border p-4">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-xs font-semibold uppercase text-muted-foreground">
-                  Adresse
-                </h3>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={
-                    !supplier || formatAddressForClipboard(supplier) === ''
+                  value={form.name}
+                  onChange={(event) =>
+                    setForm({ ...form, name: event.target.value })
                   }
-                  onClick={() =>
-                    supplier && void copyAddressToClipboard(supplier)
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium" htmlFor="supplier-siret">
+                  SIRET / SIREN
+                </label>
+                <Input
+                  id="supplier-siret"
+                  className="mt-1"
+                  value={form.siret}
+                  onChange={(event) =>
+                    setForm({ ...form, siret: event.target.value })
                   }
-                >
-                  <Copy aria-hidden />
-                  Copier l'adresse
-                </Button>
-              </div>
-              <div>
-                <label
-                  className="text-xs font-medium"
-                  htmlFor="supplier-street"
-                >
-                  Rue
-                </label>
-                <Input
-                  id="supplier-street"
-                  className="mt-1"
-                  value={readValue(supplier?.street)}
-                  readOnly
-                  disabled
                 />
               </div>
-              <div>
-                <label
-                  className="text-xs font-medium"
-                  htmlFor="supplier-complement"
-                >
-                  Complément d'adresse
-                </label>
-                <Input
-                  id="supplier-complement"
-                  className="mt-1"
-                  value={readValue(supplier?.complement)}
-                  readOnly
-                  disabled
-                />
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label
-                    className="text-xs font-medium"
-                    htmlFor="supplier-postal-code"
-                  >
-                    Code postal
-                  </label>
-                  <Input
-                    id="supplier-postal-code"
-                    className="mt-1"
-                    value={readValue(supplier?.postal_code)}
-                    readOnly
-                    disabled
-                  />
-                </div>
-                <div>
-                  <label
-                    className="text-xs font-medium"
-                    htmlFor="supplier-city"
-                  >
-                    Ville
-                  </label>
-                  <Input
-                    id="supplier-city"
-                    className="mt-1"
-                    value={readValue(supplier?.city)}
-                    readOnly
-                    disabled
-                  />
-                </div>
-              </div>
-            </section>
+            </div>
+            <div>
+              <label className="text-xs font-medium" htmlFor="supplier-comment">
+                Commentaire
+              </label>
+              <Input
+                id="supplier-comment"
+                className="mt-1"
+                value={form.comment}
+                onChange={(event) =>
+                  setForm({ ...form, comment: event.target.value })
+                }
+              />
+            </div>
+          </section>
 
-            <section className="space-y-3 rounded-md border border-border p-4">
+          <section className="space-y-3 rounded-md border border-border p-4">
+            <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+              Adresse
+            </h3>
+            <div>
+              <label className="text-xs font-medium" htmlFor="supplier-street">
+                Rue
+              </label>
+              <Input
+                id="supplier-street"
+                className="mt-1"
+                value={form.street}
+                onChange={(event) =>
+                  setForm({ ...form, street: event.target.value })
+                }
+              />
+            </div>
+            <div>
+              <label
+                className="text-xs font-medium"
+                htmlFor="supplier-complement"
+              >
+                Complément d'adresse
+              </label>
+              <Input
+                id="supplier-complement"
+                className="mt-1"
+                value={form.complement}
+                onChange={(event) =>
+                  setForm({ ...form, complement: event.target.value })
+                }
+              />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label
+                  className="text-xs font-medium"
+                  htmlFor="supplier-postal-code"
+                >
+                  Code postal
+                </label>
+                <Input
+                  id="supplier-postal-code"
+                  className="mt-1"
+                  inputMode="numeric"
+                  maxLength={5}
+                  value={form.postal_code}
+                  onChange={(event) =>
+                    setForm({ ...form, postal_code: event.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium" htmlFor="supplier-city">
+                  Ville
+                </label>
+                <Input
+                  id="supplier-city"
+                  className="mt-1"
+                  value={form.city}
+                  onChange={(event) =>
+                    setForm({ ...form, city: event.target.value })
+                  }
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-3 rounded-md border border-border p-4">
+            <div className="flex items-center justify-between gap-3">
               <h3 className="text-xs font-semibold uppercase text-muted-foreground">
                 Contacts
               </h3>
-              <div className="grid gap-2">
-                {supplier?.contacts.map((contact) => (
-                  <div
-                    key={contact.id}
-                    className="grid gap-2 px-1 py-1 md:grid-cols-[minmax(11rem,1.1fr)_minmax(10rem,0.9fr)_minmax(16rem,1.4fr)_88px]"
-                  >
-                    <Input
-                      aria-label="Nom du contact"
-                      value={readValue(contact.name)}
-                      readOnly
-                      disabled
-                    />
-                    <Input
-                      aria-label="Téléphone du contact"
-                      value={formatPhoneNumber(contact.phone_number)}
-                      readOnly
-                      disabled
-                    />
-                    <Input
-                      aria-label="Email du contact"
-                      value={readValue(contact.email)}
-                      readOnly
-                      disabled
-                    />
-                    <label className="flex cursor-not-allowed items-center gap-2 text-xs">
-                      <Checkbox checked={contact.is_primary} disabled />
-                      Principal
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {existingSupplierId !== null ? (
-              <SupplierRibPanel supplierId={existingSupplierId} />
-            ) : null}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <section className="space-y-3 rounded-md border border-border p-4">
-              <h3 className="text-xs font-semibold uppercase text-muted-foreground">
-                Entreprise
-              </h3>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label
-                    className="text-xs font-medium"
-                    htmlFor="supplier-name"
-                  >
-                    Fournisseur
-                  </label>
-                  <Input
-                    id="supplier-name"
-                    className="mt-1"
-                    value={form.name}
-                    onChange={(event) =>
-                      setForm({ ...form, name: event.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <label
-                    className="text-xs font-medium"
-                    htmlFor="supplier-siret"
-                  >
-                    SIRET / SIREN
-                  </label>
-                  <Input
-                    id="supplier-siret"
-                    className="mt-1"
-                    value={form.siret}
-                    onChange={(event) =>
-                      setForm({ ...form, siret: event.target.value })
-                    }
-                  />
-                </div>
-              </div>
-              <div>
-                <label
-                  className="text-xs font-medium"
-                  htmlFor="supplier-comment"
-                >
-                  Commentaire
-                </label>
-                <Input
-                  id="supplier-comment"
-                  className="mt-1"
-                  value={form.comment}
-                  onChange={(event) =>
-                    setForm({ ...form, comment: event.target.value })
-                  }
-                />
-              </div>
-            </section>
-
-            <section className="space-y-3 rounded-md border border-border p-4">
-              <h3 className="text-xs font-semibold uppercase text-muted-foreground">
-                Adresse
-              </h3>
-              <div>
-                <label
-                  className="text-xs font-medium"
-                  htmlFor="supplier-street"
-                >
-                  Rue
-                </label>
-                <Input
-                  id="supplier-street"
-                  className="mt-1"
-                  value={form.street}
-                  onChange={(event) =>
-                    setForm({ ...form, street: event.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label
-                  className="text-xs font-medium"
-                  htmlFor="supplier-complement"
-                >
-                  Complément d'adresse
-                </label>
-                <Input
-                  id="supplier-complement"
-                  className="mt-1"
-                  value={form.complement}
-                  onChange={(event) =>
-                    setForm({ ...form, complement: event.target.value })
-                  }
-                />
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label
-                    className="text-xs font-medium"
-                    htmlFor="supplier-postal-code"
-                  >
-                    Code postal
-                  </label>
-                  <Input
-                    id="supplier-postal-code"
-                    className="mt-1"
-                    inputMode="numeric"
-                    maxLength={5}
-                    value={form.postal_code}
-                    onChange={(event) =>
-                      setForm({ ...form, postal_code: event.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <label
-                    className="text-xs font-medium"
-                    htmlFor="supplier-city"
-                  >
-                    Ville
-                  </label>
-                  <Input
-                    id="supplier-city"
-                    className="mt-1"
-                    value={form.city}
-                    onChange={(event) =>
-                      setForm({ ...form, city: event.target.value })
-                    }
-                  />
-                </div>
-              </div>
-            </section>
-
-            <section className="space-y-3 rounded-md border border-border p-4">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-xs font-semibold uppercase text-muted-foreground">
-                  Contacts
-                </h3>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={isBusy}
-                  onClick={addContact}
-                >
-                  <Plus aria-hidden />
-                  Ajouter un contact
-                </Button>
-              </div>
-
-              <div className="grid gap-2">
-                {form.contacts.map((contact) => (
-                  <div
-                    key={contact.id}
-                    className="grid gap-2 py-1 lg:grid-cols-[minmax(12rem,1.1fr)_72px_minmax(10rem,0.9fr)_minmax(17rem,1.45fr)_92px_40px]"
-                  >
-                    <Input
-                      aria-label="Nom du contact"
-                      placeholder="Nom"
-                      value={contact.name}
-                      onChange={(event) =>
-                        updateContact(contact.id, {
-                          name: event.target.value,
-                        })
-                      }
-                    />
-                    <Input
-                      aria-label="Indicatif téléphonique"
-                      placeholder="+33"
-                      value={contact.phone_country_code}
-                      onChange={(event) =>
-                        updateContact(contact.id, {
-                          phone_country_code: event.target.value,
-                        })
-                      }
-                    />
-                    <Input
-                      aria-label="Téléphone du contact"
-                      placeholder="7 90 90 90 90"
-                      value={contact.phone_number}
-                      onChange={(event) =>
-                        updateContact(contact.id, {
-                          phone_number: event.target.value,
-                        })
-                      }
-                    />
-                    <Input
-                      aria-label="Email du contact"
-                      placeholder="Email"
-                      value={contact.email}
-                      onChange={(event) =>
-                        updateContact(contact.id, {
-                          email: event.target.value,
-                        })
-                      }
-                    />
-                    <label className="flex items-center gap-2 text-xs">
-                      <Checkbox
-                        checked={
-                          contact.is_primary || form.contacts.length === 1
-                        }
-                        disabled={
-                          isBusy ||
-                          contact.is_primary ||
-                          form.contacts.length === 1
-                        }
-                        onChange={(event) =>
-                          updateContact(contact.id, {
-                            is_primary: event.target.checked,
-                          })
-                        }
-                      />
-                      Principal
-                    </label>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      aria-label="Supprimer le contact"
-                      disabled={isBusy || form.contacts.length === 1}
-                      onClick={() => removeContact(contact.id)}
-                    >
-                      <Trash2 aria-hidden />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {currentMode === 'create' ? (
-              <NewSupplierRibField
-                file={ribFile}
+              <Button
+                size="sm"
+                variant="outline"
                 disabled={isBusy}
-                onFileChange={setRibFile}
-                onClear={() => setRibFile(null)}
-              />
-            ) : existingSupplierId !== null ? (
-              <SupplierRibPanel supplierId={existingSupplierId} />
-            ) : null}
-          </div>
-        )}
+                onClick={addContact}
+              >
+                <Plus aria-hidden />
+                Ajouter un contact
+              </Button>
+            </div>
+
+            <div className="grid gap-2">
+              {form.contacts.map((contact) => (
+                <div
+                  key={contact.id}
+                  className="grid gap-2 py-1 lg:grid-cols-[minmax(12rem,1.1fr)_72px_minmax(10rem,0.9fr)_minmax(17rem,1.45fr)_92px_40px]"
+                >
+                  <Input
+                    aria-label="Nom du contact"
+                    placeholder="Nom"
+                    value={contact.name}
+                    onChange={(event) =>
+                      updateContact(contact.id, {
+                        name: event.target.value,
+                      })
+                    }
+                  />
+                  <Input
+                    aria-label="Indicatif téléphonique"
+                    placeholder="+33"
+                    value={contact.phone_country_code}
+                    onChange={(event) =>
+                      updateContact(contact.id, {
+                        phone_country_code: event.target.value,
+                      })
+                    }
+                  />
+                  <Input
+                    aria-label="Téléphone du contact"
+                    placeholder="7 90 90 90 90"
+                    value={contact.phone_number}
+                    onChange={(event) =>
+                      updateContact(contact.id, {
+                        phone_number: event.target.value,
+                      })
+                    }
+                  />
+                  <Input
+                    aria-label="Email du contact"
+                    placeholder="Email"
+                    value={contact.email}
+                    onChange={(event) =>
+                      updateContact(contact.id, {
+                        email: event.target.value,
+                      })
+                    }
+                  />
+                  <label className="flex items-center gap-2 text-xs">
+                    <Checkbox
+                      checked={contact.is_primary || form.contacts.length === 1}
+                      disabled={
+                        isBusy ||
+                        contact.is_primary ||
+                        form.contacts.length === 1
+                      }
+                      onChange={(event) =>
+                        updateContact(contact.id, {
+                          is_primary: event.target.checked,
+                        })
+                      }
+                    />
+                    Principal
+                  </label>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    aria-label="Supprimer le contact"
+                    disabled={isBusy || form.contacts.length === 1}
+                    onClick={() => removeContact(contact.id)}
+                  >
+                    <Trash2 aria-hidden />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {mode === 'create' ? (
+            <NewSupplierRibField
+              file={ribFile}
+              disabled={isBusy}
+              onFileChange={setRibFile}
+              onClear={() => setRibFile(null)}
+            />
+          ) : existingSupplierId !== null ? (
+            <SupplierRibPanel supplierId={existingSupplierId} />
+          ) : null}
+        </div>
 
         {formError ? (
           <p className="mt-3 text-sm text-destructive">{formError}</p>
         ) : null}
       </ModalShell>
-      {deleteConfirmationOpen && supplier ? (
+      {isConfirmingDelete && supplier ? (
         <ConfirmationDialog
           title="Supprimer ce fournisseur ?"
           description="Ce fournisseur sera déplacé dans la corbeille. Les transactions existantes ne seront pas supprimées."
@@ -861,10 +591,10 @@ export function SupplierModal({
           isPending={isDeleting}
           onCancel={() => {
             if (isDeleting) return
-            setDeleteConfirmationOpen(false)
+            setIsConfirmingDelete(false)
             setDeleteError(null)
           }}
-          onConfirm={deleteSupplier}
+          onConfirm={() => void deleteSupplier()}
         >
           <p className="font-medium text-foreground">{supplier.name}</p>
           <p className="mt-1 text-muted-foreground">

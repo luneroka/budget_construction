@@ -28,12 +28,18 @@ export const supplierQueryKeys = {
   lists: () => [...supplierQueryKeys.all, 'list'] as const,
   list: (includeDeleted = false) =>
     [...supplierQueryKeys.lists(), { includeDeleted }] as const,
+  detail: (supplierId: number) =>
+    [...supplierQueryKeys.all, 'detail', supplierId] as const,
 }
 
 export function getSuppliers(includeDeleted = false): Promise<SupplierRead[]> {
   return apiGet<SupplierRead[]>('/suppliers/', {
     params: { include_deleted: includeDeleted },
   })
+}
+
+export function getSupplier(supplierId: number): Promise<SupplierRead> {
+  return apiGet<SupplierRead>(`/suppliers/${supplierId}`)
 }
 
 export function createSupplier(
@@ -61,6 +67,14 @@ export function useSuppliersQuery(options?: { enabled?: boolean }) {
     queryKey: supplierQueryKeys.list(false),
     queryFn: () => getSuppliers(false),
     enabled: options?.enabled ?? true,
+  })
+}
+
+export function useSupplierQuery(supplierId: number | null) {
+  return useQuery({
+    queryKey: supplierQueryKeys.detail(supplierId ?? 0),
+    queryFn: () => getSupplier(supplierId as number),
+    enabled: supplierId !== null,
   })
 }
 
