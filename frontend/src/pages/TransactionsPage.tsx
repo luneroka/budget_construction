@@ -26,6 +26,7 @@ import {
 import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { SupplierLink } from '@/components/suppliers/SupplierLink'
 import { PaginationFooter } from '@/components/shared/PaginationFooter'
 import { TableToolbar } from '@/components/shared/TableToolbar'
 import {
@@ -472,7 +473,10 @@ export function TransactionsPage() {
             <StatusBadge status={transaction.transaction_type} />
           </TableCell>
           <TableCell className="min-w-40 font-medium">
-            {transaction.supplier_name}
+            <SupplierLink
+              supplierId={transaction.supplier_id}
+              name={transaction.supplier_name}
+            />
           </TableCell>
           <TableCell className="min-w-44">{product.category_name}</TableCell>
           <TableCell className="min-w-44">

@@ -515,10 +515,24 @@ export function DashboardPage({
                         dataKey="actual_cost_amount_ttc"
                         name="Dépenses réelles"
                         radius={[0, 3, 3, 0]}
+                        onClick={(data) => {
+                          const supplierId = (
+                            data as {
+                              payload?: { supplier_id?: number | null }
+                            }
+                          ).payload?.supplier_id
+                          if (supplierId == null) return
+                          navigate(`/suppliers/${supplierId}`)
+                        }}
                       >
                         {topSupplierDistributionData.map((item, index) => (
                           <Cell
                             key={item.supplier_id ?? 'no-supplier'}
+                            className={
+                              item.supplier_id === null
+                                ? undefined
+                                : 'cursor-pointer'
+                            }
                             fill={getPrimaryGradientColor(
                               index,
                               topSupplierDistributionData.length,

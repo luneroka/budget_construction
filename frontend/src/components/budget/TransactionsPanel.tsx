@@ -230,9 +230,12 @@ function TransactionRow({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       className={cn(
         sectionGrids[section],
         'cursor-pointer border-t border-border/40 transition-colors hover:bg-muted/40',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
         isUnretainedCandidate && 'text-muted-foreground',
       )}
       // The whole row opens the transaction. Its buttons keep their own job,
@@ -243,16 +246,21 @@ function TransactionRow({
         if (window.getSelection()?.toString()) return
         open()
       }}
+      // The keyboard's way in, now that the name is not a button.
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        if (event.target !== event.currentTarget) return
+        event.preventDefault()
+        open()
+      }}
     >
       <div className="min-w-0 px-2.5 py-1.5">
-        {/* The keyboard's way in: the name opens the transaction too. */}
-        <button
-          type="button"
-          className="block max-w-full rounded-sm text-left leading-4 font-medium wrap-break-word hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          onClick={open}
-        >
+        {/* Plain text: the row already opens the transaction, and a second
+            target on the same line (beside the budget badge) only makes the
+            row harder to read. */}
+        <span className="block leading-4 font-medium wrap-break-word">
           {title}
-        </button>
+        </span>
         <span className="block text-[11px] leading-4 text-muted-foreground">
           {details}
         </span>

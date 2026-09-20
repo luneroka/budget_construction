@@ -21,6 +21,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
 import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { SupplierLink } from '@/components/suppliers/SupplierLink'
 import { PaginationFooter } from '@/components/shared/PaginationFooter'
 import { TableToolbar } from '@/components/shared/TableToolbar'
 import {
@@ -389,7 +390,10 @@ export function DocumentsPage() {
             />
           </TableCell>
           <TableCell className="font-medium whitespace-nowrap">
-            {document.supplier_name}
+            <SupplierLink
+              supplierId={document.supplier_id}
+              name={document.supplier_name}
+            />
           </TableCell>
           <TableCell className="whitespace-nowrap">
             {formatDate(document.created_at)}
