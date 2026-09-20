@@ -29,6 +29,7 @@ class DocumentListRead(DocumentRead):
     project_id: int
     transaction_type: TransactionType
     transaction_description: str | None = None
+    supplier_id: int | None = None
     supplier_name: str | None = None
     product_name: str | None = None
     amount_ttc: str | None = None

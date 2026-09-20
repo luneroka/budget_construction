@@ -434,6 +434,7 @@ export type DocumentListRead = DocumentRead & {
   project_id: number
   transaction_type: TransactionType
   transaction_description: string | null
+  supplier_id: number | null
   supplier_name: string | null
   product_name: string | null
   amount_ttc: ApiDecimal | null

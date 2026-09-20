@@ -14,7 +14,7 @@ from app.models.transaction import Transaction, TransactionType
 from app.core.time import utcnow
 
 DocumentListRow = Row[
-    tuple[Document, int, TransactionType, str | None, str, str, Decimal]
+    tuple[Document, int, TransactionType, str | None, int | None, str, str, Decimal]
 ]
 
 
@@ -78,6 +78,7 @@ async def get_document_list(
             BudgetLine.project_id,
             Transaction.transaction_type,
             Transaction.description,
+            Transaction.supplier_id,
             Supplier.name,
             Product.name,
             Transaction.amount_ttc,
