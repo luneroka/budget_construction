@@ -26,6 +26,7 @@ import {
 import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { ProductCell } from '@/components/shared/ProductCell'
 import { SupplierLink } from '@/components/suppliers/SupplierLink'
 import { PaginationFooter } from '@/components/shared/PaginationFooter'
 import { TableToolbar } from '@/components/shared/TableToolbar'
@@ -48,7 +49,6 @@ import { projectToDomain, suppliersToDomain } from '@/lib/apiAdapters'
 import { canToggleBudgetSelection } from '@/lib/budgetDomain'
 import {
   buildTransactionRow,
-  getBudgetLabel,
   getTransactionStatus,
   isInCurrentMonth,
   isWithinLastDays,
@@ -480,7 +480,7 @@ export function TransactionsPage() {
           </TableCell>
           <TableCell className="min-w-44">{product.category_name}</TableCell>
           <TableCell className="min-w-44">
-            {getBudgetLabel(product, budgetLine)}
+            <ProductCell product={product} budgetLine={budgetLine} />
           </TableCell>
           <TableCell className="whitespace-nowrap text-right font-medium">
             {formatCurrency(transaction.amount_ttc)}
@@ -716,7 +716,7 @@ export function TransactionsPage() {
               <TableHead className="whitespace-nowrap">Type</TableHead>
               <TableHead className="whitespace-nowrap">Fournisseur</TableHead>
               <TableHead className="whitespace-nowrap">Catégorie</TableHead>
-              <TableHead className="whitespace-nowrap">Poste budget</TableHead>
+              <TableHead className="whitespace-nowrap">Produit</TableHead>
               <SortableHeader
                 align="right"
                 field="amount"

@@ -23,6 +23,7 @@ import type { ViewedTransactionContext } from '@/components/budget/TransactionMo
 import { SupplierModal } from '@/components/suppliers/SupplierModal'
 import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { ProductCell } from '@/components/shared/ProductCell'
 import { ProgressBar } from '@/components/shared/ProgressBar'
 import { Select } from '@/components/ui/select'
 import { SectionCard } from '@/components/shared/SectionCard'
@@ -63,7 +64,6 @@ import { supplierTotals } from '@/lib/supplierStats'
 import { notifyError } from '@/lib/toasts'
 import {
   buildTransactionRow,
-  getBudgetLabel,
   getTransactionStatus,
 } from '@/lib/transactionWorkspace'
 import { useSelectedProjectId } from '@/state/appState'
@@ -459,6 +459,7 @@ export function SupplierDetailPage() {
               <TableRow>
                 <TableHead className="w-28">Date</TableHead>
                 <TableHead className="w-28">Type</TableHead>
+                <TableHead>Catégorie</TableHead>
                 <TableHead>Produit</TableHead>
                 <TableHead className="w-32 text-right">Montant TTC</TableHead>
                 <TableHead className="w-28">Statut</TableHead>
@@ -469,13 +470,13 @@ export function SupplierDetailPage() {
             <TableBody>
               {transactionsQuery.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-muted-foreground">
+                  <TableCell colSpan={8} className="text-muted-foreground">
                     Chargement des transactions...
                   </TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-muted-foreground">
+                  <TableCell colSpan={8} className="text-muted-foreground">
                     Aucune transaction avec ce fournisseur sur ce projet.
                   </TableCell>
                 </TableRow>
@@ -512,9 +513,12 @@ export function SupplierDetailPage() {
                       <TableCell>
                         <StatusBadge status={transaction.transaction_type} />
                       </TableCell>
+                      <TableCell>{product.category_name}</TableCell>
                       <TableCell>
-                        {product.category_name} ›{' '}
-                        {getBudgetLabel(product, budgetLine)}
+                        <ProductCell
+                          product={product}
+                          budgetLine={budgetLine}
+                        />
                       </TableCell>
                       <TableCell className="text-right font-medium whitespace-nowrap">
                         {formatCurrency(transaction.amount_ttc)}

@@ -69,12 +69,18 @@ export function getTransactionStatus(transaction: Transaction) {
   return transaction.quote_status ?? transaction.invoice_status
 }
 
-export function getBudgetLabel(product: Product, budgetLine: BudgetLine) {
+// The sub-product a transaction sits on, or nothing when it is attached to
+// the product as a whole -- a budget line that stands for the product itself
+// carries its name.
+export function subProductName(product: Product, budgetLine: BudgetLine) {
   const productName = product.product_name.trim()
   const budgetLineName = budgetLine.name.trim()
 
-  if (productName.toLocaleLowerCase() === budgetLineName.toLocaleLowerCase()) {
-    return product.product_name
+  if (
+    budgetLineName === '' ||
+    productName.toLocaleLowerCase() === budgetLineName.toLocaleLowerCase()
+  ) {
+    return null
   }
 
   return budgetLine.name
