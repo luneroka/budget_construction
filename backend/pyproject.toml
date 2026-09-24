@@ -13,7 +13,7 @@ dependencies = [
     "pydantic-settings>=2.11.0",
     "sqlalchemy>=2.0.54",
     "httpx>=0.24.0",
-    "boto3>=1.43.95",
+    "boto3>=1.43.98",
     "sentry-sdk>=2.69.2",
     "slowapi>=0.1.10",
     "pyjwt>=2.14.0",
@@ -66,12 +66,12 @@ prepend_sys_path = [
 [dependency-groups]
 dev = [
     "black>=25.11.0",
-    "boto3-stubs[s3]>=1.43.95",
+    "boto3-stubs[s3]>=1.43.98",
     "faker>=40.39.0",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
-    "ruff>=0.16.7",
+    "ruff>=0.16.8",
 ]
 
 # timezone to use when rendering the date within the migration file
