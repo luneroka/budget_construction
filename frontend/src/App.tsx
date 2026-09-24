@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import { RedirectAuthenticated } from '@/auth/RedirectAuthenticated'
 import { RequireAuth } from '@/auth/RequireAuth'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { AutoUpdate } from '@/components/layout/AutoUpdate'
 import { IconTooltips } from '@/components/ui/icon-tooltips'
 import { AdminUsersPage } from '@/pages/AdminUsersPage'
 import { BudgetPage } from '@/pages/BudgetPage'
@@ -24,6 +25,7 @@ import { UserSettingsPage } from '@/pages/UserSettingsPage'
 export default function App() {
   return (
     <BrowserRouter>
+      <AutoUpdate />
       <Toaster
         position="top-center"
         toastOptions={{

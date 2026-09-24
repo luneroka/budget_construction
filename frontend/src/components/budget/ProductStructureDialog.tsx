@@ -103,14 +103,22 @@ export function ProductStructureDialog({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 px-4">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 px-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="product-structure-dialog-title"
+      >
         <div className="w-full max-w-lg rounded-lg border border-border bg-card p-6 text-foreground shadow-lg">
           <div className="flex items-start gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-md bg-gold/15 text-gold">
               <FilePlus2 className="h-5 w-5" aria-hidden="true" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="font-heading text-xl font-semibold">
+              <p
+                id="product-structure-dialog-title"
+                className="font-heading text-xl font-semibold"
+              >
                 {activeAction.kind === 'decompose-product'
                   ? 'Décomposer le produit'
                   : 'Ajouter un sous-produit'}

@@ -200,6 +200,10 @@ export function ReportIssueDrawer() {
             : 'pointer-events-none translate-y-4 opacity-0',
         )}
         data-capture-ignore="true"
+        // Not a modal, so AutoUpdate can't see it by aria-modal: without
+        // this, changing page with a report half-written would reload it
+        // away.
+        data-blocks-auto-update={isOpen || undefined}
         aria-hidden={!drawerVisible}
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-3">

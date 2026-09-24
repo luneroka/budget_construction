@@ -407,7 +407,13 @@ export function ProjectsSettingsPage() {
             title="Informations du projet"
             description="Informations principales utilisées dans l'application."
           >
-            <form className="grid gap-3" onSubmit={handleSave}>
+            <form
+              className="grid gap-3"
+              onSubmit={handleSave}
+              // Edited in place, not in a modal: keeps AutoUpdate from
+              // reloading the changes away before they're saved.
+              data-blocks-auto-update={isEditingProjectInfo || undefined}
+            >
               <div className="grid gap-3">
                 <div className="project-settings-grid-two grid gap-2">
                   <div className="grid gap-1">

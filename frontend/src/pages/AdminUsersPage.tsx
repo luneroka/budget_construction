@@ -263,7 +263,15 @@ export function AdminUsersPage() {
           description="Un e-mail avec un lien pour choisir son mot de passe lui sera envoyé."
           icon={MailPlus}
         >
-          <form className="space-y-4" onSubmit={handleInvite}>
+          <form
+            className="space-y-4"
+            onSubmit={handleInvite}
+            // Not a modal: keeps AutoUpdate from reloading a half-typed
+            // invitation away.
+            data-blocks-auto-update={
+              inviteName !== '' || inviteEmail !== '' || undefined
+            }
+          >
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
               <div className="space-y-2">
                 <Label htmlFor="invite-name">Nom</Label>

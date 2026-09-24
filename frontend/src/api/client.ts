@@ -174,6 +174,25 @@ let unauthorizedHandler: (() => void) | null = null
 let refreshHandler: (() => Promise<string | null>) | null = null
 let refreshInFlight: Promise<string | null> | null = null
 
+// Requests that change something and haven't been answered yet. AutoUpdate
+// doesn't reload the tab while there is one: login, logout, the password
+// resets and the token refresh aren't react-query mutations, and a reload
+// that cut the logout POST off would leave the refresh cookie in the
+// browser: still valid, it logs the user back in; already revoked, the next
+// /auth/refresh reports it as a stolen token.
+const pendingWrites = new WeakSet<object>()
+let pendingWriteCount = 0
+
+export function hasPendingWrites() {
+  return pendingWriteCount > 0
+}
+
+function settleWrite(config: object | undefined) {
+  if (config && pendingWrites.delete(config)) {
+    pendingWriteCount -= 1
+  }
+}
+
 export function setApiAccessToken(token: string | null) {
   accessToken = token
 }
@@ -203,8 +222,26 @@ apiClient.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${accessToken}`
   }
 
+  if (!['get', 'head', 'options'].includes(config.method ?? 'get')) {
+    pendingWrites.add(config)
+    pendingWriteCount += 1
+  }
+
   return config
 })
+
+// Ahead of the 401 handler below, so every answer settles its own request;
+// a retry after a token refresh goes out, and is counted, as a new one.
+apiClient.interceptors.response.use(
+  (response) => {
+    settleWrite(response.config)
+    return response
+  },
+  (error: unknown) => {
+    if (axios.isAxiosError(error)) settleWrite(error.config)
+    return Promise.reject(error)
+  },
+)
 
 type RetryableRequestConfig = AxiosRequestConfig & { _retried?: boolean }
 

@@ -105,6 +105,9 @@ export function LoginPage() {
         <form
           className="rounded-lg border border-border bg-card p-6 shadow-sm"
           onSubmit={handleSubmit}
+          // Keeps AutoUpdate from reloading the email away while the
+          // password is being fetched from another window.
+          data-blocks-auto-update={email !== '' || password !== '' || undefined}
         >
           <div className="space-y-5">
             <div className="space-y-2">

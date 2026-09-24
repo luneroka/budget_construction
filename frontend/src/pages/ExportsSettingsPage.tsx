@@ -262,6 +262,9 @@ export function ExportsSettingsPage() {
       <div
         aria-hidden="true"
         className="pointer-events-none fixed left-0 top-0 -z-10"
+        // The capture isn't a mutation: this keeps AutoUpdate from
+        // reloading the PNG away while it is being drawn.
+        data-blocks-auto-update={dashboardExporting || undefined}
       >
         <div
           ref={dashboardExportRef}
