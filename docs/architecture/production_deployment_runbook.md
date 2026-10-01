@@ -501,12 +501,24 @@ docker compose --env-file .env.production -f docker-compose.prod.yml ps -a
 docker compose --env-file .env.production -f docker-compose.prod.yml logs migrate | tail -5
 curl -fsS https://batibudget.com/api/health/live && echo
 curl -fsS https://batibudget.com/api/health/ready && echo
+
+# 5. Reclaim disk. Every --build adds to the build cache and leaves the
+#    replaced images dangling: by 2026-10-01 the cache held 19.6 GB of the
+#    38 GB disk. Keep only the 3 GB of cache used most recently (about the
+#    last two builds, so the next deploy and a rollback still build
+#    quickly) and remove the dangling images. Nothing a running container
+#    uses is touched.
+docker builder prune -f --max-used-space 3GB
+docker image prune -f
+df -h /
 ```
 
 Expect `migrate` and `frontend` to show `Exited (0)` (one-shot services);
 `db`, `backend`, and `caddy` should be `Up ... (healthy)`. Then do a browser
 smoke test: log in, reload a few times (confirms the refresh-token session
-survives), and log out.
+survives), and log out. After step 5, `df -h /` should stay around a
+quarter used (24%, 8.5 GB, after the first cleanup on 2026-10-01). If it
+creeps up, `docker system df` shows what grew.
 
 ### Caddyfile-only change
 
