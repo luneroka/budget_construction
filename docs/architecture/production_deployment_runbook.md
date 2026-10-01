@@ -4,9 +4,11 @@
 
 - Provider: Hetzner Cloud
 - VPS: CX23 (2 vCPU, 4 GB RAM, 40 GB SSD, Intel/AMD)
-- **Actual:** CPX12 (2 vCPU, 2 GB RAM) was provisioned instead — the
-  Cost-Optimized (CX) tier was unavailable at signup time. See "VPS
-  Information" below for details.
+- **Actual:** CX23 since 2026-10-01. The server was provisioned on
+  2026-07-13 as a CPX12 (2 vCPU, 2 GB RAM) because the Cost-Optimized (CX)
+  tier was unavailable at signup time, then rescaled to the CX23 with "CPU
+  and RAM only", so the original disk was kept. See "VPS Information" below
+  and the 2026-10-01 row of the Deployment History.
 - OS: Ubuntu 24.04 LTS
 - Reverse proxy: Caddy
 - Containers: Docker Compose
@@ -247,7 +249,8 @@ Server hardening and Docker setup completed manually via SSH, in this order:
    (`/swapfile`, persisted in `/etc/fstab`) as a safety margin against
    out-of-memory conditions, since the provisioned CPX12 has 2 GB RAM
    versus the 4 GB assumed for the CX23 in the Target Architecture
-   section. Confirmed active via `free -h`.
+   section. Confirmed active via `free -h`. The swap file was kept when
+   the server was rescaled to the CX23 (4 GB RAM) on 2026-10-01.
 7. Installed and enabled `unattended-upgrades` for automatic security
    patching.
 8. Installed Docker Engine and the Compose plugin via Docker's official
@@ -298,7 +301,8 @@ Application deployed and validated on the VPS via SSH, in this order:
    `backend` ~322 MB, `db` ~36 MB, `caddy` ~18 MB. No change was needed to
    the 2-worker FastAPI configuration decided in the Step 1 pre-flight
    review; the 2 GB RAM budget (vs. the 4 GB originally targeted) held up
-   fine under this load.
+   fine under this load. (Baseline taken on the CPX12; the server has had
+   4 GB since the 2026-10-01 rescale to the CX23.)
 
 ### Deviations and fixes made to the repository during this chunk
 
@@ -925,6 +929,7 @@ docker-compose.prod.yml config --quiet` completed successfully (with
 | 2026-09-24 | v1.9.1  | Dependabot updates merged and deployed (PRs #17 and #18, commits `749b71d` and `ff09de6`): @tanstack/react-query 5.103.1, lucide-react 1.47.0, @types/node 26.6.2 and prettier 3.9.8 on the frontend; boto3 1.43.98 (botocore 1.43.100), boto3-stubs 1.43.98 and ruff 0.16.8 on the backend. CI installs with `uv sync --dev`, which does not fail on a stale `uv.lock`, while the image builds with `uv sync --locked`, so `uv lock --check` was run on the PR's files before merging. Backend, migrate and frontend images rebuilt; no migration; db and caddy kept running. Pre-deploy backup `db-20260924T081918Z.sql.gz.enc`; health endpoints green; boto3 1.43.98 confirmed in the running backend; the served bundle changed (`index-Bi6JsTJN.js` → `index-DjKd8CRr.js`); the public login page checked in a browser. |
 | 2026-09-24 | v1.10.0 | Open tabs reload onto each new frontend deploy by themselves, with no banner (commit `9f559bb`, frontend only, ported from ccig-app's `0c7a0f2`). The app compares the hashed `/assets/` names in the served `index.html` with its own at startup, on coming back to the tab or changing page (each at most every 30 s) and every 5 min while in front. It reloads on a change of page, on a return with no click or key during the check, or after 2 min idle. Never while a modal, the report drawer, an in-page form holding input or the PNG export is open, a write request is in flight (a reload cutting the logout POST off would keep the refresh cookie), a toast is on screen or the focused field holds text. Never before every file of the new build answers as itself (mid-copy, Caddy serves `index.html` with a 200 for a missing asset). At most once per build per tab session (sessionStorage), so it cannot loop. `ProductStructureDialog` now carries `aria-modal` like the other dialogs. Verified beforehand on two production builds behind a local stand-in for Caddy's `try_files`, with Playwright and a fake clock (15 scenarios and a control). Builds are reproducible: `c0358f4` built on the Mac gave production's `index-DjKd8CRr.js` exactly, so a deploy that leaves the frontend alone reloads nobody. **Tabs opened before this deploy don't have the code: each needs one manual reload.** Pre-deploy backup `db-20260924T163353Z.sql.gz.enc`; only the frontend container was recreated (the postgres and caddy images pulled were unchanged); health endpoints green; the served bundle is `index-Lh_6NICR.js`, as the local build predicted, and contains the new code; the public login page checked in a browser (the startup check fetches `/index.html`; only the expected 401 from the logged-out refresh). |
 | 2026-10-01 | v1.10.1 | Dependabot updates merged and deployed (PRs #20 and #19, commits `184c751` and `d4e360c`). Backend: SQLAlchemy 2.0.54 → 2.1.1, boto3 1.43.103 (botocore 1.43.105), sentry-sdk 2.70.0, pyjwt 2.15.0, boto3-stubs and ruff 0.16.9. Frontend: @tanstack/react-query 5.104.0, lucide-react 1.48.0, react-hook-form 7.89.0, vite 8.3.1, vitest 5.0.2, oxlint 1.85.0, prettier 3.9.9 and @types/node 26.6.3. SQLAlchemy 2.1 no longer installs greenlet, which the backend already requires directly; no code uses the features 2.1 changes, and the 284 backend tests pass on it. The dependency audit failed on both PRs for urllib3 2.7.0 (CVE-2026-97687, -97688 and -97689, via botocore and sentry-sdk), so urllib3 2.8.0 was added to #20 (`602ed22`); none of the three applies here (no HTTPS proxy, and urllib3 only talks to R2 and Sentry). Pre-deploy backup `db-20261001T070622Z.sql.gz.enc`; backend, migrate and frontend images rebuilt, no migration, db and caddy kept running; health endpoints green; SQLAlchemy 2.1.1 and urllib3 2.8.0 confirmed in the running backend, no errors in its log; the served bundle is `index-CX8nZJSi.js`, as the local build predicted. This is the first bundle change since v1.10.0, so open tabs should reload onto it by themselves (not observed). The public login page was checked in a browser. |
+| 2026-10-01 | v1.10.1 | Infrastructure only, no code or configuration change: the VPS was rescaled from a CPX12 (2 vCPU, 2 GB RAM) to the CX23 of the Target Architecture (2 vCPU, 4 GB RAM), with "CPU and RAM only" so the disk is unchanged. Clean shutdown, a snapshot taken before the rescale (deleted afterwards), then the rescale from the Hetzner Console. Verified afterwards: 2 vCPU and 3.7 GiB RAM reported, the 2 GB swap file still active, db/backend/caddy healthy, `/api/health/ready` returns ok, login works. The server came back on Ubuntu 24.04.5 LTS, kernel 6.8.0-142. |
 
 ## Production Configuration Review (2026-07-13)
 
