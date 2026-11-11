@@ -12,7 +12,11 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
 
-load_dotenv(Path(__file__).resolve().parents[1] / '.env.test', override=True)
+# A DATABASE_URL already in the environment wins over .env.test:
+# scripts/run_backend_tests.sh points it at a throwaway database started for
+# that run only, on a port picked at run time. Without it, .env.test applies
+# as before. The guard below refuses anything that is not a test database.
+load_dotenv(Path(__file__).resolve().parents[1] / '.env.test', override=False)
 
 TEST_DATABASE_URL = os.environ['DATABASE_URL']
 if 'test' not in TEST_DATABASE_URL:
