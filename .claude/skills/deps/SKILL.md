@@ -155,9 +155,11 @@ Then, on the throwaway branch:
   ```bash
   ENV_FILE=.env.production.example docker compose -p budget-prodbuild --env-file .env.production.example -f docker-compose.prod.yml build backend frontend
   ```
-  It uses the example's placeholder values (`ENV_FILE` is the hook
-  `docker-compose.prod.yml` gives for that, used the same way in the
-  runbook's Chunk 1 validation): no real secret is read, and
+  This exact command is not in the runbook: it puts together the
+  runbook's production compose flags, `build backend frontend`, and the
+  `ENV_FILE` hook of `docker-compose.prod.yml`, which the runbook's
+  Chunk 1 validation used for `config --quiet`. It uses the example's
+  placeholder values: no real secret is read, and
   `.env.production` is never created. `-p budget-prodbuild` keeps it
   apart from the dev stack: both compose files sit in the same folder,
   so without it the build would overwrite the dev `budget_construction-*`

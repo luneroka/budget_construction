@@ -73,21 +73,28 @@ scripts/run_backend_tests.sh
 `uv run pytest` on the host, as in `backend-tests.yml`, against a
 throwaway PostgreSQL started for this run only: its own Compose project
 (`<repo folder>-test-<pid>`), a free host port picked at start, removed
-on exit whatever the outcome. So it runs whatever else holds port 5435
-(another project's `db-test`, another checkout, a parallel session) and
-never shares a database with another run. Needs Docker running; if the
-script says it could not start `db-test`, report its message and mark
-the row FAIL.
+on exit, interrupted runs included. A run killed outright (SIGKILL, a
+crash) leaves its project behind; the next run removes it. So it runs
+whatever else holds port 5435 (another project's `db-test`, another
+checkout, a parallel session) and never shares a database with another
+run. Needs Docker running. If the script stops before pytest starts
+(its own `run_backend_tests:` message, with the last Compose error when
+`db-test` would not start), report that message and mark the row FAIL.
 
 The suite never touches the dev database (`db`, port 5434): conftest
-refuses a `DATABASE_URL` without `test` in it. Never read or print
-`backend/.env.test`.
+refuses a database whose name has no `test` in it, and only the
+script's `RUN_TESTS_DATABASE_URL` can replace `.env.test`'s URL. Never
+read or print `backend/.env.test`.
 
-CI's other backend gate, `backend-migrations.yml` (`alembic upgrade
-head` on an empty database), is not run locally: it needs a database
-`DATABASE_URL` points at, and only CI gives it a throwaway one. When the
-branch adds or changes a file in `backend/alembic/versions/`, say that
-this check is left to CI.
+**Left to CI, not run locally**, so never reported as passing here:
+
+- `backend-migrations.yml`: `alembic upgrade head` on an empty database,
+  then pytest again. It needs a database `DATABASE_URL` points at, and
+  only CI gives it a throwaway one. When the branch adds or changes a
+  file in `backend/alembic/versions/`, say that this check is left to
+  CI.
+- `dependency-audit.yml` (pip-audit, npm audit) and `secret-scan.yml`
+  (gitleaks).
 
 ## 3–7. Frontend checks
 
@@ -129,5 +136,5 @@ affected)" even when an earlier check failed.
 | 6 | Unit tests | `cd frontend && npm test` | PASS (n passed) / … |
 | 7 | Build | `cd frontend && npm run build` | … |
 
-Then, for the failing check, the relevant part of its output, and any
-check left to CI (migrations).
+Then, for the failing check, the relevant part of its output, and the
+checks left to CI (migrations, dependency audit, secret scan).

@@ -11,8 +11,9 @@
 # in other projects, other checkouts or other sessions never meet.
 #
 # The database is the `db-test` service of docker-compose.yml, with its
-# public test credentials (the same as CI's). DATABASE_URL is passed to
-# pytest, and conftest.py lets it win over backend/.env.test.
+# public test credentials (the same as CI's). Its URL is passed to pytest
+# as RUN_TESTS_DATABASE_URL, which conftest.py lets replace .env.test's
+# DATABASE_URL; nothing else in .env.test is overridden.
 #
 # Usage:
 #   scripts/run_backend_tests.sh                 # whole suite
@@ -23,13 +24,26 @@ set -Eeuo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-project="$(basename "$REPO_ROOT" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_\n-' '-')-test-$$"
+prefix="$(basename "$REPO_ROOT" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_\n-' '-')-test"
+project="${prefix}-$$"
 compose=(docker compose -p "$project")
 
 cleanup() {
   "${compose[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
+
+# A run killed outright (SIGKILL, a crash) cannot run its trap and leaves
+# its project behind. Remove those first: a <prefix>-<pid> project whose
+# process no longer exists.
+for stale in $(docker ps -a --filter label=com.docker.compose.project \
+    --format '{{.Label "com.docker.compose.project"}}' 2>/dev/null \
+    | sort -u | grep -E "^${prefix}-[0-9]+$" || true); do
+  if ! kill -0 "${stale##*-}" 2>/dev/null; then
+    echo "run_backend_tests: removing the leftover project $stale" >&2
+    docker compose -p "$stale" down -v --remove-orphans >/dev/null 2>&1 || true
+  fi
+done
 
 # A free port from the OS, passed explicitly: Docker Desktop does not
 # reliably publish a port given as 0. Another process can take the port
@@ -40,17 +54,22 @@ free_port() {
 }
 
 port=
+last_error=
 for _ in 1 2 3 4 5; do
   candidate="$(free_port)"
-  if DB_TEST_PORT="$candidate" "${compose[@]}" up -d db-test >/dev/null 2>&1 \
-      && [ "$("${compose[@]}" port db-test 5432 2>/dev/null | sed 's/.*://')" = "$candidate" ]; then
-    port="$candidate"
-    break
+  if last_error="$(DB_TEST_PORT="$candidate" "${compose[@]}" up -d db-test 2>&1 >/dev/null)"; then
+    published="$("${compose[@]}" port db-test 5432 2>/dev/null | sed 's/.*://')"
+    if [ "$published" = "$candidate" ]; then
+      port="$candidate"
+      break
+    fi
+    last_error="db-test started but port $candidate was not published (got '${published}')"
   fi
   cleanup
 done
 if [ -z "$port" ]; then
-  echo "run_backend_tests: could not start db-test on a free port" >&2
+  echo "run_backend_tests: could not start db-test after 5 attempts; last error:" >&2
+  echo "$last_error" >&2
   exit 1
 fi
 
@@ -73,5 +92,5 @@ fi
 echo "run_backend_tests: project $project, database on port $port" >&2
 
 cd backend
-DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:${port}/budget_construction_test" \
+RUN_TESTS_DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:${port}/budget_construction_test" \
   uv run pytest "$@"
