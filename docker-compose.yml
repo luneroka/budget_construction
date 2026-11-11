@@ -61,7 +61,10 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: budget_construction_test
     ports:
-      - '5435:5432'
+      # scripts/run_backend_tests.sh starts its own copy of this service
+      # under a per-run project name with DB_TEST_PORT set to a free port,
+      # so runs in other projects or checkouts never collide.
+      - '${DB_TEST_PORT:-5435}:5432'
     tmpfs:
       - /var/lib/postgresql
 

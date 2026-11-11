@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest_asyncio
 from dotenv import load_dotenv
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import text
+from sqlalchemy import make_url, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
@@ -14,8 +14,17 @@ from sqlalchemy.pool import NullPool
 
 load_dotenv(Path(__file__).resolve().parents[1] / '.env.test', override=True)
 
+# scripts/run_backend_tests.sh starts a throwaway database for each run, on
+# a port picked at run time, and passes it as RUN_TESTS_DATABASE_URL. Only
+# that variable may replace .env.test's DATABASE_URL: a DATABASE_URL left
+# exported in the shell never wins over .env.test.
+if os.environ.get('RUN_TESTS_DATABASE_URL'):
+    os.environ['DATABASE_URL'] = os.environ['RUN_TESTS_DATABASE_URL']
+
 TEST_DATABASE_URL = os.environ['DATABASE_URL']
-if 'test' not in TEST_DATABASE_URL:
+# The fixtures drop the public schema: refuse any database whose own name
+# does not say it is a test database (a host or user name does not count).
+if 'test' not in (make_url(TEST_DATABASE_URL).database or ''):
     raise RuntimeError('Refusing to run tests against a non-test database')
 
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, poolclass=NullPool)
