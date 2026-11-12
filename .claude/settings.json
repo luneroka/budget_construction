@@ -28,7 +28,17 @@
       "Bash(gh pr view*)",
       "Bash(gh pr checks*)",
       "Bash(gh pr diff*)",
-      "Bash(gh run list*)"
+      "Bash(gh run list*)",
+      "Bash(/Users/yoann/dev/claude-config/bin/deps-scan *)",
+      "Bash(/Users/yoann/dev/claude-config/bin/deps-notes *)",
+      "Bash(/Users/yoann/dev/claude-config/bin/deps-batch *)",
+      "Bash(/Users/yoann/dev/claude-config/bin/deps-merge *)",
+      "Bash(/Users/yoann/dev/claude-config/bin/deps-rebase *)",
+      "Bash(.claude/skills/deps/prodbuild.sh *)",
+      "Bash(gh run view*)",
+      "Bash(npm ci)",
+      "Bash(docker compose config --services)",
+      "Bash(uv sync --dev)"
     ],
     "ask": [
       "Bash(git push*)",
