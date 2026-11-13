@@ -62,12 +62,12 @@ export function ContactOwnerDialog() {
         onClick={() => setIsOpen(true)}
       >
         Vous souhaitez essayer l’application&nbsp;? <br />
-        Contactez le propriétaire
+        Contactez le développeur
       </button>
 
       {isOpen ? (
         <ModalShell
-          title="Contacter le propriétaire"
+          title="Contacter le développeur"
           subtitle="Présentez-vous et dites-nous pourquoi vous souhaitez essayer l’application."
           icon={<Mail className="h-5 w-5" aria-hidden="true" />}
           closeDisabled={busy}
