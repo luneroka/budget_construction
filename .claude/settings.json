@@ -35,6 +35,7 @@
       "Bash(/Users/yoann/dev/claude-config/bin/deps-merge *)",
       "Bash(/Users/yoann/dev/claude-config/bin/deps-rebase *)",
       "Bash(.claude/skills/deps/prodbuild.sh *)",
+      "Bash(.claude/skills/deploy/vps.sh *)",
       "Bash(gh run view*)",
       "Bash(npm ci)",
       "Bash(docker compose config --services)",
