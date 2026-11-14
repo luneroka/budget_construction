@@ -67,9 +67,15 @@ fi
 info="$untracked/vps_information.md"
 sheet="$untracked/vps_operations_cheatsheet.md"
 
-host="$(sed -n 's/^- Primary IPv4:[[:space:]]*//p' "$info" | head -1 | tr -d '`[:space:]')"
-user="$(sed -n 's/^\*\*User:\*\*[[:space:]]*`\([^`]*\)`.*/\1/p' "$sheet" 2>/dev/null | head -1)"
-key="$(sed -n 's/^\*\*Key:\*\*[[:space:]]*`\([^`]*\)`.*/\1/p' "$sheet" 2>/dev/null | head -1)"
+if [ ! -f "$sheet" ]; then
+  echo "vps.sh: docs/untracked/vps_operations_cheatsheet.md not found" >&2
+  exit 3
+fi
+
+# sed -n '…p;q' stops at the first match, so no SIGPIPE under pipefail.
+host="$(sed -n 's/^- Primary IPv4:[[:space:]]*//p' "$info" | sed -n '1p' | tr -d '`[:space:]' || true)"
+user="$(sed -n 's/^\*\*User:\*\*[[:space:]]*`\([^`]*\)`.*/\1/p' "$sheet" | sed -n '1p' || true)"
+key="$(sed -n 's/^\*\*Key:\*\*[[:space:]]*`\([^`]*\)`.*/\1/p' "$sheet" | sed -n '1p' || true)"
 case "$key" in "~/"*) key="$HOME/${key#\~/}" ;; esac
 
 if ! printf '%s' "$host" | grep -Eq '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'; then

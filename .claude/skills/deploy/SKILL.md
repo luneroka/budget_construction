@@ -332,8 +332,11 @@ here on.
   scripts/restore_db.sh backups/db-YYYYMMDDTHHMMSSZ.sql.gz.enc --yes
   ```
 - Run them only after Yoann's explicit approval, one per call, then
-  run step 5 again. They are not in `vps.sh`: each goes as a plain ssh
-  call (see "How a command is sent"), which prompts.
+  run step 5 again. The `git checkout`, the `up -d --build` without
+  `--pull always` and the restore are not in `vps.sh`: each goes as a
+  plain ssh call (see "How a command is sent"), which prompts. Step 4.5
+  again and step 5 use `vps.sh` as usual, still one approved call at a
+  time.
 - A rollback leaves the VPS checkout on a detached HEAD, and the
   runbook's next `git pull origin main` needs a branch. The runbook has
   no command for going back; before the next deploy, ask Yoann before
