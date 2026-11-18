@@ -7,13 +7,16 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.budget_line import BudgetLine, BudgetLineType
-from app.models.category import Category
 from app.models.document import Document
-from app.models.product import Product
+from app.models.lot import Lot
 from app.models.project import Project
-from app.models.subcategory import Subcategory
-from app.models.transaction import Transaction, TransactionType
+from app.models.transaction import (
+    InvoiceStatus,
+    InvoiceType,
+    QuoteStatus,
+    Transaction,
+    TransactionType,
+)
 from app.models.user import User
 from app.services.document_validation import MAX_FILE_SIZE
 from tests.helpers import create_authenticated_user
@@ -25,6 +28,19 @@ async def user_by_email(db_session: AsyncSession, email: str) -> User:
     return user
 
 
+async def _global_lot(db_session: AsyncSession, code: str = '02') -> Lot:
+    result = await db_session.execute(
+        select(Lot).where(Lot.project_id.is_(None), Lot.code == code)
+    )
+    return result.scalar_one()
+
+
+def _status_fields(transaction_type: TransactionType) -> dict[str, object]:
+    if transaction_type == TransactionType.invoice:
+        return {'invoice_status': InvoiceStatus.unpaid, 'invoice_type': InvoiceType.full}
+    return {'quote_status': QuoteStatus.to_confirm}
+
+
 async def create_document_fixture(
     db_session: AsyncSession,
     user: User,
@@ -33,27 +49,14 @@ async def create_document_fixture(
     description: str,
     filename: str,
 ) -> Document:
-    category = Category(name=f'Category {filename}', sort_order=1)
-    subcategory = Subcategory(
-        category=category,
-        name=f'Subcategory {filename}',
-        sort_order=1,
-    )
-    product = Product(
-        subcategory=subcategory,
-        name=f'Product {filename}',
-        sort_order=1,
-    )
     project = Project(user=user, name=f'Project {filename}')
-    budget_line = BudgetLine(
-        project=project,
-        product=product,
-        name=f'Budget line {filename}',
-        item_type=BudgetLineType.product,
-    )
     transaction = Transaction(
-        budget_line=budget_line,
+        project=project,
+        lot=await _global_lot(db_session),
+        title=f'Libellé {filename}',
+        reference=f'REF-{filename}',
         transaction_type=transaction_type,
+        **_status_fields(transaction_type),
         amount_ht=Decimal('100.00'),
         vat_rate=Decimal('20.00'),
         amount_vat=Decimal('20.00'),
@@ -83,27 +86,14 @@ async def create_transaction_fixture(
     *,
     label: str,
 ) -> Transaction:
-    category = Category(name=f'Category {label}', sort_order=1)
-    subcategory = Subcategory(
-        category=category,
-        name=f'Subcategory {label}',
-        sort_order=1,
-    )
-    product = Product(
-        subcategory=subcategory,
-        name=f'Product {label}',
-        sort_order=1,
-    )
     project = Project(user=user, name=f'Project {label}')
-    budget_line = BudgetLine(
-        project=project,
-        product=product,
-        name=f'Budget line {label}',
-        item_type=BudgetLineType.product,
-    )
     transaction = Transaction(
-        budget_line=budget_line,
+        project=project,
+        lot=await _global_lot(db_session),
+        title=f'Libellé {label}',
+        reference=f'REF-{label}',
         transaction_type=TransactionType.invoice,
+        **_status_fields(TransactionType.invoice),
         amount_ht=Decimal('100.00'),
         vat_rate=Decimal('20.00'),
         amount_vat=Decimal('20.00'),
@@ -166,7 +156,11 @@ async def test_document_list_returns_current_user_documents_with_transaction_met
     assert payload[0]['original_filename'] == 'invoice.pdf'
     assert payload[0]['transaction_type'] == 'invoice'
     assert payload[0]['transaction_description'] == 'Facture - Terrassement'
-    assert payload[0]['product_name'] == 'Product invoice.pdf'
+    assert payload[0]['lot_code'] == '02'
+    assert payload[0]['lot_designation'] == 'Gros œuvre / Maçonnerie'
+    assert payload[0]['transaction_title'] == 'Libellé invoice.pdf'
+    assert payload[0]['transaction_reference'] == 'REF-invoice.pdf'
+    assert 'product_name' not in payload[0]
 
     assert other_response.status_code == 200
     other_payload = cast(list[dict[str, object]], other_response.json())

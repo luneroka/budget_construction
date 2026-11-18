@@ -11,14 +11,10 @@ CONSTRAINT_MESSAGES = {
     'uq_supplier_contacts_primary_per_supplier': (
         'A supplier can only have one primary contact'
     ),
-    'uq_template_name': 'A template with this name already exists',
-    'uq_template_items_template_id_product_id': (
-        'A template cannot contain the same product more than once'
-    ),
     'users_email_key': 'A user with this email already exists',
-    'uq_budget_lines_project_id_product_id_product_type': (
-        'A whole-product budget line already exists for this project product'
-    ),
+    'uq_lots_global_code': 'A lot with this code already exists',
+    'uq_lots_global_designation': 'A lot with this designation already exists',
+    'uq_lots_project_id_code': 'A lot with this code already exists',
 }
 
 

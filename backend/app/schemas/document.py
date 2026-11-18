@@ -28,10 +28,13 @@ class DocumentListRead(DocumentRead):
     type: Literal['document'] = 'document'
     project_id: int
     transaction_type: TransactionType
+    transaction_title: str | None = None
+    transaction_reference: str | None = None
     transaction_description: str | None = None
     supplier_id: int | None = None
     supplier_name: str | None = None
-    product_name: str | None = None
+    lot_code: str
+    lot_designation: str
     amount_ttc: str | None = None
 
 

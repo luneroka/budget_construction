@@ -8,34 +8,31 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
 from app.models.user import User
-from app.repositories import budget_line as budget_line_repository
 from app.repositories import project as project_repository
 from app.routers._helpers import require_found
 from app.routers.integrity import raise_integrity_conflict
 from app.schemas.financial_engine import (
     DashboardBudgetAlertsRead,
-    DashboardCategoryBudgetActualRead,
-    DashboardCategoryDistributionRead,
     DashboardFinancialOverviewRead,
+    DashboardLotBudgetInvoicedRead,
+    DashboardLotDistributionRead,
     DashboardSpendingOverTimePointRead,
     DashboardSupplierDistributionRead,
     DashboardTransactionWidgetRead,
     ProjectFinancialSummaryRead,
 )
 from app.schemas.project import (
-    GeneratedProjectRead,
     ProjectCreate,
-    ProjectFromTemplateCreate,
     ProjectRead,
     ProjectUpdate,
 )
-from app.services import generate_project as generate_project_service
 from app.services.financial_engine import financial_engine
 
 router = APIRouter(prefix='/projects', tags=['Projects'])
 
 
 # API ENDPOINT TO ADD NEW PROJECT
+# A new project inserts no lots: it sees every global lot.
 @router.post('/', response_model=ProjectRead, status_code=status.HTTP_201_CREATED)
 async def create_project(
     project_data: ProjectCreate,
@@ -47,34 +44,6 @@ async def create_project(
             db, project_data, current_user.id
         )
     except project_repository.ProjectValidationError as error:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(error),
-        ) from error
-    except IntegrityError as error:
-        await raise_integrity_conflict(db, error)
-
-
-@router.post(
-    '/from-template',
-    response_model=GeneratedProjectRead,
-    status_code=status.HTTP_201_CREATED,
-)
-async def generate_project_from_template(
-    project_data: ProjectFromTemplateCreate,
-    db: AsyncSession = Depends(get_db_session),
-    current_user: User = Depends(get_current_user),
-):
-    try:
-        return await generate_project_service.generate_project_from_template(
-            db, project_data, current_user.id
-        )
-    except project_repository.ProjectValidationError as error:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(error),
-        ) from error
-    except budget_line_repository.BudgetLineValidationError as error:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(error),
@@ -111,7 +80,7 @@ async def get_project(
 
 # Read-only projections of the financial engine. They all take the same
 # (db, project_id, user_id) arguments and answer 404 when the project is not
-# visible to the user, so they are registered from a table instead of twelve
+# visible to the user, so they are registered from a table instead of a dozen
 # identical handlers.
 Projection = Callable[[AsyncSession, int, int], Awaitable[object | None]]
 
@@ -137,14 +106,14 @@ FINANCIAL_PROJECTIONS: list[tuple[str, str, type[BaseModel] | object, Projection
     (
         'get_project_dashboard_budget_vs_actual',
         '/{project_id}/dashboard/charts/budget-vs-actual',
-        list[DashboardCategoryBudgetActualRead],
+        list[DashboardLotBudgetInvoicedRead],
         financial_engine.get_dashboard_budget_vs_actual,
     ),
     (
-        'get_project_dashboard_category_distribution',
-        '/{project_id}/dashboard/charts/category-distribution',
-        list[DashboardCategoryDistributionRead],
-        financial_engine.get_dashboard_category_distribution,
+        'get_project_dashboard_lot_distribution',
+        '/{project_id}/dashboard/charts/lot-distribution',
+        list[DashboardLotDistributionRead],
+        financial_engine.get_dashboard_lot_distribution,
     ),
     (
         'get_project_dashboard_supplier_distribution',
@@ -169,12 +138,6 @@ FINANCIAL_PROJECTIONS: list[tuple[str, str, type[BaseModel] | object, Projection
         '/{project_id}/dashboard/widgets/quotes-to-negotiate',
         DashboardTransactionWidgetRead,
         financial_engine.get_dashboard_quotes_to_negotiate,
-    ),
-    (
-        'get_project_dashboard_budget_to_validate',
-        '/{project_id}/dashboard/widgets/budget-to-validate',
-        DashboardTransactionWidgetRead,
-        financial_engine.get_dashboard_budget_to_validate,
     ),
     (
         'get_project_dashboard_missing_documents',

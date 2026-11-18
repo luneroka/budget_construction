@@ -5,89 +5,83 @@ from decimal import Decimal
 
 from pydantic import BaseModel
 
-from app.models.budget_line import BudgetLineType
 from app.models.transaction import InvoiceStatus, QuoteStatus, TransactionType
 
 
 class FinancialTotalsRead(BaseModel):
-    selected_budget_amount_ttc: Decimal
-    selected_quote_budget_amount_ttc: Decimal
-    selected_diy_budget_amount_ttc: Decimal
-    quote_amount_ttc: Decimal
+    # « Devis retenus »: TTC of the active validated quotes.
     validated_quote_amount_ttc: Decimal
-    diy_estimate_amount_ttc: Decimal
-    actual_cost_amount_ttc: Decimal
+    # « Facturé »: TTC of every active invoice, whatever its payment status.
+    invoiced_amount_ttc: Decimal
     paid_invoice_amount_ttc: Decimal
     unpaid_invoice_amount_ttc: Decimal
     on_hold_invoice_amount_ttc: Decimal
-    remaining_budget_amount_ttc: Decimal
-    selected_budget_variance_ttc: Decimal
-    selected_quote_budget_variance_ttc: Decimal
-    budget_completion_percentage: Decimal
+    # « Reste à facturer » = Devis retenus - Facturé; negative is an overrun.
+    remaining_to_invoice_ttc: Decimal
+    is_overrun: bool
+    completion_percentage: Decimal
     quote_count: int
     validated_quote_count: int
-    diy_estimate_count: int
     invoice_count: int
 
 
-class BudgetLineFinancialSummaryRead(FinancialTotalsRead):
-    budget_line_id: int
-    name: str
-    item_type: BudgetLineType
-
-
-class ProductFinancialSummaryRead(FinancialTotalsRead):
-    product_id: int
-    product_name: str
-    subcategory_name: str
-    category_name: str
-    budget_lines: list[BudgetLineFinancialSummaryRead]
+class LotFinancialSummaryRead(FinancialTotalsRead):
+    lot_id: int
+    project_id: int | None
+    code: str
+    designation: str
+    is_global: bool
 
 
 class ProjectFinancialSummaryRead(FinancialTotalsRead):
     project_id: int
     generated_at: datetime
-    products: list[ProductFinancialSummaryRead]
+    lots: list[LotFinancialSummaryRead]
 
 
 class DashboardFinancialOverviewRead(BaseModel):
     project_id: int
     generated_at: datetime
-    selected_budget_amount_ttc: Decimal
-    actual_cost_amount_ttc: Decimal
-    remaining_budget_amount_ttc: Decimal
-    selected_budget_variance_ttc: Decimal
-    budget_completion_percentage: Decimal
+    validated_quote_amount_ttc: Decimal
+    invoiced_amount_ttc: Decimal
+    remaining_to_invoice_ttc: Decimal
+    completion_percentage: Decimal
 
 
 class DashboardSpendingOverTimePointRead(BaseModel):
     month: str
-    actual_cost_amount_ttc: Decimal
+    invoiced_amount_ttc: Decimal
 
 
-class DashboardCategoryBudgetActualRead(BaseModel):
-    category_id: int
-    category_name: str
-    selected_budget_amount_ttc: Decimal
-    actual_cost_amount_ttc: Decimal
+class DashboardLotBudgetInvoicedRead(BaseModel):
+    lot_id: int
+    lot_code: str
+    lot_designation: str
+    validated_quote_amount_ttc: Decimal
+    invoiced_amount_ttc: Decimal
 
 
-class DashboardCategoryDistributionRead(BaseModel):
-    category_id: int
-    category_name: str
-    actual_cost_amount_ttc: Decimal
+class DashboardLotDistributionRead(BaseModel):
+    lot_id: int
+    lot_code: str
+    lot_designation: str
+    invoiced_amount_ttc: Decimal
 
 
 class DashboardSupplierDistributionRead(BaseModel):
     supplier_id: int | None
     supplier_name: str
-    actual_cost_amount_ttc: Decimal
+    invoiced_amount_ttc: Decimal
 
 
 class DashboardTransactionWidgetItemRead(BaseModel):
     transaction_id: int
-    budget_line_id: int
+    lot_id: int
+    lot_code: str
+    lot_designation: str
     transaction_type: TransactionType
+    title: str | None = None
+    reference: str | None = None
     amount_ttc: Decimal
     issued_date: date
     due_date: date | None = None
@@ -95,9 +89,6 @@ class DashboardTransactionWidgetItemRead(BaseModel):
     quote_status: QuoteStatus | None = None
     invoice_status: InvoiceStatus | None = None
     supplier_name: str | None = None
-    category_name: str
-    product_name: str
-    budget_line_name: str
     has_documents: bool
 
 
@@ -107,11 +98,11 @@ class DashboardTransactionWidgetRead(BaseModel):
 
 
 class DashboardBudgetAlertRead(BaseModel):
-    product_id: int
-    product_name: str
-    category_name: str
-    selected_budget_amount_ttc: Decimal
-    actual_cost_amount_ttc: Decimal
+    lot_id: int
+    lot_code: str
+    lot_designation: str
+    validated_quote_amount_ttc: Decimal
+    invoiced_amount_ttc: Decimal
     variance_ttc: Decimal
 
 

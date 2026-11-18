@@ -5,12 +5,9 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.budget_line import BudgetLine, BudgetLineType
-from app.models.category import Category
 from app.models.document import Document
-from app.models.product import Product
+from app.models.lot import Lot
 from app.models.project import Project
-from app.models.subcategory import Subcategory
 from app.models.refresh_token import RefreshToken
 from app.models.supplier import Supplier
 from app.models.supplier_document import SupplierDocument
@@ -45,26 +42,19 @@ async def create_user(
 
 async def create_user_owned_graph(
     db_session: AsyncSession,
-) -> tuple[User, Project, BudgetLine, Transaction, Document, Supplier, Supplier]:
+) -> tuple[User, Project, Lot, Transaction, Document, Supplier, Supplier]:
     user = await create_user(db_session)
-    category = Category(name='Lifecycle Category')
-    subcategory = Subcategory(category=category, name='Lifecycle Subcategory')
-    product = Product(subcategory=subcategory, name='Lifecycle Product')
     project = Project(user=user, name='Lifecycle Project')
+    lot = Lot(project=project, code='90', designation='Lifecycle Lot')
     supplier = Supplier(user=user, name='Lifecycle Supplier')
     previously_deleted_supplier = Supplier(
         user=user,
         name='Previously Deleted Supplier',
         deleted_at=datetime.now(UTC).replace(tzinfo=None) - timedelta(days=1),
     )
-    budget_line = BudgetLine(
-        project=project,
-        product=product,
-        name='Lifecycle Budget Line',
-        item_type=BudgetLineType.product,
-    )
     transaction = Transaction(
-        budget_line=budget_line,
+        project=project,
+        lot=lot,
         transaction_type=TransactionType.quote,
         amount_ht=Decimal('100.00'),
         vat_rate=Decimal('20.00'),
@@ -85,13 +75,10 @@ async def create_user_owned_graph(
 
     db_session.add_all(
         [
-            category,
-            subcategory,
-            product,
             project,
+            lot,
             supplier,
             previously_deleted_supplier,
-            budget_line,
             transaction,
             document,
         ]
@@ -101,7 +88,7 @@ async def create_user_owned_graph(
     return (
         user,
         project,
-        budget_line,
+        lot,
         transaction,
         document,
         supplier,
@@ -161,7 +148,7 @@ async def test_soft_delete_user_cascades_to_owned_records(
     (
         user,
         project,
-        budget_line,
+        _lot,
         transaction,
         document,
         supplier,
@@ -175,13 +162,11 @@ async def test_soft_delete_user_cascades_to_owned_records(
     assert deleted_user.deleted_at is not None
 
     await db_session.refresh(project)
-    await db_session.refresh(budget_line)
     await db_session.refresh(transaction)
     await db_session.refresh(document)
     await db_session.refresh(supplier)
 
     assert project.deleted_at == deleted_user.deleted_at
-    assert budget_line.deleted_at == deleted_user.deleted_at
     assert transaction.deleted_at == deleted_user.deleted_at
     assert document.deleted_at == deleted_user.deleted_at
     assert supplier.deleted_at == deleted_user.deleted_at
@@ -196,7 +181,7 @@ async def test_restore_user_only_restores_records_from_same_delete_cascade(
     (
         user,
         project,
-        budget_line,
+        _lot,
         transaction,
         document,
         supplier,
@@ -214,13 +199,11 @@ async def test_restore_user_only_restores_records_from_same_delete_cascade(
     assert restored_user.deleted_at is None
 
     await db_session.refresh(project)
-    await db_session.refresh(budget_line)
     await db_session.refresh(transaction)
     await db_session.refresh(document)
     await db_session.refresh(supplier)
 
     assert project.deleted_at is None
-    assert budget_line.deleted_at is None
     assert transaction.deleted_at is None
     assert document.deleted_at is None
     assert supplier.deleted_at is None

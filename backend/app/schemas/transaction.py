@@ -2,23 +2,35 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-import enum
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.transaction import (
+    API_TRANSACTION_TYPES,
+    TRANSACTION_REFERENCE_MAX_LENGTH,
+    TRANSACTION_TITLE_MAX_LENGTH,
     InvoiceStatus,
     InvoiceType,
     PaymentMethod,
     QuoteStatus,
     TransactionType,
 )
-from app.models.budget_line import BudgetLineType
 
 
-class BudgetConcern(str, enum.Enum):
-    entire_product = 'entire_product'
-    specific_element = 'specific_element'
+def normalize_optional_text(value: Any) -> Any:
+    """Trim free text; an empty value is stored as null."""
+    if isinstance(value, str):
+        return value.strip() or None
+    return value
+
+
+TransactionTitle = Annotated[
+    str | None, Field(max_length=TRANSACTION_TITLE_MAX_LENGTH)
+]
+TransactionReference = Annotated[
+    str | None, Field(max_length=TRANSACTION_REFERENCE_MAX_LENGTH)
+]
 
 
 def _validate_statuses(
@@ -30,6 +42,9 @@ def _validate_statuses(
     due_date: date | None,
     payment_date: date | None,
 ) -> None:
+    if transaction_type not in API_TRANSACTION_TYPES:
+        # Refused with its own stable code by the repository.
+        return
     if transaction_type != TransactionType.quote and quote_status is not None:
         raise ValueError('quote_status is only allowed for quote transactions')
     if transaction_type != TransactionType.invoice and invoice_status is not None:
@@ -38,18 +53,16 @@ def _validate_statuses(
         raise ValueError('invoice_type is only allowed for invoice transactions')
     if transaction_type != TransactionType.invoice and payment_method is not None:
         raise ValueError('payment_method is only allowed for invoice transactions')
-    if (
-        transaction_type not in {TransactionType.quote, TransactionType.invoice}
-        and due_date is not None
-    ):
-        raise ValueError('due_date is only allowed for quote and invoice transactions')
     if transaction_type != TransactionType.invoice and payment_date is not None:
         raise ValueError('payment_date is only allowed for invoice transactions')
 
 
 class TransactionBase(BaseModel):
+    lot_id: int
     supplier_id: int | None = None
     transaction_type: TransactionType
+    title: TransactionTitle = None
+    reference: TransactionReference = None
     amount_ht: Decimal
     vat_rate: Decimal | None = None
     amount_vat: Decimal | None = None
@@ -62,6 +75,11 @@ class TransactionBase(BaseModel):
     invoice_status: InvoiceStatus | None = None
     invoice_type: InvoiceType | None = None
     payment_method: PaymentMethod | None = None
+
+    @field_validator('title', 'reference', mode='before')
+    @classmethod
+    def normalize_text(cls, value: Any) -> Any:
+        return normalize_optional_text(value)
 
     @model_validator(mode='after')
     def validate_statuses(self) -> TransactionBase:
@@ -78,54 +96,14 @@ class TransactionBase(BaseModel):
 
 
 class TransactionCreate(TransactionBase):
-    select_as_budget: bool = False
-
-
-class TransactionCreateForProduct(TransactionCreate):
-    budget_line_name: str | None = None
-    budget_concern: BudgetConcern | None = None
-
-    @model_validator(mode='after')
-    def validate_product_intent(self) -> TransactionCreateForProduct:
-        budget_transaction_types = {
-            TransactionType.quote,
-            TransactionType.diy_estimate,
-        }
-        if self.transaction_type in budget_transaction_types:
-            if self.budget_concern is None:
-                raise ValueError(
-                    'budget_concern is required for product budget transactions'
-                )
-            if (
-                self.budget_concern == BudgetConcern.specific_element
-                and not self.budget_line_name
-            ):
-                raise ValueError(
-                    'budget_line_name is required for specific element budget transactions'
-                )
-            if (
-                self.budget_concern == BudgetConcern.entire_product
-                and self.budget_line_name is not None
-            ):
-                raise ValueError(
-                    'budget_line_name is only allowed for specific element budget transactions'
-                )
-            return self
-
-        if self.budget_concern is not None:
-            raise ValueError(
-                'budget_concern is only allowed for quote and DIY estimate transactions'
-            )
-        if self.budget_line_name is not None:
-            raise ValueError(
-                'budget_line_name is only allowed for quote and DIY estimate transactions'
-            )
-
-        return self
+    pass
 
 
 class TransactionUpdate(BaseModel):
+    lot_id: int | None = None
     supplier_id: int | None = None
+    title: TransactionTitle = None
+    reference: TransactionReference = None
     amount_ht: Decimal | None = None
     vat_rate: Decimal | None = None
     amount_vat: Decimal | None = None
@@ -139,10 +117,18 @@ class TransactionUpdate(BaseModel):
     invoice_type: InvoiceType | None = None
     payment_method: PaymentMethod | None = None
 
+    @field_validator('title', 'reference', mode='before')
+    @classmethod
+    def normalize_text(cls, value: Any) -> Any:
+        return normalize_optional_text(value)
+
 
 class TransactionReadBase(BaseModel):
+    lot_id: int
     supplier_id: int | None = None
     transaction_type: TransactionType
+    title: str | None = None
+    reference: str | None = None
     amount_ht: Decimal
     vat_rate: Decimal | None = None
     amount_vat: Decimal | None = None
@@ -159,8 +145,7 @@ class TransactionReadBase(BaseModel):
 
 class TransactionRead(TransactionReadBase):
     id: int
-    budget_line_id: int
-    is_selected_budget: bool = False
+    project_id: int
     has_documents: bool = False
     document_count: int = 0
     created_at: datetime
@@ -171,12 +156,7 @@ class TransactionRead(TransactionReadBase):
 
 
 class ProjectTransactionRead(TransactionRead):
-    budget_line_name: str
-    budget_line_item_type: BudgetLineType
-    product_id: int
-    product_name: str
-    subcategory_name: str
-    category_id: int
-    category_name: str
+    lot_code: str
+    lot_designation: str
     supplier_name: str | None = None
     document_original_filenames: list[str] = Field(default_factory=list)

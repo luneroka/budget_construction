@@ -31,20 +31,26 @@ def _document_list_read(
         document,
         project_id,
         transaction_type,
+        transaction_title,
+        transaction_reference,
         transaction_description,
         supplier_id,
         supplier_name,
-        product_name,
+        lot_code,
+        lot_designation,
         amount_ttc,
     ) = row
     return DocumentListRead(
         **DocumentRead.model_validate(document).model_dump(),
         project_id=project_id,
         transaction_type=transaction_type,
+        transaction_title=transaction_title,
+        transaction_reference=transaction_reference,
         transaction_description=transaction_description,
         supplier_id=supplier_id,
         supplier_name=supplier_name,
-        product_name=product_name,
+        lot_code=lot_code,
+        lot_designation=lot_designation,
         amount_ttc=str(amount_ttc) if amount_ttc is not None else None,
     )
 

@@ -4,15 +4,14 @@ from typing import cast
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import contains_eager, joinedload, selectinload
+from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.sql import Select
 
 from app.models.document import Document
 from app.models.project import Project
-from app.models.budget_line import BudgetLine
-from app.models.product import Product
-from app.models.subcategory import Subcategory
 from app.models.supplier import Supplier
 from app.models.transaction import (
+    API_TRANSACTION_TYPES,
     InvoiceStatus,
     InvoiceType,
     QuoteStatus,
@@ -24,6 +23,8 @@ from app.schemas.transaction import (
     TransactionUpdate,
 )
 from app.core.time import utcnow
+from app.repositories import lot as lot_repository
+from app.repositories.common import get_active_project
 
 
 class TransactionValidationError(ValueError):
@@ -170,9 +171,11 @@ def validate_transaction_dates(values: dict[str, object]) -> None:
 
 
 def _apply_create_defaults(transaction_data: TransactionCreate) -> dict[str, object]:
-    values: dict[str, object] = transaction_data.model_dump(
-        exclude={'select_as_budget'}
-    )
+    values: dict[str, object] = transaction_data.model_dump()
+    if values['transaction_type'] not in API_TRANSACTION_TYPES:
+        raise TransactionValidationError(
+            'Only quote and invoice transactions are supported'
+        )
     normalize_transaction_amounts(values)
 
     if values['transaction_type'] == TransactionType.quote:
@@ -186,27 +189,6 @@ def _apply_create_defaults(transaction_data: TransactionCreate) -> dict[str, obj
     validate_transaction_dates(values)
 
     return values
-
-
-async def _get_active_budget_line(
-    db: AsyncSession,
-    project_id: int,
-    budget_line_id: int,
-    user_id: int,
-) -> BudgetLine | None:
-    result = await db.execute(
-        select(BudgetLine)
-        .join(Project, BudgetLine.project_id == Project.id)
-        .where(
-            BudgetLine.id == budget_line_id,
-            BudgetLine.project_id == project_id,
-            BudgetLine.deleted_at.is_(None),
-            Project.user_id == user_id,
-            Project.deleted_at.is_(None),
-        )
-    )
-
-    return result.scalar_one_or_none()
 
 
 async def _validate_supplier(
@@ -267,15 +249,6 @@ def _validate_update(
         )
 
     if (
-        transaction.transaction_type
-        not in {TransactionType.quote, TransactionType.invoice}
-        and values.get('due_date') is not None
-    ):
-        raise TransactionValidationError(
-            'due_date is only allowed for quote and invoice transactions'
-        )
-
-    if (
         transaction.transaction_type != TransactionType.invoice
         and values.get('payment_date') is not None
     ):
@@ -323,135 +296,62 @@ def _validate_update(
     return values
 
 
-def validate_selected_budget_candidate(
-    transaction_type: TransactionType,
-    quote_status: QuoteStatus | None,
-) -> None:
-    if transaction_type not in {
-        TransactionType.quote,
-        TransactionType.diy_estimate,
-    }:
-        raise TransactionValidationError(
-            'Only quotes and DIY estimates can be selected as budget candidates'
-        )
-    if (
-        transaction_type == TransactionType.quote
-        and quote_status == QuoteStatus.rejected
-    ):
-        raise TransactionValidationError(
-            'Rejected quotes cannot be selected as budget candidates'
-        )
-
-
-def _select_budget_candidate(transaction: Transaction) -> None:
-    # No cap: any number of quotes and DIY estimates may be selected as
-    # budget simultaneously for the same budget line.
-    transaction.is_selected_budget = True
-
-
-def _unselect_budget_candidate(transaction: Transaction) -> None:
-    transaction.is_selected_budget = False
-
-
-def _ensure_selected_budget_candidate_remains_valid(
-    transaction: Transaction,
-    values: dict[str, object],
-) -> None:
-    if transaction.transaction_type != TransactionType.quote:
-        return
-    if not transaction.is_selected_budget:
-        return
-
-    quote_status = cast(
-        QuoteStatus | None,
-        values.get('quote_status', transaction.quote_status),
-    )
-    if quote_status == QuoteStatus.rejected:
-        raise TransactionValidationError(
-            'A selected budget quote cannot be rejected'
-        )
-
-
-async def create_transaction(
-    db: AsyncSession,
-    project_id: int,
-    budget_line_id: int,
-    transaction_data: TransactionCreate,
-    user_id: int,
-) -> Transaction | None:
-    if await _get_active_budget_line(db, project_id, budget_line_id, user_id) is None:
-        return None
-
-    await _validate_supplier(db, transaction_data.supplier_id, user_id)
-
-    values = _apply_create_defaults(transaction_data)
-    if transaction_data.select_as_budget:
-        validate_selected_budget_candidate(
-            cast(TransactionType, values['transaction_type']),
-            cast(QuoteStatus | None, values.get('quote_status')),
-        )
-
-    transaction = Transaction(**values, budget_line_id=budget_line_id)
-    if transaction_data.select_as_budget:
-        _select_budget_candidate(transaction)
-    db.add(transaction)
-    await db.commit()
-
-    return await get_transaction_by_id(
-        db,
-        project_id,
-        budget_line_id,
-        transaction.id,
-        user_id,
-    )
-
-
-async def get_transaction_by_id(
-    db: AsyncSession,
-    project_id: int,
-    budget_line_id: int,
-    transaction_id: int,
-    user_id: int,
-) -> Transaction | None:
-    result = await db.execute(
+def _transaction_query(project_id: int, user_id: int) -> Select[tuple[Transaction]]:
+    """Active transactions of the user's active project, reached through
+    ``transactions.project_id``: lots are global and prove no ownership."""
+    return (
         select(Transaction)
-        .options(selectinload(Transaction.documents))
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
+        .options(
+            selectinload(Transaction.documents),
+            joinedload(Transaction.supplier),
+            joinedload(Transaction.lot),
+        )
+        .join(Project, Transaction.project_id == Project.id)
         .where(
-            Transaction.id == transaction_id,
-            Transaction.budget_line_id == budget_line_id,
+            Transaction.project_id == project_id,
             Transaction.deleted_at.is_(None),
-            BudgetLine.project_id == project_id,
-            BudgetLine.deleted_at.is_(None),
             Project.user_id == user_id,
             Project.deleted_at.is_(None),
         )
     )
 
-    return result.scalar_one_or_none()
 
-
-async def get_transactions_by_budget_line(
+async def create_transaction(
     db: AsyncSession,
     project_id: int,
-    budget_line_id: int,
+    transaction_data: TransactionCreate,
     user_id: int,
-) -> list[Transaction] | None:
-    if await _get_active_budget_line(db, project_id, budget_line_id, user_id) is None:
+) -> Transaction | None:
+    if await get_active_project(db, project_id, user_id) is None:
         return None
 
+    values = _apply_create_defaults(transaction_data)
+    await lot_repository.require_available_lot(db, project_id, transaction_data.lot_id)
+    await _validate_supplier(db, transaction_data.supplier_id, user_id)
+
+    transaction = Transaction(**values, project_id=project_id)
+    db.add(transaction)
+    await lot_repository.ensure_supplier_lot(
+        db, project_id, transaction.supplier_id, transaction.lot_id
+    )
+    await db.commit()
+
+    return await get_transaction_by_id(db, project_id, transaction.id, user_id)
+
+
+async def get_transaction_by_id(
+    db: AsyncSession,
+    project_id: int,
+    transaction_id: int,
+    user_id: int,
+) -> Transaction | None:
     result = await db.execute(
-        select(Transaction)
-        .options(selectinload(Transaction.documents))
-        .where(
-            Transaction.budget_line_id == budget_line_id,
-            Transaction.deleted_at.is_(None),
-        )
-        .order_by(Transaction.issued_date.desc(), Transaction.id.desc())
+        _transaction_query(project_id, user_id)
+        .where(Transaction.id == transaction_id)
+        .execution_options(populate_existing=True)
     )
 
-    return list(result.scalars().all())
+    return result.unique().scalar_one_or_none()
 
 
 async def get_transactions_by_project(
@@ -459,42 +359,21 @@ async def get_transactions_by_project(
     project_id: int,
     user_id: int,
 ) -> list[Transaction] | None:
-    project_result = await db.execute(
-        select(Project.id).where(
-            Project.id == project_id,
-            Project.user_id == user_id,
-            Project.deleted_at.is_(None),
-        )
-    )
-    if project_result.scalar_one_or_none() is None:
+    if await get_active_project(db, project_id, user_id) is None:
         return None
 
     result = await db.execute(
-        select(Transaction)
-        .options(
-            selectinload(Transaction.documents),
-            joinedload(Transaction.supplier),
-            contains_eager(Transaction.budget_line)
-            .joinedload(BudgetLine.product)
-            .joinedload(Product.subcategory)
-            .joinedload(Subcategory.category),
+        _transaction_query(project_id, user_id).order_by(
+            Transaction.issued_date.desc(), Transaction.id.desc()
         )
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .where(
-            BudgetLine.project_id == project_id,
-            BudgetLine.deleted_at.is_(None),
-            Transaction.deleted_at.is_(None),
-        )
-        .order_by(Transaction.issued_date.desc(), Transaction.id.desc())
     )
 
-    return list(result.scalars().all())
+    return list(result.unique().scalars().all())
 
 
 async def update_transaction(
     db: AsyncSession,
     project_id: int,
-    budget_line_id: int,
     transaction_id: int,
     transaction_data: TransactionUpdate,
     user_id: int,
@@ -502,7 +381,6 @@ async def update_transaction(
     transaction = await get_transaction_by_id(
         db,
         project_id,
-        budget_line_id,
         transaction_id,
         user_id,
     )
@@ -510,7 +388,12 @@ async def update_transaction(
         return None
 
     values = _validate_update(transaction, transaction_data)
-    _ensure_selected_budget_candidate_remains_valid(transaction, values)
+    if 'lot_id' in values:
+        lot_id = values['lot_id']
+        if lot_id is None:
+            raise TransactionValidationError('Lot not found or hidden in this project')
+        if lot_id != transaction.lot_id:
+            await lot_repository.require_available_lot(db, project_id, cast(int, lot_id))
     if 'supplier_id' in values:
         await _validate_supplier(
             db,
@@ -520,23 +403,23 @@ async def update_transaction(
     for field, value in values.items():
         setattr(transaction, field, value)
 
+    await lot_repository.ensure_supplier_lot(
+        db, project_id, transaction.supplier_id, transaction.lot_id
+    )
     await db.commit()
-    await db.refresh(transaction)
 
-    return transaction
+    return await get_transaction_by_id(db, project_id, transaction_id, user_id)
 
 
 async def soft_delete_transaction(
     db: AsyncSession,
     project_id: int,
-    budget_line_id: int,
     transaction_id: int,
     user_id: int,
 ) -> Transaction | None:
     transaction = await get_transaction_by_id(
         db,
         project_id,
-        budget_line_id,
         transaction_id,
         user_id,
     )
@@ -553,7 +436,6 @@ async def soft_delete_transaction(
             )
             .values(deleted_at=deleted_at, updated_at=deleted_at)
         )
-        transaction.is_selected_budget = False
         transaction.deleted_at = deleted_at
 
         await db.commit()
@@ -565,79 +447,15 @@ async def soft_delete_transaction(
     return transaction
 
 
-async def select_budget_candidate(
-    db: AsyncSession,
-    project_id: int,
-    budget_line_id: int,
-    transaction_id: int,
-    user_id: int,
-) -> Transaction | None:
-    transaction = await get_transaction_by_id(
-        db,
-        project_id,
-        budget_line_id,
-        transaction_id,
-        user_id,
-    )
-    if transaction is None:
-        return None
-
-    validate_selected_budget_candidate(
-        transaction.transaction_type,
-        transaction.quote_status,
-    )
-    _select_budget_candidate(transaction)
-
-    await db.commit()
-    await db.refresh(transaction)
-
-    return transaction
-
-
-async def unselect_budget_candidate(
-    db: AsyncSession,
-    project_id: int,
-    budget_line_id: int,
-    transaction_id: int,
-    user_id: int,
-) -> Transaction | None:
-    transaction = await get_transaction_by_id(
-        db,
-        project_id,
-        budget_line_id,
-        transaction_id,
-        user_id,
-    )
-    if transaction is None:
-        return None
-
-    if transaction.transaction_type not in {
-        TransactionType.quote,
-        TransactionType.diy_estimate,
-    }:
-        raise TransactionValidationError(
-            'Only quotes and DIY estimates can be selected as budget candidates'
-        )
-
-    _unselect_budget_candidate(transaction)
-
-    await db.commit()
-    await db.refresh(transaction)
-
-    return transaction
-
-
 async def get_transaction_by_id_for_user(
     db: AsyncSession, transaction_id: int, user_id: int
 ) -> Transaction | None:
     result = await db.execute(
         select(Transaction)
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
+        .join(Project, Transaction.project_id == Project.id)
         .where(
             Transaction.id == transaction_id,
             Transaction.deleted_at.is_(None),
-            BudgetLine.deleted_at.is_(None),
             Project.user_id == user_id,
             Project.deleted_at.is_(None),
         )

@@ -13,10 +13,14 @@ class TrashTransactionRead(BaseModel):
     type: Literal['transaction']
     id: int
     project_id: int
-    budget_line_id: int
+    lot_id: int
+    lot_code: str
+    lot_designation: str
+    transaction_type: TransactionType
     name: str
+    title: str | None = None
+    reference: str | None = None
     supplier_name: str | None = None
-    product_name: str
     amount_ttc: Decimal
     deleted_at: datetime
 

@@ -10,13 +10,12 @@ from app.models.transaction import (
 )
 from app.repositories.transaction import (
     TransactionValidationError,
-    validate_selected_budget_candidate,
     validate_transaction_lifecycle,
 )
 
 
 def validate_lifecycle(**values: object) -> dict[str, object]:
-    defaults: dict[str, object] = {'transaction_type': TransactionType.diy_estimate}
+    defaults: dict[str, object] = {}
     defaults.update(values)
     validate_transaction_lifecycle(defaults)
     return defaults
@@ -37,12 +36,6 @@ def test_quote_accepts_quote_status() -> None:
     )
 
     assert values['quote_status'] == QuoteStatus.validated
-
-
-def test_diy_estimate_has_no_required_status_fields() -> None:
-    values = validate_lifecycle(transaction_type=TransactionType.diy_estimate)
-
-    assert values['transaction_type'] == TransactionType.diy_estimate
 
 
 @pytest.mark.parametrize(
@@ -120,45 +113,3 @@ def test_quote_accepts_all_quote_statuses(quote_status: QuoteStatus) -> None:
     )
 
     assert values['quote_status'] == quote_status
-
-
-@pytest.mark.parametrize(
-    'quote_status',
-    [QuoteStatus.to_confirm, QuoteStatus.to_negotiate, QuoteStatus.validated],
-)
-def test_selected_budget_candidate_accepts_non_rejected_quote(
-    quote_status: QuoteStatus,
-) -> None:
-    validate_selected_budget_candidate(
-        TransactionType.quote,
-        quote_status,
-    )
-
-
-def test_selected_budget_candidate_accepts_diy_estimate() -> None:
-    validate_selected_budget_candidate(
-        TransactionType.diy_estimate,
-        None,
-    )
-
-
-def test_selected_budget_candidate_rejects_rejected_quote() -> None:
-    with pytest.raises(
-        TransactionValidationError,
-        match='Rejected quotes cannot be selected as budget candidates',
-    ):
-        validate_selected_budget_candidate(
-            TransactionType.quote,
-            QuoteStatus.rejected,
-        )
-
-
-def test_selected_budget_candidate_rejects_invoice() -> None:
-    with pytest.raises(
-        TransactionValidationError,
-        match='Only quotes and DIY estimates can be selected as budget candidates',
-    ):
-        validate_selected_budget_candidate(
-            TransactionType.invoice,
-            None,
-        )

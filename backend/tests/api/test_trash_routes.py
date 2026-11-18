@@ -8,16 +8,25 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token
-from app.models.budget_line import BudgetLine, BudgetLineType
-from app.models.category import Category
 from app.models.document import Document
-from app.models.product import Product
+from app.models.lot import Lot
 from app.models.project import Project
-from app.models.subcategory import Subcategory
 from app.models.supplier import Supplier
 from app.models.supplier_contact import SupplierContact
-from app.models.transaction import Transaction, TransactionType
+from app.models.transaction import (
+    InvoiceStatus,
+    InvoiceType,
+    Transaction,
+    TransactionType,
+)
 from app.models.user import User
+from tests.helpers import (
+    create_project_context,
+    create_supplier,
+    create_transaction,
+    global_lot_id,
+    quote_payload,
+)
 
 
 def auth_headers(access_token: str) -> dict[str, str]:
@@ -35,24 +44,12 @@ async def create_trash_context(
         email=email,
         hashed_password='hashed-password',
     )
-    category = Category(name=f'Category {email}', sort_order=1)
-    subcategory = Subcategory(
-        category=category,
-        name=f'Subcategory {email}',
-        sort_order=1,
-    )
-    product = Product(
-        subcategory=subcategory,
-        name=f'Product {email}',
-        sort_order=1,
-    )
     project = Project(user=user, name=f'Project {email}')
-    budget_line = BudgetLine(
-        project=project,
-        product=product,
-        name='Lot terrasse',
-        item_type=BudgetLineType.product,
-    )
+    lot = (
+        await db_session.execute(
+            select(Lot).where(Lot.project_id.is_(None), Lot.code == '18')
+        )
+    ).scalar_one()
     supplier = Supplier(
         user=user,
         name='Entreprise Dupont',
@@ -61,9 +58,13 @@ async def create_trash_context(
     )
     supplier.contacts.append(SupplierContact(name='Contact Dupont', is_primary=True))
     transaction = Transaction(
-        budget_line=budget_line,
+        project=project,
+        lot=lot,
         supplier=supplier,
+        title='Terrasse bois',
         transaction_type=TransactionType.invoice,
+        invoice_status=InvoiceStatus.unpaid,
+        invoice_type=InvoiceType.full,
         amount_ht=Decimal('100.00'),
         vat_rate=Decimal('20.00'),
         amount_vat=Decimal('20.00'),
@@ -133,6 +134,13 @@ async def test_project_trash_is_project_scoped(
         ('document', document_id),
         ('supplier', supplier_id),
     }
+    transaction_item = next(item for item in payload if item['type'] == 'transaction')
+    assert transaction_item['lot_code'] == '18'
+    assert transaction_item['lot_designation'] == 'Aménagements extérieurs'
+    assert transaction_item['title'] == 'Terrasse bois'
+    assert transaction_item['name'] == 'Terrasse bois'
+    assert transaction_item['transaction_type'] == 'invoice'
+    assert 'product_name' not in transaction_item
     document_item = next(item for item in payload if item['type'] == 'document')
     assert document_item['can_restore'] is False
     assert (
@@ -474,3 +482,42 @@ async def test_empty_trash_permanently_deletes_all_project_trash(
     assert await db_session.get(Transaction, transaction_id) is None
     assert await db_session.get(Document, document_id) is None
     assert await db_session.get(Supplier, supplier_id) is None
+
+
+async def test_restoring_a_transaction_unhides_its_lot_and_reassigns_its_supplier(
+    client: AsyncClient,
+) -> None:
+    """Spec criterion 22: a restored transaction's hidden lot becomes visible
+    again, and its supplier is assigned to the lot again if it was removed."""
+    context = await create_project_context(client, email='restore-lot@example.com')
+    supplier_id = await create_supplier(client, context, 'Pisciniste Bleu')
+    lot_id = await global_lot_id('22')
+    transaction = await create_transaction(
+        client, context, quote_payload(lot_id, supplier_id=supplier_id)
+    )
+    base = f'/projects/{context.project_id}'
+    await client.delete(
+        f'{base}/transactions/{transaction["id"]}', headers=context.headers
+    )
+    unassigned = await client.delete(
+        f'{base}/supplier-lots/{supplier_id}/{lot_id}', headers=context.headers
+    )
+    hidden = await client.patch(
+        f'{base}/lots/{lot_id}', headers=context.headers, json={'is_hidden': True}
+    )
+    assert (unassigned.status_code, hidden.status_code) == (204, 200)
+
+    restored = await client.post(
+        f'{base}/trash/transactions/{transaction["id"]}/restore',
+        headers=context.headers,
+    )
+
+    assert restored.status_code == 200
+    lots = (await client.get(f'{base}/lots/', headers=context.headers)).json()
+    assert next(lot for lot in lots if lot['id'] == lot_id)['is_hidden'] is False
+    assignments = (
+        await client.get(f'{base}/supplier-lots/', headers=context.headers)
+    ).json()
+    assert assignments == [
+        {'project_id': context.project_id, 'supplier_id': supplier_id, 'lot_id': lot_id}
+    ]

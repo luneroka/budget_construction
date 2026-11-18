@@ -48,45 +48,6 @@ ERROR_DEFINITIONS: dict[str, ErrorDefinition] = {
         'message': 'amount_vat does not match amount_ht and vat_rate',
         'field': 'amount_vat',
     },
-    'budget_line_item_mode_conflict': {
-        'message': (
-            'A project product must use either one whole-product budget item or '
-            'multiple breakdown items, not both'
-        ),
-    },
-    'budget_line_name_required': {
-        'message': 'Budget line name is required',
-        'field': 'name',
-    },
-    'budget_line_not_found': {
-        'message': 'Budget line not found',
-    },
-    'budget_line_type_required': {
-        'message': 'Budget line type is required',
-        'field': 'item_type',
-    },
-    'breakdown_names_duplicate': {
-        'message': 'Breakdown names must be unique',
-        'field': 'new_breakdown_names',
-    },
-    'breakdown_name_conflict': {
-        'message': 'Breakdown name already exists for this product',
-        'field': 'new_breakdown_names',
-    },
-    'budget_transaction_already_selected': {
-        'message': 'This budget transaction is already selected by another budget line',
-    },
-    'conversion_existing_line_name_not_allowed': {
-        'message': 'existing_line_new_name is only allowed when reusing the existing line',
-        'field': 'existing_line_new_name',
-    },
-    'conversion_strategy_required': {
-        'message': 'Conversion strategy is required when the budget line has transactions',
-        'field': 'strategy',
-    },
-    'category_not_found': {
-        'message': 'Category not found',
-    },
     'credentials_invalid': {
         'message': 'Could not validate credentials',
     },
@@ -178,6 +139,37 @@ ERROR_DEFINITIONS: dict[str, ErrorDefinition] = {
         'message': 'invoice_type is required for invoices',
         'field': 'invoice_type',
     },
+    'lot_code_conflict': {
+        'message': 'A lot with this code already exists',
+        'field': 'code',
+    },
+    'lot_designation_conflict': {
+        'message': 'A lot with this designation already exists',
+        'field': 'designation',
+    },
+    'lot_has_active_transactions': {
+        'message': 'A lot with active transactions in this project cannot be hidden',
+        'field': 'is_hidden',
+    },
+    'lot_not_available': {
+        'message': 'Lot not found or hidden in this project',
+        'field': 'lot_id',
+    },
+    'lot_not_found': {
+        'message': 'Lot not found',
+    },
+    'supplier_lot_has_active_transactions': {
+        'message': (
+            'A supplier with active transactions in this lot cannot be unassigned'
+        ),
+    },
+    'supplier_lot_not_found': {
+        'message': 'Supplier is not assigned to this lot',
+    },
+    'transaction_type_not_supported': {
+        'message': 'Only quote and invoice transactions are supported',
+        'field': 'transaction_type',
+    },
     'login_invalid': {
         'message': 'Invalid email or password',
     },
@@ -214,48 +206,9 @@ ERROR_DEFINITIONS: dict[str, ErrorDefinition] = {
         'message': 'payment_method is only allowed for invoice transactions',
         'field': 'payment_method',
     },
-    'product_not_available_in_template': {
-        'message': "Product is not available in this project's template",
-        'field': 'product_id',
-    },
-    'product_not_found': {
-        'message': 'Product not found',
-    },
-    'product_not_found_or_inactive': {
-        'message': 'Product not found or inactive',
-        'field': 'product_id',
-    },
-    'product_already_budgeted_with_breakdowns': {
-        'message': 'Product is already budgeted with breakdown lines',
-        'field': 'product_id',
-    },
-    'product_budget_line_missing': {
-        'message': 'No active budget line exists for this product',
-        'field': 'product_id',
-    },
-    'product_budget_line_ambiguous': {
-        'message': 'Select a specific budget line for this product transaction',
-        'field': 'budget_line_id',
-    },
-    'product_breakdown_name_required': {
-        'message': 'At least one breakdown name is required',
-        'field': 'new_breakdown_names',
-    },
-    'product_line_not_found': {
-        'message': 'Whole-product budget line not found',
-        'field': 'product_id',
-    },
-    'project_already_has_template': {
-        'message': 'This project already has an associated template',
-        'field': 'template_id',
-    },
     'project_date_range_invalid': {
         'message': 'end_date must be greater than or equal to start_date',
         'field': 'end_date',
-    },
-    'project_missing_template': {
-        'message': 'Cannot create budget lines because this project has no template',
-        'field': 'template_id',
     },
     'project_name_conflict': {
         'message': 'A project with this name already exists',
@@ -285,22 +238,11 @@ ERROR_DEFINITIONS: dict[str, ErrorDefinition] = {
     'request_validation_failed': {
         'message': 'Request validation failed',
     },
-    'selected_budget_quote_cannot_be_rejected': {
-        'message': 'A selected budget quote cannot be rejected',
-        'field': 'quote_status',
-    },
-    'selected_budget_quote_rejected': {
-        'message': 'Rejected quotes cannot be selected as budget candidates',
-        'field': 'select_as_budget',
-    },
     'self_delete_endpoint_required': {
         'message': 'Use self-delete endpoint',
     },
     'self_service_endpoint_required': {
         'message': 'Use self-service endpoint',
-    },
-    'subcategory_not_found': {
-        'message': 'Subcategory not found',
     },
     'supplier_name_conflict': {
         'message': 'A supplier with this name already exists',
@@ -312,28 +254,6 @@ ERROR_DEFINITIONS: dict[str, ErrorDefinition] = {
     'supplier_not_found_or_inactive': {
         'message': 'Supplier not found or inactive',
         'field': 'supplier_id',
-    },
-    'template_item_not_found': {
-        'message': 'Template item not found',
-    },
-    'template_name_conflict': {
-        'message': 'A template with this name already exists',
-        'field': 'name',
-    },
-    'template_not_found': {
-        'message': 'Template not found',
-    },
-    'template_not_found_or_inactive': {
-        'message': 'Template not found or inactive',
-        'field': 'template_id',
-    },
-    'template_product_duplicate': {
-        'message': 'A template cannot contain the same product more than once',
-        'field': 'product_id',
-    },
-    'template_whole_product_duplicate': {
-        'message': 'A template cannot create more than one whole-product item for the same product',
-        'field': 'product_id',
     },
     'transaction_not_found': {
         'message': 'Transaction not found',
@@ -362,16 +282,9 @@ ERROR_DEFINITIONS: dict[str, ErrorDefinition] = {
         'message': 'issued_date is required',
         'field': 'issued_date',
     },
-    'budget_candidate_type_invalid': {
-        'message': 'Only quotes and DIY estimates can be selected as budget candidates',
-    },
     'supplier_primary_contact_conflict': {
         'message': 'A supplier can only have one primary contact',
         'field': 'contacts',
-    },
-    'product_line_conflict': {
-        'message': 'A whole-product budget line already exists for this project product',
-        'field': 'product_id',
     },
     'issue_report_description_required': {
         'message': 'Description is required',
@@ -437,6 +350,19 @@ DEFAULT_ERROR_MESSAGE_BY_STATUS: dict[int, str] = {
     status.HTTP_500_INTERNAL_SERVER_ERROR: 'Internal server error',
     status.HTTP_502_BAD_GATEWAY: 'External service error',
 }
+
+
+class DomainError(Exception):
+    """An expected error raised below the routers, by its stable code.
+
+    The registered handler answers with the usual ``detail`` envelope, so a
+    repository can refuse a request without knowing about HTTP exceptions.
+    """
+
+    def __init__(self, status_code: int, code: str) -> None:
+        super().__init__(code)
+        self.status_code = status_code
+        self.code = code
 
 
 def error_detail(
@@ -559,6 +485,14 @@ async def http_exception_handler(_request: Request, exc: Exception) -> JSONRespo
         status_code=exc.status_code,
         content={'detail': normalize_error_detail(exc.detail, exc.status_code)},
         headers=exc.headers,
+    )
+
+
+async def domain_error_handler(_request: Request, exc: Exception) -> JSONResponse:
+    assert isinstance(exc, DomainError)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={'detail': error_detail(exc.code)},
     )
 
 

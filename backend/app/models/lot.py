@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, Index, String, func, text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.core.time import utcnow
+
+if TYPE_CHECKING:
+    from app.models.project import Project
 
 LOT_CODE_MAX_LENGTH = 10
 LOT_DESIGNATION_MAX_LENGTH = 120
@@ -68,6 +72,8 @@ class Lot(Base):
             postgresql_where=text('project_id IS NOT NULL'),
         ),
     )
+
+    project: Mapped[Project | None] = relationship('Project')
 
     @property
     def is_global(self) -> bool:
