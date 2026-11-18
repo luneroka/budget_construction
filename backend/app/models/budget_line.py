@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     from app.models.product import Product
     from app.models.project import Project
     from app.models.template_item import TemplateItem
-    from app.models.transaction import Transaction
 
 
 class BudgetLineType(str, enum.Enum):
@@ -31,6 +30,9 @@ class BudgetLineType(str, enum.Enum):
 
 
 class BudgetLine(Base):
+    """Legacy: the catalog-tree budget line, replaced by lots. The table stays
+    until the cleanup migration; application code no longer reads it."""
+
     __tablename__ = 'budget_lines'
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -85,9 +87,3 @@ class BudgetLine(Base):
     project: Mapped[Project] = relationship('Project', back_populates='budget_lines')
     template_item: Mapped[TemplateItem | None] = relationship('TemplateItem')
     product: Mapped[Product] = relationship('Product', back_populates='budget_lines')
-    transactions: Mapped[list[Transaction]] = relationship(
-        'Transaction',
-        back_populates='budget_line',
-        cascade='all, delete-orphan',
-        foreign_keys='Transaction.budget_line_id',
-    )

@@ -13,6 +13,7 @@ from sqlalchemy import (
     Numeric,
     ForeignKey,
     Index,
+    String,
     Text,
     func,
     text,
@@ -23,14 +24,23 @@ from app.db.base import Base
 from app.core.time import utcnow
 
 if TYPE_CHECKING:
-    from app.models.budget_line import BudgetLine
+    from app.models.lot import Lot
+    from app.models.project import Project
     from app.models.supplier import Supplier
+
+TRANSACTION_TITLE_MAX_LENGTH = 255
+TRANSACTION_REFERENCE_MAX_LENGTH = 100
 
 
 class TransactionType(str, enum.Enum):
     quote = 'quote'
+    # Legacy: still a value of the PostgreSQL enum, refused by the API and by
+    # ck_transactions_type_quote_or_invoice. Dropped by the cleanup migration.
     diy_estimate = 'diy_estimate'
     invoice = 'invoice'
+
+
+API_TRANSACTION_TYPES = frozenset({TransactionType.quote, TransactionType.invoice})
 
 
 class QuoteStatus(str, enum.Enum):
@@ -64,8 +74,15 @@ class Transaction(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 
-    budget_line_id: Mapped[int] = mapped_column(
-        ForeignKey('budget_lines.id', ondelete='CASCADE'), nullable=False, index=True
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True
+    )
+    lot_id: Mapped[int] = mapped_column(
+        ForeignKey('lots.id'), nullable=False, index=True
+    )
+    # Legacy: set on transactions from before lots, unused by the app.
+    budget_line_id: Mapped[int | None] = mapped_column(
+        ForeignKey('budget_lines.id', ondelete='CASCADE'), nullable=True, index=True
     )
     supplier_id: Mapped[int | None] = mapped_column(
         ForeignKey('suppliers.id', ondelete='SET NULL'), nullable=True, index=True
@@ -82,6 +99,12 @@ class Transaction(Base):
     issued_date: Mapped[date] = mapped_column(Date, nullable=False)
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     payment_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    title: Mapped[str | None] = mapped_column(
+        String(TRANSACTION_TITLE_MAX_LENGTH), nullable=True
+    )
+    reference: Mapped[str | None] = mapped_column(
+        String(TRANSACTION_REFERENCE_MAX_LENGTH), nullable=True
+    )
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     quote_status: Mapped[QuoteStatus | None] = mapped_column(
         Enum(QuoteStatus, name='quote_status'),
@@ -116,20 +139,28 @@ class Transaction(Base):
         nullable=False,
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Legacy: read by the production analytics views, unused by the app.
+    # Dropped by the cleanup migration.
     is_selected_budget: Mapped[bool] = mapped_column(
         default=False, server_default='false', nullable=False
     )
 
     __table_args__ = (
-        # No uniqueness on is_selected_budget: any number of quotes and DIY
-        # estimates may be selected as budget for the same budget line.
         CheckConstraint(
-            "NOT is_selected_budget OR transaction_type IN ('quote', 'diy_estimate')",
-            name='ck_transactions_selected_budget_candidate',
+            "transaction_type IN ('quote', 'invoice')",
+            name='ck_transactions_type_quote_or_invoice',
         ),
         Index(
             'ix_transactions_active_budget_line_issued_date_id',
             'budget_line_id',
+            'issued_date',
+            'id',
+            postgresql_where=text('deleted_at IS NULL'),
+        ),
+        Index(
+            'ix_transactions_active_project_lot_issued_date_id',
+            'project_id',
+            'lot_id',
             'issued_date',
             'id',
             postgresql_where=text('deleted_at IS NULL'),
@@ -174,11 +205,8 @@ class Transaction(Base):
         ),
     )
 
-    budget_line: Mapped[BudgetLine] = relationship(
-        'BudgetLine',
-        back_populates='transactions',
-        foreign_keys=[budget_line_id],
-    )
+    project: Mapped[Project] = relationship('Project')
+    lot: Mapped[Lot] = relationship('Lot')
     documents = relationship(
         'Document',
         back_populates='transaction',

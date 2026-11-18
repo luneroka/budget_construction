@@ -8,6 +8,7 @@ from app.models.product import Product
 from app.models.template import Template
 from app.models.template_item import TemplateItem
 from app.models.budget_line import BudgetLine
+from app.models.lot import Lot, ProjectHiddenLot, SupplierLot
 from app.models.transaction import Transaction
 from app.models.document import Document
 from app.models.supplier_document import SupplierDocument
@@ -24,6 +25,9 @@ __all__ = [
     'Template',
     'TemplateItem',
     'BudgetLine',
+    'Lot',
+    'ProjectHiddenLot',
+    'SupplierLot',
     'Transaction',
     'Document',
     'SupplierDocument',
