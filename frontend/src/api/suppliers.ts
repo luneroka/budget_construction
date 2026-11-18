@@ -15,6 +15,7 @@ type SupplierPayloadContactSource = {
 type SupplierPayloadSource = {
   name: string
   siret: string | null
+  rne_number: string | null
   comment: string | null
   street: string | null
   complement: string | null
@@ -145,6 +146,7 @@ export function supplierToCreatePayload(
   return {
     name: supplier.name,
     siret: nullableBusinessIdentifier(supplier.siret),
+    rne_number: nullableText(supplier.rne_number),
     comment: nullableText(supplier.comment),
     street: nullableText(supplier.street),
     complement: nullableText(supplier.complement),
@@ -160,6 +162,7 @@ export function quickSupplierToCreatePayload(name: string): SupplierCreate {
   return {
     name: normalizedName,
     siret: null,
+    rne_number: null,
     comment: null,
     street: null,
     complement: null,
@@ -180,6 +183,7 @@ export function supplierToUpdatePayload(
   return {
     name: supplier.name,
     siret: nullableBusinessIdentifier(supplier.siret),
+    rne_number: nullableText(supplier.rne_number),
     comment: nullableText(supplier.comment),
     street: nullableText(supplier.street),
     complement: nullableText(supplier.complement),

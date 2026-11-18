@@ -3,12 +3,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 
 import { getApiErrorMessage } from '@/api/client'
-import {
-  projectQueryKeys,
-  useCreateProjectFromTemplateMutation,
-} from '@/api/projects'
-import { useTemplatesQuery } from '@/api/templates'
-import type { ProjectFromTemplateCreate, ProjectRead } from '@/api/types'
+import { projectQueryKeys, useCreateProjectMutation } from '@/api/projects'
+import type { ProjectCreate, ProjectRead } from '@/api/types'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 
 type UseProjectOnboardingOptions = {
@@ -28,8 +24,7 @@ export function useProjectOnboarding({
 }: UseProjectOnboardingOptions) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const templatesQuery = useTemplatesQuery()
-  const createProjectMutation = useCreateProjectFromTemplateMutation()
+  const createProjectMutation = useCreateProjectMutation()
   const { reset: resetCreateProjectMutation } = createProjectMutation
   const [isOpen, setIsOpen] = useState(false)
   const canClose = projectCount > 0
@@ -55,30 +50,30 @@ export function useProjectOnboarding({
     setIsOpen(true)
   }, [projectCount, projectsLoaded, selectedProjectId, setSelectedProjectId])
 
-  async function submit(project: ProjectFromTemplateCreate) {
+  // A new project starts with every global lot; there is no template step.
+  async function submit(project: ProjectCreate) {
     try {
-      const generatedProject = await createProjectMutation.mutateAsync(project)
+      const createdProject = await createProjectMutation.mutateAsync(project)
 
       queryClient.setQueryData<ProjectRead[]>(
         projectQueryKeys.list(false),
         (current) => {
           const existingProjects = current ?? []
           const withoutCreatedProject = existingProjects.filter(
-            (existingProject) =>
-              existingProject.id !== generatedProject.project.id,
+            (existingProject) => existingProject.id !== createdProject.id,
           )
 
-          return [...withoutCreatedProject, generatedProject.project].sort(
-            (a, b) => a.name.localeCompare(b.name),
+          return [...withoutCreatedProject, createdProject].sort((a, b) =>
+            a.name.localeCompare(b.name),
           )
         },
       )
 
-      setSelectedProjectId(String(generatedProject.project.id))
+      setSelectedProjectId(String(createdProject.id))
       setIsOpen(false)
       onProjectCreated?.()
-      notifySuccess('Projet créé et budget initialisé.')
-      navigate('/budget')
+      notifySuccess('Projet créé.')
+      navigate('/lots')
     } catch (error) {
       const message = getApiErrorMessage(error)
       notifyError(`Impossible de créer le projet. ${message}`)
@@ -93,13 +88,8 @@ export function useProjectOnboarding({
       ? getApiErrorMessage(createProjectMutation.error)
       : null,
     isCreating: createProjectMutation.isPending,
-    isLoadingTemplates: templatesQuery.isLoading || templatesQuery.isFetching,
     isOpen,
     open,
     submit,
-    templates: templatesQuery.data ?? [],
-    templatesError: templatesQuery.isError
-      ? getApiErrorMessage(templatesQuery.error)
-      : null,
   }
 }

@@ -10,6 +10,7 @@ import type {
 } from '@/api/types'
 import { getApiErrorMessage } from '@/api/client'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { transactionDisplayTitle } from '@/lib/transactionWorkspace'
 import { cn } from '@/lib/utils'
 import { DashboardWidgetMessage } from './Messages'
 import { DashboardWidgetSkeleton } from './Skeletons'
@@ -53,7 +54,7 @@ export function ActionCenterWidget({
 }
 
 function transactionItemTitle(item: DashboardTransactionWidgetItemRead) {
-  return item.description?.trim() || item.budget_line_name || item.product_name
+  return transactionDisplayTitle(item)
 }
 
 export function TransactionWidgetContent({
@@ -97,7 +98,7 @@ export function TransactionWidgetContent({
                 {transactionItemTitle(item)}
               </p>
               <p className="mt-1 truncate text-xs text-muted-foreground">
-                {[item.supplier_name, item.category_name]
+                {[`${item.lot_code} · ${item.lot_designation}`, item.reference]
                   .filter(Boolean)
                   .join(' · ')}
               </p>
@@ -180,10 +181,10 @@ export function BudgetAlertsWidgetContent({
           <>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-foreground">
-                {item.product_name}
+                {item.lot_designation}
               </p>
               <p className="mt-1 truncate text-xs text-muted-foreground">
-                {item.category_name}
+                Lot {item.lot_code}
               </p>
             </div>
             <div className="text-right">
@@ -191,7 +192,7 @@ export function BudgetAlertsWidgetContent({
                 {formatCurrency(decimalToNumber(item.variance_ttc))}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {formatCurrency(decimalToNumber(item.actual_cost_amount_ttc))}
+                {formatCurrency(decimalToNumber(item.invoiced_amount_ttc))}
               </p>
             </div>
           </>
@@ -205,14 +206,14 @@ export function BudgetAlertsWidgetContent({
         return onItemClick ? (
           <button
             type="button"
-            key={item.product_id}
+            key={item.lot_id}
             className={className}
             onClick={() => onItemClick(item)}
           >
             {content}
           </button>
         ) : (
-          <div key={item.product_id} className={className}>
+          <div key={item.lot_id} className={className}>
             {content}
           </div>
         )

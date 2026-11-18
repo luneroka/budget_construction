@@ -6,10 +6,15 @@ import { supplierTotals } from './supplierStats'
 
 const base: Transaction = {
   id: '1',
-  budget_line_id: '3',
+  project_id: '1',
+  lot_id: 6,
+  lot_code: '06',
+  lot_designation: 'Menuiseries extérieures',
   supplier_id: '12',
   supplier_name: 'Menuiserie Dupont',
   transaction_type: 'invoice',
+  title: null,
+  reference: null,
   amount_ht: 1000,
   vat_rate: 20,
   amount_vat: 200,
@@ -25,7 +30,6 @@ const base: Transaction = {
   invoice_status: 'unpaid',
   invoice_type: 'full',
   payment_method: 'wire',
-  select_as_budget: false,
   document_state: 'missing',
   document_count: 0,
 }
@@ -45,10 +49,10 @@ const invoice = (overrides: Partial<Transaction>): Transaction => ({
 })
 
 describe('supplierTotals', () => {
-  it('counts only the quotes kept as budget', () => {
+  it('counts only the validated quotes as retained', () => {
     const totals = supplierTotals([
-      quote({ id: '1', amount_ttc: 5000, select_as_budget: true }),
-      quote({ id: '2', amount_ttc: 4200 }),
+      quote({ id: '1', amount_ttc: 5000 }),
+      quote({ id: '2', amount_ttc: 4200, quote_status: 'to_negotiate' }),
     ])
 
     expect(totals).toMatchObject({ retainedTtc: 5000, quoteCount: 2 })

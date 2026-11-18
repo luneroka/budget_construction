@@ -3,16 +3,13 @@ import { useQueryClient } from '@tanstack/react-query'
 import { FilePlus2 } from 'lucide-react'
 
 import {
-  invalidateBudgetWorkspaceQueries,
   invalidateDocumentQueries,
+  invalidateProjectFinancialQueries,
 } from '@/api/budget-workspace-cache'
 import { getApiErrorMessage } from '@/api/client'
 import { useUploadTransactionDocumentMutation } from '@/api/documents'
-import {
-  useCreateBudgetLineTransactionMutation,
-  useCreateProductTransactionMutation,
-} from '@/api/transactions'
-import type { TransactionRead } from '@/api/types'
+import { useCreateTransactionMutation } from '@/api/transactions'
+import type { ProjectLotRead } from '@/api/types'
 import {
   ModalCancelButton,
   ModalSaveButton,
@@ -21,9 +18,7 @@ import {
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import type {
-  BudgetLine,
   InvoiceStatus,
-  Product,
   Project,
   QuoteStatus,
   Supplier,
@@ -31,15 +26,10 @@ import type {
 } from '@/types'
 
 import { TransactionFormBody } from './TransactionFormBody'
-import {
-  BudgetSelectionRow,
-  NewTransactionDocumentField,
-} from './TransactionFormFields'
+import { NewTransactionDocumentField } from './TransactionFormFields'
 import {
   type TransactionPrefill,
-  buildProductTransactionCreate,
   buildTransactionCreate,
-  canSelectCreatedTransactionAsBudget,
   createInitialFormState,
   createTransactionLabels,
   defaultPaymentDate,
@@ -52,15 +42,12 @@ import {
 } from './transactionForm'
 import { useTransactionAmountForm } from './useTransactionAmountForm'
 
-type CreatedTransactionForDocument = {
-  transactionId: number
-  budgetLineId: number
-}
-
 type TransactionModalProps = {
   project: Project
-  product: Product
-  budgetLine?: BudgetLine
+  /** The project's visible lots, for the lot picker. */
+  lots: ProjectLotRead[]
+  /** The lot the modal was opened from; the picker can change it. */
+  initialLotId?: number
   /** The button used to open the modal decides the type; it can be switched. */
   initialType?: TransactionType
   prefill?: TransactionPrefill
@@ -70,7 +57,6 @@ type TransactionModalProps = {
 
 const addedMessages: Record<TransactionType, string> = {
   quote: 'Devis ajouté',
-  diy_estimate: 'Estimation ajoutée',
   invoice: 'Facture ajoutée',
 }
 
@@ -80,71 +66,50 @@ const typeOptions = (
 
 export function TransactionModal({
   project,
-  product,
-  budgetLine,
+  lots,
+  initialLotId,
   initialType = 'quote',
   prefill,
   suppliers,
   onClose,
 }: TransactionModalProps) {
   const queryClient = useQueryClient()
-  const createBudgetLineTransactionMutation =
-    useCreateBudgetLineTransactionMutation()
-  const createProductTransactionMutation = useCreateProductTransactionMutation()
+  const createTransactionMutation = useCreateTransactionMutation()
   const uploadDocumentMutation = useUploadTransactionDocumentMutation()
   const [documentFile, setDocumentFile] = useState<File | null>(null)
-  const [createdTransactionForDocument, setCreatedTransactionForDocument] =
-    useState<CreatedTransactionForDocument | null>(null)
+  const [createdTransactionId, setCreatedTransactionId] = useState<
+    number | null
+  >(null)
   const [mutationError, setMutationError] = useState<string | null>(null)
-  // The first quote or estimate on a line is retained as its budget unless
-  // the user says otherwise: a line with a budget candidate but no retained
-  // budget is rarely what anyone wants.
-  const lineHasRetainedBudget =
-    budgetLine?.transactions.some(
-      (transaction) =>
-        transaction.transaction_type !== 'invoice' &&
-        transaction.select_as_budget,
-    ) ?? false
-  const retainByDefault = !lineHasRetainedBudget
   const [initialForm] = useState(() =>
     createInitialFormState({
       transactionType: initialType,
-      selectAsBudget: retainByDefault,
+      lotId: initialLotId === undefined ? '' : String(initialLotId),
       prefill,
     }),
   )
   const { form, setForm, updateField } = useTransactionAmountForm(
     () => initialForm,
-    { onChange: () => setMutationError(null) },
+    {
+      onChange: () => setMutationError(null),
+      // An invoice prefilled from a quote starts from the quote's HT.
+      initialSource: prefill?.amount_ht ? 'ht' : 'ttc',
+    },
   )
   const hasUnsavedChanges =
     documentFile !== null || !isSameFormState(form, initialForm)
   const transactionType = form.transaction_type
   const isSubmitting =
-    createBudgetLineTransactionMutation.isPending ||
-    createProductTransactionMutation.isPending ||
-    uploadDocumentMutation.isPending
+    createTransactionMutation.isPending || uploadDocumentMutation.isPending
+  const selectedLot = lots.find((lot) => String(lot.id) === form.lot_id)
 
   function changeType(nextType: TransactionType) {
-    setForm((current) => ({
-      ...normalizeForType(current, nextType),
-      select_as_budget: nextType !== 'invoice' && retainByDefault,
-    }))
+    setForm((current) => normalizeForType(current, nextType))
     setMutationError(null)
   }
 
   function changeQuoteStatus(quoteStatus: QuoteStatus) {
-    setForm((current) => ({
-      ...current,
-      quote_status: quoteStatus,
-      select_as_budget:
-        quoteStatus === 'rejected'
-          ? false
-          : current.quote_status === 'rejected'
-            ? retainByDefault
-            : current.select_as_budget,
-    }))
-    setMutationError(null)
+    updateField('quote_status', quoteStatus)
   }
 
   function changeInvoiceStatus(invoiceStatus: InvoiceStatus) {
@@ -168,61 +133,27 @@ export function TransactionModal({
 
     try {
       const projectId = requiredId(project.id, 'Projet')
-      let createdTransaction: TransactionRead
-      let targetBudgetLineId: number
+      let transactionId = createdTransactionId
 
-      if (createdTransactionForDocument) {
-        createdTransaction = {
-          id: createdTransactionForDocument.transactionId,
-          budget_line_id: createdTransactionForDocument.budgetLineId,
-        } as TransactionRead
-        targetBudgetLineId = createdTransactionForDocument.budgetLineId
-      } else if (budgetLine) {
-        const budgetLineId = requiredId(
-          budgetLine.budget_line_id,
-          'Ligne de budget',
-        )
-        createdTransaction =
-          await createBudgetLineTransactionMutation.mutateAsync({
-            projectId,
-            budgetLineId,
-            transaction: buildTransactionCreate({ form }),
-          })
-        targetBudgetLineId = budgetLineId
-        invalidateBudgetWorkspaceQueries(queryClient, projectId, budgetLineId)
-      } else {
-        const productId = requiredId(product.product_id, 'Produit')
-        createdTransaction = await createProductTransactionMutation.mutateAsync(
-          {
-            projectId,
-            productId,
-            transaction: buildProductTransactionCreate(form),
-          },
-        )
-        targetBudgetLineId = createdTransaction.budget_line_id
-        invalidateBudgetWorkspaceQueries(
-          queryClient,
+      if (transactionId === null) {
+        const created = await createTransactionMutation.mutateAsync({
           projectId,
-          createdTransaction.budget_line_id,
-        )
+          transaction: buildTransactionCreate({ form }),
+        })
+        transactionId = created.id
+        invalidateProjectFinancialQueries(queryClient, projectId)
       }
 
       if (documentFile) {
         isUploadingDocument = true
-        setCreatedTransactionForDocument({
-          transactionId: createdTransaction.id,
-          budgetLineId: targetBudgetLineId,
-        })
+        // A failed upload keeps the transaction: a retry only uploads.
+        setCreatedTransactionId(transactionId)
         await uploadDocumentMutation.mutateAsync({
-          transactionId: createdTransaction.id,
+          transactionId,
           file: documentFile,
         })
-        invalidateDocumentQueries(queryClient, createdTransaction.id)
-        invalidateBudgetWorkspaceQueries(
-          queryClient,
-          projectId,
-          targetBudgetLineId,
-        )
+        invalidateDocumentQueries(queryClient, transactionId)
+        invalidateProjectFinancialQueries(queryClient, projectId)
       }
 
       notifySuccess(
@@ -246,7 +177,7 @@ export function TransactionModal({
     <ModalShell
       size="narrow"
       title={newTransactionTitles[transactionType]}
-      subtitle={transactionBreadcrumb(product, budgetLine)}
+      subtitle={transactionBreadcrumb(selectedLot)}
       icon={<FilePlus2 className="h-5 w-5" aria-hidden="true" />}
       closeDisabled={isSubmitting}
       hasUnsavedChanges={hasUnsavedChanges}
@@ -274,7 +205,7 @@ export function TransactionModal({
           aria-label="Type de transaction"
           value={transactionType}
           options={typeOptions}
-          disabled={createdTransactionForDocument !== null}
+          disabled={createdTransactionId !== null}
           onChange={changeType}
         />
 
@@ -282,23 +213,12 @@ export function TransactionModal({
           idPrefix="transaction-create"
           transactionType={transactionType}
           form={form}
+          lots={lots}
           suppliers={suppliers}
+          disabled={createdTransactionId !== null}
           // A quote or an invoice arrives as a document: attaching it comes
-          // first. A self-built estimate rarely has one, so it waits under
-          // "Plus de détails", unless a file was already picked.
-          documentsFirst={
-            transactionType !== 'diy_estimate' || documentFile !== null
-          }
-          budgetSelection={
-            <BudgetSelectionRow
-              checked={
-                canSelectCreatedTransactionAsBudget(form) &&
-                form.select_as_budget
-              }
-              disabled={!canSelectCreatedTransactionAsBudget(form)}
-              onChange={(checked) => updateField('select_as_budget', checked)}
-            />
-          }
+          // first.
+          documentsFirst
           documents={
             <NewTransactionDocumentField
               file={documentFile}

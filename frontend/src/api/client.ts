@@ -9,31 +9,14 @@ export type ApiErrorBody = {
 const ERROR_MESSAGES_FR: Record<string, string> = {
   admin_access_required: "Vous n'avez pas accès à cette action.",
   amount_ht_invalid: 'Le montant HT doit être supérieur ou égal à 0.',
+  amount_not_decimal: 'Les montants doivent être des nombres décimaux.',
   amount_ttc_invalid: 'Le montant TTC doit être supérieur ou égal à 0.',
   amount_ttc_mismatch: 'Le montant TTC ne correspond pas aux montants saisis.',
   amount_ttc_required: 'Le montant TTC est obligatoire.',
   amount_vat_invalid: 'Le montant de TVA doit être supérieur ou égal à 0.',
   amount_vat_mismatch:
     'Le montant de TVA ne correspond pas aux montants saisis.',
-  amount_not_decimal: 'Les montants doivent être des nombres décimaux.',
   bad_request: 'La demande est invalide.',
-  breakdown_name_conflict:
-    'Ce nom de sous-produit existe déjà pour ce produit.',
-  breakdown_names_duplicate: 'Les noms de sous-produits doivent être uniques.',
-  budget_line_item_mode_conflict:
-    'Ce produit doit être géré soit en un seul poste, soit en sous-produits, mais pas les deux.',
-  budget_line_name_required: 'Le nom du poste de budget est obligatoire.',
-  budget_line_not_found: 'Ce poste de budget est introuvable.',
-  budget_line_type_required: 'Le type de poste de budget est obligatoire.',
-  budget_candidate_type_invalid:
-    'Seuls les devis et les estimations DIY peuvent être sélectionnés comme budget.',
-  budget_transaction_already_selected:
-    'Cette transaction est déjà sélectionnée comme budget ailleurs.',
-  category_not_found: 'Cette catégorie est introuvable.',
-  conversion_existing_line_name_not_allowed:
-    'Le renommage du poste existant n’est pas autorisé dans ce cas.',
-  conversion_strategy_required:
-    'Choisissez comment convertir le poste existant avant de continuer.',
   contact_request_send_failed:
     'Votre demande de contact n’a pas pu être envoyée. Réessayez plus tard.',
   credentials_invalid: 'Identifiants incorrects.',
@@ -63,9 +46,9 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
   file_content_invalid:
     'Le contenu du fichier est invalide ou non pris en charge.',
   file_empty: 'Le fichier est vide.',
-  file_extension_missing: 'Le fichier doit avoir une extension.',
   file_extension_mismatch:
     'L’extension du fichier ne correspond pas à son contenu.',
+  file_extension_missing: 'Le fichier doit avoir une extension.',
   file_extension_unsupported: 'Ce type de fichier n’est pas pris en charge.',
   file_name_missing: 'Le nom du fichier est manquant.',
   file_too_large: 'Le fichier est trop volumineux (max. 20 Mo).',
@@ -88,11 +71,17 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
   issue_report_too_many_attachments:
     'Vous pouvez joindre au maximum 5 fichiers.',
   issued_date_required: 'La date de transaction est obligatoire.',
-  login_invalid: 'Email ou mot de passe incorrect.',
   last_admin_deactivate_forbidden:
     'Impossible de désactiver le dernier administrateur.',
   last_admin_delete_forbidden:
     'Impossible de supprimer le dernier administrateur.',
+  login_invalid: 'Email ou mot de passe incorrect.',
+  lot_code_conflict: 'Un lot utilise déjà ce code.',
+  lot_designation_conflict: 'Un lot porte déjà cette désignation.',
+  lot_has_active_transactions:
+    'Ce lot contient des devis ou des factures : il ne peut pas être masqué.',
+  lot_not_available: 'Ce lot est introuvable ou masqué dans ce projet.',
+  lot_not_found: 'Ce lot est introuvable.',
   not_authenticated: 'Connectez-vous pour continuer.',
   not_found: 'La ressource demandée est introuvable.',
   password_reset_token_invalid:
@@ -101,32 +90,14 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
     'La date de paiement doit être postérieure ou égale à la date de transaction.',
   payment_date_not_allowed:
     'La date de paiement est disponible uniquement pour les factures.',
-  payment_date_requires_paid_invoice:
-    'La date de paiement est disponible uniquement pour une facture payée.',
   payment_date_required:
     'La date de paiement est obligatoire pour une facture payée.',
+  payment_date_requires_paid_invoice:
+    'La date de paiement est disponible uniquement pour une facture payée.',
   payment_method_not_allowed:
     'Le moyen de paiement est disponible uniquement pour les factures.',
-  product_already_budgeted_with_breakdowns:
-    'Ce produit est déjà géré avec des sous-produits.',
-  product_breakdown_name_required: 'Ajoutez au moins un nom de sous-produit.',
-  product_budget_line_ambiguous:
-    'Sélectionnez un sous-produit précis pour cette transaction.',
-  product_budget_line_missing:
-    'Aucun poste de budget actif n’existe encore pour ce produit.',
-  product_line_not_found:
-    'Le poste de budget du produit entier est introuvable.',
-  product_line_conflict:
-    'Un poste de budget produit entier existe déjà pour ce produit.',
-  product_not_available_in_template:
-    'Ce produit n’est pas disponible dans le modèle de ce projet.',
-  product_not_found: 'Ce produit est introuvable.',
-  product_not_found_or_inactive: 'Ce produit est introuvable ou inactif.',
-  project_already_has_template: 'Ce projet utilise déjà un modèle.',
   project_date_range_invalid:
     'La date de fin doit être postérieure ou égale à la date de début.',
-  project_missing_template:
-    'Ce projet doit avoir un modèle avant de créer des postes de budget.',
   project_name_conflict: 'Un projet porte déjà ce nom.',
   project_not_found: 'Ce projet est introuvable.',
   project_status_required: 'Le statut du projet est obligatoire.',
@@ -138,28 +109,21 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
   request_conflict:
     'Cette action entre en conflit avec des données existantes.',
   request_validation_failed: 'Certains champs sont invalides.',
-  selected_budget_quote_cannot_be_rejected:
-    'Un devis sélectionné comme budget ne peut pas être rejeté.',
-  selected_budget_quote_rejected:
-    'Un devis rejeté ne peut pas être sélectionné comme budget.',
   self_delete_endpoint_required:
     'Utilisez l’action de suppression de votre propre compte.',
   self_service_endpoint_required:
     'Utilisez l’action dédiée à votre propre compte.',
-  subcategory_not_found: 'Cette sous-catégorie est introuvable.',
+  supplier_lot_has_active_transactions:
+    'Ce fournisseur a des devis ou des factures dans ce lot : il ne peut pas en être retiré.',
+  supplier_lot_not_found: 'Ce fournisseur n’est pas rattaché à ce lot.',
   supplier_name_conflict: 'Un fournisseur porte déjà ce nom.',
   supplier_not_found: 'Ce fournisseur est introuvable.',
   supplier_not_found_or_inactive: 'Ce fournisseur est introuvable ou inactif.',
   supplier_primary_contact_conflict:
     'Un fournisseur ne peut avoir qu’un seul contact principal.',
-  template_item_not_found: 'Cet élément de modèle est introuvable.',
-  template_name_conflict: 'Un modèle porte déjà ce nom.',
-  template_not_found: 'Ce modèle est introuvable.',
-  template_not_found_or_inactive: 'Ce modèle est introuvable ou inactif.',
-  template_product_duplicate: 'Ce produit est déjà présent dans ce modèle.',
-  template_whole_product_duplicate:
-    'Ce modèle contient déjà un poste produit entier pour ce produit.',
   transaction_not_found: 'Cette transaction est introuvable.',
+  transaction_type_not_supported:
+    'Seuls les devis et les factures sont acceptés.',
   unauthorized: 'Votre session a expiré. Reconnectez-vous pour continuer.',
   user_email_conflict: 'Un utilisateur existe déjà avec cet email.',
   user_must_be_deleted_before_permanent_delete:

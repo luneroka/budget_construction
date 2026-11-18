@@ -1,8 +1,8 @@
 import { type FormEvent, useEffect, useState } from 'react'
-import { AlertCircle, Check, FolderPlus, Loader2, X } from 'lucide-react'
+import { AlertCircle, FolderPlus, Loader2, X } from 'lucide-react'
 import { createPortal } from 'react-dom'
 
-import type { ProjectFromTemplateCreate, TemplateRead } from '@/api/types'
+import type { ProjectCreate } from '@/api/types'
 import { useDiscardConfirmation } from '@/components/shared/useDiscardConfirmation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,27 +12,22 @@ import { Textarea } from '@/components/ui/textarea'
 type ProjectOnboardingDialogProps = {
   open: boolean
   canClose: boolean
-  templates: TemplateRead[]
-  isLoadingTemplates: boolean
-  templatesError: string | null
   isCreating: boolean
   createError: string | null
   onClose: () => void
-  onSubmit: (project: ProjectFromTemplateCreate) => Promise<void>
+  onSubmit: (project: ProjectCreate) => Promise<void>
 }
 
 type FormState = {
   name: string
   description: string
   location: string
-  templateId: string
 }
 
 const initialForm: FormState = {
   name: '',
   description: '',
   location: '',
-  templateId: '',
 }
 
 function normalizeOptional(value: string): string | null {
@@ -43,9 +38,6 @@ function normalizeOptional(value: string): string | null {
 export function ProjectOnboardingDialog({
   open,
   canClose,
-  templates,
-  isLoadingTemplates,
-  templatesError,
   isCreating,
   createError,
   onClose,
@@ -61,15 +53,6 @@ export function ProjectOnboardingDialog({
     }
   }, [open])
 
-  useEffect(() => {
-    if (form.templateId || templates.length === 0) return
-
-    setForm((current) => ({
-      ...current,
-      templateId: String(templates[0].id),
-    }))
-  }, [form.templateId, templates])
-
   const { confirmDiscard, discardDialog } = useDiscardConfirmation(
     [form.name, form.description, form.location].some(
       (value) => value.trim() !== '',
@@ -84,15 +67,9 @@ export function ProjectOnboardingDialog({
     event.preventDefault()
 
     const name = form.name.trim()
-    const templateId = Number(form.templateId)
 
     if (!name) {
       setFormError('Le nom du projet est obligatoire.')
-      return
-    }
-
-    if (!Number.isInteger(templateId) || templateId <= 0) {
-      setFormError('Sélectionnez un modèle de budget.')
       return
     }
 
@@ -101,7 +78,6 @@ export function ProjectOnboardingDialog({
     try {
       await onSubmit({
         name,
-        template_id: templateId,
         description: normalizeOptional(form.description),
         location: normalizeOptional(form.location),
       })
@@ -110,9 +86,7 @@ export function ProjectOnboardingDialog({
     }
   }
 
-  const errorMessage = formError ?? createError ?? templatesError
-  const hasTemplates = templates.length > 0
-  const disableSubmit = isCreating || isLoadingTemplates || !hasTemplates
+  const errorMessage = formError ?? createError
 
   return createPortal(
     <>
@@ -166,7 +140,8 @@ export function ProjectOnboardingDialog({
                     Informations principales du projet
                   </h3>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Les détails avancés pourront être complétés plus tard.
+                    Le projet démarre avec tous les lots. Les détails avancés
+                    pourront être complétés plus tard.
                   </p>
                 </div>
 
@@ -223,81 +198,6 @@ export function ProjectOnboardingDialog({
                 </div>
               </section>
 
-              <section className="grid gap-3">
-                <div>
-                  <h3 className="text-sm font-semibold">Modèle de budget</h3>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Les éléments qui composent le budget seront automatiquement
-                    ajoutés à partir du modèle sélectionné.
-                  </p>
-                </div>
-
-                {isLoadingTemplates ? (
-                  <div className="flex items-center gap-2 rounded-md border border-border px-3 py-3 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                    Chargement des modèles
-                  </div>
-                ) : null}
-
-                {!isLoadingTemplates && !hasTemplates ? (
-                  <div className="rounded-md border border-border px-3 py-3 text-sm text-muted-foreground">
-                    Aucun modèle actif n'est disponible.
-                  </div>
-                ) : null}
-
-                {hasTemplates ? (
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {templates.map((template) => {
-                      const templateId = String(template.id)
-                      const isSelected = form.templateId === templateId
-
-                      return (
-                        <label
-                          key={template.id}
-                          className={`relative flex min-h-28 flex-col rounded-md border px-3 py-3 transition-colors ${
-                            isSelected
-                              ? 'border-accent bg-accent/5'
-                              : 'border-border bg-background hover:bg-muted/60'
-                          } ${isCreating ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
-                        >
-                          <input
-                            type="radio"
-                            name="templateId"
-                            value={templateId}
-                            checked={isSelected}
-                            disabled={isCreating}
-                            className="sr-only"
-                            onChange={(event) =>
-                              setForm((current) => ({
-                                ...current,
-                                templateId: event.target.value,
-                              }))
-                            }
-                          />
-                          <span className="flex items-start justify-between gap-3">
-                            <span className="font-medium">{template.name}</span>
-                            <span
-                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
-                                isSelected
-                                  ? 'border-accent bg-accent text-accent-foreground'
-                                  : 'border-border'
-                              }`}
-                            >
-                              {isSelected ? (
-                                <Check className="h-3 w-3" aria-hidden />
-                              ) : null}
-                            </span>
-                          </span>
-                          <span className="mt-2 line-clamp-3 text-xs text-muted-foreground">
-                            {template.description ?? 'Modèle de budget actif'}
-                          </span>
-                        </label>
-                      )
-                    })}
-                  </div>
-                ) : null}
-              </section>
-
               {errorMessage ? (
                 <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
                   <AlertCircle
@@ -321,7 +221,7 @@ export function ProjectOnboardingDialog({
                 Annuler
               </Button>
             ) : null}
-            <Button type="submit" disabled={disableSubmit}>
+            <Button type="submit" disabled={isCreating}>
               {isCreating ? (
                 <Loader2 className="animate-spin" aria-hidden />
               ) : (

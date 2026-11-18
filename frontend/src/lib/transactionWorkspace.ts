@@ -1,8 +1,7 @@
 import type { ProjectTransactionRead } from '@/api/types'
-import type { BudgetLine, Product, Transaction } from '@/types'
-import { decimalToNumber } from '@/lib/apiAdapters'
+import type { Transaction } from '@/types'
+import { transactionToDomain } from '@/lib/apiAdapters'
 import { formatCurrency } from '@/lib/format'
-import type { ViewedTransactionContext } from '@/components/budget/TransactionModal'
 
 export type QuickViewId =
   | 'all'
@@ -12,11 +11,9 @@ export type QuickViewId =
   | 'quotes_rejected'
   | 'missing_documents'
   | 'recent'
-  | 'budget_selected'
-  | 'budget_not_selected'
-  | 'budget_to_validate'
 
-export type TransactionWorkspaceRow = ViewedTransactionContext & {
+export type TransactionWorkspaceRow = {
+  transaction: Transaction
   documentFilenames: string[]
   searchText: string
 }
@@ -31,9 +28,6 @@ export const quickViews: Array<{ id: QuickViewId; label: string }> = [
   { id: 'quotes_rejected', label: 'Devis rejetés' },
   { id: 'missing_documents', label: 'Documents manquants' },
   { id: 'recent', label: 'Transactions récentes' },
-  { id: 'budget_selected', label: 'Budget sélectionné' },
-  { id: 'budget_not_selected', label: 'Budget non sélectionné' },
-  { id: 'budget_to_validate', label: 'Budget à valider' },
 ]
 
 // Quick views that stay in the model but are no longer offered as pills, so
@@ -42,15 +36,10 @@ export const quickViews: Array<{ id: QuickViewId; label: string }> = [
 // still resolve them, so nothing breaks if one is linked to. Drop an id from
 // this set to put its pill back.
 //
-// `missing_documents` and `budget_to_validate` stay visible on purpose -- the
-// dashboard links straight to them (`?quick_view=...`), so hiding their pills
-// would land people on a filtered table with nothing showing why.
-const hiddenQuickViewIds = new Set<QuickViewId>([
-  'recent',
-  'quotes_rejected',
-  'budget_selected',
-  'budget_not_selected',
-])
+// `missing_documents` stays visible on purpose -- the dashboard links
+// straight to it (`?quick_view=...`), so hiding its pill would land people on
+// a filtered table with nothing showing why.
+const hiddenQuickViewIds = new Set<QuickViewId>(['recent', 'quotes_rejected'])
 
 export const visibleQuickViews = quickViews.filter(
   (view) => !hiddenQuickViewIds.has(view.id),
@@ -61,7 +50,6 @@ export const transactionTypeLabels: Record<
   string
 > = {
   quote: 'Devis',
-  diy_estimate: 'Estimation DIY',
   invoice: 'Facture',
 }
 
@@ -69,38 +57,37 @@ export function getTransactionStatus(transaction: Transaction) {
   return transaction.quote_status ?? transaction.invoice_status
 }
 
-// The sub-product a transaction sits on, or nothing when it is attached to
-// the product as a whole -- a budget line that stands for the product itself
-// carries its name.
-export function subProductName(product: Product, budgetLine: BudgetLine) {
-  const productName = product.product_name.trim()
-  const budgetLineName = budgetLine.name.trim()
+// What a transaction is called: its libellé, or else « Devis · Fournisseur »
+// / « Facture · Fournisseur », or just its type without a supplier.
+export function transactionDisplayTitle(
+  transaction: Pick<
+    Transaction,
+    'title' | 'transaction_type' | 'supplier_name'
+  >,
+) {
+  const title = transaction.title?.trim()
+  if (title) return title
 
-  if (
-    budgetLineName === '' ||
-    productName.toLocaleLowerCase() === budgetLineName.toLocaleLowerCase()
-  ) {
-    return null
-  }
-
-  return budgetLine.name
+  const typeLabel = transactionTypeLabels[transaction.transaction_type]
+  return transaction.supplier_name
+    ? `${typeLabel} · ${transaction.supplier_name}`
+    : typeLabel
 }
 
-export function isBudgetSelected(transaction: Transaction) {
-  return transaction.select_as_budget
+export function lotLabel(lot: { code: string; designation: string }) {
+  return `${lot.code} · ${lot.designation}`
 }
 
 function buildSearchText({
-  product,
-  budgetLine,
   transaction,
   documentFilenames,
 }: TransactionWorkspaceRow) {
   return [
     transaction.supplier_name ?? '',
-    product.category_name,
-    product.product_name,
-    budgetLine.name,
+    transaction.lot_code,
+    transaction.lot_designation,
+    transaction.title ?? '',
+    transaction.reference ?? '',
     transaction.transaction_type,
     transactionTypeLabels[transaction.transaction_type],
     String(transaction.amount_ttc),
@@ -115,71 +102,10 @@ function buildSearchText({
 export function buildTransactionRow(
   transaction: ProjectTransactionRead,
 ): TransactionWorkspaceRow {
-  const transactionId = String(transaction.id)
-  const budgetLine: BudgetLine = {
-    budget_line_id: String(transaction.budget_line_id),
-    name: transaction.budget_line_name,
-    item_type: transaction.budget_line_item_type,
-    selected_budget_amount_ttc: 0,
-    quote_amount_ttc: 0,
-    validated_quote_amount_ttc: 0,
-    diy_estimate_amount_ttc: 0,
-    actual_cost_amount_ttc: 0,
-    paid_invoice_amount_ttc: 0,
-    unpaid_invoice_amount_ttc: 0,
-    on_hold_invoice_amount_ttc: 0,
-    selected_budget_variance_ttc: 0,
-    quote_count: 0,
-    validated_quote_count: 0,
-    diy_estimate_count: 0,
-    invoice_count: 0,
-    transactions: [],
-  }
-  const product: Product = {
-    product_id: String(transaction.product_id),
-    product_name: transaction.product_name,
-    subcategory_name: transaction.subcategory_name,
-    category_name: transaction.category_name,
-    selected_budget_amount_ttc: 0,
-    actual_cost_amount_ttc: 0,
-    paid_invoice_amount_ttc: 0,
-    unpaid_invoice_amount_ttc: 0,
-    on_hold_invoice_amount_ttc: 0,
-    selected_budget_variance_ttc: 0,
-    budget_lines: [budgetLine],
-  }
-  const viewModel: Transaction = {
-    id: transactionId,
-    budget_line_id: String(transaction.budget_line_id),
-    supplier_id:
-      transaction.supplier_id === null ? null : String(transaction.supplier_id),
-    supplier_name: transaction.supplier_name,
-    transaction_type: transaction.transaction_type,
-    amount_ht: decimalToNumber(transaction.amount_ht),
-    vat_rate: decimalToNumber(transaction.vat_rate),
-    amount_vat: decimalToNumber(transaction.amount_vat),
-    amount_ttc: decimalToNumber(transaction.amount_ttc),
-    issued_date: transaction.issued_date,
-    due_date: transaction.due_date,
-    payment_date: transaction.payment_date,
-    created_at: transaction.created_at,
-    updated_at: transaction.updated_at,
-    deleted_at: transaction.deleted_at,
-    description: transaction.description ?? '',
-    quote_status: transaction.quote_status,
-    invoice_status: transaction.invoice_status,
-    invoice_type: transaction.invoice_type,
-    payment_method: transaction.payment_method,
-    select_as_budget: transaction.is_selected_budget,
-    document_state: transaction.has_documents ? 'attached' : 'missing',
-    document_count: transaction.document_count,
-  }
   const row = {
-    budgetLine,
     documentFilenames: transaction.document_original_filenames,
-    product,
     searchText: '',
-    transaction: viewModel,
+    transaction: transactionToDomain(transaction),
   }
 
   return {
@@ -254,26 +180,6 @@ export function matchesQuickView(
 
   if (quickView === 'recent') {
     return isWithinLastDays(transaction.issued_date, recentWindowDays)
-  }
-
-  if (quickView === 'budget_selected') {
-    return isBudgetSelected(transaction)
-  }
-
-  if (quickView === 'budget_not_selected') {
-    return (
-      ['quote', 'diy_estimate'].includes(transaction.transaction_type) &&
-      !isBudgetSelected(transaction)
-    )
-  }
-
-  if (quickView === 'budget_to_validate') {
-    return (
-      transaction.transaction_type === 'quote' &&
-      isBudgetSelected(transaction) &&
-      (transaction.quote_status === 'to_confirm' ||
-        transaction.quote_status === 'to_negotiate')
-    )
   }
 
   return true

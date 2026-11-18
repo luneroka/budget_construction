@@ -6,12 +6,14 @@ import { RequireAuth } from '@/auth/RequireAuth'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { AutoUpdate } from '@/components/layout/AutoUpdate'
 import { IconTooltips } from '@/components/ui/icon-tooltips'
+import { AdminLotsPage } from '@/pages/AdminLotsPage'
 import { AdminUsersPage } from '@/pages/AdminUsersPage'
-import { BudgetPage } from '@/pages/BudgetPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { DocumentsPage } from '@/pages/DocumentsPage'
 import { ExportsSettingsPage } from '@/pages/ExportsSettingsPage'
 import { LoginPage } from '@/pages/LoginPage'
+import { LotDetailPage } from '@/pages/LotDetailPage'
+import { LotsPage } from '@/pages/LotsPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { ProjectsSettingsPage } from '@/pages/ProjectsSettingsPage'
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
@@ -64,7 +66,10 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="budget" element={<BudgetPage />} />
+            <Route path="lots" element={<LotsPage />} />
+            <Route path="lots/:lotId" element={<LotDetailPage />} />
+            {/* The page was « Budget » before lots: old bookmarks land here. */}
+            <Route path="budget" element={<Navigate to="/lots" replace />} />
             <Route path="transactions" element={<TransactionsPage />} />
             <Route path="suppliers" element={<SuppliersPage />} />
             <Route
@@ -81,6 +86,7 @@ export default function App() {
             />
             <Route path="settings/exports" element={<ExportsSettingsPage />} />
             <Route path="settings/users" element={<AdminUsersPage />} />
+            <Route path="settings/lots" element={<AdminLotsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Route>

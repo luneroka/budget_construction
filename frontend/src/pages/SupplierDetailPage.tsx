@@ -14,21 +14,25 @@ import {
 
 import { getApiErrorMessage } from '@/api/client'
 import { useDocumentsQuery } from '@/api/documents'
+import { useProjectLotsQuery } from '@/api/lots'
 import { useProjectQuery } from '@/api/projects'
 import { useSupplierQuery, useSuppliersQuery } from '@/api/suppliers'
 import { useProjectTransactionsQuery } from '@/api/transactions'
 import type { SupplierDocumentListRead } from '@/api/types'
 import { TransactionReviewModal } from '@/components/budget/transaction-form/TransactionReviewModal'
-import type { ViewedTransactionContext } from '@/components/budget/TransactionModal'
+import {
+  TransactionModal,
+  type ViewedTransactionContext,
+} from '@/components/budget/TransactionModal'
+import { invoicePrefillFromQuote } from '@/components/budget/transaction-form/transactionForm'
+import type { TransactionAction } from '@/components/budget/types'
 import { SupplierModal } from '@/components/suppliers/SupplierModal'
 import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
 import { PageHeader } from '@/components/shared/PageHeader'
-import { ProductCell } from '@/components/shared/ProductCell'
 import { ProgressBar } from '@/components/shared/ProgressBar'
 import { Select } from '@/components/ui/select'
 import { SectionCard } from '@/components/shared/SectionCard'
 import { StatusBadge } from '@/components/shared/StatusBadge'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -46,7 +50,7 @@ import {
   supplierToDomain,
   suppliersToDomain,
 } from '@/lib/apiAdapters'
-import { canToggleBudgetSelection } from '@/lib/budgetDomain'
+import { visibleLots } from '@/lib/lots'
 import {
   formatDocumentPositionLabel,
   formatOriginalFilename,
@@ -65,9 +69,11 @@ import { notifyError } from '@/lib/toasts'
 import {
   buildTransactionRow,
   getTransactionStatus,
+  lotLabel,
+  transactionDisplayTitle,
 } from '@/lib/transactionWorkspace'
 import { useSelectedProjectId } from '@/state/appState'
-import type { SupplierContact } from '@/types'
+import type { SupplierContact, Transaction } from '@/types'
 
 function useSupplierIdParam(): number | null {
   const { supplierId } = useParams<{ supplierId: string }>()
@@ -137,6 +143,14 @@ export function SupplierDetailPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [transactionReview, setTransactionReview] =
     useState<ViewedTransactionContext | null>(null)
+  const [activeAction, setActiveAction] = useState<TransactionAction | null>(
+    null,
+  )
+  const lotsQuery = useProjectLotsQuery(projectId)
+  const pickableLots = useMemo(
+    () => visibleLots(lotsQuery.data),
+    [lotsQuery.data],
+  )
   const [pickedEmail, setPickedEmail] = useState<string | null>(null)
   const [showEveryContact, setShowEveryContact] = useState(false)
 
@@ -251,6 +265,15 @@ export function SupplierDetailPage() {
     `${totals.invoiceCount} facture${totals.invoiceCount > 1 ? 's' : ''}`,
   ].join(' · ')
 
+  function addInvoiceForQuote(quote: Transaction) {
+    setTransactionReview(null)
+    setActiveAction({
+      lotId: quote.lot_id,
+      transactionType: 'invoice',
+      prefill: invoicePrefillFromQuote(quote),
+    })
+  }
+
   async function openTransactionDocuments(context: ViewedTransactionContext) {
     const transactionId = Number(context.transaction.id)
     if (!Number.isInteger(transactionId)) {
@@ -260,7 +283,7 @@ export function SupplierDetailPage() {
 
     await documentViewer.open(
       transactionId,
-      `${context.product.product_name} • ${formatCurrency(context.transaction.amount_ttc)}`,
+      `${transactionDisplayTitle(context.transaction)} • ${formatCurrency(context.transaction.amount_ttc)}`,
     )
   }
 
@@ -290,6 +313,22 @@ export function SupplierDetailPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <SectionCard title="Coordonnées" icon={MapPin}>
           <dl className="space-y-3 text-sm">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <DetailLine label="SIRET / SIREN">
+                {supplier.siret ?? (
+                  <span className="text-xs text-muted-foreground">
+                    Non renseigné
+                  </span>
+                )}
+              </DetailLine>
+              <DetailLine label="N° RNE">
+                {supplier.rne_number ?? (
+                  <span className="text-xs text-muted-foreground">
+                    Non renseigné
+                  </span>
+                )}
+              </DetailLine>
+            </div>
             <DetailLine label="Adresse">
               {addressLines.length > 0 ? (
                 addressLines.map((line) => <div key={line}>{line}</div>)
@@ -361,7 +400,7 @@ export function SupplierDetailPage() {
         >
           <div className="flex h-full flex-col">
             <div className="grid gap-2 sm:grid-cols-2">
-              <Figure label="Budget retenu" amount={totals.retainedTtc} />
+              <Figure label="Devis retenus" amount={totals.retainedTtc} />
               <Figure label="Reste à payer" amount={totals.toPayTtc} />
             </div>
             <div className="mt-auto pt-4">
@@ -459,11 +498,11 @@ export function SupplierDetailPage() {
               <TableRow>
                 <TableHead className="w-28">Date</TableHead>
                 <TableHead className="w-28">Type</TableHead>
-                <TableHead>Catégorie</TableHead>
-                <TableHead>Produit</TableHead>
+                <TableHead>Lot</TableHead>
+                <TableHead>Libellé</TableHead>
+                <TableHead>Référence</TableHead>
                 <TableHead className="w-32 text-right">Montant TTC</TableHead>
                 <TableHead className="w-28">Statut</TableHead>
-                <TableHead className="w-28">Budget</TableHead>
                 <TableHead className="w-16 text-right">Documents</TableHead>
               </TableRow>
             </TableHeader>
@@ -481,8 +520,8 @@ export function SupplierDetailPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                rows.map(({ budgetLine, product, transaction }) => {
-                  const context = { budgetLine, product, transaction }
+                rows.map(({ transaction }) => {
+                  const context = { transaction }
                   const status = getTransactionStatus(transaction)
 
                   return (
@@ -513,24 +552,21 @@ export function SupplierDetailPage() {
                       <TableCell>
                         <StatusBadge status={transaction.transaction_type} />
                       </TableCell>
-                      <TableCell>{product.category_name}</TableCell>
                       <TableCell>
-                        <ProductCell
-                          product={product}
-                          budgetLine={budgetLine}
-                        />
+                        {lotLabel({
+                          code: transaction.lot_code,
+                          designation: transaction.lot_designation,
+                        })}
+                      </TableCell>
+                      <TableCell>{transaction.title}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {transaction.reference}
                       </TableCell>
                       <TableCell className="text-right font-medium whitespace-nowrap">
                         {formatCurrency(transaction.amount_ttc)}
                       </TableCell>
                       <TableCell>
                         {status ? <StatusBadge status={status} /> : null}
-                      </TableCell>
-                      <TableCell>
-                        {transaction.transaction_type !== 'invoice' &&
-                        transaction.select_as_budget ? (
-                          <Badge variant="gold">Sélectionné</Badge>
-                        ) : null}
                       </TableCell>
                       <TableCell className="text-right">
                         {transaction.document_state === 'attached' ? (
@@ -581,13 +617,22 @@ export function SupplierDetailPage() {
         <TransactionReviewModal
           project={project}
           context={transactionReview}
+          lots={pickableLots}
           suppliers={suppliers}
-          isBudgetSelected={transactionReview.transaction.select_as_budget}
-          canToggleBudgetSelection={canToggleBudgetSelection(
-            transactionReview.transaction,
-          )}
-          onToggleBudgetSelection={() => undefined}
+          onAddInvoiceForQuote={addInvoiceForQuote}
           onClose={() => setTransactionReview(null)}
+        />
+      ) : null}
+
+      {project && activeAction ? (
+        <TransactionModal
+          project={project}
+          lots={pickableLots}
+          initialLotId={activeAction.lotId}
+          initialType={activeAction.transactionType}
+          prefill={activeAction.prefill}
+          suppliers={suppliers}
+          onClose={() => setActiveAction(null)}
         />
       ) : null}
 

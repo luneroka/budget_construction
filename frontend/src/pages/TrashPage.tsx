@@ -32,6 +32,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { transactionDisplayTitle } from '@/lib/transactionWorkspace'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import { useSelectedProjectId } from '@/state/appState'
 
@@ -59,11 +60,20 @@ const destructiveGhostButtonClass =
 const permanentDeleteDescription =
   'Cette action est irréversible. Les éléments supprimés définitivement ne pourront plus être restaurés.'
 
+// A transaction is called by its libellé, or by its type and supplier.
+function itemName(item: TrashItemRead): string {
+  if (item.type === 'transaction') {
+    return transactionDisplayTitle(item)
+  }
+  return item.name
+}
+
 function itemContext(item: TrashItemRead): string {
   if (item.type === 'transaction') {
     return [
+      `${item.lot_code} · ${item.lot_designation}`,
       item.supplier_name,
-      item.product_name,
+      item.reference,
       formatCurrency(Number(item.amount_ttc)),
     ]
       .filter(Boolean)
@@ -129,6 +139,7 @@ function itemMatchesSearch(item: TrashItemRead, search: string): boolean {
   const values = [
     typeLabels[item.type],
     item.name,
+    itemName(item),
     itemContext(item),
     formatDate(item.deleted_at),
     itemStatus(item),
@@ -367,7 +378,7 @@ export function TrashPage() {
             <Badge variant="muted">{typeLabels[item.type]}</Badge>
           </TableCell>
           <TableCell>
-            <p className="font-medium text-foreground">{item.name}</p>
+            <p className="font-medium text-foreground">{itemName(item)}</p>
           </TableCell>
           <TableCell className="text-muted-foreground">
             {itemContext(item)}
@@ -509,7 +520,7 @@ export function TrashPage() {
           onConfirm={() => void hardDeleteItem(pendingHardDelete.item)}
         >
           <p className="font-medium text-foreground">
-            {pendingHardDelete.item.name}
+            {itemName(pendingHardDelete.item)}
           </p>
           <p className="mt-1 text-muted-foreground">
             {typeLabels[pendingHardDelete.item.type]} ·{' '}

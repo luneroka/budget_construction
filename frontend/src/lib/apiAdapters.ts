@@ -8,8 +8,8 @@ import type {
   ApiDecimal,
   ProjectFinancialSummaryRead,
   ProjectRead,
+  ProjectTransactionRead,
   SupplierRead,
-  TransactionRead,
 } from '@/api/types'
 import type { Project, Supplier, Transaction } from '@/types'
 
@@ -23,20 +23,19 @@ export function decimalToNumber(
 
 export function projectToDomain(
   project: ProjectRead,
-  summary?: Pick<ProjectFinancialSummaryRead, 'selected_budget_amount_ttc'>,
+  summary?: Pick<ProjectFinancialSummaryRead, 'validated_quote_amount_ttc'>,
 ): Project {
   return {
     id: String(project.id),
     user_id: String(project.user_id),
-    template_id: project.template_id ?? 0,
     name: project.name,
     description: project.description ?? '',
     location: project.location ?? '',
     start_date: project.start_date ?? '',
     end_date: project.end_date ?? '',
     project_status: project.project_status,
-    selected_budget_amount_ttc: summary
-      ? decimalToNumber(summary.selected_budget_amount_ttc)
+    validated_quote_amount_ttc: summary
+      ? decimalToNumber(summary.validated_quote_amount_ttc)
       : 0,
   }
 }
@@ -47,6 +46,7 @@ export function supplierToDomain(supplier: SupplierRead): Supplier {
     user_id: String(supplier.user_id),
     name: supplier.name,
     siret: supplier.siret,
+    rne_number: supplier.rne_number,
     comment: supplier.comment ?? '',
     street: supplier.street,
     complement: supplier.complement,
@@ -75,20 +75,20 @@ export function suppliersToDomain(
 }
 
 export function transactionToDomain(
-  transaction: TransactionRead,
-  suppliers: SupplierRead[],
+  transaction: ProjectTransactionRead,
 ): Transaction {
-  const supplier = suppliers.find(
-    (candidate) => candidate.id === transaction.supplier_id,
-  )
-
   return {
     id: String(transaction.id),
-    budget_line_id: String(transaction.budget_line_id),
+    project_id: String(transaction.project_id),
+    lot_id: transaction.lot_id,
+    lot_code: transaction.lot_code,
+    lot_designation: transaction.lot_designation,
     supplier_id:
       transaction.supplier_id === null ? null : String(transaction.supplier_id),
-    supplier_name: supplier?.name ?? null,
+    supplier_name: transaction.supplier_name,
     transaction_type: transaction.transaction_type,
+    title: transaction.title,
+    reference: transaction.reference,
     amount_ht: decimalToNumber(transaction.amount_ht),
     vat_rate: decimalToNumber(transaction.vat_rate),
     amount_vat: decimalToNumber(transaction.amount_vat),
@@ -104,7 +104,6 @@ export function transactionToDomain(
     invoice_status: transaction.invoice_status,
     invoice_type: transaction.invoice_type,
     payment_method: transaction.payment_method,
-    select_as_budget: transaction.is_selected_budget,
     document_state: transaction.has_documents ? 'attached' : 'missing',
     document_count: transaction.document_count,
   }

@@ -30,7 +30,6 @@ const transactionTypeOptions: Array<{
   { value: 'all', label: 'Tous les types' },
   { value: 'invoices', label: 'Factures' },
   { value: 'quotes', label: 'Devis' },
-  { value: 'diy_estimates', label: 'Estimations DIY' },
 ]
 
 export function ExportsSettingsPage() {

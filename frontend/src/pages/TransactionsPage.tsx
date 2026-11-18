@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   ArrowDown,
   ArrowUp,
@@ -11,22 +11,25 @@ import {
 } from 'lucide-react'
 
 import { getApiErrorMessage } from '@/api/client'
+import { useProjectLotsQuery } from '@/api/lots'
 import { useProjectQuery } from '@/api/projects'
 import { useSuppliersQuery } from '@/api/suppliers'
 import { useProjectTransactionsQuery } from '@/api/transactions'
 import { DeleteTransactionDialog } from '@/components/budget/DeleteTransactionDialog'
 import type {
+  TransactionAction,
   TransactionDeleteState,
   TransactionReviewState,
 } from '@/components/budget/types'
 import {
+  TransactionModal,
   TransactionReviewModal,
   type ViewedTransactionContext,
 } from '@/components/budget/TransactionModal'
+import { invoicePrefillFromQuote } from '@/components/budget/transaction-form/transactionForm'
 import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { StatusBadge } from '@/components/shared/StatusBadge'
-import { ProductCell } from '@/components/shared/ProductCell'
 import { SupplierLink } from '@/components/suppliers/SupplierLink'
 import { PaginationFooter } from '@/components/shared/PaginationFooter'
 import { TableToolbar } from '@/components/shared/TableToolbar'
@@ -46,14 +49,16 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { projectToDomain, suppliersToDomain } from '@/lib/apiAdapters'
-import { canToggleBudgetSelection } from '@/lib/budgetDomain'
+import { visibleLots } from '@/lib/lots'
 import {
   buildTransactionRow,
   getTransactionStatus,
   isInCurrentMonth,
   isWithinLastDays,
+  lotLabel,
   matchesQuickView,
   quickViews,
+  transactionDisplayTitle,
   transactionTypeLabels,
   type QuickViewId,
   type TransactionWorkspaceRow,
@@ -68,6 +73,7 @@ import { cn } from '@/lib/utils'
 import { notifyError } from '@/lib/toasts'
 import { useSelectedProjectId } from '@/state/appState'
 import { useTransactionDocumentViewer } from '@/hooks/useTransactionDocumentViewer'
+import type { Transaction } from '@/types'
 
 type TransactionTypeFilter =
   'all' | TransactionWorkspaceRow['transaction']['transaction_type']
@@ -187,6 +193,11 @@ export function TransactionsPage() {
   const projectQuery = useProjectQuery(projectId)
   const transactionsQuery = useProjectTransactionsQuery(projectId)
   const suppliersQuery = useSuppliersQuery({ enabled: projectId !== null })
+  const lotsQuery = useProjectLotsQuery(projectId)
+  const pickableLots = useMemo(
+    () => visibleLots(lotsQuery.data),
+    [lotsQuery.data],
+  )
   const project = useMemo(
     () => (projectQuery.data ? projectToDomain(projectQuery.data) : null),
     [projectQuery.data],
@@ -196,11 +207,11 @@ export function TransactionsPage() {
   )
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TransactionTypeFilter>('all')
-  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [lotFilter, setLotFilter] = useState('all')
   const [supplierFilter, setSupplierFilter] = useState('all')
   const [dateFilter, setDateFilter] = useState<DateFilter>('all')
 
-  // The Type / Catégorie / Fournisseur / Date selects are hidden for now to
+  // The Type / Fournisseur / Date selects are hidden for now to
   // steer people to the search bar, but the row is kept in the tree rather than
   // deleted: flip this to true to get it back exactly as it was. The filter
   // state above stays at 'all' while hidden, so results are unaffected. The
@@ -213,6 +224,9 @@ export function TransactionsPage() {
   })
   const [transactionReview, setTransactionReview] =
     useState<TransactionReviewState | null>(null)
+  const [activeAction, setActiveAction] = useState<TransactionAction | null>(
+    null,
+  )
   const [transactionDelete, setTransactionDelete] =
     useState<TransactionDeleteState | null>(null)
   const documentViewer = useTransactionDocumentViewer()
@@ -242,8 +256,8 @@ export function TransactionsPage() {
         }
 
         if (
-          categoryFilter !== 'all' &&
-          row.product.category_name !== categoryFilter
+          lotFilter !== 'all' &&
+          String(row.transaction.lot_id) !== lotFilter
         ) {
           return false
         }
@@ -263,8 +277,8 @@ export function TransactionsPage() {
         return matchesDateFilter(row, dateFilter)
       }),
     [
-      categoryFilter,
       dateFilter,
+      lotFilter,
       normalizedSearch,
       supplierFilter,
       transactionRows,
@@ -293,13 +307,13 @@ export function TransactionsPage() {
     () => sortTransactions(filteredRows, sort),
     [filteredRows, sort],
   )
-  const categoryOptions = useMemo(
-    () =>
-      [...new Set(transactionRows.map((row) => row.product.category_name))]
-        .filter(Boolean)
-        .sort((left, right) => left.localeCompare(right, 'fr')),
-    [transactionRows],
-  )
+  // Every lot that holds a transaction, in the project's lot order.
+  const lotOptions = useMemo(() => {
+    const usedLotIds = new Set(
+      transactionRows.map((row) => row.transaction.lot_id),
+    )
+    return (lotsQuery.data ?? []).filter((lot) => usedLotIds.has(lot.id))
+  }, [lotsQuery.data, transactionRows])
   const supplierOptions = useMemo(() => {
     const options = new Map<string, string>()
     let hasNoSupplier = false
@@ -355,7 +369,7 @@ export function TransactionsPage() {
     totalCount,
   } = usePagination(
     sortedRows,
-    `${activeQuickView}|${categoryFilter}|${dateFilter}|${normalizedSearch}|${projectId}|${supplierFilter}|${typeFilter}`,
+    `${activeQuickView}|${lotFilter}|${dateFilter}|${normalizedSearch}|${projectId}|${supplierFilter}|${typeFilter}`,
   )
   const pageError =
     projectQuery.error ??
@@ -382,6 +396,15 @@ export function TransactionsPage() {
     void suppliersQuery.refetch()
   }
 
+  function addInvoiceForQuote(quote: Transaction) {
+    setTransactionReview(null)
+    setActiveAction({
+      lotId: quote.lot_id,
+      transactionType: 'invoice',
+      prefill: invoicePrefillFromQuote(quote),
+    })
+  }
+
   function updateSort(field: SortField) {
     setSort((current) => {
       if (current.field !== field) {
@@ -396,12 +419,9 @@ export function TransactionsPage() {
   }
 
   function formatTransactionContextLabel(context: ViewedTransactionContext) {
-    const typeLabel =
-      transactionTypeLabels[context.transaction.transaction_type]
     return [
-      typeLabel,
-      context.product.category_name,
-      context.transaction.supplier_name,
+      transactionDisplayTitle(context.transaction),
+      context.transaction.lot_code,
       formatCurrency(context.transaction.amount_ttc),
     ]
       .filter(Boolean)
@@ -460,9 +480,9 @@ export function TransactionsPage() {
       )
     }
 
-    return paginatedRows.map(({ budgetLine, product, transaction }) => {
+    return paginatedRows.map(({ transaction }) => {
       const status = getTransactionStatus(transaction)
-      const context = { budgetLine, product, transaction }
+      const context = { transaction }
 
       return (
         <TableRow key={transaction.id}>
@@ -472,15 +492,32 @@ export function TransactionsPage() {
           <TableCell className="whitespace-nowrap">
             <StatusBadge status={transaction.transaction_type} />
           </TableCell>
+          <TableCell className="min-w-44">
+            <div className="font-medium">
+              {transactionDisplayTitle(transaction)}
+            </div>
+            {transaction.reference ? (
+              <div className="text-xs text-muted-foreground">
+                {transaction.reference}
+              </div>
+            ) : null}
+          </TableCell>
           <TableCell className="min-w-40 font-medium">
             <SupplierLink
               supplierId={transaction.supplier_id}
               name={transaction.supplier_name}
             />
           </TableCell>
-          <TableCell className="min-w-44">{product.category_name}</TableCell>
           <TableCell className="min-w-44">
-            <ProductCell product={product} budgetLine={budgetLine} />
+            <Link
+              to={`/lots/${transaction.lot_id}`}
+              className="underline-offset-4 hover:text-gold hover:underline"
+            >
+              {lotLabel({
+                code: transaction.lot_code,
+                designation: transaction.lot_designation,
+              })}
+            </Link>
           </TableCell>
           <TableCell className="whitespace-nowrap text-right font-medium">
             {formatCurrency(transaction.amount_ttc)}
@@ -490,7 +527,7 @@ export function TransactionsPage() {
           </TableCell>
           <TableCell className="whitespace-nowrap text-right">
             {/* Right-aligned so the rail keeps its position whether or not the
-                documents icon is there, matching the budget page's inline
+                documents icon is there, matching the lot page's supplier
                 table. */}
             <div className="inline-flex justify-end gap-1">
               {transaction.document_state === 'attached' ? (
@@ -602,26 +639,6 @@ export function TransactionsPage() {
           <div className="space-y-1">
             <label
               className="text-xs font-medium text-muted-foreground"
-              htmlFor="transactions-category-filter"
-            >
-              Catégorie
-            </label>
-            <Select
-              id="transactions-category-filter"
-              value={categoryFilter}
-              onChange={(event) => setCategoryFilter(event.target.value)}
-            >
-              <option value="all">Toutes les catégories</option>
-              {categoryOptions.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <label
-              className="text-xs font-medium text-muted-foreground"
               htmlFor="transactions-supplier-filter"
             >
               Fournisseur
@@ -682,10 +699,23 @@ export function TransactionsPage() {
       <div className="mt-6 overflow-hidden rounded-lg border border-border bg-card">
         <TableToolbar
           searchValue={search}
-          searchPlaceholder="Rechercher fournisseur, catégorie, poste, montant..."
+          searchPlaceholder="Rechercher libellé, référence, fournisseur, lot, montant..."
           onSearchChange={setSearch}
           actions={
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <Select
+                className="w-56"
+                aria-label="Filtrer par lot"
+                value={lotFilter}
+                onChange={(event) => setLotFilter(event.target.value)}
+              >
+                <option value="all">Tous les lots</option>
+                {lotOptions.map((lot) => (
+                  <option key={lot.id} value={String(lot.id)}>
+                    {lotLabel(lot)}
+                  </option>
+                ))}
+              </Select>
               <span className="whitespace-nowrap">{transactionCountLabel}</span>
               <Select
                 className="w-24"
@@ -714,9 +744,9 @@ export function TransactionsPage() {
                 Date
               </SortableHeader>
               <TableHead className="whitespace-nowrap">Type</TableHead>
+              <TableHead className="whitespace-nowrap">Libellé</TableHead>
               <TableHead className="whitespace-nowrap">Fournisseur</TableHead>
-              <TableHead className="whitespace-nowrap">Catégorie</TableHead>
-              <TableHead className="whitespace-nowrap">Produit</TableHead>
+              <TableHead className="whitespace-nowrap">Lot</TableHead>
               <SortableHeader
                 align="right"
                 field="amount"
@@ -747,15 +777,22 @@ export function TransactionsPage() {
         <TransactionReviewModal
           project={project}
           context={transactionReview.context}
+          lots={pickableLots}
           suppliers={suppliers}
-          isBudgetSelected={
-            transactionReview.context.transaction.select_as_budget
-          }
-          canToggleBudgetSelection={canToggleBudgetSelection(
-            transactionReview.context.transaction,
-          )}
-          onToggleBudgetSelection={() => undefined}
+          onAddInvoiceForQuote={addInvoiceForQuote}
           onClose={() => setTransactionReview(null)}
+        />
+      ) : null}
+
+      {project && activeAction ? (
+        <TransactionModal
+          project={project}
+          lots={pickableLots}
+          initialLotId={activeAction.lotId}
+          initialType={activeAction.transactionType}
+          prefill={activeAction.prefill}
+          suppliers={suppliers}
+          onClose={() => setActiveAction(null)}
         />
       ) : null}
 

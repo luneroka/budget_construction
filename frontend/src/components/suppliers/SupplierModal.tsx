@@ -37,6 +37,7 @@ type SupplierFormState = {
   id: string | null
   name: string
   siret: string
+  rne_number: string
   comment: string
   street: string
   complement: string
@@ -72,6 +73,7 @@ function supplierToForm(supplier: Supplier | null): SupplierFormState {
       id: null,
       name: '',
       siret: '',
+      rne_number: '',
       comment: '',
       street: '',
       complement: '',
@@ -85,6 +87,7 @@ function supplierToForm(supplier: Supplier | null): SupplierFormState {
     id: supplier.id,
     name: supplier.name,
     siret: supplier.siret ?? '',
+    rne_number: supplier.rne_number ?? '',
     comment: supplier.comment ?? '',
     street: supplier.street ?? '',
     complement: supplier.complement ?? '',
@@ -267,6 +270,7 @@ export function SupplierModal({
           user_id: supplier?.user_id ?? '0',
           name: form.name.trim(),
           siret: normalizeBusinessIdentifier(form.siret),
+          rne_number: normalizeOptional(form.rne_number),
           comment: normalizeOptional(form.comment) ?? '',
           street: normalizeOptional(form.street),
           complement: normalizeOptional(form.complement),
@@ -365,7 +369,7 @@ export function SupplierModal({
               Entreprise
             </h3>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div>
+              <div className="sm:col-span-2">
                 <label className="text-xs font-medium" htmlFor="supplier-name">
                   Fournisseur
                 </label>
@@ -388,6 +392,22 @@ export function SupplierModal({
                   value={form.siret}
                   onChange={(event) =>
                     setForm({ ...form, siret: event.target.value })
+                  }
+                />
+              </div>
+              <div>
+                {/* Free text, independent of the SIRET: nothing is derived
+                    or checked between the two. */}
+                <label className="text-xs font-medium" htmlFor="supplier-rne">
+                  N° RNE
+                </label>
+                <Input
+                  id="supplier-rne"
+                  className="mt-1"
+                  maxLength={50}
+                  value={form.rne_number}
+                  onChange={(event) =>
+                    setForm({ ...form, rne_number: event.target.value })
                   }
                 />
               </div>

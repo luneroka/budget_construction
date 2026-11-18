@@ -3,7 +3,6 @@ import { ChevronDown } from 'lucide-react'
 
 import { AmountInput } from '@/components/ui/amount-input'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { FilePickerButton } from '@/components/shared/FilePickerButton'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -195,34 +194,6 @@ export function TtcAmountField({
         </div>
       ) : null}
     </div>
-  )
-}
-
-export function BudgetSelectionRow({
-  checked,
-  disabled,
-  onChange,
-}: {
-  checked: boolean
-  disabled?: boolean
-  onChange: (checked: boolean) => void
-}) {
-  return (
-    <label
-      className={cn(
-        'flex items-center gap-3 rounded-md border border-border px-3 py-2.5 text-sm',
-        disabled ? 'cursor-not-allowed bg-muted/30' : 'cursor-pointer',
-      )}
-    >
-      <Checkbox
-        checked={checked}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.checked)}
-      />
-      <span className="font-medium text-foreground">
-        Sélectionner pour le calcul du budget
-      </span>
-    </label>
   )
 }
 
