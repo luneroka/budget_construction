@@ -247,3 +247,48 @@ async def test_supplier_id_cannot_access_or_mutate_another_users_supplier(
     )
     assert owner_response.status_code == 200
     assert owner_response.json()['name'] == f'Private Supplier {method}'
+
+
+async def test_supplier_rne_number_create_update_clear_and_limit(
+    client: AsyncClient,
+) -> None:
+    """« N° RNE » (spec criterion 32): optional free text, trimmed, empty stored
+    as null, at most 50 characters, independent of the SIRET."""
+    access_token = await create_authenticated_user(client, email='rne@example.com')
+    headers = {'Authorization': f'Bearer {access_token}'}
+
+    created = await client.post(
+        '/suppliers/',
+        headers=headers,
+        json={
+            'name': 'Artisan RNE',
+            'siret': '12345678901234',
+            'rne_number': '  RNE 987 654 321  ',
+            'contacts': [{'name': 'Contact'}],
+        },
+    )
+    assert created.status_code == 201
+    supplier = cast(dict[str, JsonValue], created.json())
+    assert supplier['rne_number'] == 'RNE 987 654 321'
+    assert supplier['siret'] == '12345678901234'
+    url = f'/suppliers/{supplier["id"]}'
+
+    updated = await client.patch(url, headers=headers, json={'rne_number': 'X' * 50})
+    assert updated.status_code == 200
+    assert updated.json()['rne_number'] == 'X' * 50
+    assert updated.json()['siret'] == '12345678901234'
+
+    read = await client.get(url, headers=headers)
+    assert read.json()['rne_number'] == 'X' * 50
+    listed = await client.get('/suppliers/', headers=headers)
+    assert listed.json()[0]['rne_number'] == 'X' * 50
+
+    too_long = await client.patch(
+        url, headers=headers, json={'rne_number': 'X' * 51}
+    )
+    assert too_long.status_code == 422
+    assert too_long.json()['detail']['field'] == 'body.rne_number'
+
+    cleared = await client.patch(url, headers=headers, json={'rne_number': '   '})
+    assert cleared.status_code == 200
+    assert cleared.json()['rne_number'] is None
