@@ -15,11 +15,11 @@ The application originates from a mature Excel workbook built with structured ta
 
 The product is budget-first. Its primary purpose is to help an individual understand:
 
-- what work and products are included in a construction project;
-- which quotes or DIY estimates define the current planned budget;
+- which lots (trades, such as « Gros œuvre / Maçonnerie » or « Électricité ») the project involves;
+- which validated quotes define the current planned budget of each lot;
 - how much has actually been invoiced and paid;
-- which suppliers, documents, and transactions relate to each budget item;
-- where the project is over or under budget;
+- which suppliers, documents, and transactions relate to each lot;
+- which lots are over or under budget;
 - which financial actions still require attention.
 
 ---
@@ -36,10 +36,10 @@ BatiBudget is currently positioned as a construction budgeting and financial-con
 
 The MVP focuses on:
 
-- project onboarding from a predefined construction template;
-- structured construction scope through categories, subcategories, and products;
-- budget lines representing whole products or detailed breakdown items;
-- quotes, DIY estimates, and invoices;
+- project onboarding with a project name and details, every project starting with the global lots;
+- one categorizer, the **lot**: 25 global lots shared by every project, plus lots a project adds for itself;
+- each lot organized by supplier: Lot → Fournisseur → devis / factures;
+- quotes and invoices;
 - supplier and contact management;
 - document storage and retrieval;
 - financial summaries, dashboards, alerts, and accounting exports.
@@ -60,14 +60,13 @@ Broader project-management functions such as task scheduling, work-progress trac
 
 The following principles from the Excel tool remain central:
 
-- a structured category, subcategory, and product hierarchy;
-- separate handling of quotes, DIY estimates, and invoices;
+- a structured view of the project's scope, now by lot (the catalog tree of the workbook was retired in 2026-11, see §6.1);
+- separate handling of quotes and invoices;
 - detailed supplier information;
 - transaction-level supporting documents;
 - soft deletion rather than immediate destructive deletion;
-- consolidated calculations by product and category;
-- search, filtering, reporting, and export capabilities;
-- the ability to manage a product either globally or through detailed sub-items.
+- consolidated calculations by lot;
+- search, filtering, reporting, and export capabilities.
 
 ### Excel-specific mechanisms replaced
 
@@ -127,54 +126,29 @@ Key decisions:
 - users authenticate through email and password;
 - passwords are stored as hashes;
 - users can own multiple projects and suppliers;
-- `is_admin` controls privileged catalog, template, and user-management actions;
+- `is_admin` controls user management and the global lots (rename and reorder);
 - user records support active, soft-deleted, restored, and permanently deleted states.
 
-### `categories`, `subcategories`, and `products`
+### `lots`
 
-These tables form the global construction catalog.
+The one categorizer of transactions (spec `docs/specs/2026-11-18-lots.md`).
 
-```text
-Category -> Subcategory -> Product
-```
+- A lot has a `code` stored as text (`"00"` stays `"00"`, at most 10 characters), a `designation` (at most 120) and a `sort_order`.
+- A lot with no `project_id` is **global**: every project sees it. The 25 default global lots, `00` « Préparation de chantier » to `24` « Cheminée / Poêle », are created by the lots migration. Only an admin renames (code and designation) or reorders them; nobody adds or deletes one. Code and designation are each unique among global lots.
+- A lot with a `project_id` belongs to that project only. Its code and designation are typed at creation and never renamed; at creation its code must differ from every global code and from the project's other lots. Project lots are listed after the global lots, ordered by code.
+- An admin re-code of a global lot is not checked against project lots: a project may then show two lots with the same code, which stay separate lots.
 
-Examples include the initial top-level categories:
+### `project_hidden_lots`
 
-- Extérieurs
-- Finitions
-- Gros œuvre
-- Menuiseries
-- Second œuvre
-- Terrain & Préparation
-- Viabilisation
+Per-project visibility: a row hides one lot (global or the project's own) in one project. A lot with active transactions in the project cannot be hidden; restoring a trashed transaction unhides its lot. Hidden lots are left out of the Lots page, the lot pickers, the dashboard and the project totals.
 
-Key decisions:
+### `supplier_lots`
 
-- the catalog is application-wide rather than duplicated for every project;
-- catalog writes are administrative operations;
-- ordering is explicit through `sort_order`;
-- records can be deactivated without deleting historical references;
-- uniqueness is enforced within the appropriate parent scope.
-
-### `templates` and `template_items`
-
-Templates define which catalog products are available within a project.
-
-```text
-Template -> TemplateItem -> Product
-```
-
-Key decisions:
-
-- templates are reusable and managed by an administrator;
-- a template item references one catalog product and can define a default name, order, and required status;
-- duplicate products are forbidden within the same template;
-- the initial V1 template is **Maison complète**, intended to contain the complete supported construction catalog;
-- templates define project scope but do not duplicate the category hierarchy.
+The (project, supplier, lot) assignment behind « Lot → Fournisseur ». Creating or updating a transaction with a supplier assigns that pair if missing; a supplier can also be assigned by hand before any transaction. Unassigning is refused while the supplier has active transactions in that lot in the project. A supplier whose last transaction leaves the lot stays assigned.
 
 ### `projects`
 
-A project belongs to one user and may be associated with one template.
+A project belongs to one user.
 
 Important fields include:
 
@@ -183,35 +157,22 @@ Important fields include:
 - location;
 - start and end dates stored as dates rather than datetimes;
 - project status: `draft`, `active`, `completed`, or `archived`;
-- `template_id`;
 - timestamps and `deleted_at`.
 
-Project names are unique per active user, not globally unique across the platform.
-
-### `budget_lines`
-
-`budget_lines` are the project-specific financial tracking units. This entity replaces the earlier working name `project_items` and formalizes the role previously played by Excel sub-products.
-
-A budget line:
-
-- belongs to a project;
-- references a catalog product;
-- references the matching template item;
-- has a display name and sort order;
-- is either a whole-product line or a breakdown line;
-- contains the transactions used for planning and actual-cost tracking;
-- stores the selected quote and selected DIY estimate pointers.
-
-Budget lines do not form a recursive parent/child tree. The catalog product remains the aggregation level, and all detailed breakdown lines reference that product directly.
+Project names are unique per active user, not globally unique across the platform. `POST /projects` creates no lot rows: a new project sees every global lot. (Legacy: `template_id` stays in the table, unused, until the cleanup migration.)
 
 ### `transactions`
 
-Transactions are financial records attached to a budget line.
+Transactions are financial records of one project, each in exactly one lot.
+
+- `project_id` is required and carries ownership: every check (transactions, documents, trash, exports, financial engine) goes transaction → project, because a global lot proves nothing about who owns the row.
+- `lot_id` is required; the lot must be global or belong to the same project, and visible there.
+- `title` (« libellé », at most 255 characters) and `reference` (« référence », at most 100) are optional free text, trimmed, an empty value stored as null. `description` stays as free notes. When the title is empty the UI shows « Devis · {fournisseur} », « Facture · {fournisseur} », or just « Devis » / « Facture ».
+- The supplier is optional.
 
 Supported transaction types:
 
-- `quote` — a supplier quote and potential budget component;
-- `diy_estimate` — an estimated cost for work or purchases handled directly by the user;
+- `quote` — a supplier quote;
 - `invoice` — an actual financial expense.
 
 Core financial fields include:
@@ -232,7 +193,20 @@ Status-specific fields include:
 - invoice type: `full`, `deposit`, `interim`, or `balance`;
 - payment method: `cash`, `card`, or `wire`.
 
-Database constraints prevent transaction-specific fields from being used with incompatible transaction types.
+Database constraints prevent transaction-specific fields from being used with incompatible transaction types, and `ck_transactions_type_quote_or_invoice` allows only `quote` and `invoice`.
+
+An invoice for a quote is an ordinary invoice: « Ajouter une facture pour ce devis » opens the invoice form with the quote's lot, supplier, libellé, VAT rate and amount HT, all editable, and nothing links the two rows.
+
+### Legacy tables and columns (kept until the cleanup migration)
+
+The catalog-tree structure was replaced by lots in 2026-11. These stay in the database, unused by application code, until a later cleanup migration drops them:
+
+- Legacy: `categories`, `subcategories`, `products`, `templates`, `template_items` and `budget_lines` (the old « budget line », a project's tracking unit for one catalog product, whole or broken down), and `projects.template_id`;
+- Legacy: `transactions.budget_line_id`, now nullable, set only on transactions from before lots;
+- Legacy: `transactions.is_selected_budget`, the old « retenir comme budget » flag, still read by the 6 production `analytics` views (which therefore only see transactions from before the change);
+- Legacy: the `diy_estimate` value of the PostgreSQL `transaction_type` enum, refused by the API and by `ck_transactions_type_quote_or_invoice`.
+
+Their API endpoints (catalog, templates, template items, budget lines, the product-scoped transaction route and project creation from a template) were removed with the change.
 
 ### `suppliers` and `supplier_contacts`
 
@@ -242,8 +216,11 @@ Supplier information includes:
 
 - company name;
 - optional SIRET;
+- optional « N° RNE » (`rne_number`): free text, at most 50 characters, trimmed, empty stored as null, independent of the SIRET (nothing is derived or cross-checked);
 - notes;
 - timestamps and soft deletion.
+
+A supplier is shared across its user's projects; its lots (`supplier_lots`) are per project.
 
 Contacts are stored separately so one company can have multiple people associated with it. A contact may include a name, phone number, and email address. When contacts are supplied, application and database rules enforce a single primary contact.
 
@@ -266,74 +243,40 @@ The database stores metadata only. The actual file remains in private object sto
 
 ## 6. Core Business Rules
 
-### 6.1 Template-scoped project structure
+### 6.1 Lots are the one categorizer
 
-A project must have an active template before product-based budget data can be created.
+Every transaction sits in exactly one lot, global or the project's own, visible in the project. The catalog tree (category → subcategory → product → budget line) and the template that scoped it are gone from the application (legacy tables, §5). A new project starts with every global lot; it can hide lots it does not need and add its own. Users never rename or reorder a lot: an admin does it for global lots, and a mistyped project lot is hidden and re-added.
 
-The template determines which products are valid for the project. Users cannot create budget lines for arbitrary catalog products outside that template in V1.
+### 6.2 Each lot is organized by supplier
 
-The project onboarding workflow creates the project and associates the selected template. Loading a template establishes the available scope but does not pre-populate a large set of empty budget lines.
+Inside a lot, transactions are grouped by supplier, with a « Sans fournisseur » group for those without one. The (project, supplier, lot) assignment exists even before the first transaction and outlives the supplier's last one in the lot (§5 `supplier_lots`).
 
-### 6.2 Lazy budget-line creation
+### 6.3 Hiding a lot
 
-Budget lines are created only when financial tracking begins for a product, either explicitly or when the first relevant transaction is added.
+A lot with active transactions in the project cannot be hidden. A lot whose transactions are all soft-deleted can, and restoring one unhides it. Hidden lots are excluded from the Lots page, the pickers, the dashboard and the totals; since a hidden lot never has active transactions, nothing that counts is ever hidden.
 
-The primary workflow is product-scoped:
-
-```http
-POST /projects/{project_id}/products/{product_id}/transactions/
-```
-
-The backend validates project ownership, template membership, active catalog records, and the chosen budget mode before creating or reusing the correct budget line.
-
-### 6.3 Whole-product versus breakdown mode
-
-For a given project and product, the user must choose one mode:
-
-- one `product` budget line representing the complete product; or
-- multiple `breakdown` budget lines representing specific components.
-
-Example:
+### 6.4 Validated quotes define the budget
 
 ```text
-Électroménager
-├── Whole-product mode: Électroménager
-
-or
-
-Électroménager
-├── Four
-├── Réfrigérateur
-└── Plaque de cuisson
+Devis retenus (per lot)   = sum of TTC of the active validated quotes
+Facturé (per lot)         = sum of TTC of every active invoice
+Reste à facturer          = Devis retenus − Facturé   (negative: dépassement)
+Project total             = sum over the visible lots
 ```
 
-The two modes cannot coexist for the same active project/product pair. Converting from one mode to the other requires the existing financial structure to be removed or handled through a dedicated conversion workflow.
-
-### 6.4 Quotes and DIY estimates define the selected budget
-
-A budget line can contain several competing quotes and DIY estimates.
-
-The selected budget is stored as a boolean on each transaction: `is_selected_budget`. There is no cap on how many quotes and DIY estimates can be selected for the same budget line — a quote in any status except rejected, or a DIY estimate, can be marked selected independently, and all of them contribute to the budget line's total. A selected quote cannot be changed to rejected while it remains selected; it must be unselected first.
-
-```text
-Selected budget TTC
-= sum of TTC of every selected quote
-+ sum of TTC of every selected DIY estimate
-```
-
-Invoices are never selected as budget candidates.
+A quote's status is the only budget decision: there is no separate selection flag any more. Every visible lot appears in the engine's output, with zero totals when empty.
 
 ### 6.5 Invoices represent actual cost
 
-Every active invoice contributes to actual project cost, regardless of whether it is paid, unpaid, or on hold.
+Every active invoice contributes to « Facturé », the actual project cost, regardless of whether it is paid, unpaid, or on hold. The engine implements this everywhere since the lots change, the dashboard's « Dépenses dans le temps » and « Répartition par fournisseur » included (they counted paid invoices only before).
 
-Payment status is used to divide the actual cost into operational totals:
+Payment status is used to divide « Facturé » into operational totals:
 
 - paid invoices;
 - unpaid invoices;
 - invoices on hold.
 
-Deposits, interim payments, and balances are multiple invoice transactions on the same budget line. They must not create artificial breakdown lines.
+Deposits, interim payments, and balances are multiple invoice transactions in the same lot, usually from the same supplier.
 
 ### 6.6 Financial amounts are backend-controlled
 
@@ -349,6 +292,8 @@ Soft deletion is used for recoverable business records. The project-scoped trash
 - documents;
 - suppliers associated with the project context.
 
+Restoring a transaction unhides its lot in the project if it was hidden, and assigns its supplier to the lot again if the pair was removed.
+
 The trash supports:
 
 - listing deleted records;
@@ -359,47 +304,62 @@ The trash supports:
 
 Permanent document deletion also removes the corresponding file from Cloudflare R2.
 
+### 6.8 The lots migration (2026-11)
+
+The Alembic revision `ee6e9f1f2f1b` moved production data from the catalog tree to lots. Its decisions, approved in `docs/specs/2026-11-18-lots.md`:
+
+- it creates the 25 global lots, the visibility and assignment tables, the transaction columns and the supplier RNE column; documents, their `transaction_id` and every R2 object are left untouched, and the legacy tables stay;
+- `transactions.project_id` comes from the old budget line's project; every migrated transaction gets `title` = its old budget line name, cut to 255 characters;
+- each transaction's lot (active and soft-deleted alike) comes from its old product, by the approved mapping (spec Appendix B): per sous-catégorie, with product-level exceptions, matched on category, sous-catégorie and product names. If a product used by any transaction falls outside the mapping, the migration stops and names it instead of guessing; products nobody used are ignored;
+- old retained quotes become `validated`; old DIY estimates become quotes (`validated` if they were retained, `to_confirm` otherwise) with a note appended to their description; quotes already validated but not retained are unchanged and now count in Devis retenus. The counts of each conversion are logged;
+- one supplier ↔ lot assignment is created per (project, supplier, lot) pair found;
+- the downgrade restores the previous schema: transactions created after the upgrade (no budget line) are deleted and the former DIY estimates go back to DIY estimates. The real rollback path is the pre-deploy backup, kept under a permanent name.
+
+The migration carries its own copy of the default lots and of the mapping, so later application changes cannot alter what it does. `backend/tests/migrations/test_lots_migration.py` runs it on a populated database (upgrade, downgrade, upgrade, and the stop on an unmapped product).
+
+### 6.9 Dev seeds
+
+None runs in production. `seed_powerbi_demo.py` writes project and lot on its transactions (its data file still names catalog products; `app/seed/catalog_lots.py` maps them with the migration's rules). `seed_catalog.py` and `seed_template.py` are legacy: they fill the legacy catalog and template tables, which the application no longer reads.
+
 ---
 
 ## 7. Main Application Workflows
 
 ### Project onboarding
 
-1. The user registers or logs in.
-2. The application loads the user's projects and available active templates.
+1. The user logs in (accounts are created by an admin invitation).
+2. The application loads the user's projects.
 3. A user with no project is required to complete project onboarding.
-4. The user enters the project name, description, and location.
-5. The user selects a template, initially expected to be **Maison complète**.
-6. The backend creates the project and associates the template.
-7. The project becomes available in the application-wide project switcher.
+4. The user enters the project name, description, and location; there is no template step.
+5. The backend creates the project (`POST /projects`); it sees every global lot at once.
+6. The project becomes available in the application-wide project switcher, and the user lands on the Lots page.
 
-### Budget workspace
+### Lots workspace
 
-1. The frontend displays the complete template hierarchy by category, subcategory, and product.
-2. Products are visible even when they do not yet contain a budget line or transaction.
-3. The user searches or navigates to a product.
-4. The user adds a quote, DIY estimate, or invoice.
-5. For the first quote or DIY estimate, the user specifies whether it concerns the whole product or a specific breakdown item.
-6. The backend creates or reuses the compatible budget line.
-7. Selected budget candidates and actual invoices immediately affect the financial engine.
+1. The Lots page (`/lots`) lists every visible lot with its Devis retenus, Facturé, payé and Reste à facturer, empty lots included, with a project total; a lot in overrun is flagged « Dépassement ».
+2. From there the user adds a project lot, hides a lot without active transactions, or shows a hidden one again.
+3. A lot's page (`/lots/:lotId`) shows one card per supplier, plus « Sans fournisseur » when some transactions have none. Each card lists its quotes and its invoices, with add-devis / add-facture actions; a supplier can be added to the lot before any transaction, and removed while it has none. A lot that is not visible in the project answers not found.
+4. Each quote offers « Ajouter une facture pour ce devis » (§5 `transactions`).
+5. New transactions and status changes immediately affect the financial engine.
+
+The admin screen « Lots » (`/settings/lots`, next to user management, visible to admins only) renames and reorders the global lots.
 
 ### Transaction workspace
 
-The transaction page provides a project-wide view of financial records with product, category, budget-line, supplier, status, amount, date, and document context.
+The transaction page provides a project-wide view of financial records with lot, libellé, référence, supplier, status, amount, date, and document context, and a lot filter.
 
 The workflow supports:
 
-- creating and editing transactions;
-- selecting or unselecting budget candidates;
+- creating and editing transactions, including moving one to another lot;
 - quote and invoice status management;
 - linking an existing supplier;
 - creating a supplier directly from the transaction form;
 - attaching and reviewing documents;
-- filtering and searching project transactions.
+- filtering and searching project transactions (the search matches the libellé and the référence).
 
 ### Supplier management
 
-Users maintain a reusable supplier directory containing company details and multiple contacts. Supplier names are unique per active user rather than globally unique.
+Users maintain a reusable supplier directory containing company details and multiple contacts. Supplier names are unique per active user rather than globally unique. The Fournisseurs page has a lot filter and a « Lots » column of badges for the selected project; a supplier's page shows its transactions with lot, libellé and référence, and its SIRET and N° RNE.
 
 ### Document management
 
@@ -409,23 +369,23 @@ Documents are uploaded in relation to a transaction, stored in Cloudflare R2, an
 
 The dashboard uses the central financial engine to provide:
 
-- selected budget;
-- actual invoiced cost;
-- remaining budget;
-- budget variance;
-- budget completion percentage;
-- spending over time;
-- budget versus actual by category;
-- actual-cost distribution by category and supplier;
+- Devis retenus;
+- Facturé (every active invoice);
+- Reste à facturer;
+- invoicing progress (Facturé / Devis retenus);
+- spending over time (Facturé by month);
+- « Budget vs dépenses réelles »: a bar chart of Devis retenus vs Facturé per lot, lots with a non-zero amount only;
+- « Répartition par lot »: a treemap of Facturé per lot;
+- Facturé distribution by supplier;
 - unpaid invoice widgets;
 - quotes to confirm or negotiate;
 - missing-document alerts;
 - recent transactions;
-- products exceeding their selected budget.
+- « Top 5 Écarts budgétaires »: the lots in overrun, worst first.
 
 ### Accounting export
 
-The application can generate a project accounting CSV filtered by date range and transaction type. Export generation is performed by the backend so the file reflects the same validated project data used by the financial engine.
+The application can generate a project accounting CSV filtered by date range and transaction type (all, invoices, quotes). Its columns name the lot (« Lot code », « Lot »), the « Title » and the « Reference »; « Supplier SIRET » holds the supplier's SIRET. Export generation is performed by the backend so the file reflects the same validated project data used by the financial engine.
 
 ### Issue reporting
 
@@ -439,7 +399,8 @@ The authenticated frontend currently contains the following principal routes:
 
 ```text
 /dashboard
-/budget
+/lots
+/lots/:lotId
 /transactions
 /suppliers
 /documents
@@ -448,7 +409,11 @@ The authenticated frontend currently contains the following principal routes:
 /settings/user
 /settings/projects
 /settings/exports
+/settings/users        (admins)
+/settings/lots         (admins)
 ```
+
+`/budget`, the pre-lots page, redirects to `/lots`.
 
 Authentication routes include:
 
@@ -465,7 +430,7 @@ The frontend shell includes:
 - protected routes;
 - project onboarding;
 - shared form, table, dialog, drawer, and notification components;
-- search and breadcrumb support in the budget hierarchy;
+- lot pickers and lot filters fed by the project's visible lots;
 - project-aware data fetching and cache invalidation through TanStack Query.
 
 The UI should remain an interface over backend contracts. Financial rules, ownership checks, valid status transitions, and scope validation must not be reimplemented independently in page components.
@@ -478,11 +443,9 @@ The API currently exposes functional areas for:
 
 - authentication and users;
 - admin user management;
-- categories, subcategories, products, and catalog tree reads;
-- templates and template items;
-- projects and project generation from templates;
-- budget lines;
-- project-, product-, and budget-line-scoped transactions;
+- projects;
+- project lots and their visibility (`/projects/{id}/lots`), supplier ↔ lot assignments (`/projects/{id}/supplier-lots`), and the admin global lots (`/admin/lots`);
+- project-scoped transactions (`/projects/{id}/transactions`);
 - suppliers and supplier contacts;
 - documents and secure download flows;
 - financial summaries and dashboard projections;
@@ -492,10 +455,7 @@ The API currently exposes functional areas for:
 
 Important orchestration services include:
 
-- project generation from a template;
-- product-scoped transaction creation;
-- budget-line creation and mode validation;
-- selected-budget management;
+- lot availability, visibility and supplier assignment rules;
 - document storage operations;
 - user lifecycle operations;
 - centralized financial aggregation;
@@ -506,24 +466,17 @@ Important orchestration services include:
 
 ## 10. Financial Engine
 
-The financial engine is the authoritative calculation layer for project, product, and budget-line totals.
+The financial engine is the authoritative calculation layer for project and lot totals (§6.4).
 
-It calculates:
+Per visible lot and for the project, it calculates:
 
-- selected quote budget TTC;
-- selected DIY budget TTC;
-- combined selected budget TTC;
-- all quote and validated quote totals;
-- all DIY estimate totals;
-- actual invoice cost TTC;
-- paid, unpaid, and on-hold invoice totals;
-- remaining selected budget;
-- selected-budget variance;
-- selected-quote variance;
-- budget completion percentage;
-- transaction counts.
+- Devis retenus: TTC of the active validated quotes;
+- Facturé: TTC of every active invoice, split into paid, unpaid, and on hold;
+- Reste à facturer, with an overrun flag when negative;
+- invoicing progress;
+- quote, validated quote, and invoice counts.
 
-The same engine powers detailed financial summaries and dashboard-specific read models. This avoids discrepancies between the budget workspace, transaction list, dashboard, and future exports.
+It reads a project's active transactions through `transactions.project_id`, with their active documents, and leaves hidden lots out. The same engine powers the Lots pages, the dashboard read models and the accounting export, so they cannot disagree.
 
 ---
 
@@ -533,8 +486,8 @@ The same engine powers detailed financial summaries and dashboard-specific read 
 
 - Projects belong to users.
 - Suppliers belong to users and can be reused across their projects.
-- Budget lines inherit ownership through their project.
-- Transactions inherit ownership through their budget line and project.
+- Transactions carry their own `project_id` and inherit ownership through it; lots are global or project-owned and prove no ownership by themselves.
+- Project lots, lot visibility and supplier ↔ lot assignments belong to their project.
 - Documents store their user ownership and transaction relationship.
 
 Every project-specific query and mutation must verify the authenticated user owns the project or related resource.
@@ -542,7 +495,7 @@ Every project-specific query and mutation must verify the authenticated user own
 ### Authorization
 
 - Normal users can manage their own projects and related data.
-- Administrative authorization is required to create or modify global templates and catalog structure.
+- Administrative authorization is required to rename or reorder the global lots.
 - Separate admin endpoints support user lifecycle management.
 
 ### Database integrity
@@ -554,9 +507,9 @@ The schema uses:
 - composite uniqueness constraints;
 - partial unique indexes that ignore soft-deleted records;
 - partial performance indexes for active transactions and documents;
-- explicit selected-transaction foreign keys on budget lines.
+- a check constraint allowing only `quote` and `invoice` transactions.
 
-Application validation remains necessary for cross-row business rules such as whole-product versus breakdown exclusivity and selected-budget eligibility.
+Application validation remains necessary for cross-row business rules such as a transaction's lot belonging to its project and being visible there, a project lot's code differing from the global codes, and the hide and unassign refusals.
 
 ---
 
@@ -630,13 +583,11 @@ The project has progressed beyond an architectural proposal. The following areas
 - PostgreSQL domain model and Alembic migrations;
 - registration, login, JWT protection, current-user workflows, and password recovery;
 - user and admin lifecycle endpoints;
-- catalog, templates, and template items;
-- project CRUD and project creation from a template;
-- product-scoped and budget-line-scoped transaction workflows;
-- lazy budget-line creation and whole-product/breakdown validation;
-- supplier companies and multiple supplier contacts;
-- quote, DIY estimate, and invoice workflows;
-- independent selected quote and selected DIY budget components;
+- global lots, project lots, per-project visibility and supplier ↔ lot assignments, with the admin lots screen;
+- project CRUD;
+- project-scoped transaction workflows in lots, with libellé and référence;
+- supplier companies, multiple supplier contacts, and the N° RNE;
+- quote and invoice workflows, and the invoice prefilled from a quote;
 - Cloudflare R2 document upload and download flows;
 - central project financial engine;
 - dashboard financial projections and operational widgets;
@@ -645,7 +596,7 @@ The project has progressed beyond an architectural proposal. The following areas
 - in-app issue-report submission;
 - authenticated React application shell and project switcher;
 - project onboarding;
-- dashboard, budget, transactions, suppliers, documents, trash, and settings pages;
+- dashboard, lots, transactions, suppliers, documents, trash, and settings pages;
 - production Docker/Caddy configuration, health checks, configuration validation, and deployment documentation.
 
 The main remaining work is no longer basic architecture selection. It is product completion and release hardening: final integration checks, UX refinement, test coverage, data seeding and validation, production secrets and DNS configuration, deployment, monitoring, backup verification, and real-user validation.
@@ -659,12 +610,13 @@ The original document contained several early proposals that are no longer curre
 | Earlier proposal or working assumption                                     | Current decision                                                                                                   |
 | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | Generic project name such as Budget Chantier                               | Product is branded **BatiBudget**, with `batibudget.com` acquired                                                  |
-| `project_items` and `sub_products` as separate or loosely defined concepts | Project financial units are finalized as `budget_lines`, typed as whole-product or breakdown                       |
-| One selected budget transaction per budget line                            | Any number of quotes (any status except rejected) and DIY estimates can be independently selected per budget line; all contribute to the budget |
+| `project_items` and `sub_products` as separate or loosely defined concepts | Legacy (superseded in 2026-11): project financial units were finalized as `budget_lines`, typed as whole-product or breakdown |
+| One selected budget transaction per budget line                            | Legacy (superseded in 2026-11): any number of quotes and DIY estimates could be selected per budget line           |
+| Catalog tree, templates, budget lines and selected budget (until 2026-11)  | Global lots organized by supplier; validated quotes are the budget; every active invoice is Facturé                |
 | Supabase Storage, with optional Cloudinary                                 | Cloudflare R2 is the confirmed document storage provider                                                           |
 | Multi-user authentication as a later phase                                 | Authentication, ownership, admin authorization, and password recovery are core implemented foundations             |
 | Dashboard and analytics as a distant second phase                          | The financial engine and dashboard-specific API projections are already implemented                                |
-| Template loading might duplicate the catalog into project rows             | Templates define scope; budget lines are created lazily only when financial tracking begins                        |
+| Template loading might duplicate the catalog into project rows             | Legacy (superseded in 2026-11): templates defined scope and budget lines were created lazily                       |
 | A general construction-management platform as the immediate target         | The MVP remains focused on budget, transactions, suppliers, documents, and financial control                       |
 | Development-only architecture                                              | Production Docker Compose, Caddy, health checks, migrations, backups, and configuration validation are now defined |
 
@@ -674,8 +626,8 @@ The original document contained several early proposals that are no longer curre
 
 Possible later additions, after the financial MVP is stable, include:
 
-- custom user-defined products outside the predefined template catalog;
-- controlled conversion between whole-product and breakdown modes;
+- allocating one transaction across several lots;
+- grouping the Fournisseurs page by lot;
 - project sharing and role-based collaboration;
 - contractor or household-member access;
 - construction task planning and milestone tracking;
@@ -686,10 +638,10 @@ Possible later additions, after the financial MVP is stable, include:
 - notifications for due invoices, missing documents, and budget overruns;
 - subscription and SaaS administration features.
 
-These extensions must build on the existing ownership, template, budget-line, transaction, and financial-engine foundations rather than bypassing them.
+These extensions must build on the existing ownership, lot, transaction, and financial-engine foundations rather than bypassing them.
 
 ---
 
 ## 17. One-Sentence Product Description
 
-BatiBudget is a full-stack application that helps individuals structure a house-building project, define its planned budget from quotes and DIY estimates, track invoices and payments, manage suppliers and documents, and monitor financial performance from one project workspace.
+BatiBudget is a full-stack application that helps individuals structure a house-building project by lot and supplier, define its planned budget from validated quotes, track invoices and payments, manage suppliers and documents, and monitor financial performance from one project workspace.
