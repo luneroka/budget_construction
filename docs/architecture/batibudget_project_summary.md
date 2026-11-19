@@ -135,7 +135,7 @@ The one categorizer of transactions (spec `docs/specs/2026-11-18-lots.md`).
 
 - A lot has a `code` stored as text (`"00"` stays `"00"`, at most 10 characters), a `designation` (at most 120) and a `sort_order`.
 - A lot with no `project_id` is **global**: every project sees it. The 25 default global lots, `00` « Préparation de chantier » to `24` « Cheminée / Poêle », are created by the lots migration. Only an admin adds, renames (code and designation), reorders or deletes them (`docs/specs/2026-11-19-global-lots-crud.md`). A new lot is listed last and every project sees it at once. A lot that any transaction uses, active or in a trash, cannot be deleted; a delete is final and takes the lot's `project_hidden_lots` and `supplier_lots` rows with it, never a supplier, transaction or document. Code and designation are each unique among global lots.
-- A lot with a `project_id` belongs to that project only. Its code and designation are typed at creation and never renamed; at creation its code must differ from every global code and from the project's other lots. Project lots are listed after the global lots, ordered by code.
+- A lot with a `project_id` belongs to that project only. Project-only lots are a legacy kind: no screen or endpoint creates new ones since `docs/specs/2026-11-19-remove-project-lot-creation.md`, and the admin manages the shared global list instead. Existing ones keep working: they take devis and factures, can be hidden and shown, count in the project's figures, and are never renamed. They are listed after the global lots, ordered by code.
 - An admin re-code of a global lot is not checked against project lots: a project may then show two lots with the same code, which stay separate lots.
 
 ### `project_hidden_lots`
@@ -255,7 +255,7 @@ The database stores metadata only. The actual file remains in private object sto
 
 ### 6.1 Lots are the one categorizer
 
-Every transaction sits in exactly one lot, global or the project's own, visible in the project. The catalog tree (category → subcategory → product → budget line) and the template that scoped it are gone from the application (legacy tables, §5). A new project starts with every global lot; it can hide lots it does not need and add its own. Users never rename or reorder a lot: an admin does it for global lots, and a mistyped project lot is hidden and re-added.
+Every transaction sits in exactly one lot, global or the project's own, visible in the project. The catalog tree (category → subcategory → product → budget line) and the template that scoped it are gone from the application (legacy tables, §5). A new project starts with every global lot and can hide the ones it does not need. Users never add, rename or reorder a lot: an admin manages the global lots. Project-only lots are a legacy kind (§5 `lots`): existing ones keep working and can be hidden, and nothing creates new ones.
 
 ### 6.2 Each lot is organized by supplier
 
@@ -352,7 +352,7 @@ None runs in production. `seed_powerbi_demo.py` writes project and lot on its tr
 ### Lots workspace
 
 1. The Lots page (`/lots`) heads with the project's Coût prévu, Facturé, Payé and À payer (§6.4), then lists every visible lot with its Prévu, Facturé and À payer (stressed when non-zero), empty lots included and drawn with a dashed border.
-2. From there the user adds a project lot, hides a lot without active transactions, or shows a hidden one again.
+2. From there the user hides a lot without active transactions, or shows a hidden one again.
 3. A lot's page (`/lots/:lotId`) shows one card per supplier, plus « Sans fournisseur » when some transactions have none. Each card heads with its Prévu, Facturé and À payer in the lot and lists its quotes and its invoices, with add-devis / add-facture actions; a supplier can be added to the lot before any transaction, and removed while it has none. A lot that is not visible in the project answers not found.
 4. Each quote offers « Ajouter une facture pour ce devis » (§5 `transactions`).
 5. New transactions and status changes immediately affect the financial engine.
@@ -467,7 +467,7 @@ The API currently exposes functional areas for:
 - authentication and users;
 - admin user management;
 - projects;
-- project lots and their visibility (`/projects/{id}/lots`), supplier ↔ lot assignments (`/projects/{id}/supplier-lots`), and the admin global lots (`/admin/lots`);
+- a project's lots, listed with their visibility and hidden or shown (`/projects/{id}/lots`; no endpoint creates a project lot), supplier ↔ lot assignments (`/projects/{id}/supplier-lots`), and the admin global lots (`/admin/lots`);
 - project-scoped transactions (`/projects/{id}/transactions`);
 - suppliers and supplier contacts;
 - documents and secure download flows;
@@ -532,7 +532,7 @@ The schema uses:
 - partial performance indexes for active transactions and documents;
 - a check constraint allowing only `quote` and `invoice` transactions.
 
-Application validation remains necessary for cross-row business rules such as a transaction's lot belonging to its project and being visible there, a project lot's code differing from the global codes, and the hide and unassign refusals.
+Application validation remains necessary for cross-row business rules such as a transaction's lot belonging to its project and being visible there, and the hide and unassign refusals.
 
 ---
 
@@ -606,7 +606,7 @@ The project has progressed beyond an architectural proposal. The following areas
 - PostgreSQL domain model and Alembic migrations;
 - registration, login, JWT protection, current-user workflows, and password recovery;
 - user and admin lifecycle endpoints;
-- global lots, project lots, per-project visibility and supplier ↔ lot assignments, with the admin lots screen;
+- global lots, the legacy project lots (no longer created), per-project visibility and supplier ↔ lot assignments, with the admin lots screen;
 - project CRUD;
 - project-scoped transaction workflows in lots, with libellé and référence;
 - supplier companies, multiple supplier contacts, and the N° RNE;

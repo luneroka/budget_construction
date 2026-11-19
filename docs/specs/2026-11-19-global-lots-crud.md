@@ -10,7 +10,7 @@ An admin can add and delete global lots from the admin Lots screen (`/settings/l
 
 ## Out of scope
 
-- The project-lot endpoint and table (lots spec criteria 5–6). They stay as they are, dormant: no change in behavior. The UI no longer reaches them, because the "Ajouter un lot" button was removed from the Lots page. Removing them later is a separate change, to be preceded by counting the project lots that exist in production.
+- The project-lot endpoint and table (lots spec criteria 5–6). They stay as they are, dormant: no change in behavior. The UI no longer reaches them, because the "Ajouter un lot" button was removed from the Lots page. Removing them later is a separate change, to be preceded by counting the project lots that exist in production. *Creation removed by `docs/specs/2026-11-19-remove-project-lot-creation.md`: the endpoint is gone; the table and existing project lots stay.*
 - Editing global lots in bulk, importing lots, restoring a deleted lot, or any soft delete of lots.
 - Deleting or renaming project-only lots from the admin screen. The admin sees global lots only.
 - Admin access to other users' projects or data. The refusal message says only that the lot is in use, with no project, user or count.
