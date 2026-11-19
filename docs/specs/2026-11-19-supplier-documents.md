@@ -44,6 +44,7 @@ A supplier gets a small library of documents (RIB, Kbis, Attestation décennale,
    - the supplier's lots in the current project as badges, from the same source as the Fournisseurs page "Lots" column, so manually assigned lots without transactions show too (nothing shown when there are none);
    - the actions "Écrire" (mailto) and "Copier" for the primary contact's email, falling back to the first contact with an email as today, hidden when no contact has an email; then "Modifier".
    - The contact picker select and the "Accès rapides" card are gone.
+   *Superseded by `docs/specs/2026-11-19-money-model-and-screens.md`. « Copier » is gone and « Écrire » is a menu of the contacts with an email.*
 9. Tab labels show counts: "Transactions (n)" and "Documents (n)". n is the number of this supplier's active transactions in the current project, and of its active documents. Both are available whichever tab is open.
 10. Synthèse shows four cards side by side from the `lg` breakpoint and stacked below it (visual layout is a human check):
     - **Coordonnées**: SIRET, N° RNE, address.
@@ -51,6 +52,7 @@ A supplier gets a small library of documents (RIB, Kbis, Attestation décennale,
     - **Bilan**: for the current project and this supplier, Devis retenus (sum of TTC of active validated quotes), Facturé (sum of TTC of all active invoices), Reste à facturer (Devis retenus minus Facturé, negative flagged as an overrun), following lots-spec criterion 17, with today's progress bar kept. A test or check covers a supplier with no transactions (zeros), a negative remainder, and soft-deleted transactions excluded.
     - **Documents**: which of the five types are present, the next expiry with its signal, and a link to the Documents tab.
     - The old tall cards (Coordonnées, Bilan, Accès rapides) are removed.
+    *Superseded by `docs/specs/2026-11-19-money-model-and-screens.md`. The Bilan shows Coût prévu, Devis validés (reference), Facturé, Payé and À payer, with a payment bar.*
 11. Transactions tab: the current table is unchanged in behaviour: same columns, row click opening the review modal, the document viewer buttons, "Ajouter une facture pour ce devis", and its empty and loading messages.
 12. Documents tab lists the active documents:
     - each row shows type badge, file name, upload date, and expiry date with signal (or "Sans date");

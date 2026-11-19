@@ -265,26 +265,30 @@ Inside a lot, transactions are grouped by supplier, with a « Sans fournisseur �
 
 A lot with active transactions in the project cannot be hidden. A lot whose transactions are all soft-deleted can, and restoring one unhides it. Hidden lots are excluded from the Lots page, the pickers, the dashboard and the totals; since a hidden lot never has active transactions, nothing that counts is ever hidden.
 
-### 6.4 Validated quotes define the budget
+### 6.4 Coût prévu: quotes and invoices, the larger per supplier
+
+The app is a store of quotes and invoices per lot, not a balanced budget: a lot with only invoices (materials bought in a shop) is not over budget. Since `docs/specs/2026-11-19-money-model-and-screens.md`, four figures:
 
 ```text
-Devis retenus (per lot)   = sum of TTC of the active validated quotes
-Facturé (per lot)         = sum of TTC of every active invoice
-Reste à facturer          = Devis retenus − Facturé   (negative: dépassement)
-Project total             = sum over the visible lots
+Coût prévu (per lot)  = sum over the lot's suppliers, « Sans fournisseur » as one group, of
+                        max(TTC of its active validated quotes in the lot,
+                            TTC of its active invoices in the lot)
+Facturé (per lot)     = TTC of every active invoice
+Payé (per lot)        = TTC of the active paid invoices
+À payer (per lot)     = TTC of the active unpaid and on-hold invoices   (Payé + À payer = Facturé)
+Project figures       = sums over the visible lots
+Supplier figures      = sums of its per-lot figures over the visible lots
 ```
 
-A quote's status is the only budget decision: there is no separate selection flag any more. Every visible lot appears in the engine's output, with zero totals when empty.
+The max is taken per supplier and per lot: a supplier in two lots contributes two maxes, and its own Coût prévu (supplier page, Bilan) is their sum, so a supplier's figures add up to the Lots page. A lot with quotes only plans its quotes; a lot with invoices only plans its invoices. Quote statuses other than `validated` never count. The validated quotes' total stays as a reference figure (« Devis validés », supplier Bilan). There is no overrun signal any more: « Reste à facturer » and its « Dépassement » flag are gone.
+
+A quote's status is the only budget decision: there is no separate selection flag any more. Every visible lot appears in the engine's output, with zero figures when empty.
 
 ### 6.5 Invoices represent actual cost
 
-Every active invoice contributes to « Facturé », the actual project cost, regardless of whether it is paid, unpaid, or on hold. The engine implements this everywhere since the lots change, the dashboard's « Dépenses dans le temps » and « Répartition par fournisseur » included (they counted paid invoices only before).
+Every active invoice contributes to « Facturé », the actual project cost, regardless of whether it is paid, unpaid, or on hold, the dashboard's charts included.
 
-Payment status is used to divide « Facturé » into operational totals:
-
-- paid invoices;
-- unpaid invoices;
-- invoices on hold.
+Payment status divides « Facturé » into « Payé » (paid) and « À payer » (unpaid and on hold); the engine also keeps the unpaid and on-hold totals apart.
 
 Deposits, interim payments, and balances are multiple invoice transactions in the same lot, usually from the same supplier.
 
@@ -322,7 +326,7 @@ The Alembic revision `ee6e9f1f2f1b` moved production data from the catalog tree 
 - it creates the 25 global lots, the visibility and assignment tables, the transaction columns and the supplier RNE column; documents, their `transaction_id` and every R2 object are left untouched, and the legacy tables stay;
 - `transactions.project_id` comes from the old budget line's project; every migrated transaction gets `title` = its old budget line name, cut to 255 characters;
 - each transaction's lot (active and soft-deleted alike) comes from its old product, by the approved mapping (spec Appendix B): per sous-catégorie, with product-level exceptions, matched on category, sous-catégorie and product names. If a product used by any transaction falls outside the mapping, the migration stops and names it instead of guessing; products nobody used are ignored;
-- old retained quotes become `validated`; old DIY estimates become quotes (`validated` if they were retained, `to_confirm` otherwise) with a note appended to their description; quotes already validated but not retained are unchanged and now count in Devis retenus. The counts of each conversion are logged;
+- old retained quotes become `validated`; old DIY estimates become quotes (`validated` if they were retained, `to_confirm` otherwise) with a note appended to their description; quotes already validated but not retained are unchanged and counted in « Devis retenus », the budget figure of the time (now the validated quotes feed Coût prévu, §6.4). The counts of each conversion are logged;
 - one supplier ↔ lot assignment is created per (project, supplier, lot) pair found;
 - the downgrade restores the previous schema: transactions created after the upgrade (no budget line) are deleted and the former DIY estimates go back to DIY estimates. The real rollback path is the pre-deploy backup, kept under a permanent name.
 
@@ -347,24 +351,24 @@ None runs in production. `seed_powerbi_demo.py` writes project and lot on its tr
 
 ### Lots workspace
 
-1. The Lots page (`/lots`) lists every visible lot with its Devis retenus, Facturé, payé and Reste à facturer, empty lots included, with a project total; a lot in overrun is flagged « Dépassement ».
+1. The Lots page (`/lots`) heads with the project's Coût prévu, Facturé, Payé and À payer (§6.4), then lists every visible lot with its Prévu, Facturé and À payer (stressed when non-zero), empty lots included and drawn with a dashed border.
 2. From there the user adds a project lot, hides a lot without active transactions, or shows a hidden one again.
-3. A lot's page (`/lots/:lotId`) shows one card per supplier, plus « Sans fournisseur » when some transactions have none. Each card lists its quotes and its invoices, with add-devis / add-facture actions; a supplier can be added to the lot before any transaction, and removed while it has none. A lot that is not visible in the project answers not found.
+3. A lot's page (`/lots/:lotId`) shows one card per supplier, plus « Sans fournisseur » when some transactions have none. Each card heads with its Prévu, Facturé and À payer in the lot and lists its quotes and its invoices, with add-devis / add-facture actions; a supplier can be added to the lot before any transaction, and removed while it has none. A lot that is not visible in the project answers not found.
 4. Each quote offers « Ajouter une facture pour ce devis » (§5 `transactions`).
 5. New transactions and status changes immediately affect the financial engine.
 
 The admin screen « Lots » (`/settings/lots`, next to user management, visible to admins only) renames and reorders the global lots.
 
-### Transaction workspace
+### Transaction workspace (« Devis et factures »)
 
-The transaction page provides a project-wide view of financial records with lot, libellé, référence, supplier, status, amount, date, and document context, and a lot filter.
+The « Devis et factures » page (`/devis-factures`; « Transactions » and `/transactions` before the money-model change, which still redirect, query string and hash kept) provides a project-wide view of financial records with lot, libellé, référence, supplier, status, amount, date, and document context, and a lot filter.
 
 The workflow supports:
 
 - creating and editing transactions, including moving one to another lot;
 - quote and invoice status management;
 - linking an existing supplier;
-- creating a supplier directly from the transaction form;
+- creating a supplier directly from the transaction form, by its name only in an inline panel; it is assigned to the transaction's lot when the quote or invoice is saved;
 - attaching and reviewing documents;
 - filtering and searching project transactions (the search matches the libellé and the référence).
 
@@ -374,12 +378,12 @@ Users maintain a reusable supplier directory containing company details and mult
 
 A supplier's page is a short header and three tabs, each its own URL:
 
-- the header: the supplier's name and comment, its lots in the project as badges (the same assignments as the « Lots » column), « Écrire » and « Copier » for the primary contact's email (or the first contact with one), and « Modifier »;
-- « Synthèse » (`/suppliers/:id`): four cards, Coordonnées (SIRET, N° RNE, address), Contacts (the primary contact, the others one click away), Bilan (Devis retenus, Facturé and Reste à facturer for this supplier in the project, by the §6.4 rules) and Documents (which of the five types are present, the next expiry and its signal);
-- « Transactions (n) »: the supplier's transactions in the project with lot, libellé and référence;
+- the header: the supplier's name and comment, its lots in the project as badges (the same assignments as the « Lots » column), « Écrire » and « Modifier ». « Écrire » is a small menu of the contacts with an email (« name — email »), each opening `mailto:`; with one email it opens it directly, with none it is hidden;
+- « Synthèse » (`/suppliers/:id`): four cards, Coordonnées (SIRET, N° RNE, address), Contacts (the primary contact, the others one click away), Bilan (Coût prévu, Devis validés as a reference, Facturé, Payé and À payer for this supplier in the project, by the §6.4 rules, with a payment bar: Payé out of Facturé) and Documents (which of the five types are present, the next expiry and its signal);
+- « Devis et factures (n) » (`/suppliers/:id/devis-factures`; `/suppliers/:id/transactions` redirects): the supplier's quotes and invoices in the project with lot, libellé and référence;
 - « Documents (n) »: the supplier's documents with their type, file, upload date and expiry, to add (file, type, optional expiry date), view, download, edit (type and expiry only) and delete.
 
-The supplier form holds company details and contacts only: documents are added from the Documents tab.
+The supplier form is a page: `/suppliers/new` (« Nouveau fournisseur » on the list) and `/suppliers/:id/edit` (« Modifier »). Its sections are Entreprise (name, SIRET, N° RNE, comment), Adresse, Contacts (one primary contact) and « Lots du projet », a checklist of the current project's visible lots. The ticked lots are saved with the supplier in the same request (`project_lots` on `POST /suppliers/` and `PATCH /suppliers/{id}`, one commit): a lot where the supplier has active quotes or invoices cannot be unticked (`409 supplier_lot_has_active_transactions`), and an assignment in a hidden lot is never removed. Enregistrer and Annuler go back to the page that opened the form (supplier page or list); leaving with unsaved edits asks first. Documents are added from the Documents tab.
 
 ### Document management
 
@@ -389,19 +393,13 @@ Documents are uploaded in relation to a transaction, or to a supplier (§5 `supp
 
 The dashboard uses the central financial engine to provide:
 
-- Devis retenus;
-- Facturé (every active invoice);
-- Reste à facturer;
-- invoicing progress (Facturé / Devis retenus);
-- spending over time (Facturé by month);
-- « Budget vs dépenses réelles »: a bar chart of Devis retenus vs Facturé per lot, lots with a non-zero amount only;
-- « Répartition par lot »: a treemap of Facturé per lot;
-- Facturé distribution by supplier;
-- unpaid invoice widgets;
-- quotes to confirm or negotiate;
-- missing-document alerts;
-- recent transactions;
-- « Top 5 Écarts budgétaires »: the lots in overrun, worst first.
+- Coût prévu, Facturé, Payé and À payer (§6.4), with a payment bar (Payé out of Facturé);
+- « Facturé par lot »: Payé and À payer stacked per lot, the lots with something invoiced only;
+- « Dépenses dans le temps »: Facturé by month, every active invoice;
+- « Répartition par fournisseur »: Facturé per supplier, top 10;
+- the action center: unpaid invoices; quotes to confirm or negotiate (one widget); missing documents; supplier documents to renew, the dated documents of the active suppliers assigned to a visible lot of the project, flagged expired or expiring within 30 days on the user's own date (the same rule as the supplier page).
+
+Every chart and widget tells an empty result (a short message naming what is missing) from a load failure (a message and « Réessayer »).
 
 ### Accounting export
 
@@ -421,10 +419,12 @@ The authenticated frontend currently contains the following principal routes:
 /dashboard
 /lots
 /lots/:lotId
-/transactions
+/devis-factures
 /suppliers
+/suppliers/new
 /suppliers/:supplierId                (Synthèse)
-/suppliers/:supplierId/transactions
+/suppliers/:supplierId/edit
+/suppliers/:supplierId/devis-factures
 /suppliers/:supplierId/documents
 /documents
 /trash
@@ -436,7 +436,7 @@ The authenticated frontend currently contains the following principal routes:
 /settings/lots         (admins)
 ```
 
-`/budget`, the pre-lots page, redirects to `/lots`.
+`/budget`, the pre-lots page, redirects to `/lots`; `/transactions` and `/suppliers/:supplierId/transactions` redirect to their « Devis et factures » routes.
 
 Authentication routes include:
 
@@ -493,11 +493,11 @@ The financial engine is the authoritative calculation layer for project and lot 
 
 Per visible lot and for the project, it calculates:
 
-- Devis retenus: TTC of the active validated quotes;
-- Facturé: TTC of every active invoice, split into paid, unpaid, and on hold;
-- Reste à facturer, with an overrun flag when negative;
-- invoicing progress;
-- quote, validated quote, and invoice counts.
+- Coût prévu: per supplier group, the larger of its validated quotes and its invoices, summed over the groups;
+- the validated quotes' total, as a reference;
+- Facturé: TTC of every active invoice, split into Payé (paid) and À payer (unpaid and on hold), the unpaid and on-hold totals kept apart too;
+- quote, validated quote, and invoice counts;
+- each supplier's figures in each lot, and over the project's visible lots.
 
 It reads a project's active transactions through `transactions.project_id`, with their active documents, and leaves hidden lots out. The same engine powers the Lots pages, the dashboard read models and the accounting export, so they cannot disagree.
 
@@ -636,6 +636,7 @@ The original document contained several early proposals that are no longer curre
 | `project_items` and `sub_products` as separate or loosely defined concepts | Legacy (superseded in 2026-11): project financial units were finalized as `budget_lines`, typed as whole-product or breakdown |
 | One selected budget transaction per budget line                            | Legacy (superseded in 2026-11): any number of quotes and DIY estimates could be selected per budget line           |
 | Catalog tree, templates, budget lines and selected budget (until 2026-11)  | Global lots organized by supplier; validated quotes are the budget; every active invoice is Facturé                |
+| Devis retenus as the budget, Reste à facturer and overrun (2026-11 lots)   | Coût prévu = per supplier and lot, the larger of validated quotes and invoices; Facturé split Payé / À payer (§6.4) |
 | Supabase Storage, with optional Cloudinary                                 | Cloudflare R2 is the confirmed document storage provider                                                           |
 | Multi-user authentication as a later phase                                 | Authentication, ownership, admin authorization, and password recovery are core implemented foundations             |
 | Dashboard and analytics as a distant second phase                          | The financial engine and dashboard-specific API projections are already implemented                                |
