@@ -1,27 +1,15 @@
-import { type FormEvent, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Eye, EyeOff, FolderPlus, Layers } from 'lucide-react'
+import { Eye, EyeOff, Layers } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { invalidateProjectFinancialQueries } from '@/api/budget-workspace-cache'
 import { getApiErrorMessage } from '@/api/client'
-import {
-  useCreateProjectLotMutation,
-  useProjectLotsQuery,
-  useSetLotHiddenMutation,
-} from '@/api/lots'
+import { useProjectLotsQuery, useSetLotHiddenMutation } from '@/api/lots'
 import { useProjectFinancialSummaryQuery } from '@/api/projects'
 import type { LotFinancialSummaryRead, ProjectLotRead } from '@/api/types'
-import { Field } from '@/components/budget/transaction-form/TransactionFormFields'
-import {
-  ModalCancelButton,
-  ModalSaveButton,
-  ModalShell,
-} from '@/components/shared/ModalShell'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { formatCurrency } from '@/lib/format'
 import { hiddenLots } from '@/lib/lots'
 import { moneyFigures } from '@/lib/supplierStats'
@@ -29,97 +17,6 @@ import { lotLabel } from '@/lib/transactionWorkspace'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
 import { useSelectedProjectId } from '@/state/appState'
-
-// The limits the API enforces on a lot.
-const LOT_CODE_MAX_LENGTH = 10
-const LOT_DESIGNATION_MAX_LENGTH = 120
-
-function AddProjectLotModal({
-  projectId,
-  onClose,
-}: {
-  projectId: number
-  onClose: () => void
-}) {
-  const queryClient = useQueryClient()
-  const createMutation = useCreateProjectLotMutation()
-  const [code, setCode] = useState('')
-  const [designation, setDesignation] = useState('')
-  const [error, setError] = useState<string | null>(null)
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setError(null)
-    try {
-      await createMutation.mutateAsync({
-        projectId,
-        lot: { code: code.trim(), designation: designation.trim() },
-      })
-      invalidateProjectFinancialQueries(queryClient, projectId)
-      notifySuccess('Lot ajouté au projet.')
-      onClose()
-    } catch (createError) {
-      const message = getApiErrorMessage(createError)
-      setError(message)
-      notifyError(`Impossible d’ajouter le lot. ${message}`)
-    }
-  }
-
-  return (
-    <ModalShell
-      size="narrow"
-      title="Nouveau lot"
-      subtitle="Propre à ce projet. Son code et sa désignation ne pourront plus être modifiés : un lot mal saisi se masque et se recrée."
-      icon={<FolderPlus className="h-5 w-5" aria-hidden="true" />}
-      closeDisabled={createMutation.isPending}
-      hasUnsavedChanges={code !== '' || designation !== ''}
-      onClose={onClose}
-      footer={
-        <>
-          <ModalCancelButton
-            onClick={onClose}
-            disabled={createMutation.isPending}
-          />
-          <ModalSaveButton
-            form="project-lot-form"
-            disabled={createMutation.isPending}
-            isSaving={createMutation.isPending}
-          >
-            Ajouter le lot
-          </ModalSaveButton>
-        </>
-      }
-    >
-      <form id="project-lot-form" className="space-y-4" onSubmit={submit}>
-        <div className="grid gap-4 sm:grid-cols-[8rem_minmax(0,1fr)]">
-          <Field label="Code" htmlFor="project-lot-code">
-            <Input
-              id="project-lot-code"
-              required
-              maxLength={LOT_CODE_MAX_LENGTH}
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-            />
-          </Field>
-          <Field label="Désignation" htmlFor="project-lot-designation">
-            <Input
-              id="project-lot-designation"
-              required
-              maxLength={LOT_DESIGNATION_MAX_LENGTH}
-              value={designation}
-              onChange={(event) => setDesignation(event.target.value)}
-            />
-          </Field>
-        </div>
-        {error ? (
-          <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-            {error}
-          </div>
-        ) : null}
-      </form>
-    </ModalShell>
-  )
-}
 
 // The 25 default lots grouped by phase of the build; project lots get their
 // own group at the end.
@@ -237,7 +134,6 @@ export function LotsPage() {
   const summaryQuery = useProjectFinancialSummaryQuery(projectId)
   const lotsQuery = useProjectLotsQuery(projectId)
   const setHiddenMutation = useSetLotHiddenMutation()
-  const [isAddingLot, setIsAddingLot] = useState(false)
 
   async function setHidden(lot: ProjectLotRead, isHidden: boolean) {
     if (projectId === null) return
@@ -312,12 +208,6 @@ export function LotsPage() {
       <PageHeader
         title="Lots"
         description="Les lots du projet : coût prévu, facturé et à payer. Un lot s'ouvre sur ses fournisseurs, leurs devis et leurs factures."
-        actions={
-          <Button variant="gold" onClick={() => setIsAddingLot(true)}>
-            <FolderPlus aria-hidden="true" />
-            Ajouter un lot
-          </Button>
-        }
       />
 
       {(() => {
@@ -438,13 +328,6 @@ export function LotsPage() {
             ))}
           </ul>
         </Card>
-      ) : null}
-
-      {isAddingLot ? (
-        <AddProjectLotModal
-          projectId={projectId}
-          onClose={() => setIsAddingLot(false)}
-        />
       ) : null}
     </section>
   )
