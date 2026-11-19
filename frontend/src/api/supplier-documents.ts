@@ -90,6 +90,13 @@ export function invalidateSupplierDocumentQueries(
   void queryClient.invalidateQueries({
     queryKey: trashQueryKeys.all,
   })
+  // The dashboard's supplier-documents widget, in every project.
+  void queryClient.invalidateQueries({
+    predicate: (query) =>
+      query.queryKey[0] === 'projects' &&
+      query.queryKey[2] === 'dashboard' &&
+      query.queryKey[4] === 'supplier-documents',
+  })
 }
 
 export function useSupplierDocumentsQuery(

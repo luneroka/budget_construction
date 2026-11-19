@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CircleDollarSign, Gauge, ReceiptText, WalletCards } from 'lucide-react'
+import {
+  CircleCheck,
+  CircleDollarSign,
+  ReceiptText,
+  WalletCards,
+} from 'lucide-react'
 import {
   Bar,
   BarChart,
@@ -11,7 +16,6 @@ import {
   LineChart,
   ResponsiveContainer,
   Tooltip,
-  Treemap,
   XAxis,
   YAxis,
 } from 'recharts'
@@ -19,15 +23,13 @@ import {
 import { getApiErrorMessage } from '@/api/client'
 import { useProjectLotsQuery } from '@/api/lots'
 import {
-  useProjectDashboardBudgetAlertsQuery,
-  useProjectDashboardBudgetVsActualQuery,
   useProjectDashboardFinancialOverviewQuery,
-  useProjectDashboardLotDistributionQuery,
+  useProjectDashboardInvoicedByLotQuery,
   useProjectDashboardMissingDocumentsQuery,
-  useProjectDashboardQuotesToConfirmQuery,
-  useProjectDashboardQuotesToNegotiateQuery,
+  useProjectDashboardQuotesToFollowUpQuery,
   useProjectDashboardSpendingOverTimeQuery,
   useProjectDashboardSupplierDistributionQuery,
+  useProjectDashboardSupplierDocumentsQuery,
   useProjectDashboardUnpaidInvoicesQuery,
   useProjectsQuery,
 } from '@/api/projects'
@@ -45,9 +47,11 @@ import { invoicePrefillFromQuote } from '@/components/budget/transaction-form/tr
 import { ChartCard } from '@/components/shared/ChartCard'
 import { KpiCard } from '@/components/shared/KpiCard'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { ProgressBar } from '@/components/shared/ProgressBar'
+import { Card } from '@/components/ui/card'
 import {
   ActionCenterWidget,
-  BudgetAlertsWidgetContent,
+  SupplierDocumentsWidgetContent,
   TransactionWidgetContent,
 } from '@/components/dashboard/ActionCenter'
 import {
@@ -56,14 +60,12 @@ import {
 } from '@/components/dashboard/Skeletons'
 import {
   DashboardChartMessage,
+  DashboardLoadError,
   DashboardMessage,
 } from '@/components/dashboard/Messages'
-import { LotTreemapNode } from '@/components/dashboard/TreemapNode'
 import {
   chartColors,
   currencyTooltip,
-  distributionColors,
-  formatDashboardPercentage,
   getPrimaryGradientColor,
 } from '@/components/dashboard/utils'
 import { formatCurrency, formatMonth } from '@/lib/format'
@@ -74,6 +76,8 @@ import {
 } from '@/lib/apiAdapters'
 import { QUOTES_AND_INVOICES_PATH } from '@/lib/legacyRoutes'
 import { visibleLots } from '@/lib/lots'
+import { documentsToRenew } from '@/lib/supplierDocuments'
+import { paymentProgress } from '@/lib/supplierStats'
 import {
   buildTransactionRow,
   lotLabel,
@@ -83,6 +87,13 @@ import type { Transaction } from '@/types'
 import { notifyError } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
 import { useSelectedProjectId } from '@/state/appState'
+
+// What an empty invoice chart says, and what a chart that failed to load says.
+const NO_INVOICE_MESSAGE = 'Aucune facture enregistrée pour ce projet.'
+const CHART_LOAD_ERROR = 'Impossible de charger ce graphique.'
+
+const kiloEuroTick = (value: unknown) =>
+  `${Math.round(Number(value) / 1000)} k€`
 
 type DashboardPageProps = {
   includeActionCenter?: boolean
@@ -106,27 +117,14 @@ export function DashboardPage({
     projectId,
     { enabled: true },
   )
-  const budgetVsActualQuery = useProjectDashboardBudgetVsActualQuery(
-    projectId,
-    {
-      enabled: true,
-    },
-  )
-  const lotDistributionQuery =
-    useProjectDashboardLotDistributionQuery(projectId)
+  const invoicedByLotQuery = useProjectDashboardInvoicedByLotQuery(projectId)
   const supplierDistributionQuery =
     useProjectDashboardSupplierDistributionQuery(projectId)
   const unpaidInvoicesQuery = useProjectDashboardUnpaidInvoicesQuery(
     projectId,
-    {
-      enabled: includeActionCenter,
-    },
-  )
-  const quotesToConfirmQuery = useProjectDashboardQuotesToConfirmQuery(
-    projectId,
     { enabled: includeActionCenter },
   )
-  const quotesToNegotiateQuery = useProjectDashboardQuotesToNegotiateQuery(
+  const quotesToFollowUpQuery = useProjectDashboardQuotesToFollowUpQuery(
     projectId,
     { enabled: includeActionCenter },
   )
@@ -134,9 +132,10 @@ export function DashboardPage({
     projectId,
     { enabled: includeActionCenter },
   )
-  const budgetAlertsQuery = useProjectDashboardBudgetAlertsQuery(projectId, {
-    enabled: includeActionCenter,
-  })
+  const supplierDocumentsQuery = useProjectDashboardSupplierDocumentsQuery(
+    projectId,
+    { enabled: includeActionCenter },
+  )
   const transactionsQuery = useProjectTransactionsQuery(projectId, {
     enabled: false,
   })
@@ -173,7 +172,14 @@ export function DashboardPage({
     [suppliersQuery.data],
   )
   const financialOverview = financialOverviewQuery.data
-  const remainder = decimalToNumber(financialOverview?.remaining_to_invoice_ttc)
+  const overviewFigures = {
+    plannedTtc: decimalToNumber(financialOverview?.planned_cost_ttc),
+    invoicedTtc: decimalToNumber(financialOverview?.invoiced_amount_ttc),
+    paidTtc: decimalToNumber(financialOverview?.paid_invoice_amount_ttc),
+    toPayTtc: decimalToNumber(financialOverview?.to_pay_amount_ttc),
+  }
+  // How much of what has been invoiced is paid; null before any invoice.
+  const progress = paymentProgress(overviewFigures)
   const spendingOverTimeData = useMemo(
     () =>
       (spendingOverTimeQuery.data ?? []).map((item) => ({
@@ -183,33 +189,23 @@ export function DashboardPage({
       })),
     [spendingOverTimeQuery.data],
   )
-  const budgetVsActualData = useMemo(
+  // The API lists only the lots with something invoiced.
+  const invoicedByLotData = useMemo(
     () =>
-      (budgetVsActualQuery.data ?? []).map((item) => ({
+      (invoicedByLotQuery.data ?? []).map((item) => ({
         ...item,
         lot_label: lotLabel({
           code: item.lot_code,
           designation: item.lot_designation,
         }),
-        validated_quote_amount_ttc: decimalToNumber(
-          item.validated_quote_amount_ttc,
-        ),
-        invoiced_amount_ttc: decimalToNumber(item.invoiced_amount_ttc),
+        paid_invoice_amount_ttc: decimalToNumber(item.paid_invoice_amount_ttc),
+        to_pay_amount_ttc: decimalToNumber(item.to_pay_amount_ttc),
       })),
-    [budgetVsActualQuery.data],
+    [invoicedByLotQuery.data],
   )
-  const lotDistributionData = useMemo(
-    () =>
-      (lotDistributionQuery.data ?? []).map((item, index) => ({
-        ...item,
-        lot_label: lotLabel({
-          code: item.lot_code,
-          designation: item.lot_designation,
-        }),
-        invoiced_amount_ttc: decimalToNumber(item.invoiced_amount_ttc),
-        fill: distributionColors[index % distributionColors.length],
-      })),
-    [lotDistributionQuery.data],
+  const supplierDocumentsToRenew = useMemo(
+    () => documentsToRenew(supplierDocumentsQuery.data ?? []),
+    [supplierDocumentsQuery.data],
   )
   const topSupplierDistributionData = useMemo(
     () =>
@@ -230,10 +226,8 @@ export function DashboardPage({
         !financialOverviewQuery.isFetching &&
         !spendingOverTimeQuery.isLoading &&
         !spendingOverTimeQuery.isFetching &&
-        !budgetVsActualQuery.isLoading &&
-        !budgetVsActualQuery.isFetching &&
-        !lotDistributionQuery.isLoading &&
-        !lotDistributionQuery.isFetching &&
+        !invoicedByLotQuery.isLoading &&
+        !invoicedByLotQuery.isFetching &&
         !supplierDistributionQuery.isLoading &&
         !supplierDistributionQuery.isFetching))
 
@@ -267,8 +261,10 @@ export function DashboardPage({
     void navigate(`${QUOTES_AND_INVOICES_PATH}?quick_view=${quickView}`)
   }
 
-  function openBudgetAlert(lotId: number) {
-    void navigate(`/lots/${lotId}`)
+  // A bar of « Facturé par lot » opens its lot.
+  function openLot(data: unknown) {
+    const lotId = (data as { payload?: { lot_id?: number } }).payload?.lot_id
+    if (lotId !== undefined) void navigate(`/lots/${lotId}`)
   }
 
   function addInvoiceForQuote(quote: Transaction) {
@@ -294,52 +290,58 @@ export function DashboardPage({
         <DashboardMessage>Aucun projet actif.</DashboardMessage>
       ) : financialOverviewQuery.isLoading ? (
         <DashboardKpiSkeleton />
-      ) : financialOverviewQuery.isError ? (
-        <DashboardMessage>
-          {getApiErrorMessage(financialOverviewQuery.error)}
-        </DashboardMessage>
-      ) : financialOverview ? (
-        <div
-          className={cn(
-            'grid gap-4',
-            exportLayout ? 'grid-cols-4' : 'sm:grid-cols-2 xl:grid-cols-4',
-          )}
-        >
-          <KpiCard
-            label="Devis retenus"
-            value={formatCurrency(
-              decimalToNumber(financialOverview.validated_quote_amount_ttc),
-            )}
-            icon={CircleDollarSign}
-            tone="gold"
-          />
-          <KpiCard
-            label="Facturé"
-            value={formatCurrency(
-              decimalToNumber(financialOverview.invoiced_amount_ttc),
-            )}
-            icon={ReceiptText}
-            tone="primary"
-          />
-          <KpiCard
-            label="Reste à facturer"
-            value={formatCurrency(remainder)}
-            icon={WalletCards}
-            tone={remainder >= 0 ? 'success' : 'destructive'}
-          />
-          <KpiCard
-            label="Avancement de la facturation"
-            value={formatDashboardPercentage(
-              financialOverview.completion_percentage,
-            )}
-            icon={Gauge}
-            tone={remainder >= 0 ? 'accent' : 'warning'}
-          />
-        </div>
+      ) : financialOverviewQuery.isError || !financialOverview ? (
+        <DashboardLoadError
+          size="block"
+          message="Impossible de charger les indicateurs du projet."
+          onRetry={() => void financialOverviewQuery.refetch()}
+        />
       ) : (
-        <DashboardMessage>
-          Aucun indicateur financier disponible pour ce projet.
-        </DashboardMessage>
+        <>
+          <div
+            className={cn(
+              'grid gap-4',
+              exportLayout ? 'grid-cols-4' : 'sm:grid-cols-2 xl:grid-cols-4',
+            )}
+          >
+            <KpiCard
+              label="Coût prévu"
+              value={formatCurrency(overviewFigures.plannedTtc)}
+              icon={CircleDollarSign}
+              tone="accent"
+            />
+            <KpiCard
+              label="Facturé"
+              value={formatCurrency(overviewFigures.invoicedTtc)}
+              icon={ReceiptText}
+              tone="primary"
+            />
+            <KpiCard
+              label="Payé"
+              value={formatCurrency(overviewFigures.paidTtc)}
+              icon={CircleCheck}
+              tone="success"
+            />
+            <KpiCard
+              label="À payer"
+              value={formatCurrency(overviewFigures.toPayTtc)}
+              icon={WalletCards}
+              tone="gold"
+            />
+          </div>
+          <Card className="mt-4 p-5 text-sm">
+            {progress ? (
+              <ProgressBar
+                value={progress.value}
+                max={progress.max}
+                tone="success"
+                label={progress.label}
+              />
+            ) : (
+              <p className="text-muted-foreground">{NO_INVOICE_MESSAGE}</p>
+            )}
+          </Card>
+        </>
       )}
 
       {projectId !== null ? (
@@ -350,6 +352,79 @@ export function DashboardPage({
               exportLayout ? 'grid-cols-2' : 'xl:grid-cols-2',
             )}
           >
+            <div className={exportLayout ? 'col-span-2' : 'xl:col-span-2'}>
+              <ChartCard
+                title="Facturé par lot"
+                description="Payé et à payer, pour les lots facturés."
+              >
+                {invoicedByLotQuery.isLoading ? (
+                  <DashboardChartSkeleton />
+                ) : invoicedByLotQuery.isError ? (
+                  <DashboardLoadError
+                    message={CHART_LOAD_ERROR}
+                    onRetry={() => void invoicedByLotQuery.refetch()}
+                  />
+                ) : invoicedByLotData.length === 0 ? (
+                  <DashboardChartMessage>
+                    {NO_INVOICE_MESSAGE}
+                  </DashboardChartMessage>
+                ) : (
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={invoicedByLotData}>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke={chartColors.border}
+                        />
+                        <XAxis
+                          dataKey="lot_code"
+                          tick={{
+                            fontSize: 11,
+                            fill: chartColors.mutedForeground,
+                          }}
+                          interval={0}
+                        />
+                        <YAxis
+                          tick={{
+                            fontSize: 12,
+                            fill: chartColors.mutedForeground,
+                          }}
+                          tickFormatter={kiloEuroTick}
+                        />
+                        <Tooltip
+                          formatter={currencyTooltip}
+                          labelFormatter={(_label, payload) =>
+                            (
+                              payload?.[0]?.payload as
+                                { lot_label?: string } | undefined
+                            )?.lot_label ?? ''
+                          }
+                        />
+                        <Legend />
+                        <Bar
+                          dataKey="paid_invoice_amount_ttc"
+                          name="Payé"
+                          stackId="invoiced"
+                          fill={chartColors.success}
+                          className="cursor-pointer"
+                          onClick={(data) => openLot(data)}
+                        />
+                        <Bar
+                          dataKey="to_pay_amount_ttc"
+                          name="À payer"
+                          stackId="invoiced"
+                          fill={chartColors.gold}
+                          radius={[3, 3, 0, 0]}
+                          className="cursor-pointer"
+                          onClick={(data) => openLot(data)}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </ChartCard>
+            </div>
+
             <ChartCard
               title="Dépenses dans le temps"
               description="Montants facturés par mois, payés ou non."
@@ -357,12 +432,13 @@ export function DashboardPage({
               {spendingOverTimeQuery.isLoading ? (
                 <DashboardChartSkeleton />
               ) : spendingOverTimeQuery.isError ? (
-                <DashboardChartMessage>
-                  {getApiErrorMessage(spendingOverTimeQuery.error)}
-                </DashboardChartMessage>
+                <DashboardLoadError
+                  message={CHART_LOAD_ERROR}
+                  onRetry={() => void spendingOverTimeQuery.refetch()}
+                />
               ) : spendingOverTimeData.length === 0 ? (
                 <DashboardChartMessage>
-                  Aucune dépense facturée pour ce projet.
+                  {NO_INVOICE_MESSAGE}
                 </DashboardChartMessage>
               ) : (
                 <div className="h-72">
@@ -384,9 +460,7 @@ export function DashboardPage({
                           fontSize: 12,
                           fill: chartColors.mutedForeground,
                         }}
-                        tickFormatter={(value) =>
-                          `${Math.round(Number(value) / 1000)} k€`
-                        }
+                        tickFormatter={kiloEuroTick}
                       />
                       <Tooltip formatter={currencyTooltip} />
                       <Line
@@ -404,122 +478,22 @@ export function DashboardPage({
             </ChartCard>
 
             <ChartCard
-              title="Budget vs dépenses réelles"
-              description="Devis retenus et facturé par lot."
-            >
-              {budgetVsActualQuery.isLoading ? (
-                <DashboardChartSkeleton />
-              ) : budgetVsActualQuery.isError ? (
-                <DashboardChartMessage>
-                  {getApiErrorMessage(budgetVsActualQuery.error)}
-                </DashboardChartMessage>
-              ) : budgetVsActualData.length === 0 ? (
-                <DashboardChartMessage>
-                  Aucun montant par lot pour ce projet.
-                </DashboardChartMessage>
-              ) : (
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={budgetVsActualData}>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke={chartColors.border}
-                      />
-                      <XAxis
-                        dataKey="lot_code"
-                        tick={{
-                          fontSize: 11,
-                          fill: chartColors.mutedForeground,
-                        }}
-                        interval={0}
-                        angle={-20}
-                        textAnchor="end"
-                        height={80}
-                      />
-                      <YAxis
-                        tick={{
-                          fontSize: 12,
-                          fill: chartColors.mutedForeground,
-                        }}
-                        tickFormatter={(value) =>
-                          `${Math.round(Number(value) / 1000)} k€`
-                        }
-                      />
-                      <Tooltip
-                        formatter={currencyTooltip}
-                        labelFormatter={(_label, payload) =>
-                          (
-                            payload?.[0]?.payload as
-                              { lot_label?: string } | undefined
-                          )?.lot_label ?? ''
-                        }
-                      />
-                      <Legend />
-                      <Bar
-                        dataKey="validated_quote_amount_ttc"
-                        name="Devis retenus"
-                        fill={chartColors.gold}
-                        radius={[3, 3, 0, 0]}
-                      />
-                      <Bar
-                        dataKey="invoiced_amount_ttc"
-                        name="Facturé"
-                        fill={chartColors.primary}
-                        radius={[3, 3, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </ChartCard>
-
-            <ChartCard
-              title="Répartition par lot"
-              description="Facturé par lot."
-            >
-              {lotDistributionQuery.isLoading ? (
-                <DashboardChartSkeleton />
-              ) : lotDistributionQuery.isError ? (
-                <DashboardChartMessage>
-                  {getApiErrorMessage(lotDistributionQuery.error)}
-                </DashboardChartMessage>
-              ) : lotDistributionData.length === 0 ? (
-                <DashboardChartMessage>
-                  Aucune dépense à répartir par lot.
-                </DashboardChartMessage>
-              ) : (
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <Treemap
-                      data={lotDistributionData}
-                      dataKey="invoiced_amount_ttc"
-                      nameKey="lot_label"
-                      content={LotTreemapNode}
-                      isAnimationActive={false}
-                    >
-                      <Tooltip formatter={currencyTooltip} />
-                    </Treemap>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </ChartCard>
-
-            <ChartCard
               title="Répartition par fournisseur"
               description="Top 10 fournisseurs par montant facturé."
             >
               {supplierDistributionQuery.isLoading ? (
                 <DashboardChartSkeleton />
               ) : supplierDistributionQuery.isError ? (
-                <DashboardChartMessage>
-                  {getApiErrorMessage(supplierDistributionQuery.error)}
-                </DashboardChartMessage>
+                <DashboardLoadError
+                  message={CHART_LOAD_ERROR}
+                  onRetry={() => void supplierDistributionQuery.refetch()}
+                />
               ) : topSupplierDistributionData.length === 0 ? (
                 <DashboardChartMessage>
-                  Aucune dépense à répartir par fournisseur.
+                  {NO_INVOICE_MESSAGE}
                 </DashboardChartMessage>
               ) : (
-                <div className="h-80">
+                <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={topSupplierDistributionData}
@@ -536,9 +510,7 @@ export function DashboardPage({
                           fontSize: 12,
                           fill: chartColors.mutedForeground,
                         }}
-                        tickFormatter={(value) =>
-                          `${Math.round(Number(value) / 1000)} k€`
-                        }
+                        tickFormatter={kiloEuroTick}
                       />
                       <YAxis
                         type="category"
@@ -589,11 +561,11 @@ export function DashboardPage({
           {includeActionCenter ? (
             <div className="mt-6">
               <div className="mb-4">
-                <h2 className="font-heading text-xl font-semibold text-foreground">
+                <h2 className="font-[family-name:var(--font-body)] text-xl font-semibold text-foreground">
                   Centre d’action
                 </h2>
               </div>
-              <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-6 lg:grid-cols-2">
                 <ActionCenterWidget
                   title="Factures impayées"
                   count={unpaidInvoicesQuery.data?.count ?? 0}
@@ -601,47 +573,32 @@ export function DashboardPage({
                 >
                   <TransactionWidgetContent
                     emptyMessage="Aucune facture impayée."
-                    error={unpaidInvoicesQuery.error}
                     isError={unpaidInvoicesQuery.isError}
                     isLoading={unpaidInvoicesQuery.isLoading}
                     widget={unpaidInvoicesQuery.data}
                     onItemClick={(item) =>
                       void openTransaction(item.transaction_id)
                     }
+                    onRetry={() => void unpaidInvoicesQuery.refetch()}
                   />
                 </ActionCenterWidget>
 
+                {/* No « Voir tout »: the « Devis et factures » page has a
+                    quick view for each status, none for both. */}
                 <ActionCenterWidget
-                  title="Devis à négocier"
-                  count={quotesToNegotiateQuery.data?.count ?? 0}
-                  onViewAll={() => viewAllTransactions('quotes_to_negotiate')}
+                  title="Devis à confirmer ou à négocier"
+                  count={quotesToFollowUpQuery.data?.count ?? 0}
+                  showActionButton={false}
                 >
                   <TransactionWidgetContent
-                    emptyMessage="Aucun devis à négocier."
-                    error={quotesToNegotiateQuery.error}
-                    isError={quotesToNegotiateQuery.isError}
-                    isLoading={quotesToNegotiateQuery.isLoading}
-                    widget={quotesToNegotiateQuery.data}
+                    emptyMessage="Aucun devis à confirmer ou à négocier."
+                    isError={quotesToFollowUpQuery.isError}
+                    isLoading={quotesToFollowUpQuery.isLoading}
+                    widget={quotesToFollowUpQuery.data}
                     onItemClick={(item) =>
                       void openTransaction(item.transaction_id)
                     }
-                  />
-                </ActionCenterWidget>
-
-                <ActionCenterWidget
-                  title="Devis à confirmer"
-                  count={quotesToConfirmQuery.data?.count ?? 0}
-                  onViewAll={() => viewAllTransactions('quotes_to_confirm')}
-                >
-                  <TransactionWidgetContent
-                    emptyMessage="Aucun devis à confirmer."
-                    error={quotesToConfirmQuery.error}
-                    isError={quotesToConfirmQuery.isError}
-                    isLoading={quotesToConfirmQuery.isLoading}
-                    widget={quotesToConfirmQuery.data}
-                    onItemClick={(item) =>
-                      void openTransaction(item.transaction_id)
-                    }
+                    onRetry={() => void quotesToFollowUpQuery.refetch()}
                   />
                 </ActionCenterWidget>
 
@@ -652,30 +609,26 @@ export function DashboardPage({
                 >
                   <TransactionWidgetContent
                     emptyMessage="Aucun document manquant."
-                    error={missingDocumentsQuery.error}
                     isError={missingDocumentsQuery.isError}
                     isLoading={missingDocumentsQuery.isLoading}
                     widget={missingDocumentsQuery.data}
                     onItemClick={(item) =>
                       void openTransaction(item.transaction_id)
                     }
+                    onRetry={() => void missingDocumentsQuery.refetch()}
                   />
                 </ActionCenterWidget>
 
                 <ActionCenterWidget
-                  title="Top 5 Écarts budgétaires"
-                  count={budgetAlertsQuery.data?.count ?? 0}
-                  showCountBadge={false}
+                  title="Documents fournisseurs à renouveler"
+                  count={supplierDocumentsToRenew.length}
                   showActionButton={false}
                 >
-                  <BudgetAlertsWidgetContent
-                    emptyMessage="Aucun dépassement de budget."
-                    error={budgetAlertsQuery.error}
-                    isError={budgetAlertsQuery.isError}
-                    isLoading={budgetAlertsQuery.isLoading}
-                    items={budgetAlertsQuery.data?.items}
-                    maxItems={5}
-                    onItemClick={(item) => openBudgetAlert(item.lot_id)}
+                  <SupplierDocumentsWidgetContent
+                    documents={supplierDocumentsToRenew}
+                    isError={supplierDocumentsQuery.isError}
+                    isLoading={supplierDocumentsQuery.isLoading}
+                    onRetry={() => void supplierDocumentsQuery.refetch()}
                   />
                 </ActionCenterWidget>
               </div>

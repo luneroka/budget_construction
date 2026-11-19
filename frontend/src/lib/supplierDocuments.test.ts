@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  documentsToRenew,
   expirySignal,
   localToday,
   nextExpiringDocument,
@@ -56,5 +57,35 @@ describe('nextExpiringDocument', () => {
   it('is null when no document has a date', () => {
     expect(nextExpiringDocument([{ id: 1, expiry_date: null }])).toBeNull()
     expect(nextExpiringDocument([])).toBeNull()
+  })
+})
+
+describe('documentsToRenew', () => {
+  const documents = [
+    { id: 1, expiry_date: '2026-11-18' }, // expired yesterday
+    { id: 2, expiry_date: '2026-11-19' }, // today
+    { id: 3, expiry_date: '2026-12-19' }, // day 30
+    { id: 4, expiry_date: '2026-12-20' }, // day 31
+    { id: 5, expiry_date: null }, // no date
+  ]
+
+  it('keeps the expired and the expiring within 30 days, with their flag', () => {
+    expect(documentsToRenew(documents, today)).toEqual([
+      { id: 1, expiry_date: '2026-11-18', signal: 'expired' },
+      { id: 2, expiry_date: '2026-11-19', signal: 'expiring_soon' },
+      { id: 3, expiry_date: '2026-12-19', signal: 'expiring_soon' },
+    ])
+  })
+
+  it('leaves out day 31 and a document without a date', () => {
+    const ids = documentsToRenew(documents, today).map(
+      (document) => document.id,
+    )
+    expect(ids).not.toContain(4)
+    expect(ids).not.toContain(5)
+  })
+
+  it('is empty when nothing needs renewing', () => {
+    expect(documentsToRenew([documents[3], documents[4]], today)).toEqual([])
   })
 })

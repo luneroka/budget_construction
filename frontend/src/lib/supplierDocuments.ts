@@ -68,3 +68,16 @@ export function nextExpiringDocument<T extends { expiry_date: string | null }>(
     return document.expiry_date < soonest.expiry_date ? document : soonest
   }, null)
 }
+
+// The dashboard's « Documents fournisseurs » widget: the documents expired or
+// expiring within 30 days, with their signal, in the order given (the API
+// sorts them by expiry date). A document without a date never shows.
+export function documentsToRenew<T extends { expiry_date: string | null }>(
+  documents: T[],
+  today: string = localToday(),
+): Array<T & { signal: ExpirySignal }> {
+  return documents.flatMap((document) => {
+    const signal = expirySignal(document.expiry_date, today)
+    return signal ? [{ ...document, signal }] : []
+  })
+}

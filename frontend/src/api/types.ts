@@ -219,13 +219,14 @@ export type ProjectFinancialSummaryRead = FinancialTotalsRead & {
   suppliers: SupplierFinancialSummaryRead[]
 }
 
+// The dashboard's four figures, as the financial summary computes them.
 export type DashboardFinancialOverviewRead = {
   project_id: number
   generated_at: ApiDateTime
-  validated_quote_amount_ttc: ApiDecimal
+  planned_cost_ttc: ApiDecimal
   invoiced_amount_ttc: ApiDecimal
-  remaining_to_invoice_ttc: ApiDecimal
-  completion_percentage: ApiDecimal
+  paid_invoice_amount_ttc: ApiDecimal
+  to_pay_amount_ttc: ApiDecimal
 }
 
 export type DashboardSpendingOverTimePointRead = {
@@ -233,19 +234,14 @@ export type DashboardSpendingOverTimePointRead = {
   invoiced_amount_ttc: ApiDecimal
 }
 
-export type DashboardLotBudgetInvoicedRead = {
-  lot_id: number
-  lot_code: string
-  lot_designation: string
-  validated_quote_amount_ttc: ApiDecimal
-  invoiced_amount_ttc: ApiDecimal
-}
-
-export type DashboardLotDistributionRead = {
+/** « Facturé par lot »: the visible lots with something invoiced. */
+export type DashboardLotInvoicedRead = {
   lot_id: number
   lot_code: string
   lot_designation: string
   invoiced_amount_ttc: ApiDecimal
+  paid_invoice_amount_ttc: ApiDecimal
+  to_pay_amount_ttc: ApiDecimal
 }
 
 export type DashboardSupplierDistributionRead = {
@@ -277,18 +273,18 @@ export type DashboardTransactionWidgetRead = {
   items: DashboardTransactionWidgetItemRead[]
 }
 
-export type DashboardBudgetAlertRead = {
-  lot_id: number
-  lot_code: string
-  lot_designation: string
-  validated_quote_amount_ttc: ApiDecimal
-  invoiced_amount_ttc: ApiDecimal
-  variance_ttc: ApiDecimal
-}
-
-export type DashboardBudgetAlertsRead = {
-  count: number
-  items: DashboardBudgetAlertRead[]
+/**
+ * A dated document of a supplier assigned to one of the project's visible
+ * lots, soonest expiry first. Expired or expiring soon is decided here, on
+ * the user's own date (`expirySignal`).
+ */
+export type DashboardSupplierDocumentRead = {
+  id: number
+  supplier_id: number
+  supplier_name: string
+  type: SupplierDocumentType
+  expiry_date: ApiDate
+  original_filename: string
 }
 
 export type TransactionBaseWrite = {

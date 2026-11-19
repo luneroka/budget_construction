@@ -13,15 +13,6 @@ export const chartColors = {
   mutedForeground: 'hsl(var(--muted-foreground))',
 }
 
-export const distributionColors = [
-  chartColors.primary,
-  chartColors.accent,
-  chartColors.gold,
-  chartColors.success,
-  chartColors.warning,
-  chartColors.destructive,
-]
-
 const PRIMARY_HUE = 220
 const PRIMARY_SATURATION = 45
 const PRIMARY_LIGHTNESS_DARK = 22
@@ -33,12 +24,6 @@ export function getPrimaryGradientColor(index: number, total: number): string {
     PRIMARY_LIGHTNESS_DARK +
     ratio * (PRIMARY_LIGHTNESS_LIGHT - PRIMARY_LIGHTNESS_DARK)
   return `hsl(${PRIMARY_HUE} ${PRIMARY_SATURATION}% ${lightness}%)`
-}
-
-export function formatDashboardPercentage(value: ApiDecimal): string {
-  return `${new Intl.NumberFormat('fr-FR', {
-    maximumFractionDigits: 1,
-  }).format(decimalToNumber(value))} %`
 }
 
 export function currencyTooltip(value: unknown) {
