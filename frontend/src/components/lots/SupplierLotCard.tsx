@@ -47,6 +47,8 @@ export type SupplierLotCardProps = {
   supplierName: string
   /** The API's figures for this supplier in this lot. */
   figures: MoneyFigures
+  /** This supplier's Prévu as a share of the lot's, 0–100; null when the lot plans nothing. */
+  plannedShare: number | null
   transactions: Transaction[]
   readOnly?: boolean
   onAdd: (transactionType: 'quote' | 'invoice') => void
@@ -160,7 +162,12 @@ function TransactionRow({
   onAddInvoiceForQuote,
 }: Omit<
   SupplierLotCardProps,
-  'supplierId' | 'supplierName' | 'figures' | 'transactions' | 'onAdd'
+  | 'supplierId'
+  | 'supplierName'
+  | 'figures'
+  | 'plannedShare'
+  | 'transactions'
+  | 'onAdd'
 > & {
   section: Section
   transaction: Transaction
@@ -285,6 +292,7 @@ export function SupplierLotCard(props: SupplierLotCardProps) {
     supplierId,
     supplierName,
     figures,
+    plannedShare,
     transactions,
     readOnly,
     onAdd,
@@ -349,19 +357,41 @@ export function SupplierLotCard(props: SupplierLotCardProps) {
             <h3 className="font-[family-name:var(--font-body)] text-lg font-semibold text-foreground">
               {supplierName}
             </h3>
-            <p className="text-sm text-muted-foreground">
-              Prévu {formatCurrency(figures.plannedTtc)} · Facturé{' '}
-              {formatCurrency(figures.invoicedTtc)} · À payer{' '}
-              <span
-                className={cn(
-                  figures.toPayTtc !== 0 && 'font-semibold text-gold',
-                )}
-              >
-                {formatCurrency(figures.toPayTtc)}
+            <p className="mt-0.5 flex flex-wrap items-baseline gap-x-5 gap-y-0.5 text-sm text-muted-foreground">
+              <span>
+                Prévu{' '}
+                <span className="font-semibold text-foreground tabular-nums">
+                  {formatCurrency(figures.plannedTtc)}
+                </span>
+                {plannedShare !== null ? (
+                  <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[0.7rem] font-medium tabular-nums">
+                    {Math.round(plannedShare)} % du lot
+                  </span>
+                ) : null}
               </span>
-              {isOpen
-                ? null
-                : ` · ${quotes.length} devis · ${invoices.length} facture${invoices.length > 1 ? 's' : ''}`}
+              <span>
+                Facturé{' '}
+                <span className="font-semibold text-foreground tabular-nums">
+                  {formatCurrency(figures.invoicedTtc)}
+                </span>
+              </span>
+              <span>
+                À payer{' '}
+                <span
+                  className={cn(
+                    'font-semibold tabular-nums',
+                    figures.toPayTtc !== 0 ? 'text-gold' : 'text-foreground',
+                  )}
+                >
+                  {formatCurrency(figures.toPayTtc)}
+                </span>
+              </span>
+              {isOpen ? null : (
+                <span className="text-xs">
+                  {quotes.length} devis · {invoices.length} facture
+                  {invoices.length > 1 ? 's' : ''}
+                </span>
+              )}
             </p>
           </div>
         </div>

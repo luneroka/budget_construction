@@ -256,12 +256,20 @@ export function LotDetailPage() {
   const supplierNames = new Map(
     suppliers.map((supplier) => [supplier.id, supplier.name]),
   )
-  const cards = groupLotTransactionsBySupplier({
+  const groupedCards = groupLotTransactionsBySupplier({
     lotId: lot.id,
     transactions,
     assignments: supplierLotsQuery.data ?? [],
     supplierNames,
   })
+  // Biggest planned amount first; ties keep the order of the grouping.
+  const cards = groupedCards
+    .map((card) => ({
+      card,
+      figures: lotSupplierFigures(lotSummary, card.supplierId),
+    }))
+    .sort((left, right) => right.figures.plannedTtc - left.figures.plannedTtc)
+    .map(({ card }) => card)
   const currentLotId = lot.id
 
   function addInvoiceForQuote(quote: Transaction) {
@@ -386,6 +394,14 @@ export function LotDetailPage() {
               supplierId={card.supplierId}
               supplierName={card.supplierName}
               figures={lotSupplierFigures(lotSummary, card.supplierId)}
+              plannedShare={
+                lotFigures && lotFigures.plannedTtc > 0
+                  ? (lotSupplierFigures(lotSummary, card.supplierId)
+                      .plannedTtc /
+                      lotFigures.plannedTtc) *
+                    100
+                  : null
+              }
               transactions={card.transactions}
               onAdd={(transactionType) =>
                 setActiveAction({
