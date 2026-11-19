@@ -3,7 +3,6 @@ import { ArrowRight, Check, Minus } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import type { SupplierDocumentRead } from '@/api/types'
-import { ProgressBar } from '@/components/shared/ProgressBar'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Card } from '@/components/ui/card'
 import { formatCurrency, formatDate } from '@/lib/format'
@@ -19,7 +18,7 @@ import {
   primaryContact,
   supplierAddressLines,
 } from '@/lib/supplierContact'
-import { type MoneyFigures, paymentProgress } from '@/lib/supplierStats'
+import type { MoneyFigures } from '@/lib/supplierStats'
 import { cn } from '@/lib/utils'
 import type { Supplier, SupplierContact } from '@/types'
 
@@ -157,56 +156,54 @@ function Figure({
   className?: string
 }) {
   return (
-    <span className="min-w-0">
-      <span className="block text-muted-foreground">{label}</span>
-      <span
-        className={cn('block truncate font-semibold tabular-nums', className)}
+    <div className="min-w-0">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd
+        className={cn(
+          'truncate text-sm font-semibold text-foreground tabular-nums',
+          className,
+        )}
       >
         {formatCurrency(amount)}
-      </span>
-    </span>
+      </dd>
+    </div>
   )
 }
 
+// The supplier's figures in the project: Coût prévu first and larger, then
+// Facturé, Payé and À payer (stressed while something is left to pay), and
+// the validated quotes as a reference line.
 function BalanceCard({ figures }: { figures: MoneyFigures }) {
   const counts = [
     `${figures.quoteCount} devis`,
     `${figures.invoiceCount} facture${figures.invoiceCount > 1 ? 's' : ''}`,
   ].join(' · ')
-  // How much of what has been invoiced is paid.
-  const progress = paymentProgress(figures)
 
   return (
     <SummaryCard title="Bilan" description={`${counts} sur ce projet`}>
-      <div className="grid grid-cols-3 gap-x-2 gap-y-2 text-[0.7rem] leading-4">
-        <Figure label="Coût prévu" amount={figures.plannedTtc} />
-        <Figure
-          label="Devis validés (réf.)"
-          amount={figures.validatedQuotesTtc}
-          className="font-medium text-muted-foreground"
-        />
-        <Figure label="Facturé" amount={figures.invoicedTtc} />
-        <Figure label="Payé" amount={figures.paidTtc} />
-        <Figure
-          label="À payer"
-          amount={figures.toPayTtc}
-          className={figures.toPayTtc !== 0 ? 'text-gold' : undefined}
-        />
-      </div>
-      <div className="mt-auto pt-3 text-xs">
-        {progress ? (
-          <ProgressBar
-            value={progress.value}
-            max={progress.max}
-            tone="success"
-            label={progress.label}
+      <dl className="space-y-3">
+        <div>
+          <dt className="text-xs text-muted-foreground">Coût prévu</dt>
+          <dd className="text-xl font-semibold text-foreground tabular-nums">
+            {formatCurrency(figures.plannedTtc)}
+          </dd>
+        </div>
+        <div className="grid grid-cols-3 gap-x-3">
+          <Figure label="Facturé" amount={figures.invoicedTtc} />
+          <Figure label="Payé" amount={figures.paidTtc} />
+          <Figure
+            label="À payer"
+            amount={figures.toPayTtc}
+            className={figures.toPayTtc !== 0 ? 'text-gold' : undefined}
           />
-        ) : (
-          <p className="text-muted-foreground">
-            Aucune facture pour ce fournisseur sur ce projet.
-          </p>
-        )}
-      </div>
+        </div>
+        <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-2 text-xs">
+          <dt className="text-muted-foreground">Devis validés (réf.)</dt>
+          <dd className="font-medium text-muted-foreground tabular-nums">
+            {formatCurrency(figures.validatedQuotesTtc)}
+          </dd>
+        </div>
+      </dl>
     </SummaryCard>
   )
 }

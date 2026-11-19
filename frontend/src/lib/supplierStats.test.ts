@@ -10,7 +10,6 @@ import {
   EMPTY_FIGURES,
   lotSupplierFigures,
   moneyFigures,
-  paymentProgress,
   supplierFigures,
 } from './supplierStats'
 
@@ -93,18 +92,5 @@ describe('lotSupplierFigures', () => {
 
   it('is all zeros for an assigned supplier with nothing in the lot', () => {
     expect(lotSupplierFigures(lot02, '7')).toEqual(EMPTY_FIGURES)
-  })
-})
-
-describe('paymentProgress', () => {
-  it('is Payé out of Facturé', () => {
-    expect(paymentProgress({ invoicedTtc: 650, paidTtc: 600 })).toMatchObject({
-      value: 600,
-      max: 650,
-    })
-  })
-
-  it('is empty when nothing is invoiced', () => {
-    expect(paymentProgress({ invoicedTtc: 0, paidTtc: 0 })).toBeNull()
   })
 })

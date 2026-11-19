@@ -379,7 +379,7 @@ Users maintain a reusable supplier directory containing company details and mult
 A supplier's page is a short header and three tabs, each its own URL:
 
 - the header: the supplier's name and comment, its lots in the project as badges (the same assignments as the « Lots » column), « Écrire » and « Modifier ». « Écrire » is a small menu of the contacts with an email (« name — email »), each opening `mailto:`; with one email it opens it directly, with none it is hidden;
-- « Synthèse » (`/suppliers/:id`): four cards, Coordonnées (SIRET, N° RNE, address), Contacts (the primary contact, the others one click away), Bilan (Coût prévu, Devis validés as a reference, Facturé, Payé and À payer for this supplier in the project, by the §6.4 rules, with a payment bar: Payé out of Facturé) and Documents (which of the five types are present, the next expiry and its signal);
+- « Synthèse » (`/suppliers/:id`): four cards, Coordonnées (SIRET, N° RNE, address), Contacts (the primary contact, the others one click away), Bilan (Coût prévu, Devis validés as a reference, Facturé, Payé and À payer for this supplier in the project, by the §6.4 rules, Coût prévu first and larger, no progress bar) and Documents (which of the five types are present, the next expiry and its signal);
 - « Devis et factures (n) » (`/suppliers/:id/devis-factures`; `/suppliers/:id/transactions` redirects): the supplier's quotes and invoices in the project with lot, libellé and référence;
 - « Documents (n) »: the supplier's documents with their type, file, upload date and expiry, to add (file, type, optional expiry date), view, download, edit (type and expiry only) and delete.
 

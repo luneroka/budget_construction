@@ -4,7 +4,6 @@ import type {
   ProjectFinancialSummaryRead,
 } from '@/api/types'
 import { decimalToNumber } from '@/lib/apiAdapters'
-import { formatCurrency } from '@/lib/format'
 
 // The money figures of a supplier, a supplier in a lot or a lot, as the API
 // computes them (the financial summary): nothing is recomputed here.
@@ -72,19 +71,4 @@ export function lotSupplierFigures(
         : String(group.supplier_id) === supplierId,
     ),
   )
-}
-
-// The payment bar: how much of what has been invoiced is paid. Null when
-// nothing is invoiced yet, which the caller shows as an empty state.
-export function paymentProgress(
-  figures: Pick<MoneyFigures, 'invoicedTtc' | 'paidTtc'>,
-): { value: number; max: number; label: string } | null {
-  if (figures.invoicedTtc <= 0) return null
-  return {
-    value: figures.paidTtc,
-    max: figures.invoicedTtc,
-    label: `${formatCurrency(figures.paidTtc)} payés sur ${formatCurrency(
-      figures.invoicedTtc,
-    )} facturés`,
-  }
 }

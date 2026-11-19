@@ -38,7 +38,7 @@ The family uses the app as a store of quotes and invoices per lot, not as a bala
 
 **Supplier page**
 9. "Copier" is removed. "Écrire" is a small menu listing the supplier's contacts that have an email, as "name — email". Choosing one opens `mailto:`. With exactly one email, the button opens `mailto:` directly with no menu. With none, it is hidden. The menu is keyboard operable and has an `aria-label`.
-10. The Bilan card shows Coût prévu, Devis validés (reference), Facturé, Payé and À payer. The progress bar becomes a payment bar (Payé out of Facturé), with an empty state when Facturé is 0 (a test or check covers the zero case). `lib/supplierStats.ts` follows the backend figures and does not recompute them differently.
+10. The Bilan card shows Coût prévu, Devis validés (reference), Facturé, Payé and À payer. No progress bar: Coût prévu leads in a larger size, then Facturé, Payé and À payer, with Devis validés as a reference line (bar removed by Yoann during dev). `lib/supplierStats.ts` follows the backend figures and does not recompute them differently.
 
 **Rename**
 11. The user-facing name "Transactions" becomes "Devis et factures" in the sidebar, the page title and the supplier tab ("Devis et factures (n)"). The dev greps the frontend for every user-facing mention of the page (empty states, links, trash or issue-report context, help text). Generic uses of the word for the records themselves are listed in the report and left unless they name the page.
