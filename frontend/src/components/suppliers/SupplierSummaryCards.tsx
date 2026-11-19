@@ -198,7 +198,7 @@ function BalanceCard({ figures }: { figures: MoneyFigures }) {
           />
         </div>
         <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-2 text-xs">
-          <dt className="text-muted-foreground">Devis validés (réf.)</dt>
+          <dt className="text-muted-foreground">Devis validés</dt>
           <dd className="font-medium text-muted-foreground tabular-nums">
             {formatCurrency(figures.validatedQuotesTtc)}
           </dd>
