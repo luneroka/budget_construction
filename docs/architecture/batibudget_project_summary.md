@@ -126,7 +126,7 @@ Key decisions:
 - users authenticate through email and password;
 - passwords are stored as hashes;
 - users can own multiple projects and suppliers;
-- `is_admin` controls user management and the global lots (rename and reorder);
+- `is_admin` controls user management and the global lots (add, rename, reorder and delete);
 - user records support active, soft-deleted, restored, and permanently deleted states.
 
 ### `lots`
@@ -134,7 +134,7 @@ Key decisions:
 The one categorizer of transactions (spec `docs/specs/2026-11-18-lots.md`).
 
 - A lot has a `code` stored as text (`"00"` stays `"00"`, at most 10 characters), a `designation` (at most 120) and a `sort_order`.
-- A lot with no `project_id` is **global**: every project sees it. The 25 default global lots, `00` « Préparation de chantier » to `24` « Cheminée / Poêle », are created by the lots migration. Only an admin renames (code and designation) or reorders them; nobody adds or deletes one. Code and designation are each unique among global lots.
+- A lot with no `project_id` is **global**: every project sees it. The 25 default global lots, `00` « Préparation de chantier » to `24` « Cheminée / Poêle », are created by the lots migration. Only an admin adds, renames (code and designation), reorders or deletes them (`docs/specs/2026-11-19-global-lots-crud.md`). A new lot is listed last and every project sees it at once. A lot that any transaction uses, active or in a trash, cannot be deleted; a delete is final and takes the lot's `project_hidden_lots` and `supplier_lots` rows with it, never a supplier, transaction or document. Code and designation are each unique among global lots.
 - A lot with a `project_id` belongs to that project only. Its code and designation are typed at creation and never renamed; at creation its code must differ from every global code and from the project's other lots. Project lots are listed after the global lots, ordered by code.
 - An admin re-code of a global lot is not checked against project lots: a project may then show two lots with the same code, which stay separate lots.
 
@@ -357,7 +357,7 @@ None runs in production. `seed_powerbi_demo.py` writes project and lot on its tr
 4. Each quote offers « Ajouter une facture pour ce devis » (§5 `transactions`).
 5. New transactions and status changes immediately affect the financial engine.
 
-The admin screen « Lots » (`/settings/lots`, next to user management, visible to admins only) renames and reorders the global lots.
+The admin screen « Lots » (`/settings/lots`, next to user management, visible to admins only) adds, renames, reorders and deletes the global lots.
 
 ### Transaction workspace (« Devis et factures »)
 
