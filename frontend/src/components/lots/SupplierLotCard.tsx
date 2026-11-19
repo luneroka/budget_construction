@@ -41,6 +41,16 @@ const sectionTexts: Record<Section, { title: string; empty: string }> = {
   invoices: { title: 'Factures', empty: 'Aucune facture' },
 }
 
+// Whole percent, but one decimal below 1 % so a small supplier doesn't read 0.
+function formatShare(share: number) {
+  if (share > 0 && share < 1) {
+    return share < 0.05
+      ? '< 0,1 %'
+      : `${share.toLocaleString('fr-FR', { maximumFractionDigits: 1, minimumFractionDigits: 1 })} %`
+  }
+  return `${Math.round(share)} %`
+}
+
 export type SupplierLotCardProps = {
   /** null: the « Sans fournisseur » card. */
   supplierId: string | null
@@ -365,7 +375,7 @@ export function SupplierLotCard(props: SupplierLotCardProps) {
                 </span>
                 {plannedShare !== null ? (
                   <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[0.7rem] font-medium tabular-nums">
-                    {Math.round(plannedShare)} % du lot
+                    {formatShare(plannedShare)} du lot
                   </span>
                 ) : null}
               </span>
