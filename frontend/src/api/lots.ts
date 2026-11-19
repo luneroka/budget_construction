@@ -69,6 +69,14 @@ export function getGlobalLots(): Promise<GlobalLotRead[]> {
   return apiGet<GlobalLotRead[]>('/admin/lots/')
 }
 
+export function createGlobalLot(lot: LotCreate): Promise<GlobalLotRead> {
+  return apiPost<GlobalLotRead, LotCreate>('/admin/lots/', lot)
+}
+
+export function deleteGlobalLot(lotId: number): Promise<void> {
+  return apiDelete<void>(`/admin/lots/${lotId}`)
+}
+
 export function updateGlobalLot(
   lotId: number,
   lot: GlobalLotUpdate,
@@ -180,6 +188,18 @@ export function useUnassignSupplierLotMutation() {
       supplierId: number
       lotId: number
     }) => unassignSupplierLot(projectId, supplierId, lotId),
+  })
+}
+
+export function useCreateGlobalLotMutation() {
+  return useMutation({
+    mutationFn: (lot: LotCreate) => createGlobalLot(lot),
+  })
+}
+
+export function useDeleteGlobalLotMutation() {
+  return useMutation({
+    mutationFn: (lotId: number) => deleteGlobalLot(lotId),
   })
 }
 
