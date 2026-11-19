@@ -9,6 +9,7 @@ from app.repositories import lot as lot_repository
 from app.routers._helpers import require_found
 from app.routers.integrity import raise_integrity_conflict
 from app.schemas.lot import (
+    GlobalLotCreate,
     GlobalLotMove,
     GlobalLotRead,
     GlobalLotUpdate,
@@ -147,6 +148,32 @@ async def unassign_supplier_lot(
 @admin_lot_router.get('/', response_model=list[GlobalLotRead])
 async def get_global_lots(db: AsyncSession = Depends(get_db_session)):
     return await lot_repository.get_global_lots(db)
+
+
+@admin_lot_router.post(
+    '/', response_model=GlobalLotRead, status_code=status.HTTP_201_CREATED
+)
+async def create_global_lot(
+    lot_data: GlobalLotCreate,
+    db: AsyncSession = Depends(get_db_session),
+):
+    try:
+        return await lot_repository.create_global_lot(db, lot_data)
+    except IntegrityError as error:
+        await raise_integrity_conflict(db, error)
+
+
+@admin_lot_router.delete('/{lot_id}', status_code=status.HTTP_204_NO_CONTENT)
+async def delete_global_lot(
+    lot_id: int,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """Refused while any transaction, active or in a trash, uses the lot."""
+    require_found(
+        await lot_repository.delete_global_lot(db, lot_id),
+        'lot_not_found',
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @admin_lot_router.patch('/{lot_id}', response_model=GlobalLotRead)

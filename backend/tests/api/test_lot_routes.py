@@ -197,19 +197,7 @@ async def test_admin_reorders_global_lots(client: AsyncClient) -> None:
     assert project_order[:3] == ['01', '00', '02']
 
 
-async def test_global_lots_cannot_be_added_or_deleted(client: AsyncClient) -> None:
-    admin = await create_project_context(
-        client, email='admin-no-add@example.com', is_admin=True
-    )
-    lot_id = await global_lot_id('05')
-
-    added = await client.post(
-        '/admin/lots/', headers=admin.headers, json={'code': '25', 'designation': 'X'}
-    )
-    deleted = await client.delete(f'/admin/lots/{lot_id}', headers=admin.headers)
-
-    assert added.status_code == 405
-    assert deleted.status_code == 405
+# Adding and deleting global lots: tests/api/test_global_lot_crud.py.
 
 
 async def test_admin_recode_to_a_project_lot_code_keeps_both_lots(

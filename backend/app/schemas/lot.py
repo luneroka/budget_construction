@@ -34,6 +34,10 @@ class LotVisibilityUpdate(BaseModel):
     is_hidden: bool
 
 
+class GlobalLotCreate(LotCreate):
+    """A global lot added by an admin, listed after every other global lot."""
+
+
 class GlobalLotUpdate(BaseModel):
     code: LotCode | None = None
     designation: LotDesignation | None = None

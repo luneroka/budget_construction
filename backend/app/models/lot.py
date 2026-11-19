@@ -20,7 +20,8 @@ class Lot(Base):
     """A categorizer for transactions.
 
     A lot with no ``project_id`` is global: every project sees it, and only
-    an admin renames or reorders it. A lot with a ``project_id`` belongs to
+    an admin adds, renames, reorders or deletes it (a lot no transaction
+    uses). A lot with a ``project_id`` belongs to
     that project only and is listed after the global lots, ordered by code.
     """
 

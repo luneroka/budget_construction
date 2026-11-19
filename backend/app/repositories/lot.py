@@ -11,6 +11,7 @@ from __future__ import annotations
 from fastapi import status
 from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -20,6 +21,7 @@ from app.models.supplier import Supplier
 from app.models.transaction import Transaction
 from app.repositories.common import get_active_project
 from app.schemas.lot import (
+    GlobalLotCreate,
     GlobalLotUpdate,
     LotCreate,
     LotMoveDirection,
@@ -243,15 +245,16 @@ async def _get_global_lot(db: AsyncSession, lot_id: int) -> Lot | None:
     return result.scalar_one_or_none()
 
 
-async def update_global_lot(
-    db: AsyncSession, lot_id: int, lot_data: GlobalLotUpdate
-) -> Lot | None:
-    lot = await _get_global_lot(db, lot_id)
-    if lot is None:
-        return None
-
-    values = lot_data.model_dump(exclude_unset=True, exclude_none=True)
-    others = and_(Lot.project_id.is_(None), Lot.id != lot_id)
+async def _require_unique_global_lot(
+    db: AsyncSession,
+    values: dict[str, str],
+    *,
+    lot_id: int | None = None,
+) -> None:
+    """Refuse a code or designation another global lot already has."""
+    others: ColumnElement[bool] = Lot.project_id.is_(None)
+    if lot_id is not None:
+        others = and_(others, Lot.id != lot_id)
     if 'code' in values:
         conflict = await db.execute(
             select(Lot.id).where(others, Lot.code == values['code'])
@@ -265,11 +268,82 @@ async def update_global_lot(
         if conflict.first() is not None:
             raise DomainError(status.HTTP_409_CONFLICT, 'lot_designation_conflict')
 
+
+async def create_global_lot(db: AsyncSession, lot_data: GlobalLotCreate) -> Lot:
+    """Add a global lot after every other one. Every project sees it at once:
+    no ``project_hidden_lots`` row is written."""
+    values = lot_data.model_dump()
+    await _require_unique_global_lot(db, values)
+
+    last_position = await db.execute(
+        select(func.max(Lot.sort_order)).where(Lot.project_id.is_(None))
+    )
+    position = last_position.scalar_one()
+    lot = Lot(
+        code=values['code'],
+        designation=values['designation'],
+        sort_order=0 if position is None else position + 1,
+    )
+    db.add(lot)
+    await db.commit()
+    await db.refresh(lot)
+    return lot
+
+
+async def update_global_lot(
+    db: AsyncSession, lot_id: int, lot_data: GlobalLotUpdate
+) -> Lot | None:
+    lot = await _get_global_lot(db, lot_id)
+    if lot is None:
+        return None
+
+    values = lot_data.model_dump(exclude_unset=True, exclude_none=True)
+    await _require_unique_global_lot(db, values, lot_id=lot_id)
+
     for field, value in values.items():
         setattr(lot, field, value)
     await db.commit()
     await db.refresh(lot)
     return lot
+
+
+async def _lot_has_transactions(db: AsyncSession, lot_id: int) -> bool:
+    """Any transaction of any project, active or soft-deleted: a trashed one
+    must stay restorable into its lot. Only a yes or no leaves here."""
+    result = await db.execute(
+        select(Transaction.id).where(Transaction.lot_id == lot_id).limit(1)
+    )
+    return result.first() is not None
+
+
+async def delete_global_lot(db: AsyncSession, lot_id: int) -> bool | None:
+    """Hard-delete a global lot no transaction uses, with its visibility and
+    supplier rows in every project. None when there is no such global lot.
+
+    ``transactions.lot_id`` has a restrictive foreign key: a transaction
+    created in the lot after the check makes the delete fail, and that
+    failure is the same refusal. The remaining lots keep their positions;
+    the gap is harmless, since the order only compares positions and a move
+    renumbers every global lot.
+    """
+    if await _get_global_lot(db, lot_id) is None:
+        return None
+    if await _lot_has_transactions(db, lot_id):
+        raise DomainError(status.HTTP_409_CONFLICT, 'lot_in_use')
+
+    try:
+        await db.execute(
+            delete(ProjectHiddenLot).where(ProjectHiddenLot.lot_id == lot_id)
+        )
+        await db.execute(delete(SupplierLot).where(SupplierLot.lot_id == lot_id))
+        await db.execute(delete(Lot).where(Lot.id == lot_id))
+        await db.commit()
+    except IntegrityError as error:
+        # Only transactions_lot_id_fkey can fail here: both link tables are
+        # emptied above.
+        await db.rollback()
+        raise DomainError(status.HTTP_409_CONFLICT, 'lot_in_use') from error
+    return True
 
 
 async def move_global_lot(
