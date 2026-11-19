@@ -22,13 +22,6 @@ export function getProjectLots(projectId: number): Promise<ProjectLotRead[]> {
   return apiGet<ProjectLotRead[]>(`/projects/${projectId}/lots/`)
 }
 
-export function createProjectLot(
-  projectId: number,
-  lot: LotCreate,
-): Promise<ProjectLotRead> {
-  return apiPost<ProjectLotRead, LotCreate>(`/projects/${projectId}/lots/`, lot)
-}
-
 export function setLotHidden(
   projectId: number,
   lotId: number,
@@ -139,13 +132,6 @@ export function useGlobalLotsQuery(options: { enabled: boolean }) {
     queryKey: lotQueryKeys.global(),
     queryFn: getGlobalLots,
     enabled: options.enabled,
-  })
-}
-
-export function useCreateProjectLotMutation() {
-  return useMutation({
-    mutationFn: ({ projectId, lot }: { projectId: number; lot: LotCreate }) =>
-      createProjectLot(projectId, lot),
   })
 }
 
