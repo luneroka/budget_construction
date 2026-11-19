@@ -5,6 +5,10 @@ import { RedirectAuthenticated } from '@/auth/RedirectAuthenticated'
 import { RequireAuth } from '@/auth/RequireAuth'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { AutoUpdate } from '@/components/layout/AutoUpdate'
+import {
+  SupplierTransactionsRedirect,
+  TransactionsRedirect,
+} from '@/components/layout/LegacyRedirects'
 import { IconTooltips } from '@/components/ui/icon-tooltips'
 import { AdminLotsPage } from '@/pages/AdminLotsPage'
 import { AdminUsersPage } from '@/pages/AdminUsersPage'
@@ -70,15 +74,21 @@ export default function App() {
             <Route path="lots/:lotId" element={<LotDetailPage />} />
             {/* The page was « Budget » before lots: old bookmarks land here. */}
             <Route path="budget" element={<Navigate to="/lots" replace />} />
-            <Route path="transactions" element={<TransactionsPage />} />
+            <Route path="devis-factures" element={<TransactionsPage />} />
+            {/* « Transactions » before the money-model change. */}
+            <Route path="transactions" element={<TransactionsRedirect />} />
             <Route path="suppliers" element={<SuppliersPage />} />
             <Route
               path="suppliers/:supplierId"
               element={<SupplierDetailPage tab="summary" />}
             />
             <Route
-              path="suppliers/:supplierId/transactions"
+              path="suppliers/:supplierId/devis-factures"
               element={<SupplierDetailPage tab="transactions" />}
+            />
+            <Route
+              path="suppliers/:supplierId/transactions"
+              element={<SupplierTransactionsRedirect />}
             />
             <Route
               path="suppliers/:supplierId/documents"

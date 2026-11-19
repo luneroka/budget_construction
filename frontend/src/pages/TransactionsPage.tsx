@@ -577,8 +577,8 @@ export function TransactionsPage() {
     return (
       <section>
         <PageHeader
-          title="Transactions"
-          description="Sélectionnez un projet pour consulter ses transactions."
+          title="Devis et factures"
+          description="Sélectionnez un projet pour consulter ses devis et ses factures."
         />
         <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
           Aucun projet actif.
@@ -590,8 +590,8 @@ export function TransactionsPage() {
   return (
     <section>
       <PageHeader
-        title="Transactions"
-        description="Vue chronologique de toutes les transactions du projet."
+        title="Devis et factures"
+        description="Vue chronologique de tous les devis et factures du projet."
       />
 
       <div className="mt-4 flex flex-wrap gap-1.5">
@@ -722,7 +722,7 @@ export function TransactionsPage() {
               <span className="whitespace-nowrap">{transactionCountLabel}</span>
               <Select
                 className="w-24"
-                aria-label="Transactions par page"
+                aria-label="Devis et factures par page"
                 value={String(pageSize)}
                 onChange={(event) => setPageSize(Number(event.target.value))}
               >

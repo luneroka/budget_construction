@@ -72,6 +72,7 @@ import {
   projectToDomain,
   suppliersToDomain,
 } from '@/lib/apiAdapters'
+import { QUOTES_AND_INVOICES_PATH } from '@/lib/legacyRoutes'
 import { visibleLots } from '@/lib/lots'
 import {
   buildTransactionRow,
@@ -263,7 +264,7 @@ export function DashboardPage({
   }
 
   function viewAllTransactions(quickView: QuickViewId) {
-    void navigate(`/transactions?quick_view=${quickView}`)
+    void navigate(`${QUOTES_AND_INVOICES_PATH}?quick_view=${quickView}`)
   }
 
   function openBudgetAlert(lotId: number) {

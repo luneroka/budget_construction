@@ -43,6 +43,7 @@ import {
   supplierToDomain,
   suppliersToDomain,
 } from '@/lib/apiAdapters'
+import { SUPPLIER_QUOTES_AND_INVOICES_SEGMENT } from '@/lib/legacyRoutes'
 import { lotsBySupplier, visibleLots } from '@/lib/lots'
 import {
   formatDocumentPositionLabel,
@@ -66,10 +67,15 @@ export type SupplierDetailTab = 'summary' | 'transactions' | 'documents'
 
 // Each tab is its own URL, so a direct link, the back button and a reload
 // keep it: /suppliers/:id is the Synthèse.
+const tabSegments: Record<Exclude<SupplierDetailTab, 'summary'>, string> = {
+  transactions: SUPPLIER_QUOTES_AND_INVOICES_SEGMENT,
+  documents: 'documents',
+}
+
 function tabPath(supplierId: number, tab: SupplierDetailTab): string {
   return tab === 'summary'
     ? `/suppliers/${supplierId}`
-    : `/suppliers/${supplierId}/${tab}`
+    : `/suppliers/${supplierId}/${tabSegments[tab]}`
 }
 
 function useSupplierIdParam(): number | null {
@@ -80,7 +86,7 @@ function useSupplierIdParam(): number | null {
 
 type TransactionRow = ReturnType<typeof buildTransactionRow>
 
-// The Transactions tab: the supplier's transactions in the project, a row
+// The « Devis et factures » tab: the supplier's transactions in the project, a row
 // opening the review modal, its document buttons.
 function SupplierTransactionsTable({
   rows,
@@ -214,7 +220,10 @@ function SupplierTabs({
 }) {
   const tabs: Array<{ tab: SupplierDetailTab; label: string }> = [
     { tab: 'summary', label: 'Synthèse' },
-    { tab: 'transactions', label: `Transactions (${transactionCount})` },
+    {
+      tab: 'transactions',
+      label: `Devis et factures (${transactionCount})`,
+    },
     { tab: 'documents', label: `Documents (${documentCount})` },
   ]
 
