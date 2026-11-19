@@ -18,6 +18,7 @@ import { buttonVariants } from '@/components/ui/button-variants'
 import { Card } from '@/components/ui/card'
 import type { Transaction } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/format'
+import type { MoneyFigures } from '@/lib/supplierStats'
 import { transactionTypeLabels } from '@/lib/transactionWorkspace'
 import { cn } from '@/lib/utils'
 
@@ -44,6 +45,8 @@ export type SupplierLotCardProps = {
   /** null: the « Sans fournisseur » card. */
   supplierId: string | null
   supplierName: string
+  /** The API's figures for this supplier in this lot. */
+  figures: MoneyFigures
   transactions: Transaction[]
   readOnly?: boolean
   onAdd: (transactionType: 'quote' | 'invoice') => void
@@ -157,7 +160,7 @@ function TransactionRow({
   onAddInvoiceForQuote,
 }: Omit<
   SupplierLotCardProps,
-  'supplierId' | 'supplierName' | 'transactions' | 'onAdd'
+  'supplierId' | 'supplierName' | 'figures' | 'transactions' | 'onAdd'
 > & {
   section: Section
   transaction: Transaction
@@ -281,6 +284,7 @@ export function SupplierLotCard(props: SupplierLotCardProps) {
   const {
     supplierId,
     supplierName,
+    figures,
     transactions,
     readOnly,
     onAdd,
@@ -292,10 +296,6 @@ export function SupplierLotCard(props: SupplierLotCardProps) {
   const invoices = transactions.filter(
     (transaction) => transaction.transaction_type === 'invoice',
   )
-  const retainedTtc = sumTtc(
-    quotes.filter((quote) => quote.quote_status === 'validated'),
-  )
-  const invoicedTtc = sumTtc(invoices)
   const [isOpen, setIsOpen] = useState(false)
 
   function rows(section: Section, sectionTransactions: Transaction[]) {
@@ -350,8 +350,15 @@ export function SupplierLotCard(props: SupplierLotCardProps) {
               {supplierName}
             </h3>
             <p className="text-sm text-muted-foreground">
-              Devis retenus {formatCurrency(retainedTtc)} · Facturé{' '}
-              {formatCurrency(invoicedTtc)}
+              Prévu {formatCurrency(figures.plannedTtc)} · Facturé{' '}
+              {formatCurrency(figures.invoicedTtc)} · À payer{' '}
+              <span
+                className={cn(
+                  figures.toPayTtc !== 0 && 'font-semibold text-gold',
+                )}
+              >
+                {formatCurrency(figures.toPayTtc)}
+              </span>
               {isOpen
                 ? null
                 : ` · ${quotes.length} devis · ${invoices.length} facture${invoices.length > 1 ? 's' : ''}`}
@@ -403,7 +410,7 @@ export function SupplierLotCard(props: SupplierLotCardProps) {
           </TransactionSection>
           <TransactionSection
             section="invoices"
-            totalTtc={invoicedTtc}
+            totalTtc={sumTtc(invoices)}
             action={
               readOnly ? null : (
                 <AddTransactionButton

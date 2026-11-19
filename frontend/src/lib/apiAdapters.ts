@@ -23,7 +23,7 @@ export function decimalToNumber(
 
 export function projectToDomain(
   project: ProjectRead,
-  summary?: Pick<ProjectFinancialSummaryRead, 'validated_quote_amount_ttc'>,
+  summary?: Pick<ProjectFinancialSummaryRead, 'planned_cost_ttc'>,
 ): Project {
   return {
     id: String(project.id),
@@ -34,9 +34,7 @@ export function projectToDomain(
     start_date: project.start_date ?? '',
     end_date: project.end_date ?? '',
     project_status: project.project_status,
-    validated_quote_amount_ttc: summary
-      ? decimalToNumber(summary.validated_quote_amount_ttc)
-      : 0,
+    planned_cost_ttc: summary ? decimalToNumber(summary.planned_cost_ttc) : 0,
   }
 }
 

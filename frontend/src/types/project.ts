@@ -9,6 +9,6 @@ export type Project = {
   start_date: string
   end_date: string
   project_status: ProjectStatus
-  // « Devis retenus » of the whole project.
-  validated_quote_amount_ttc: number
+  /** « Coût prévu » of the project, from the financial summary. */
+  planned_cost_ttc: number
 }

@@ -44,7 +44,6 @@ import { buttonVariants } from '@/components/ui/button-variants'
 import { Card } from '@/components/ui/card'
 import { useTransactionDocumentViewer } from '@/hooks/useTransactionDocumentViewer'
 import {
-  decimalToNumber,
   projectToDomain,
   suppliersToDomain,
   transactionToDomain,
@@ -59,6 +58,7 @@ import {
   groupLotTransactionsBySupplier,
   visibleLots,
 } from '@/lib/lots'
+import { lotSupplierFigures, moneyFigures } from '@/lib/supplierStats'
 import { lotLabel, transactionDisplayTitle } from '@/lib/transactionWorkspace'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import type { Transaction } from '@/types'
@@ -299,8 +299,9 @@ export function LotDetailPage() {
     )
   }
 
-  const totals = lotSummary
-    ? `Devis retenus ${formatCurrency(decimalToNumber(lotSummary.validated_quote_amount_ttc))} · Facturé ${formatCurrency(decimalToNumber(lotSummary.invoiced_amount_ttc))} · Reste à facturer ${formatCurrency(decimalToNumber(lotSummary.remaining_to_invoice_ttc))}`
+  const lotFigures = lotSummary ? moneyFigures(lotSummary) : null
+  const totals = lotFigures
+    ? `Coût prévu ${formatCurrency(lotFigures.plannedTtc)} · Facturé ${formatCurrency(lotFigures.invoicedTtc)} · Payé ${formatCurrency(lotFigures.paidTtc)} · À payer ${formatCurrency(lotFigures.toPayTtc)}`
     : undefined
 
   return (
@@ -352,6 +353,7 @@ export function LotDetailPage() {
               key={card.supplierId ?? 'none'}
               supplierId={card.supplierId}
               supplierName={card.supplierName}
+              figures={lotSupplierFigures(lotSummary, card.supplierId)}
               transactions={card.transactions}
               onAdd={(transactionType) =>
                 setActiveAction({

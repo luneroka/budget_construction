@@ -22,9 +22,9 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { decimalToNumber } from '@/lib/apiAdapters'
 import { formatCurrency } from '@/lib/format'
 import { hiddenLots } from '@/lib/lots'
+import { moneyFigures } from '@/lib/supplierStats'
 import { lotLabel } from '@/lib/transactionWorkspace'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
@@ -121,28 +121,6 @@ function AddProjectLotModal({
   )
 }
 
-type CardTotals = {
-  count: number
-  retainedTtc: number
-  invoicedTtc: number
-  remainingTtc: number
-}
-
-function lotTotals(lot: {
-  quote_count: number
-  invoice_count: number
-  validated_quote_amount_ttc: LotFinancialSummaryRead['validated_quote_amount_ttc']
-  invoiced_amount_ttc: LotFinancialSummaryRead['invoiced_amount_ttc']
-  remaining_to_invoice_ttc: LotFinancialSummaryRead['remaining_to_invoice_ttc']
-}): CardTotals {
-  return {
-    count: lot.quote_count + lot.invoice_count,
-    retainedTtc: decimalToNumber(lot.validated_quote_amount_ttc),
-    invoicedTtc: decimalToNumber(lot.invoiced_amount_ttc),
-    remainingTtc: decimalToNumber(lot.remaining_to_invoice_ttc),
-  }
-}
-
 // The 25 default lots grouped by phase of the build; project lots get their
 // own group at the end.
 const lotPhases: { title: string; codes: string[] }[] = [
@@ -163,8 +141,9 @@ function phaseRange(codes: string[]) {
   return `${codes[0]}–${codes[codes.length - 1]}`
 }
 
-// One lot: its number large, its name, how much of the retained quotes is
-// invoiced (a bar, red on an overrun), or « À chiffrer » with no quote yet.
+// One lot: its number large, its name, then its Prévu, Facturé and À payer,
+// À payer stressed while something is left to pay. A lot with nothing in it
+// yet has a dashed outline.
 function LotTile({
   lot,
   canHide,
@@ -176,13 +155,10 @@ function LotTile({
   isHiding: boolean
   onHide: () => void
 }) {
-  const totals = lotTotals(lot)
-  const toQuote = totals.count === 0
-  const remainderClass = lot.is_overrun
-    ? 'text-destructive'
-    : totals.remainingTtc > 0
-      ? 'text-foreground'
-      : 'text-muted-foreground'
+  const figures = moneyFigures(lot)
+  const count = figures.quoteCount + figures.invoiceCount
+  const isEmpty = count === 0
+  const hasToPay = figures.toPayTtc !== 0
 
   return (
     <div className="group relative">
@@ -192,7 +168,7 @@ function LotTile({
         className={cn(
           'block h-full rounded-lg border bg-card px-2.5 py-2 text-left text-foreground transition-colors hover:border-primary/60 hover:bg-primary/5',
           // An empty lot is still to quote: a dashed outline.
-          toQuote ? 'border-dashed border-border' : 'border-border',
+          isEmpty ? 'border-dashed border-border' : 'border-border',
         )}
       >
         <div className="flex min-w-0 items-center gap-2">
@@ -207,31 +183,33 @@ function LotTile({
             </span>
           </span>
           <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[0.7rem] font-medium text-muted-foreground group-hover:invisible">
-            {totals.count}
+            {count}
           </span>
         </div>
         <div className="mt-2 grid grid-cols-[1fr_1fr_auto] items-end gap-2 border-t border-border/60 pt-1.5 text-[0.7rem] leading-4">
           <span className="min-w-0">
-            <span className="block text-muted-foreground">Devis retenus</span>
+            <span className="block text-muted-foreground">Prévu</span>
             <span className="block truncate font-semibold tabular-nums">
-              {formatCurrency(totals.retainedTtc)}
+              {formatCurrency(figures.plannedTtc)}
             </span>
           </span>
           <span className="min-w-0">
             <span className="block text-muted-foreground">Facturé</span>
             <span className="block truncate font-semibold tabular-nums">
-              {formatCurrency(totals.invoicedTtc)}
+              {formatCurrency(figures.invoicedTtc)}
             </span>
           </span>
           <span className="min-w-0 text-right">
-            <span className="block text-muted-foreground">Reste</span>
+            <span className="block text-muted-foreground">À payer</span>
             <span
               className={cn(
-                'block truncate font-semibold tabular-nums',
-                remainderClass,
+                'block truncate tabular-nums',
+                hasToPay
+                  ? 'font-bold text-gold'
+                  : 'font-semibold text-muted-foreground',
               )}
             >
-              {formatCurrency(totals.remainingTtc)}
+              {formatCurrency(figures.toPayTtc)}
             </span>
           </span>
         </div>
@@ -333,7 +311,7 @@ export function LotsPage() {
     <section>
       <PageHeader
         title="Lots"
-        description="Les lots du projet : devis retenus, facturé et reste à facturer. Un lot s'ouvre sur ses fournisseurs, leurs devis et leurs factures."
+        description="Les lots du projet : coût prévu, facturé et à payer. Un lot s'ouvre sur ses fournisseurs, leurs devis et leurs factures."
         actions={
           <Button variant="gold" onClick={() => setIsAddingLot(true)}>
             <FolderPlus aria-hidden="true" />
@@ -343,21 +321,15 @@ export function LotsPage() {
       />
 
       {(() => {
-        const totals = lotTotals(summary)
-        const toQuote = summary.lots.filter(
-          (lot) => lot.quote_count === 0 && lot.invoice_count === 0,
-        ).length
+        const figures = moneyFigures(summary)
         const stats = [
-          { label: 'Devis retenus', value: formatCurrency(totals.retainedTtc) },
-          { label: 'Facturé', value: formatCurrency(totals.invoicedTtc) },
+          { label: 'Coût prévu', value: formatCurrency(figures.plannedTtc) },
+          { label: 'Facturé', value: formatCurrency(figures.invoicedTtc) },
+          { label: 'Payé', value: formatCurrency(figures.paidTtc) },
           {
-            label: 'Reste à facturer',
-            value: formatCurrency(totals.remainingTtc),
-            className: summary.is_overrun ? 'text-destructive' : undefined,
-          },
-          {
-            label: 'Lots à chiffrer',
-            value: `${toQuote} / ${summary.lots.length}`,
+            label: 'À payer',
+            value: formatCurrency(figures.toPayTtc),
+            className: figures.toPayTtc !== 0 ? 'text-gold' : undefined,
           },
         ]
         return (

@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Copy, FileText, Files, Mail, Pencil } from 'lucide-react'
+import { ArrowLeft, FileText, Files, Pencil } from 'lucide-react'
 
 import { getApiErrorMessage } from '@/api/client'
 import { useProjectLotsQuery, useSupplierLotsQuery } from '@/api/lots'
-import { useProjectQuery } from '@/api/projects'
+import {
+  useProjectFinancialSummaryQuery,
+  useProjectQuery,
+} from '@/api/projects'
 import { useSupplierDocumentsQuery } from '@/api/supplier-documents'
 import { useSupplierQuery, useSuppliersQuery } from '@/api/suppliers'
 import { useProjectTransactionsQuery } from '@/api/transactions'
@@ -18,6 +21,7 @@ import type { TransactionAction } from '@/components/budget/types'
 import { SupplierDocumentsTab } from '@/components/suppliers/SupplierDocumentsTab'
 import { SupplierModal } from '@/components/suppliers/SupplierModal'
 import { SupplierSummaryCards } from '@/components/suppliers/SupplierSummaryCards'
+import { WriteEmailButton } from '@/components/suppliers/WriteEmailButton'
 import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { StatusBadge } from '@/components/shared/StatusBadge'
@@ -46,8 +50,8 @@ import {
 } from '@/lib/documents'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { copyEmailToClipboard, primaryContact } from '@/lib/supplierContact'
-import { supplierTotals } from '@/lib/supplierStats'
+import { emailRecipients } from '@/lib/supplierEmail'
+import { supplierFigures } from '@/lib/supplierStats'
 import { notifyError } from '@/lib/toasts'
 import {
   buildTransactionRow,
@@ -252,6 +256,7 @@ export function SupplierDetailPage({
   const supplierQuery = useSupplierQuery(supplierId)
   const suppliersQuery = useSuppliersQuery()
   const projectQuery = useProjectQuery(projectId)
+  const summaryQuery = useProjectFinancialSummaryQuery(projectId)
   const transactionsQuery = useProjectTransactionsQuery(projectId)
   const supplierDocumentsQuery = useSupplierDocumentsQuery(supplierId)
   const documentViewer = useTransactionDocumentViewer()
@@ -302,9 +307,11 @@ export function SupplierDetailPage({
         ),
     [supplierId, transactionsQuery.data],
   )
-  const totals = useMemo(
-    () => supplierTotals(rows.map((row) => row.transaction)),
-    [rows],
+  // The Bilan: this supplier's figures in the project, as the API computes
+  // them, so they add up to the Lots page.
+  const figures = useMemo(
+    () => supplierFigures(summaryQuery.data, String(supplierId)),
+    [summaryQuery.data, supplierId],
   )
   const supplierDocuments = supplierDocumentsQuery.data ?? []
 
@@ -337,15 +344,6 @@ export function SupplierDetailPage({
       </section>
     )
   }
-
-  // Who to write to: the primary contact, else the first contact that has
-  // an address.
-  const email =
-    primaryContact(supplier)?.email?.trim() ||
-    supplier.contacts
-      .find((contact) => (contact.email ?? '').trim() !== '')
-      ?.email?.trim() ||
-    ''
 
   function addInvoiceForQuote(quote: Transaction) {
     setTransactionReview(null)
@@ -409,26 +407,7 @@ export function SupplierDetailPage({
         }
         actions={
           <>
-            {email ? (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    window.location.href = `mailto:${encodeURIComponent(email)}`
-                  }}
-                >
-                  <Mail aria-hidden />
-                  Écrire
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => void copyEmailToClipboard(email)}
-                >
-                  <Copy aria-hidden />
-                  Copier
-                </Button>
-              </>
-            ) : null}
+            <WriteEmailButton recipients={emailRecipients(supplier)} />
             <Button variant="outline" onClick={() => setIsEditing(true)}>
               <Pencil aria-hidden />
               Modifier
@@ -447,7 +426,7 @@ export function SupplierDetailPage({
       {tab === 'summary' ? (
         <SupplierSummaryCards
           supplier={supplier}
-          totals={totals}
+          figures={figures}
           documents={supplierDocuments}
           documentsHref={tabPath(supplierId, 'documents')}
         />

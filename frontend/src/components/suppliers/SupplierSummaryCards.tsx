@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom'
 
 import type { SupplierDocumentRead } from '@/api/types'
 import { ProgressBar } from '@/components/shared/ProgressBar'
-import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Card } from '@/components/ui/card'
 import { formatCurrency, formatDate } from '@/lib/format'
@@ -20,7 +19,7 @@ import {
   primaryContact,
   supplierAddressLines,
 } from '@/lib/supplierContact'
-import type { SupplierTotals } from '@/lib/supplierStats'
+import { type MoneyFigures, paymentProgress } from '@/lib/supplierStats'
 import { cn } from '@/lib/utils'
 import type { Supplier, SupplierContact } from '@/types'
 
@@ -169,63 +168,42 @@ function Figure({
   )
 }
 
-function BalanceCard({ totals }: { totals: SupplierTotals }) {
+function BalanceCard({ figures }: { figures: MoneyFigures }) {
   const counts = [
-    `${totals.quoteCount} devis`,
-    `${totals.invoiceCount} facture${totals.invoiceCount > 1 ? 's' : ''}`,
+    `${figures.quoteCount} devis`,
+    `${figures.invoiceCount} facture${figures.invoiceCount > 1 ? 's' : ''}`,
   ].join(' · ')
-  // Invoicing against what was committed; without a retained budget, how
-  // much of what has been invoiced is paid.
-  const progress =
-    totals.retainedTtc > 0
-      ? {
-          value: totals.invoicedTtc,
-          max: totals.retainedTtc,
-          tone: totals.isOverrun ? ('warning' as const) : ('success' as const),
-          label: `${formatCurrency(totals.invoicedTtc)} facturés sur ${formatCurrency(
-            totals.retainedTtc,
-          )} retenus`,
-        }
-      : totals.invoicedTtc > 0
-        ? {
-            value: totals.paidTtc,
-            max: totals.invoicedTtc,
-            tone: 'success' as const,
-            label: `${formatCurrency(totals.paidTtc)} payés sur ${formatCurrency(
-              totals.invoicedTtc,
-            )} facturés`,
-          }
-        : null
+  // How much of what has been invoiced is paid.
+  const progress = paymentProgress(figures)
 
   return (
     <SummaryCard title="Bilan" description={`${counts} sur ce projet`}>
-      <div className="grid grid-cols-3 gap-2 text-[0.7rem] leading-4">
-        <Figure label="Devis retenus" amount={totals.retainedTtc} />
-        <Figure label="Facturé" amount={totals.invoicedTtc} />
+      <div className="grid grid-cols-3 gap-x-2 gap-y-2 text-[0.7rem] leading-4">
+        <Figure label="Coût prévu" amount={figures.plannedTtc} />
         <Figure
-          label="Reste à facturer"
-          amount={totals.remainingTtc}
-          className={totals.isOverrun ? 'text-destructive' : undefined}
+          label="Devis validés (réf.)"
+          amount={figures.validatedQuotesTtc}
+          className="font-medium text-muted-foreground"
+        />
+        <Figure label="Facturé" amount={figures.invoicedTtc} />
+        <Figure label="Payé" amount={figures.paidTtc} />
+        <Figure
+          label="À payer"
+          amount={figures.toPayTtc}
+          className={figures.toPayTtc !== 0 ? 'text-gold' : undefined}
         />
       </div>
-      {totals.isOverrun ? (
-        <div className="mt-2">
-          <Badge variant="destructive" tone="soft">
-            Dépassement
-          </Badge>
-        </div>
-      ) : null}
       <div className="mt-auto pt-3 text-xs">
         {progress ? (
           <ProgressBar
             value={progress.value}
             max={progress.max}
-            tone={progress.tone}
+            tone="success"
             label={progress.label}
           />
         ) : (
           <p className="text-muted-foreground">
-            Aucun montant enregistré pour ce fournisseur.
+            Aucune facture pour ce fournisseur sur ce projet.
           </p>
         )}
       </div>
@@ -298,12 +276,12 @@ function DocumentsCard({
 // The Synthèse tab: four compact cards, side by side from lg, stacked below.
 export function SupplierSummaryCards({
   supplier,
-  totals,
+  figures,
   documents,
   documentsHref,
 }: {
   supplier: Supplier
-  totals: SupplierTotals
+  figures: MoneyFigures
   documents: SupplierDocumentRead[]
   documentsHref: string
 }) {
@@ -311,7 +289,7 @@ export function SupplierSummaryCards({
     <div className="grid gap-3 lg:grid-cols-4">
       <CoordinatesCard supplier={supplier} />
       <ContactsCard supplier={supplier} />
-      <BalanceCard totals={totals} />
+      <BalanceCard figures={figures} />
       <DocumentsCard documents={documents} documentsHref={documentsHref} />
     </div>
   )

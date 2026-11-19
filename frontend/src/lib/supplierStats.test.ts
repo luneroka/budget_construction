@@ -1,121 +1,110 @@
 import { describe, expect, it } from 'vitest'
 
-import type { Transaction } from '@/types'
+import type {
+  FinancialTotalsRead,
+  LotFinancialSummaryRead,
+  ProjectFinancialSummaryRead,
+} from '@/api/types'
 
-import { supplierTotals } from './supplierStats'
+import {
+  EMPTY_FIGURES,
+  lotSupplierFigures,
+  moneyFigures,
+  paymentProgress,
+  supplierFigures,
+} from './supplierStats'
 
-const base: Transaction = {
-  id: '1',
-  project_id: '1',
-  lot_id: 6,
-  lot_code: '06',
-  lot_designation: 'Menuiseries extérieures',
-  supplier_id: '12',
-  supplier_name: 'Menuiserie Dupont',
-  transaction_type: 'invoice',
-  title: null,
-  reference: null,
-  amount_ht: 1000,
-  vat_rate: 20,
-  amount_vat: 200,
-  amount_ttc: 1200,
-  issued_date: '2026-03-01',
-  due_date: null,
-  payment_date: null,
-  created_at: null,
-  updated_at: null,
-  deleted_at: null,
-  description: '',
-  quote_status: null,
-  invoice_status: 'unpaid',
-  invoice_type: 'full',
-  payment_method: 'wire',
-  document_state: 'missing',
-  document_count: 0,
-}
-
-const quote = (overrides: Partial<Transaction>): Transaction => ({
-  ...base,
-  transaction_type: 'quote',
-  quote_status: 'validated',
-  invoice_status: null,
-  invoice_type: null,
+const totals = (
+  overrides: Partial<FinancialTotalsRead> = {},
+): FinancialTotalsRead => ({
+  planned_cost_ttc: '1500.00',
+  validated_quote_amount_ttc: '1500.00',
+  invoiced_amount_ttc: '650.00',
+  paid_invoice_amount_ttc: '600.00',
+  unpaid_invoice_amount_ttc: '0.00',
+  on_hold_invoice_amount_ttc: '50.00',
+  to_pay_amount_ttc: '50.00',
+  quote_count: 5,
+  validated_quote_count: 2,
+  invoice_count: 2,
   ...overrides,
 })
 
-const invoice = (overrides: Partial<Transaction>): Transaction => ({
-  ...base,
-  ...overrides,
+const lot = (
+  suppliers: LotFinancialSummaryRead['suppliers'],
+): LotFinancialSummaryRead => ({
+  ...totals(),
+  lot_id: 2,
+  project_id: null,
+  code: '02',
+  designation: 'Gros œuvre / Maçonnerie',
+  is_global: true,
+  suppliers,
 })
 
-describe('supplierTotals', () => {
-  it('counts only the validated quotes as retained', () => {
-    const totals = supplierTotals([
-      quote({ id: '1', amount_ttc: 5000 }),
-      quote({ id: '2', amount_ttc: 4200, quote_status: 'to_negotiate' }),
-    ])
-
-    expect(totals).toMatchObject({ retainedTtc: 5000, quoteCount: 2 })
-  })
-
-  it('counts every invoice as invoiced, whatever its status', () => {
-    const totals = supplierTotals([
-      invoice({ id: '3', amount_ttc: 1200, invoice_status: 'paid' }),
-      invoice({ id: '4', amount_ttc: 800, invoice_status: 'on_hold' }),
-      invoice({ id: '5', amount_ttc: 500 }),
-    ])
-
-    expect(totals).toMatchObject({
-      invoicedTtc: 2500,
-      paidTtc: 1200,
-      invoiceCount: 3,
+describe('moneyFigures', () => {
+  it('reads the figures the API computed, as they are', () => {
+    expect(moneyFigures(totals())).toEqual({
+      plannedTtc: 1500,
+      validatedQuotesTtc: 1500,
+      invoicedTtc: 650,
+      paidTtc: 600,
+      toPayTtc: 50,
+      quoteCount: 5,
+      invoiceCount: 2,
     })
   })
 
-  it('leaves the retained quotes minus the invoices to invoice', () => {
-    const totals = supplierTotals([
-      quote({ id: '1', amount_ttc: 5000 }),
-      invoice({ id: '2', amount_ttc: 1200 }),
-    ])
+  it('is all zeros for a group the API does not list', () => {
+    expect(moneyFigures(undefined)).toEqual(EMPTY_FIGURES)
+  })
+})
 
-    expect(totals).toMatchObject({ remainingTtc: 3800, isOverrun: false })
+describe('supplierFigures', () => {
+  const summary = {
+    ...totals(),
+    suppliers: [
+      { ...totals({ planned_cost_ttc: '340.00' }), supplier_id: 7 },
+      { ...totals(), supplier_id: 12 },
+    ],
+  } as ProjectFinancialSummaryRead
+
+  it('picks the supplier by id', () => {
+    expect(supplierFigures(summary, '7').plannedTtc).toBe(340)
+    expect(supplierFigures(summary, 12).plannedTtc).toBe(1500)
   })
 
-  it('flags a negative remainder as an overrun', () => {
-    const totals = supplierTotals([
-      quote({ id: '1', amount_ttc: 1000 }),
-      invoice({ id: '2', amount_ttc: 1500, invoice_status: 'paid' }),
-    ])
+  it('is all zeros for a supplier without a transaction in the project', () => {
+    expect(supplierFigures(summary, '99')).toEqual(EMPTY_FIGURES)
+    expect(supplierFigures(undefined, '7')).toEqual(EMPTY_FIGURES)
+  })
+})
 
-    expect(totals).toMatchObject({ remainingTtc: -500, isOverrun: true })
+describe('lotSupplierFigures', () => {
+  const lot02 = lot([
+    { ...totals({ planned_cost_ttc: '1000.00' }), supplier_id: 12 },
+    { ...totals({ planned_cost_ttc: '150.00' }), supplier_id: null },
+  ])
+
+  it('picks the supplier card and the « Sans fournisseur » card', () => {
+    expect(lotSupplierFigures(lot02, '12').plannedTtc).toBe(1000)
+    expect(lotSupplierFigures(lot02, null).plannedTtc).toBe(150)
   })
 
-  it('leaves soft-deleted transactions out', () => {
-    const totals = supplierTotals([
-      quote({ id: '1', amount_ttc: 2000 }),
-      quote({ id: '2', amount_ttc: 9000, deleted_at: '2026-04-01T10:00:00' }),
-      invoice({ id: '3', amount_ttc: 700 }),
-      invoice({ id: '4', amount_ttc: 300, deleted_at: '2026-04-02T10:00:00' }),
-    ])
+  it('is all zeros for an assigned supplier with nothing in the lot', () => {
+    expect(lotSupplierFigures(lot02, '7')).toEqual(EMPTY_FIGURES)
+  })
+})
 
-    expect(totals).toMatchObject({
-      retainedTtc: 2000,
-      invoicedTtc: 700,
-      remainingTtc: 1300,
-      quoteCount: 1,
-      invoiceCount: 1,
+describe('paymentProgress', () => {
+  it('is Payé out of Facturé', () => {
+    expect(paymentProgress({ invoicedTtc: 650, paidTtc: 600 })).toMatchObject({
+      value: 600,
+      max: 650,
     })
   })
 
-  it('is all zeros for a supplier without a transaction', () => {
-    expect(supplierTotals([])).toEqual({
-      retainedTtc: 0,
-      invoicedTtc: 0,
-      paidTtc: 0,
-      remainingTtc: 0,
-      isOverrun: false,
-      quoteCount: 0,
-      invoiceCount: 0,
-    })
+  it('is empty when nothing is invoiced', () => {
+    expect(paymentProgress({ invoicedTtc: 0, paidTtc: 0 })).toBeNull()
   })
 })

@@ -1,54 +1,90 @@
-import type { Transaction } from '@/types'
+import type {
+  FinancialTotalsRead,
+  LotFinancialSummaryRead,
+  ProjectFinancialSummaryRead,
+} from '@/api/types'
+import { decimalToNumber } from '@/lib/apiAdapters'
+import { formatCurrency } from '@/lib/format'
 
-export type SupplierTotals = {
-  /** « Devis retenus »: the validated quotes. */
-  retainedTtc: number
+// The money figures of a supplier, a supplier in a lot or a lot, as the API
+// computes them (the financial summary): nothing is recomputed here.
+export type MoneyFigures = {
+  /** « Coût prévu »: per lot, the larger of the validated quotes and the invoices. */
+  plannedTtc: number
+  /** « Devis validés », a reference figure. */
+  validatedQuotesTtc: number
   invoicedTtc: number
   paidTtc: number
-  /** « Reste à facturer »: Devis retenus − Facturé. */
-  remainingTtc: number
-  /** Invoiced beyond the retained quotes: a dépassement. */
-  isOverrun: boolean
+  /** « À payer »: the unpaid and on-hold invoices. */
+  toPayTtc: number
   quoteCount: number
   invoiceCount: number
 }
 
-const EMPTY: SupplierTotals = {
-  retainedTtc: 0,
+export const EMPTY_FIGURES: MoneyFigures = {
+  plannedTtc: 0,
+  validatedQuotesTtc: 0,
   invoicedTtc: 0,
   paidTtc: 0,
-  remainingTtc: 0,
-  isOverrun: false,
+  toPayTtc: 0,
   quoteCount: 0,
   invoiceCount: 0,
 }
 
-// What a supplier costs in the project, by the lots rules: what was committed
-// to them (the active validated quotes), what they have invoiced (every
-// active invoice), what is left to invoice, and what is paid.
-export function supplierTotals(transactions: Transaction[]): SupplierTotals {
-  const totals = transactions.reduce<SupplierTotals>((current, transaction) => {
-    if (transaction.deleted_at) return current
+// A group the API does not list (a supplier without an active transaction)
+// is all zeros.
+export function moneyFigures(
+  totals: FinancialTotalsRead | undefined,
+): MoneyFigures {
+  if (!totals) return EMPTY_FIGURES
+  return {
+    plannedTtc: decimalToNumber(totals.planned_cost_ttc),
+    validatedQuotesTtc: decimalToNumber(totals.validated_quote_amount_ttc),
+    invoicedTtc: decimalToNumber(totals.invoiced_amount_ttc),
+    paidTtc: decimalToNumber(totals.paid_invoice_amount_ttc),
+    toPayTtc: decimalToNumber(totals.to_pay_amount_ttc),
+    quoteCount: totals.quote_count,
+    invoiceCount: totals.invoice_count,
+  }
+}
 
-    if (transaction.transaction_type === 'invoice') {
-      const isPaid = transaction.invoice_status === 'paid'
-      return {
-        ...current,
-        invoicedTtc: current.invoicedTtc + transaction.amount_ttc,
-        paidTtc: current.paidTtc + (isPaid ? transaction.amount_ttc : 0),
-        invoiceCount: current.invoiceCount + 1,
-      }
-    }
+/** A supplier over the project's visible lots: the supplier page's Bilan. */
+export function supplierFigures(
+  summary: ProjectFinancialSummaryRead | undefined,
+  supplierId: string | number,
+): MoneyFigures {
+  return moneyFigures(
+    summary?.suppliers.find(
+      (row) => String(row.supplier_id) === String(supplierId),
+    ),
+  )
+}
 
-    return {
-      ...current,
-      retainedTtc:
-        current.retainedTtc +
-        (transaction.quote_status === 'validated' ? transaction.amount_ttc : 0),
-      quoteCount: current.quoteCount + 1,
-    }
-  }, EMPTY)
+/** One supplier card of a lot page; null is « Sans fournisseur ». */
+export function lotSupplierFigures(
+  lot: LotFinancialSummaryRead | undefined,
+  supplierId: string | null,
+): MoneyFigures {
+  return moneyFigures(
+    lot?.suppliers.find((group) =>
+      supplierId === null
+        ? group.supplier_id === null
+        : String(group.supplier_id) === supplierId,
+    ),
+  )
+}
 
-  const remainingTtc = totals.retainedTtc - totals.invoicedTtc
-  return { ...totals, remainingTtc, isOverrun: remainingTtc < 0 }
+// The payment bar: how much of what has been invoiced is paid. Null when
+// nothing is invoiced yet, which the caller shows as an empty state.
+export function paymentProgress(
+  figures: Pick<MoneyFigures, 'invoicedTtc' | 'paidTtc'>,
+): { value: number; max: number; label: string } | null {
+  if (figures.invoicedTtc <= 0) return null
+  return {
+    value: figures.paidTtc,
+    max: figures.invoicedTtc,
+    label: `${formatCurrency(figures.paidTtc)} payés sur ${formatCurrency(
+      figures.invoicedTtc,
+    )} facturés`,
+  }
 }

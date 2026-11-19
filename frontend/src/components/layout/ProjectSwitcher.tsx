@@ -41,9 +41,9 @@ export function ProjectSwitcher() {
       : null,
     { enabled: true },
   )
-  const selectedBudgetAmount = selectedProjectSummaryQuery.data
-    ? Number(selectedProjectSummaryQuery.data.validated_quote_amount_ttc)
-    : (selectedProject?.validated_quote_amount_ttc ?? 0)
+  const selectedPlannedCost = selectedProjectSummaryQuery.data
+    ? Number(selectedProjectSummaryQuery.data.planned_cost_ttc)
+    : (selectedProject?.planned_cost_ttc ?? 0)
 
   useEffect(() => {
     if (selectedProject && selectedProject.id !== selectedProjectId) {
@@ -143,9 +143,7 @@ export function ProjectSwitcher() {
               {selectedProject.location}
             </span>
             <span className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-sidebar-foreground/70">
-              <span>
-                Devis retenus : {formatCurrency(selectedBudgetAmount)}
-              </span>
+              <span>Coût prévu : {formatCurrency(selectedPlannedCost)}</span>
             </span>
           </span>
           <ChevronDown

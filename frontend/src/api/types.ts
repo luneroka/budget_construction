@@ -167,20 +167,26 @@ export type SupplierLotRead = {
   lot_id: number
 }
 
-// « Devis retenus » = validated quotes; « Facturé » = every active invoice;
-// « Reste à facturer » = the difference, negative in overrun.
+// The money model: « Coût prévu » is, per supplier and per lot, the larger of
+// its validated quotes and its invoices, added up over the groups; « Facturé »
+// is every active invoice, split « Payé » and « À payer » (unpaid + on hold).
+// The validated quotes stay as a reference figure. All computed by the API.
 export type FinancialTotalsRead = {
+  planned_cost_ttc: ApiDecimal
   validated_quote_amount_ttc: ApiDecimal
   invoiced_amount_ttc: ApiDecimal
   paid_invoice_amount_ttc: ApiDecimal
   unpaid_invoice_amount_ttc: ApiDecimal
   on_hold_invoice_amount_ttc: ApiDecimal
-  remaining_to_invoice_ttc: ApiDecimal
-  is_overrun: boolean
-  completion_percentage: ApiDecimal
+  to_pay_amount_ttc: ApiDecimal
   quote_count: number
   validated_quote_count: number
   invoice_count: number
+}
+
+/** One supplier's group in one lot; `supplier_id` null is « Sans fournisseur ». */
+export type LotSupplierFinancialSummaryRead = FinancialTotalsRead & {
+  supplier_id: number | null
 }
 
 export type LotFinancialSummaryRead = FinancialTotalsRead & {
@@ -189,12 +195,19 @@ export type LotFinancialSummaryRead = FinancialTotalsRead & {
   code: string
   designation: string
   is_global: boolean
+  suppliers: LotSupplierFinancialSummaryRead[]
+}
+
+/** A supplier over the project's visible lots. */
+export type SupplierFinancialSummaryRead = FinancialTotalsRead & {
+  supplier_id: number
 }
 
 export type ProjectFinancialSummaryRead = FinancialTotalsRead & {
   project_id: number
   generated_at: ApiDateTime
   lots: LotFinancialSummaryRead[]
+  suppliers: SupplierFinancialSummaryRead[]
 }
 
 export type DashboardFinancialOverviewRead = {
