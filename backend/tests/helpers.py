@@ -128,6 +128,16 @@ async def global_lot_id(code: str) -> int:
         return result.scalar_one()
 
 
+async def create_project_lot(project_id: int, code: str, designation: str) -> int:
+    """A legacy project-only lot, written straight to the database: no
+    endpoint creates one any more, but existing ones keep working."""
+    async with _SessionLocal() as session:
+        lot = Lot(project_id=project_id, code=code, designation=designation)
+        session.add(lot)
+        await session.commit()
+        return lot.id
+
+
 def quote_payload(lot_id: int, **overrides: object) -> dict[str, object]:
     payload: dict[str, object] = {
         'lot_id': lot_id,

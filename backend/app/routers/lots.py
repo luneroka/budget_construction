@@ -13,7 +13,6 @@ from app.schemas.lot import (
     GlobalLotMove,
     GlobalLotRead,
     GlobalLotUpdate,
-    LotCreate,
     LotVisibilityUpdate,
     ProjectLotRead,
     SupplierLotCreate,
@@ -45,25 +44,6 @@ async def get_project_lots(
         await lot_repository.get_project_lots(db, project_id, current_user.id),
         'project_not_found',
     )
-
-
-@project_lot_router.post(
-    '/', response_model=ProjectLotRead, status_code=status.HTTP_201_CREATED
-)
-async def create_project_lot(
-    project_id: int,
-    lot_data: LotCreate,
-    db: AsyncSession = Depends(get_db_session),
-    current_user: User = Depends(get_current_user),
-):
-    try:
-        lot = await lot_repository.create_project_lot(
-            db, project_id, current_user.id, lot_data
-        )
-    except IntegrityError as error:
-        await raise_integrity_conflict(db, error)
-
-    return require_found(lot, 'project_not_found')
 
 
 @project_lot_router.patch('/{lot_id}', response_model=ProjectLotRead)

@@ -13,6 +13,7 @@ from app.models.lot import SupplierLot
 from app.models.transaction import Transaction
 from tests.helpers import (
     create_project_context,
+    create_project_lot,
     create_supplier,
     create_transaction,
     global_lot_id,
@@ -114,17 +115,12 @@ async def test_lot_of_another_project_is_refused(client: AsyncClient) -> None:
         '/projects/', headers=context.headers, json={'name': 'Autre maison'}
     )
     other_project_id = other.json()['id']
-    other_lot = await client.post(
-        f'/projects/{other_project_id}/lots/',
-        headers=context.headers,
-        json={'code': '90', 'designation': 'Garage'},
-    )
-    assert other_lot.status_code == 201
+    other_lot_id = await create_project_lot(other_project_id, '90', 'Garage')
 
     response = await client.post(
         context.transactions_url,
         headers=context.headers,
-        json=quote_payload(other_lot.json()['id']),
+        json=quote_payload(other_lot_id),
     )
 
     assert response.status_code == 400

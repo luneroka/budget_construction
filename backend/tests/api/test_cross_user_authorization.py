@@ -198,7 +198,6 @@ def _routes(r: OwnedResources) -> list[Call]:
         *(Call('GET', f'/projects/{p}/dashboard/{path}') for path in DASHBOARD_PATHS),
         Call('GET', f'/projects/{p}/exports/accounting.csv'),
         Call('GET', f'/projects/{p}/lots/'),
-        Call('POST', f'/projects/{p}/lots/', {'code': 'X1', 'designation': 'X'}),
         Call('PATCH', f'/projects/{p}/lots/{lot}', {'is_hidden': True}),
         Call('PATCH', f'/projects/{p}/lots/{g}', {'is_hidden': True}),
         Call('GET', f'/projects/{p}/supplier-lots/'),

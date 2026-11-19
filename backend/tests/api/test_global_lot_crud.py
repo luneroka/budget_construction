@@ -15,6 +15,7 @@ from app.seed.default_lots import DEFAULT_LOTS
 from tests.helpers import (
     ProjectContext,
     create_project_context,
+    create_project_lot,
     create_supplier,
     create_transaction,
     global_lot_id,
@@ -120,12 +121,7 @@ async def test_create_refuses_a_duplicate_global_code_or_designation(
 async def test_create_does_not_check_project_lot_codes(client: AsyncClient) -> None:
     admin = await _admin(client)
     user = await create_project_context(client, email='user-shared-code@example.com')
-    project_lot = await client.post(
-        f'/projects/{user.project_id}/lots/',
-        headers=user.headers,
-        json={'code': '90', 'designation': 'Abri'},
-    )
-    assert project_lot.status_code == 201
+    await create_project_lot(user.project_id, '90', 'Abri')
 
     response = await _create(client, admin, '90', 'Garage')
 
@@ -191,13 +187,9 @@ async def test_a_new_lot_is_visible_in_every_project_at_once(
 
 async def test_deleting_a_missing_or_project_lot_is_a_404(client: AsyncClient) -> None:
     admin = await _admin(client)
-    project_lot = await client.post(
-        f'/projects/{admin.project_id}/lots/',
-        headers=admin.headers,
-        json={'code': '90', 'designation': 'Abri'},
-    )
+    project_lot_id = await create_project_lot(admin.project_id, '90', 'Abri')
 
-    for lot_id in (999_999, project_lot.json()['id']):
+    for lot_id in (999_999, project_lot_id):
         response = await client.delete(
             f'{ADMIN_LOTS_URL}{lot_id}', headers=admin.headers
         )

@@ -14,7 +14,6 @@ CONSTRAINT_MESSAGES = {
     'users_email_key': 'A user with this email already exists',
     'uq_lots_global_code': 'A lot with this code already exists',
     'uq_lots_global_designation': 'A lot with this designation already exists',
-    'uq_lots_project_id_code': 'A lot with this code already exists',
 }
 
 

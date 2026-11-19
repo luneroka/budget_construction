@@ -20,6 +20,7 @@ from app.models.supplier_document import SupplierDocument, SupplierDocumentType
 from tests.helpers import (
     ProjectContext,
     create_project_context,
+    create_project_lot,
     create_supplier,
     create_transaction,
     global_lot_id,
@@ -83,13 +84,9 @@ async def scenario(client: AsyncClient) -> Scenario:
     s.lot_22 = await global_lot_id('22')
     s.s1 = await create_supplier(client, s.context, 'Maçon Durand')
     s.s2 = await create_supplier(client, s.context, 'Paysagiste Morel')
-    project_lot = await client.post(
-        f'/projects/{s.context.project_id}/lots/',
-        headers=s.context.headers,
-        json={'code': '90', 'designation': 'Abri de jardin'},
+    s.project_lot = await create_project_lot(
+        s.context.project_id, '90', 'Abri de jardin'
     )
-    assert project_lot.status_code == 201
-    s.project_lot = project_lot.json()['id']
     hidden = await client.patch(
         f'/projects/{s.context.project_id}/lots/{s.lot_22}',
         headers=s.context.headers,

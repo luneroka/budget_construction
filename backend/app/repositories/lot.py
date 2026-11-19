@@ -23,7 +23,6 @@ from app.repositories.common import get_active_project
 from app.schemas.lot import (
     GlobalLotCreate,
     GlobalLotUpdate,
-    LotCreate,
     LotMoveDirection,
     ProjectLotRead,
 )
@@ -158,32 +157,6 @@ async def _project_lot_read(
     lots = await get_project_lots(db, project_id, user_id)
     assert lots is not None
     return next(lot for lot in lots if lot.id == lot_id)
-
-
-async def create_project_lot(
-    db: AsyncSession, project_id: int, user_id: int, lot_data: LotCreate
-) -> ProjectLotRead | None:
-    if await get_active_project(db, project_id, user_id) is None:
-        return None
-
-    # At creation, a project lot's code differs from every global code and
-    # from the project's other lots. A later admin re-code of a global lot
-    # is not checked against project lots (spec criterion 2).
-    conflict = await db.execute(
-        select(Lot.id).where(lot_in_project(project_id), Lot.code == lot_data.code)
-    )
-    if conflict.first() is not None:
-        raise DomainError(status.HTTP_409_CONFLICT, 'lot_code_conflict')
-
-    lot = Lot(
-        project_id=project_id,
-        code=lot_data.code,
-        designation=lot_data.designation,
-    )
-    db.add(lot)
-    await db.commit()
-
-    return await _project_lot_read(db, project_id, user_id, lot.id)
 
 
 async def set_lot_visibility(
