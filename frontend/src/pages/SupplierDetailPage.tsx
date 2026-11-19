@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, FileText, Files, Pencil } from 'lucide-react'
 
 import { getApiErrorMessage } from '@/api/client'
@@ -19,7 +19,6 @@ import {
 import { invoicePrefillFromQuote } from '@/components/budget/transaction-form/transactionForm'
 import type { TransactionAction } from '@/components/budget/types'
 import { SupplierDocumentsTab } from '@/components/suppliers/SupplierDocumentsTab'
-import { SupplierModal } from '@/components/suppliers/SupplierModal'
 import { SupplierSummaryCards } from '@/components/suppliers/SupplierSummaryCards'
 import { WriteEmailButton } from '@/components/suppliers/WriteEmailButton'
 import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
@@ -36,7 +35,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useSupplierActions } from '@/hooks/useSupplierActions'
 import { useTransactionDocumentViewer } from '@/hooks/useTransactionDocumentViewer'
 import {
   projectToDomain,
@@ -52,6 +50,7 @@ import {
 import { formatCurrency, formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { emailRecipients } from '@/lib/supplierEmail'
+import type { SupplierFormReturnState } from '@/lib/supplierFormPage'
 import { supplierFigures } from '@/lib/supplierStats'
 import { notifyError } from '@/lib/toasts'
 import {
@@ -269,8 +268,7 @@ export function SupplierDetailPage({
   const transactionsQuery = useProjectTransactionsQuery(projectId)
   const supplierDocumentsQuery = useSupplierDocumentsQuery(supplierId)
   const documentViewer = useTransactionDocumentViewer()
-  const { saveSupplier, deleteSupplier } = useSupplierActions(projectId)
-  const [isEditing, setIsEditing] = useState(false)
+  const location = useLocation()
   const [transactionReview, setTransactionReview] =
     useState<ViewedTransactionContext | null>(null)
   const [activeAction, setActiveAction] = useState<TransactionAction | null>(
@@ -417,10 +415,19 @@ export function SupplierDetailPage({
         actions={
           <>
             <WriteEmailButton recipients={emailRecipients(supplier)} />
-            <Button variant="outline" onClick={() => setIsEditing(true)}>
+            {/* The supplier form page, which comes back to this tab. */}
+            <Link
+              to={`/suppliers/${supplierId}/edit`}
+              state={
+                {
+                  from: `${location.pathname}${location.search}`,
+                } satisfies SupplierFormReturnState
+              }
+              className={buttonVariants({ variant: 'outline' })}
+            >
               <Pencil aria-hidden />
               Modifier
-            </Button>
+            </Link>
           </>
         }
       />
@@ -461,19 +468,6 @@ export function SupplierDetailPage({
               ? getApiErrorMessage(supplierDocumentsQuery.error)
               : null
           }
-        />
-      ) : null}
-
-      {isEditing ? (
-        <SupplierModal
-          mode="edit"
-          supplier={supplier}
-          onClose={() => setIsEditing(false)}
-          onSave={(edited) => saveSupplier(edited, supplier.id)}
-          onDelete={async (deleted) => {
-            await deleteSupplier(deleted)
-            navigate('/suppliers')
-          }}
         />
       ) : null}
 

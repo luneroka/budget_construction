@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 
+import { invalidateProjectFinancialQueries } from '@/api/budget-workspace-cache'
 import { getApiErrorMessage } from '@/api/client'
 import { trashQueryKeys } from '@/api/trash'
 import {
@@ -11,14 +12,15 @@ import {
   useCreateSupplierMutation,
   useUpdateSupplierMutation,
 } from '@/api/suppliers'
-import type { SupplierRead } from '@/api/types'
+import type { SupplierProjectLots, SupplierRead } from '@/api/types'
 import { supplierToDomain } from '@/lib/apiAdapters'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import type { Supplier } from '@/types'
 
-// Saving and deleting a supplier, from the list or from its own page: create
-// when there is no id yet, update otherwise, then refresh the list, that
-// supplier's own entry, and the trash a deletion feeds.
+// Saving and deleting a supplier, from the supplier form page: create when
+// there is no id yet, update otherwise, with the project's lots in the same
+// request, then refresh the list, that supplier's own entry, the project's
+// lots and figures, and the trash a deletion feeds.
 export function useSupplierActions(projectId: number | null = null) {
   const queryClient = useQueryClient()
   const createSupplierMutation = useCreateSupplierMutation()
@@ -28,16 +30,21 @@ export function useSupplierActions(projectId: number | null = null) {
   async function saveSupplier(
     supplier: Supplier,
     existingSupplierId: string | null,
+    projectLots?: SupplierProjectLots,
   ): Promise<Supplier> {
     try {
       const isCreating = existingSupplierId === null
       const saved = isCreating
-        ? await createSupplierMutation.mutateAsync(
-            supplierToCreatePayload(supplier),
-          )
+        ? await createSupplierMutation.mutateAsync({
+            ...supplierToCreatePayload(supplier),
+            project_lots: projectLots ?? null,
+          })
         : await updateSupplierMutation.mutateAsync({
             supplierId: Number(existingSupplierId),
-            supplier: supplierToUpdatePayload(supplier),
+            supplier: {
+              ...supplierToUpdatePayload(supplier),
+              project_lots: projectLots ?? null,
+            },
           })
 
       queryClient.setQueryData<SupplierRead[]>(
@@ -48,6 +55,9 @@ export function useSupplierActions(projectId: number | null = null) {
       void queryClient.invalidateQueries({
         queryKey: supplierQueryKeys.list(false),
       })
+      if (projectLots) {
+        invalidateProjectFinancialQueries(queryClient, projectLots.project_id)
+      }
       notifySuccess(isCreating ? 'Fournisseur ajouté.' : 'Fournisseur modifié.')
       return supplierToDomain(saved)
     } catch (error) {

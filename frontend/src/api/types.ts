@@ -93,6 +93,13 @@ export type SupplierContactUpdate = SupplierContactCreate & {
   id?: number | null
 }
 
+// The supplier form's « Lots du projet »: the visible lots of the project
+// the supplier is assigned to, saved with the supplier in one request.
+export type SupplierProjectLots = {
+  project_id: number
+  lot_ids: number[]
+}
+
 export type SupplierCreate = {
   name: string
   siret?: string | null
@@ -103,6 +110,7 @@ export type SupplierCreate = {
   postal_code?: string | null
   city?: string | null
   contacts: SupplierContactCreate[]
+  project_lots?: SupplierProjectLots | null
 }
 
 export type SupplierUpdate = {
@@ -115,6 +123,7 @@ export type SupplierUpdate = {
   postal_code?: string | null
   city?: string | null
   contacts?: SupplierContactUpdate[] | null
+  project_lots?: SupplierProjectLots | null
 }
 
 export type SupplierRead = {

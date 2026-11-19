@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Copy, FileText, Mail, Plus } from 'lucide-react'
 
 import { useDocumentsQuery } from '@/api/documents'
@@ -15,9 +15,9 @@ import {
   paginationPageSizeOptions,
   usePagination,
 } from '@/components/shared/usePagination'
-import { SupplierModal } from '@/components/suppliers/SupplierModal'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button-variants'
 import { Select } from '@/components/ui/select'
 import {
   Table,
@@ -35,8 +35,8 @@ import {
 } from '@/lib/supplierContact'
 import { supplierToDomain } from '@/lib/apiAdapters'
 import { lotsBySupplier, visibleLots } from '@/lib/lots'
+import type { SupplierFormReturnState } from '@/lib/supplierFormPage'
 import { lotLabel } from '@/lib/transactionWorkspace'
-import { useSupplierActions } from '@/hooks/useSupplierActions'
 import { useSupplierDocumentViewer } from '@/hooks/useSupplierDocumentViewer'
 import { useSelectedProjectId } from '@/state/appState'
 import { normalizeSearchText } from '@/lib/searchHighlight'
@@ -45,8 +45,11 @@ export function SuppliersPage() {
   const projectId = useSelectedProjectId()
   const [search, setSearch] = useState('')
   const [lotFilter, setLotFilter] = useState('all')
-  // The list creates; a supplier's own page is where one is read and edited.
-  const [isCreating, setIsCreating] = useState(false)
+  // The list creates, on the supplier form page, which comes back here.
+  const location = useLocation()
+  const newSupplierState: SupplierFormReturnState = {
+    from: `${location.pathname}${location.search}`,
+  }
   const suppliersQuery = useSuppliersQuery()
   const lotsQuery = useProjectLotsQuery(projectId)
   const supplierLotsQuery = useSupplierLotsQuery(projectId)
@@ -60,7 +63,6 @@ export function SuppliersPage() {
     [lotsQuery.data],
   )
   const documentsQuery = useDocumentsQuery()
-  const { saveSupplier } = useSupplierActions(projectId)
   const ribViewer = useSupplierDocumentViewer()
   const suppliers = useMemo(
     () => (suppliersQuery.data ?? []).map(supplierToDomain),
@@ -286,10 +288,14 @@ export function SuppliersPage() {
         title="Fournisseurs"
         description="Répertoire des artisans et fournisseurs."
         actions={
-          <Button variant="gold" onClick={() => setIsCreating(true)}>
+          <Link
+            to="/suppliers/new"
+            state={newSupplierState}
+            className={buttonVariants({ variant: 'gold' })}
+          >
             <Plus aria-hidden />
             Nouveau fournisseur
-          </Button>
+          </Link>
         }
       />
 
@@ -379,15 +385,6 @@ export function SuppliersPage() {
           </div>
         ) : null}
       </div>
-
-      {isCreating ? (
-        <SupplierModal
-          mode="create"
-          supplier={null}
-          onClose={() => setIsCreating(false)}
-          onSave={(supplier) => saveSupplier(supplier, null)}
-        />
-      ) : null}
 
       {ribViewer.viewed ? (
         <DocumentViewerDialog

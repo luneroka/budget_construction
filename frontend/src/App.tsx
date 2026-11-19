@@ -1,4 +1,11 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import {
+  Navigate,
+  Outlet,
+  Route,
+  RouterProvider,
+  createBrowserRouter,
+  createRoutesFromElements,
+} from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 
 import { RedirectAuthenticated } from '@/auth/RedirectAuthenticated'
@@ -23,14 +30,17 @@ import { ProjectsSettingsPage } from '@/pages/ProjectsSettingsPage'
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { SupplierDetailPage } from '@/pages/SupplierDetailPage'
+import { SupplierFormPage } from '@/pages/SupplierFormPage'
 import { SuppliersPage } from '@/pages/SuppliersPage'
 import { TransactionsPage } from '@/pages/TransactionsPage'
 import { TrashPage } from '@/pages/TrashPage'
 import { UserSettingsPage } from '@/pages/UserSettingsPage'
 
-export default function App() {
+// The shell around every route. A data router, so a page with unsaved edits
+// (the supplier form) can hold a navigation and ask first.
+function RootLayout() {
   return (
-    <BrowserRouter>
+    <>
       <AutoUpdate />
       <Toaster
         position="top-center"
@@ -60,55 +70,70 @@ export default function App() {
         }}
       />
       <IconTooltips />
-      <Routes>
-        <Route element={<RedirectAuthenticated />}>
-          <Route path="login" element={<LoginPage />} />
-        </Route>
-        <Route path="auth/reset-password" element={<ResetPasswordPage />} />
-
-        <Route element={<RequireAuth />}>
-          <Route element={<AppLayout />}>
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="lots" element={<LotsPage />} />
-            <Route path="lots/:lotId" element={<LotDetailPage />} />
-            {/* The page was « Budget » before lots: old bookmarks land here. */}
-            <Route path="budget" element={<Navigate to="/lots" replace />} />
-            <Route path="devis-factures" element={<TransactionsPage />} />
-            {/* « Transactions » before the money-model change. */}
-            <Route path="transactions" element={<TransactionsRedirect />} />
-            <Route path="suppliers" element={<SuppliersPage />} />
-            <Route
-              path="suppliers/:supplierId"
-              element={<SupplierDetailPage tab="summary" />}
-            />
-            <Route
-              path="suppliers/:supplierId/devis-factures"
-              element={<SupplierDetailPage tab="transactions" />}
-            />
-            <Route
-              path="suppliers/:supplierId/transactions"
-              element={<SupplierTransactionsRedirect />}
-            />
-            <Route
-              path="suppliers/:supplierId/documents"
-              element={<SupplierDetailPage tab="documents" />}
-            />
-            <Route path="documents" element={<DocumentsPage />} />
-            <Route path="trash" element={<TrashPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="settings/user" element={<UserSettingsPage />} />
-            <Route
-              path="settings/projects"
-              element={<ProjectsSettingsPage />}
-            />
-            <Route path="settings/exports" element={<ExportsSettingsPage />} />
-            <Route path="settings/users" element={<AdminUsersPage />} />
-            <Route path="settings/lots" element={<AdminLotsPage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Route>
-        </Route>
-      </Routes>
-    </BrowserRouter>
+      <Outlet />
+    </>
   )
+}
+
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route element={<RootLayout />}>
+      <Route element={<RedirectAuthenticated />}>
+        <Route path="login" element={<LoginPage />} />
+      </Route>
+      <Route path="auth/reset-password" element={<ResetPasswordPage />} />
+
+      <Route element={<RequireAuth />}>
+        <Route element={<AppLayout />}>
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="lots" element={<LotsPage />} />
+          <Route path="lots/:lotId" element={<LotDetailPage />} />
+          {/* The page was « Budget » before lots: old bookmarks land here. */}
+          <Route path="budget" element={<Navigate to="/lots" replace />} />
+          <Route path="devis-factures" element={<TransactionsPage />} />
+          {/* « Transactions » before the money-model change. */}
+          <Route path="transactions" element={<TransactionsRedirect />} />
+          <Route path="suppliers" element={<SuppliersPage />} />
+          <Route
+            path="suppliers/new"
+            element={<SupplierFormPage mode="create" />}
+          />
+          <Route
+            path="suppliers/:supplierId/edit"
+            element={<SupplierFormPage mode="edit" />}
+          />
+          <Route
+            path="suppliers/:supplierId"
+            element={<SupplierDetailPage tab="summary" />}
+          />
+          <Route
+            path="suppliers/:supplierId/devis-factures"
+            element={<SupplierDetailPage tab="transactions" />}
+          />
+          <Route
+            path="suppliers/:supplierId/transactions"
+            element={<SupplierTransactionsRedirect />}
+          />
+          <Route
+            path="suppliers/:supplierId/documents"
+            element={<SupplierDetailPage tab="documents" />}
+          />
+          <Route path="documents" element={<DocumentsPage />} />
+          <Route path="trash" element={<TrashPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings/user" element={<UserSettingsPage />} />
+          <Route path="settings/projects" element={<ProjectsSettingsPage />} />
+          <Route path="settings/exports" element={<ExportsSettingsPage />} />
+          <Route path="settings/users" element={<AdminUsersPage />} />
+          <Route path="settings/lots" element={<AdminLotsPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Route>
+    </Route>,
+  ),
+)
+
+export default function App() {
+  return <RouterProvider router={router} />
 }

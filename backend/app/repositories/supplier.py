@@ -8,6 +8,10 @@ from sqlalchemy.orm import selectinload
 from app.models.supplier import Supplier
 from app.models.supplier_contact import SupplierContact
 from app.models.supplier_document import SupplierDocument
+from app.repositories.lot import (
+    apply_supplier_project_lots,
+    plan_supplier_project_lots,
+)
 from app.schemas.supplier import (
     SupplierContactCreate,
     SupplierContactUpdate,
@@ -48,7 +52,18 @@ async def _replace_supplier_contacts(
 async def create_supplier(
     db: AsyncSession, supplier_data: SupplierCreate, user_id: int
 ) -> Supplier:
-    payload = supplier_data.model_dump(exclude={'contacts'})
+    # The project's lots are checked before anything is written, and saved
+    # in the same commit as the supplier: never a supplier without its lots.
+    project_lots = supplier_data.project_lots
+    lots_plan = (
+        await plan_supplier_project_lots(
+            db, project_lots.project_id, user_id, None, project_lots.lot_ids
+        )
+        if project_lots is not None
+        else None
+    )
+
+    payload = supplier_data.model_dump(exclude={'contacts', 'project_lots'})
     supplier = Supplier(**payload, user_id=user_id)
     supplier.contacts.extend(
         SupplierContact(**_contact_values(contact_data))
@@ -56,6 +71,11 @@ async def create_supplier(
     )
 
     db.add(supplier)
+    if project_lots is not None and lots_plan is not None:
+        await db.flush()
+        await apply_supplier_project_lots(
+            db, project_lots.project_id, supplier.id, *lots_plan
+        )
     await db.commit()
 
     created_supplier = await get_supplier_by_id(db, supplier.id, user_id)
@@ -96,12 +116,28 @@ async def update_supplier(
     if supplier is None or supplier.deleted_at is not None:
         return None
 
-    update_data = supplier_data.model_dump(exclude_unset=True, exclude={'contacts'})
+    project_lots = supplier_data.project_lots
+    lots_plan = (
+        await plan_supplier_project_lots(
+            db, project_lots.project_id, user_id, supplier.id, project_lots.lot_ids
+        )
+        if project_lots is not None
+        else None
+    )
+
+    update_data = supplier_data.model_dump(
+        exclude_unset=True, exclude={'contacts', 'project_lots'}
+    )
     for field, value in update_data.items():
         setattr(supplier, field, value)
 
     if supplier_data.contacts is not None:
         await _replace_supplier_contacts(db, supplier, supplier_data.contacts)
+
+    if project_lots is not None and lots_plan is not None:
+        await apply_supplier_project_lots(
+            db, project_lots.project_id, supplier.id, *lots_plan
+        )
 
     await db.commit()
 

@@ -411,3 +411,71 @@ async def unassign_supplier_lot(
     await db.delete(assignment)
     await db.commit()
     return True
+
+
+async def plan_supplier_project_lots(
+    db: AsyncSession,
+    project_id: int,
+    user_id: int,
+    supplier_id: int | None,
+    lot_ids: list[int],
+) -> tuple[set[int], set[int]]:
+    """Check the supplier form's « Lots du projet » before anything is written,
+    and return the lots to assign and to unassign.
+
+    ``supplier_id`` is None for a supplier being created. Only the project's
+    visible lots can be ticked, and only they are unassigned when left out:
+    an assignment in a hidden lot is never removed here. A lot where the
+    supplier still has active transactions cannot be unticked.
+    """
+    if await get_active_project(db, project_id, user_id) is None:
+        raise DomainError(status.HTTP_404_NOT_FOUND, 'project_not_found')
+
+    visible = {lot.id for lot in await get_visible_lots(db, project_id)}
+    wanted = set(lot_ids)
+    if not wanted <= visible:
+        raise DomainError(status.HTTP_400_BAD_REQUEST, 'lot_not_available')
+
+    current: set[int] = set()
+    if supplier_id is not None:
+        result = await db.execute(
+            select(SupplierLot.lot_id).where(
+                SupplierLot.project_id == project_id,
+                SupplierLot.supplier_id == supplier_id,
+            )
+        )
+        current = set(result.scalars().all())
+
+    to_remove = (current & visible) - wanted
+    for lot_id in sorted(to_remove):
+        if (
+            await _active_transaction_count(
+                db, project_id, lot_id, supplier_id=supplier_id
+            )
+            > 0
+        ):
+            raise DomainError(
+                status.HTTP_409_CONFLICT, 'supplier_lot_has_active_transactions'
+            )
+
+    return wanted - current, to_remove
+
+
+async def apply_supplier_project_lots(
+    db: AsyncSession,
+    project_id: int,
+    supplier_id: int,
+    to_add: set[int],
+    to_remove: set[int],
+) -> None:
+    """Write what ``plan_supplier_project_lots`` returned. The caller commits."""
+    for lot_id in sorted(to_add):
+        await ensure_supplier_lot(db, project_id, supplier_id, lot_id)
+    if to_remove:
+        await db.execute(
+            delete(SupplierLot).where(
+                SupplierLot.project_id == project_id,
+                SupplierLot.supplier_id == supplier_id,
+                SupplierLot.lot_id.in_(to_remove),
+            )
+        )
