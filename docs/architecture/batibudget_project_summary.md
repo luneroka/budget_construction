@@ -224,6 +224,16 @@ A supplier is shared across its user's projects; its lots (`supplier_lots`) are 
 
 Contacts are stored separately so one company can have multiple people associated with it. A contact may include a name, phone number, and email address. When contacts are supplied, application and database rules enforce a single primary contact.
 
+### `supplier_documents`
+
+A supplier's library of paperwork, owned by the supplier's user and shared, like the supplier, across that user's projects.
+
+- `type` (required, a PostgreSQL enum stored as stable English keys): `rib` (RIB), `kbis` (Kbis), `decennial_insurance` (Attestation décennale), `urssaf_certificate` (Attestation URSSAF) or `other` (Autre). There is no uniqueness per type: a supplier may hold several documents of the same type, an old and a renewed attestation say.
+- `expiry_date` (optional, a date with no time): the document is valid through that day. The UI flags it « Expiré » from the day after and « Expire bientôt » from 30 days before it to the day itself, against the user's own date.
+- the same file metadata as `documents` below (original filename, storage key, R2 path, MIME type, size), timestamps and soft deletion.
+
+Only the type and the expiry date can be edited (`PATCH /supplier-documents/{id}`); a file is replaced by deleting the document and adding a new one. The revision `a02a0ce02bd7` added both columns and made every existing row a RIB, since the supplier's single document was its RIB until then.
+
 ### `documents`
 
 Documents are linked to transactions and users.
@@ -290,9 +300,10 @@ Soft deletion is used for recoverable business records. The project-scoped trash
 
 - transactions;
 - documents;
-- suppliers associated with the project context.
+- suppliers associated with the project context;
+- supplier documents.
 
-Restoring a transaction unhides its lot in the project if it was hidden, and assigns its supplier to the lot again if the pair was removed.
+Restoring a transaction unhides its lot in the project if it was hidden, and assigns its supplier to the lot again if the pair was removed. Supplier documents go to the trash too (« Document fournisseur »); restoring a supplier restores every soft-deleted document of that supplier, including ones binned one by one before it, and a document whose supplier is in the trash waits for the supplier's restore. A restored document keeps its type and expiry date.
 
 The trash supports:
 
@@ -359,11 +370,20 @@ The workflow supports:
 
 ### Supplier management
 
-Users maintain a reusable supplier directory containing company details and multiple contacts. Supplier names are unique per active user rather than globally unique. The Fournisseurs page has a lot filter and a « Lots » column of badges for the selected project; a supplier's page shows its transactions with lot, libellé and référence, and its SIRET and N° RNE.
+Users maintain a reusable supplier directory containing company details and multiple contacts. Supplier names are unique per active user rather than globally unique. The Fournisseurs page has a lot filter and a « Lots » column of badges for the selected project, and its « RIB » column opens the supplier's newest document of type RIB.
+
+A supplier's page is a short header and three tabs, each its own URL:
+
+- the header: the supplier's name and comment, its lots in the project as badges (the same assignments as the « Lots » column), « Écrire » and « Copier » for the primary contact's email (or the first contact with one), and « Modifier »;
+- « Synthèse » (`/suppliers/:id`): four cards, Coordonnées (SIRET, N° RNE, address), Contacts (the primary contact, the others one click away), Bilan (Devis retenus, Facturé and Reste à facturer for this supplier in the project, by the §6.4 rules) and Documents (which of the five types are present, the next expiry and its signal);
+- « Transactions (n) »: the supplier's transactions in the project with lot, libellé and référence;
+- « Documents (n) »: the supplier's documents with their type, file, upload date and expiry, to add (file, type, optional expiry date), view, download, edit (type and expiry only) and delete.
+
+The supplier form holds company details and contacts only: documents are added from the Documents tab.
 
 ### Document management
 
-Documents are uploaded in relation to a transaction, stored in Cloudflare R2, and exposed through authenticated backend endpoints for metadata, retrieval, and deletion.
+Documents are uploaded in relation to a transaction, or to a supplier (§5 `supplier_documents`), stored in Cloudflare R2, and exposed through authenticated backend endpoints for metadata, retrieval, and deletion. The Documents page lists both; a supplier document is named by its type and its supplier, with its file name under it.
 
 ### Financial dashboard
 
@@ -403,6 +423,9 @@ The authenticated frontend currently contains the following principal routes:
 /lots/:lotId
 /transactions
 /suppliers
+/suppliers/:supplierId                (Synthèse)
+/suppliers/:supplierId/transactions
+/suppliers/:supplierId/documents
 /documents
 /trash
 /settings
