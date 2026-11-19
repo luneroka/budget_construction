@@ -47,8 +47,6 @@ import { invoicePrefillFromQuote } from '@/components/budget/transaction-form/tr
 import { ChartCard } from '@/components/shared/ChartCard'
 import { KpiCard } from '@/components/shared/KpiCard'
 import { PageHeader } from '@/components/shared/PageHeader'
-import { ProgressBar } from '@/components/shared/ProgressBar'
-import { Card } from '@/components/ui/card'
 import {
   ActionCenterWidget,
   SupplierDocumentsWidgetContent,
@@ -77,7 +75,6 @@ import {
 import { QUOTES_AND_INVOICES_PATH } from '@/lib/legacyRoutes'
 import { visibleLots } from '@/lib/lots'
 import { documentsToRenew } from '@/lib/supplierDocuments'
-import { paymentProgress } from '@/lib/supplierStats'
 import {
   buildTransactionRow,
   lotLabel,
@@ -178,8 +175,6 @@ export function DashboardPage({
     paidTtc: decimalToNumber(financialOverview?.paid_invoice_amount_ttc),
     toPayTtc: decimalToNumber(financialOverview?.to_pay_amount_ttc),
   }
-  // How much of what has been invoiced is paid; null before any invoice.
-  const progress = paymentProgress(overviewFigures)
   const spendingOverTimeData = useMemo(
     () =>
       (spendingOverTimeQuery.data ?? []).map((item) => ({
@@ -297,51 +292,37 @@ export function DashboardPage({
           onRetry={() => void financialOverviewQuery.refetch()}
         />
       ) : (
-        <>
-          <div
-            className={cn(
-              'grid gap-4',
-              exportLayout ? 'grid-cols-4' : 'sm:grid-cols-2 xl:grid-cols-4',
-            )}
-          >
-            <KpiCard
-              label="Coût prévu"
-              value={formatCurrency(overviewFigures.plannedTtc)}
-              icon={CircleDollarSign}
-              tone="accent"
-            />
-            <KpiCard
-              label="Facturé"
-              value={formatCurrency(overviewFigures.invoicedTtc)}
-              icon={ReceiptText}
-              tone="primary"
-            />
-            <KpiCard
-              label="Payé"
-              value={formatCurrency(overviewFigures.paidTtc)}
-              icon={CircleCheck}
-              tone="success"
-            />
-            <KpiCard
-              label="À payer"
-              value={formatCurrency(overviewFigures.toPayTtc)}
-              icon={WalletCards}
-              tone="gold"
-            />
-          </div>
-          <Card className="mt-4 p-5 text-sm">
-            {progress ? (
-              <ProgressBar
-                value={progress.value}
-                max={progress.max}
-                tone="success"
-                label={progress.label}
-              />
-            ) : (
-              <p className="text-muted-foreground">{NO_INVOICE_MESSAGE}</p>
-            )}
-          </Card>
-        </>
+        <div
+          className={cn(
+            'grid gap-4',
+            exportLayout ? 'grid-cols-4' : 'sm:grid-cols-2 xl:grid-cols-4',
+          )}
+        >
+          <KpiCard
+            label="Coût prévu"
+            value={formatCurrency(overviewFigures.plannedTtc)}
+            icon={CircleDollarSign}
+            tone="accent"
+          />
+          <KpiCard
+            label="Facturé"
+            value={formatCurrency(overviewFigures.invoicedTtc)}
+            icon={ReceiptText}
+            tone="primary"
+          />
+          <KpiCard
+            label="Payé"
+            value={formatCurrency(overviewFigures.paidTtc)}
+            icon={CircleCheck}
+            tone="success"
+          />
+          <KpiCard
+            label="À payer"
+            value={formatCurrency(overviewFigures.toPayTtc)}
+            icon={WalletCards}
+            tone="gold"
+          />
+        </div>
       )}
 
       {projectId !== null ? (

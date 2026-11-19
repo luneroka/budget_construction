@@ -393,7 +393,7 @@ Documents are uploaded in relation to a transaction, or to a supplier (§5 `supp
 
 The dashboard uses the central financial engine to provide:
 
-- Coût prévu, Facturé, Payé and À payer (§6.4), with a payment bar (Payé out of Facturé);
+- Coût prévu, Facturé, Payé and À payer (§6.4), with no progress bar;
 - « Facturé par lot »: Payé and À payer stacked per lot, the lots with something invoiced only;
 - « Dépenses dans le temps »: Facturé by month, every active invoice;
 - « Répartition par fournisseur »: Facturé per supplier, top 10;
