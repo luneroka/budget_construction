@@ -61,6 +61,7 @@ import {
 import { lotSupplierFigures, moneyFigures } from '@/lib/supplierStats'
 import { lotLabel, transactionDisplayTitle } from '@/lib/transactionWorkspace'
 import { notifyError, notifySuccess } from '@/lib/toasts'
+import { cn } from '@/lib/utils'
 import type { Transaction } from '@/types'
 import { useSelectedProjectId } from '@/state/appState'
 
@@ -300,16 +301,24 @@ export function LotDetailPage() {
   }
 
   const lotFigures = lotSummary ? moneyFigures(lotSummary) : null
-  const totals = lotFigures
-    ? `Coût prévu ${formatCurrency(lotFigures.plannedTtc)} · Facturé ${formatCurrency(lotFigures.invoicedTtc)} · Payé ${formatCurrency(lotFigures.paidTtc)} · À payer ${formatCurrency(lotFigures.toPayTtc)}`
-    : undefined
+  const stats = lotFigures
+    ? [
+        { label: 'Coût prévu', value: formatCurrency(lotFigures.plannedTtc) },
+        { label: 'Facturé', value: formatCurrency(lotFigures.invoicedTtc) },
+        { label: 'Payé', value: formatCurrency(lotFigures.paidTtc) },
+        {
+          label: 'À payer',
+          value: formatCurrency(lotFigures.toPayTtc),
+          className: lotFigures.toPayTtc !== 0 ? 'text-gold' : undefined,
+        },
+      ]
+    : []
 
   return (
     <section>
       {backLink}
       <PageHeader
         title={lotLabel(lot)}
-        description={totals}
         actions={
           <>
             <Button
@@ -340,6 +349,29 @@ export function LotDetailPage() {
           </>
         }
       />
+
+      {stats.length > 0 ? (
+        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {stats.map((stat) => (
+            <div
+              key={stat.label}
+              className="rounded-lg border border-border bg-card px-4 py-3"
+            >
+              <span className="block text-xs text-muted-foreground">
+                {stat.label}
+              </span>
+              <span
+                className={cn(
+                  'mt-1 block text-xl font-semibold text-foreground tabular-nums',
+                  stat.className,
+                )}
+              >
+                {stat.value}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {cards.length === 0 ? (
         <Card className="p-6 text-sm text-muted-foreground">
