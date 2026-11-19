@@ -37,7 +37,7 @@ import { supplierToDomain } from '@/lib/apiAdapters'
 import { lotsBySupplier, visibleLots } from '@/lib/lots'
 import { lotLabel } from '@/lib/transactionWorkspace'
 import { useSupplierActions } from '@/hooks/useSupplierActions'
-import { useSupplierRibViewer } from '@/hooks/useSupplierRibViewer'
+import { useSupplierDocumentViewer } from '@/hooks/useSupplierDocumentViewer'
 import { useSelectedProjectId } from '@/state/appState'
 import { normalizeSearchText } from '@/lib/searchHighlight'
 
@@ -61,15 +61,20 @@ export function SuppliersPage() {
   )
   const documentsQuery = useDocumentsQuery()
   const { saveSupplier } = useSupplierActions(projectId)
-  const ribViewer = useSupplierRibViewer()
+  const ribViewer = useSupplierDocumentViewer()
   const suppliers = useMemo(
     () => (suppliersQuery.data ?? []).map(supplierToDomain),
     [suppliersQuery.data],
   )
+  // The « RIB » column: each supplier's newest document of type RIB.
   const ribBySupplierId = useMemo(() => {
     const map = new Map<number, SupplierDocumentListRead>()
     for (const document of documentsQuery.data ?? []) {
-      if (document.type === 'supplier_document') {
+      if (
+        document.type === 'supplier_document' &&
+        document.document_type === 'rib' &&
+        !map.has(document.supplier_id)
+      ) {
         map.set(document.supplier_id, document)
       }
     }
@@ -259,7 +264,12 @@ export function SuppliersPage() {
                 variant="ghost"
                 className="text-muted-foreground hover:bg-gold/15 hover:text-gold"
                 aria-label={`Voir le RIB de ${supplier.name}`}
-                onClick={() => void ribViewer.open(rib)}
+                onClick={() =>
+                  void ribViewer.open(
+                    { ...rib, type: rib.document_type },
+                    rib.supplier_name,
+                  )
+                }
               >
                 <FileText aria-hidden />
               </Button>
@@ -379,10 +389,10 @@ export function SuppliersPage() {
         />
       ) : null}
 
-      {ribViewer.rib ? (
+      {ribViewer.viewed ? (
         <DocumentViewerDialog
-          title={`RIB • ${ribViewer.rib.document.supplier_name}`}
-          url={ribViewer.rib.url}
+          title={ribViewer.viewed.title}
+          url={ribViewer.viewed.url}
           isPending={ribViewer.isLoading}
           error={ribViewer.error}
           onClose={ribViewer.close}

@@ -74,7 +74,15 @@ export default function App() {
             <Route path="suppliers" element={<SuppliersPage />} />
             <Route
               path="suppliers/:supplierId"
-              element={<SupplierDetailPage />}
+              element={<SupplierDetailPage tab="summary" />}
+            />
+            <Route
+              path="suppliers/:supplierId/transactions"
+              element={<SupplierDetailPage tab="transactions" />}
+            />
+            <Route
+              path="suppliers/:supplierId/documents"
+              element={<SupplierDetailPage tab="documents" />}
             />
             <Route path="documents" element={<DocumentsPage />} />
             <Route path="trash" element={<TrashPage />} />

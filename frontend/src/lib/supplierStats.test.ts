@@ -58,7 +58,7 @@ describe('supplierTotals', () => {
     expect(totals).toMatchObject({ retainedTtc: 5000, quoteCount: 2 })
   })
 
-  it('splits what is invoiced into paid and still to pay', () => {
+  it('counts every invoice as invoiced, whatever its status', () => {
     const totals = supplierTotals([
       invoice({ id: '3', amount_ttc: 1200, invoice_status: 'paid' }),
       invoice({ id: '4', amount_ttc: 800, invoice_status: 'on_hold' }),
@@ -68,8 +68,42 @@ describe('supplierTotals', () => {
     expect(totals).toMatchObject({
       invoicedTtc: 2500,
       paidTtc: 1200,
-      toPayTtc: 1300,
       invoiceCount: 3,
+    })
+  })
+
+  it('leaves the retained quotes minus the invoices to invoice', () => {
+    const totals = supplierTotals([
+      quote({ id: '1', amount_ttc: 5000 }),
+      invoice({ id: '2', amount_ttc: 1200 }),
+    ])
+
+    expect(totals).toMatchObject({ remainingTtc: 3800, isOverrun: false })
+  })
+
+  it('flags a negative remainder as an overrun', () => {
+    const totals = supplierTotals([
+      quote({ id: '1', amount_ttc: 1000 }),
+      invoice({ id: '2', amount_ttc: 1500, invoice_status: 'paid' }),
+    ])
+
+    expect(totals).toMatchObject({ remainingTtc: -500, isOverrun: true })
+  })
+
+  it('leaves soft-deleted transactions out', () => {
+    const totals = supplierTotals([
+      quote({ id: '1', amount_ttc: 2000 }),
+      quote({ id: '2', amount_ttc: 9000, deleted_at: '2026-04-01T10:00:00' }),
+      invoice({ id: '3', amount_ttc: 700 }),
+      invoice({ id: '4', amount_ttc: 300, deleted_at: '2026-04-02T10:00:00' }),
+    ])
+
+    expect(totals).toMatchObject({
+      retainedTtc: 2000,
+      invoicedTtc: 700,
+      remainingTtc: 1300,
+      quoteCount: 1,
+      invoiceCount: 1,
     })
   })
 
@@ -78,7 +112,8 @@ describe('supplierTotals', () => {
       retainedTtc: 0,
       invoicedTtc: 0,
       paidTtc: 0,
-      toPayTtc: 0,
+      remainingTtc: 0,
+      isOverrun: false,
       quoteCount: 0,
       invoiceCount: 0,
     })

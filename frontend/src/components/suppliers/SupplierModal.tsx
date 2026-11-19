@@ -1,11 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 
-import {
-  invalidateSupplierDocumentQueries,
-  useUploadSupplierDocumentMutation,
-} from '@/api/supplier-documents'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -17,10 +12,7 @@ import {
   ModalShell,
 } from '@/components/shared/ModalShell'
 import { buildPhoneNumber, splitPhoneNumber } from '@/lib/phone'
-import { notifySuccess } from '@/lib/toasts'
 import type { Supplier } from '@/types'
-
-import { NewSupplierRibField, SupplierRibPanel } from './SupplierRibPanel'
 
 export type SupplierModalMode = 'create' | 'edit'
 
@@ -118,11 +110,6 @@ function normalizeBusinessIdentifier(value: string): string | null {
   return normalized === '' ? null : normalized
 }
 
-function numericSupplierId(supplierId: string | null): number | null {
-  const parsed = Number(supplierId)
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null
-}
-
 export function SupplierModal({
   mode,
   supplier,
@@ -130,8 +117,6 @@ export function SupplierModal({
   onSave,
   onDelete,
 }: SupplierModalProps) {
-  const queryClient = useQueryClient()
-  const uploadRibMutation = useUploadSupplierDocumentMutation()
   // What the form held when it opened, kept rather than rebuilt for the
   // comparison: a new supplier's form draws random ids.
   const [initialForm, setInitialForm] = useState<SupplierFormState>(() =>
@@ -143,13 +128,8 @@ export function SupplierModal({
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
-  const [ribFile, setRibFile] = useState<File | null>(null)
-  const [createdSupplierForRib, setCreatedSupplierForRib] =
-    useState<Supplier | null>(null)
-  const hasUnsavedChanges =
-    ribFile !== null || JSON.stringify(form) !== JSON.stringify(initialForm)
+  const hasUnsavedChanges = JSON.stringify(form) !== JSON.stringify(initialForm)
   const isBusy = isSaving || isDeleting
-  const existingSupplierId = numericSupplierId(supplier?.id ?? null)
 
   useEffect(() => {
     const nextForm = supplierToForm(supplier)
@@ -160,8 +140,6 @@ export function SupplierModal({
     setIsDeleting(false)
     setDeleteError(null)
     setIsConfirmingDelete(false)
-    setRibFile(null)
-    setCreatedSupplierForRib(null)
   }, [mode, supplier])
 
   function updateContact(contactId: string, updates: Partial<ContactDraft>) {
@@ -261,41 +239,22 @@ export function SupplierModal({
         updated_at: null,
       }))
 
-      // A failed RIB upload keeps the modal open after the supplier was
-      // created; reuse the created supplier on retry instead of duplicating.
-      const savedSupplier =
-        createdSupplierForRib ??
-        (await onSave({
-          id: supplierId,
-          user_id: supplier?.user_id ?? '0',
-          name: form.name.trim(),
-          siret: normalizeBusinessIdentifier(form.siret),
-          rne_number: normalizeOptional(form.rne_number),
-          comment: normalizeOptional(form.comment) ?? '',
-          street: normalizeOptional(form.street),
-          complement: normalizeOptional(form.complement),
-          postal_code: normalizeOptional(form.postal_code),
-          city: normalizeOptional(form.city),
-          contacts,
-          created_at: supplier?.created_at ?? null,
-          updated_at: null,
-          deleted_at: supplier?.deleted_at ?? null,
-        }))
-
-      if (ribFile) {
-        const savedSupplierId = numericSupplierId(savedSupplier.id)
-        if (savedSupplierId === null) {
-          throw new Error('Identifiant fournisseur invalide.')
-        }
-
-        setCreatedSupplierForRib(savedSupplier)
-        await uploadRibMutation.mutateAsync({
-          supplierId: savedSupplierId,
-          file: ribFile,
-        })
-        invalidateSupplierDocumentQueries(queryClient, savedSupplierId)
-        notifySuccess('RIB ajouté au fournisseur.')
-      }
+      await onSave({
+        id: supplierId,
+        user_id: supplier?.user_id ?? '0',
+        name: form.name.trim(),
+        siret: normalizeBusinessIdentifier(form.siret),
+        rne_number: normalizeOptional(form.rne_number),
+        comment: normalizeOptional(form.comment) ?? '',
+        street: normalizeOptional(form.street),
+        complement: normalizeOptional(form.complement),
+        postal_code: normalizeOptional(form.postal_code),
+        city: normalizeOptional(form.city),
+        contacts,
+        created_at: supplier?.created_at ?? null,
+        updated_at: null,
+        deleted_at: supplier?.deleted_at ?? null,
+      })
 
       onClose()
     } catch (error) {
@@ -586,17 +545,6 @@ export function SupplierModal({
               ))}
             </div>
           </section>
-
-          {mode === 'create' ? (
-            <NewSupplierRibField
-              file={ribFile}
-              disabled={isBusy}
-              onFileChange={setRibFile}
-              onClear={() => setRibFile(null)}
-            />
-          ) : existingSupplierId !== null ? (
-            <SupplierRibPanel supplierId={existingSupplierId} />
-          ) : null}
         </div>
 
         {formError ? (

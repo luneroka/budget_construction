@@ -372,10 +372,15 @@ export type DocumentListRead = DocumentRead & {
   amount_ttc: ApiDecimal | null
 }
 
-export type SupplierDocumentRead = {
+export type SupplierDocumentType =
+  'rib' | 'kbis' | 'decennial_insurance' | 'urssaf_certificate' | 'other'
+
+type SupplierDocumentFields = {
   id: number
   supplier_id: number
   user_id: number
+  /** Valid through that day; null: « Sans date ». */
+  expiry_date: ApiDate | null
   original_filename: string
   stored_filename: string
   file_path: string
@@ -386,9 +391,21 @@ export type SupplierDocumentRead = {
   deleted_at: ApiDateTime | null
 }
 
-export type SupplierDocumentListRead = SupplierDocumentRead & {
+export type SupplierDocumentRead = SupplierDocumentFields & {
+  type: SupplierDocumentType
+}
+
+// On the Documents page `type` tells transaction documents from supplier
+// documents, so the supplier document's own type is `document_type`.
+export type SupplierDocumentListRead = SupplierDocumentFields & {
   type: 'supplier_document'
+  document_type: SupplierDocumentType
   supplier_name: string
+}
+
+export type SupplierDocumentUpdate = {
+  type?: SupplierDocumentType
+  expiry_date?: ApiDate | null
 }
 
 export type DocumentsListItem = DocumentListRead | SupplierDocumentListRead
