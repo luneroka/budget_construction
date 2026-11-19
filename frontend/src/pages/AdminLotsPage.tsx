@@ -80,7 +80,8 @@ export function AdminLotsPage() {
     deleteMutation.isPending
 
   async function refreshLots() {
-    // Every project's lots and totals show the new names and order.
+    // Every project's lots and totals show the change: a lot added or
+    // deleted, a new name or order.
     await queryClient.invalidateQueries({ queryKey: lotQueryKeys.all })
     await queryClient.invalidateQueries({ queryKey: ['projects'] })
     await queryClient.invalidateQueries({ queryKey: ['transactions'] })
