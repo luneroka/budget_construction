@@ -1,16 +1,22 @@
-from fastapi import APIRouter, Depends, File, UploadFile, status
+from datetime import date
+
+from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
 from app.db.session import get_db_session
 from app.dependencies.auth import get_current_user
+from app.models.supplier_document import SupplierDocumentType
 from app.models.user import User
 from app.repositories import supplier as supplier_repository
 from app.repositories import supplier_document as supplier_document_repository
 from app.routers._helpers import require_found
 from app.routers.uploads import StoredFile, upload_document
 from app.schemas.document import DocumentDownloadUrl
-from app.schemas.supplier_document import SupplierDocumentRead
+from app.schemas.supplier_document import (
+    SupplierDocumentRead,
+    SupplierDocumentUpdate,
+)
 from app.services.storage import generate_download_url
 
 router = APIRouter(prefix='/suppliers', tags=['Supplier Documents'])
@@ -19,7 +25,8 @@ supplier_document_router = APIRouter(
 )
 
 
-# API ENDPOINT TO ADD NEW SUPPLIER DOCUMENT (RIB)
+# A document of the supplier's library: the file, its type, and an optional
+# expiry date. A missing or unknown type is refused (422) before any upload.
 @router.post(
     '/{supplier_id}/documents',
     response_model=SupplierDocumentRead,
@@ -28,6 +35,8 @@ supplier_document_router = APIRouter(
 async def create_supplier_document(
     supplier_id: int,
     file: UploadFile = File(...),
+    document_type: SupplierDocumentType = Form(..., alias='type'),
+    expiry_date: date | None = Form(None),
     db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -41,6 +50,8 @@ async def create_supplier_document(
             db=db,
             supplier_id=supplier_id,
             user_id=current_user.id,
+            document_type=document_type,
+            expiry_date=expiry_date,
             original_filename=stored.original_filename,
             stored_filename=stored.stored_filename,
             file_path=stored.object_key,
@@ -103,6 +114,28 @@ async def get_supplier_document_download_url(
     )
 
     return DocumentDownloadUrl(url=url)
+
+
+@supplier_document_router.patch(
+    '/{document_id}',
+    response_model=SupplierDocumentRead,
+)
+async def update_supplier_document(
+    document_id: int,
+    document_data: SupplierDocumentUpdate,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    document = require_found(
+        await supplier_document_repository.get_supplier_document_by_id(
+            db=db, document_id=document_id, user_id=current_user.id
+        ),
+        'document_not_found',
+    )
+
+    return await supplier_document_repository.update_supplier_document(
+        db=db, document=document, document_data=document_data
+    )
 
 
 @supplier_document_router.delete(

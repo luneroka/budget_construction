@@ -1,11 +1,32 @@
 from __future__ import annotations
 
-from datetime import datetime
-from sqlalchemy import ForeignKey, DateTime, Index, String, func, text
+import enum
+from datetime import date, datetime
+from sqlalchemy import (
+    Date,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    String,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.core.time import utcnow
+
+
+class SupplierDocumentType(str, enum.Enum):
+    """The five kinds of supplier paperwork, stored as stable English keys;
+    the French labels live in the frontend."""
+
+    rib = 'rib'
+    kbis = 'kbis'
+    decennial_insurance = 'decennial_insurance'
+    urssaf_certificate = 'urssaf_certificate'
+    other = 'other'
 
 
 class SupplierDocument(Base):
@@ -20,6 +41,12 @@ class SupplierDocument(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True
     )
+
+    type: Mapped[SupplierDocumentType] = mapped_column(
+        Enum(SupplierDocumentType, name='supplier_document_type'), nullable=False
+    )
+    # A date, no time: the document is valid through that day.
+    expiry_date: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
     stored_filename: Mapped[str] = mapped_column(String(255), nullable=False)

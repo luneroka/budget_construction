@@ -34,7 +34,7 @@ from app.models.document import Document
 from app.models.lot import Lot, SupplierLot
 from app.models.project import Project
 from app.models.supplier import Supplier
-from app.models.supplier_document import SupplierDocument
+from app.models.supplier_document import SupplierDocument, SupplierDocumentType
 from app.models.transaction import (
     InvoiceStatus,
     InvoiceType,
@@ -62,6 +62,7 @@ class Call:
     url: str
     json: dict[str, object] | None = None
     files: dict[str, tuple[str, bytes, str]] | None = None
+    data: dict[str, str] | None = None
 
     def __str__(self) -> str:
         return f'{self.method} {self.url}'
@@ -127,6 +128,7 @@ async def _build_owned_resources(
     supplier_document = SupplierDocument(
         supplier=supplier,
         user=owner,
+        type=SupplierDocumentType.rib,
         original_filename=f'{label}-rib.pdf',
         stored_filename=f'stored-{label}-rib.pdf',
         file_path=f'documents/{label}-rib.pdf',
@@ -219,8 +221,14 @@ def _routes(r: OwnedResources) -> list[Call]:
         Call('PATCH', f'/suppliers/{s}', {'name': 'Hijacked'}),
         Call('DELETE', f'/suppliers/{s}'),
         Call('GET', f'/suppliers/{s}/documents'),
-        Call('POST', f'/suppliers/{s}/documents', files=PDF_UPLOAD),
+        Call(
+            'POST',
+            f'/suppliers/{s}/documents',
+            files=PDF_UPLOAD,
+            data={'type': 'kbis'},
+        ),
         Call('GET', f'/supplier-documents/{sd}/download-url'),
+        Call('PATCH', f'/supplier-documents/{sd}', {'type': 'kbis'}),
         Call('DELETE', f'/supplier-documents/{sd}'),
         Call('GET', f'/projects/{p}/trash/'),
         Call('DELETE', f'/projects/{p}/trash/'),
@@ -293,7 +301,12 @@ async def _leaks(
     leaks: list[str] = []
     for call in calls:
         response = await client.request(
-            call.method, call.url, headers=headers, json=call.json, files=call.files
+            call.method,
+            call.url,
+            headers=headers,
+            json=call.json,
+            files=call.files,
+            data=call.data,
         )
         if response.status_code != 404:
             leaks.append(f'{call} -> {response.status_code} {response.text[:700]}')

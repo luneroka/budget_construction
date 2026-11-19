@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from datetime import date
 from typing import cast
 
 from sqlalchemy import select
@@ -6,7 +7,8 @@ from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.supplier import Supplier
-from app.models.supplier_document import SupplierDocument
+from app.models.supplier_document import SupplierDocument, SupplierDocumentType
+from app.schemas.supplier_document import SupplierDocumentUpdate
 from app.core.time import utcnow
 
 SupplierDocumentListRow = Row[tuple[SupplierDocument, str]]
@@ -16,6 +18,8 @@ async def create_supplier_document(
     db: AsyncSession,
     supplier_id: int,
     user_id: int,
+    document_type: SupplierDocumentType,
+    expiry_date: date | None,
     original_filename: str,
     stored_filename: str,
     file_path: str,
@@ -25,6 +29,8 @@ async def create_supplier_document(
     document = SupplierDocument(
         supplier_id=supplier_id,
         user_id=user_id,
+        type=document_type,
+        expiry_date=expiry_date,
         original_filename=original_filename,
         stored_filename=stored_filename,
         file_path=file_path,
@@ -89,6 +95,20 @@ async def get_supplier_document_by_id(
         )
     )
     return result.scalar_one_or_none()
+
+
+async def update_supplier_document(
+    db: AsyncSession, document: SupplierDocument, document_data: SupplierDocumentUpdate
+) -> SupplierDocument:
+    # Type and expiry date only: the file, its name, size and R2 key stay.
+    for field, value in document_data.model_dump(exclude_unset=True).items():
+        setattr(document, field, value)
+    document.updated_at = utcnow()
+
+    await db.commit()
+    await db.refresh(document)
+
+    return document
 
 
 async def soft_delete_supplier_document(

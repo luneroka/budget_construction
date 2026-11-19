@@ -10,7 +10,7 @@ from app.models.lot import Lot
 from app.models.project import Project
 from app.models.refresh_token import RefreshToken
 from app.models.supplier import Supplier
-from app.models.supplier_document import SupplierDocument
+from app.models.supplier_document import SupplierDocument, SupplierDocumentType
 from app.models.transaction import QuoteStatus, Transaction, TransactionType
 from app.models.user import User
 from app.schemas.user import AdminUserUpdate
@@ -234,6 +234,7 @@ async def test_hard_delete_removes_user_and_document_files(
     rib = SupplierDocument(
         supplier_id=supplier.id,
         user_id=user.id,
+        type=SupplierDocumentType.rib,
         original_filename='rib.pdf',
         stored_filename='stored-rib.pdf',
         file_path='documents/stored-rib.pdf',
