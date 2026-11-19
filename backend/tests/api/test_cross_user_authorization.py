@@ -167,15 +167,13 @@ async def _build_owned_resources(
 
 DASHBOARD_PATHS = (
     'financial-overview',
-    'charts/budget-vs-actual',
-    'charts/lot-distribution',
+    'charts/invoiced-by-lot',
     'charts/spending-over-time',
     'charts/supplier-distribution',
-    'widgets/budget-alerts',
     'widgets/missing-documents',
-    'widgets/quotes-to-confirm',
-    'widgets/quotes-to-negotiate',
+    'widgets/quotes-to-follow-up',
     'widgets/recent-transactions',
+    'widgets/supplier-documents',
     'widgets/unpaid-invoices',
 )
 

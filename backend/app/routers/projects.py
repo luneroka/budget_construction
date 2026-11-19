@@ -11,13 +11,13 @@ from app.models.user import User
 from app.repositories import project as project_repository
 from app.routers._helpers import require_found
 from app.routers.integrity import raise_integrity_conflict
+from app.repositories import supplier_document as supplier_document_repository
 from app.schemas.financial_engine import (
-    DashboardBudgetAlertsRead,
     DashboardFinancialOverviewRead,
-    DashboardLotBudgetInvoicedRead,
-    DashboardLotDistributionRead,
+    DashboardLotInvoicedRead,
     DashboardSpendingOverTimePointRead,
     DashboardSupplierDistributionRead,
+    DashboardSupplierDocumentRead,
     DashboardTransactionWidgetRead,
     ProjectFinancialSummaryRead,
 )
@@ -78,10 +78,10 @@ async def get_project(
     )
 
 
-# Read-only projections of the financial engine. They all take the same
-# (db, project_id, user_id) arguments and answer 404 when the project is not
-# visible to the user, so they are registered from a table instead of a dozen
-# identical handlers.
+# Read-only projections of the financial engine, and the dashboard's
+# supplier-documents widget. They all take the same (db, project_id, user_id)
+# arguments and answer 404 when the project is not visible to the user, so
+# they are registered from a table instead of a dozen identical handlers.
 Projection = Callable[[AsyncSession, int, int], Awaitable[object | None]]
 
 FINANCIAL_PROJECTIONS: list[tuple[str, str, type[BaseModel] | object, Projection]] = [
@@ -104,16 +104,10 @@ FINANCIAL_PROJECTIONS: list[tuple[str, str, type[BaseModel] | object, Projection
         financial_engine.get_dashboard_spending_over_time,
     ),
     (
-        'get_project_dashboard_budget_vs_actual',
-        '/{project_id}/dashboard/charts/budget-vs-actual',
-        list[DashboardLotBudgetInvoicedRead],
-        financial_engine.get_dashboard_budget_vs_actual,
-    ),
-    (
-        'get_project_dashboard_lot_distribution',
-        '/{project_id}/dashboard/charts/lot-distribution',
-        list[DashboardLotDistributionRead],
-        financial_engine.get_dashboard_lot_distribution,
+        'get_project_dashboard_invoiced_by_lot',
+        '/{project_id}/dashboard/charts/invoiced-by-lot',
+        list[DashboardLotInvoicedRead],
+        financial_engine.get_dashboard_invoiced_by_lot,
     ),
     (
         'get_project_dashboard_supplier_distribution',
@@ -128,16 +122,10 @@ FINANCIAL_PROJECTIONS: list[tuple[str, str, type[BaseModel] | object, Projection
         financial_engine.get_dashboard_unpaid_invoices,
     ),
     (
-        'get_project_dashboard_quotes_to_confirm',
-        '/{project_id}/dashboard/widgets/quotes-to-confirm',
+        'get_project_dashboard_quotes_to_follow_up',
+        '/{project_id}/dashboard/widgets/quotes-to-follow-up',
         DashboardTransactionWidgetRead,
-        financial_engine.get_dashboard_quotes_to_confirm,
-    ),
-    (
-        'get_project_dashboard_quotes_to_negotiate',
-        '/{project_id}/dashboard/widgets/quotes-to-negotiate',
-        DashboardTransactionWidgetRead,
-        financial_engine.get_dashboard_quotes_to_negotiate,
+        financial_engine.get_dashboard_quotes_to_follow_up,
     ),
     (
         'get_project_dashboard_missing_documents',
@@ -152,10 +140,10 @@ FINANCIAL_PROJECTIONS: list[tuple[str, str, type[BaseModel] | object, Projection
         financial_engine.get_dashboard_recent_transactions,
     ),
     (
-        'get_project_dashboard_budget_alerts',
-        '/{project_id}/dashboard/widgets/budget-alerts',
-        DashboardBudgetAlertsRead,
-        financial_engine.get_dashboard_budget_alerts,
+        'get_project_dashboard_supplier_documents',
+        '/{project_id}/dashboard/widgets/supplier-documents',
+        list[DashboardSupplierDocumentRead],
+        supplier_document_repository.get_project_dated_supplier_documents,
     ),
 ]
 

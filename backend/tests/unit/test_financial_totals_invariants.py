@@ -1,8 +1,10 @@
-"""Arithmetic of the financial engine's lot totals (spec criterion 17).
+"""Arithmetic of the financial engine's totals (money-model spec criteria 1
+and 5).
 
-Per lot: Devis retenus = TTC of the active validated quotes; Facturé = TTC
-of every active invoice, split paid / unpaid / on hold; Reste à facturer =
-Devis retenus - Facturé, negative when the lot is in overrun.
+Per supplier group in a lot: Coût prévu = max(TTC of its active validated
+quotes, TTC of its active invoices). Facturé = every active invoice, split
+Payé / À payer (unpaid + on hold). A lot, a supplier or the project adds up
+its groups, so their Coût prévu is a sum of maxes.
 """
 
 from datetime import date
@@ -39,59 +41,76 @@ def _transaction(
     )
 
 
-def _totals(*transactions: Transaction) -> FinancialTotals:
+def _quote(amount: str, status: QuoteStatus = QuoteStatus.validated) -> Transaction:
+    return _transaction(TransactionType.quote, amount, quote_status=status)
+
+
+def _invoice(
+    amount: str, status: InvoiceStatus = InvoiceStatus.unpaid
+) -> Transaction:
+    return _transaction(TransactionType.invoice, amount, invoice_status=status)
+
+
+def _group(*transactions: Transaction) -> FinancialTotals:
     totals = FinancialTotals()
     for transaction in transactions:
         totals.add_transaction(transaction)
     return totals
 
 
-def _sample_totals() -> FinancialTotals:
-    return _totals(
-        _transaction(
-            TransactionType.quote, '1000.00', quote_status=QuoteStatus.validated
-        ),
-        _transaction(
-            TransactionType.quote, '400.00', quote_status=QuoteStatus.to_confirm
-        ),
-        _transaction(
-            TransactionType.quote, '300.00', quote_status=QuoteStatus.to_negotiate
-        ),
-        _transaction(
-            TransactionType.quote, '900.00', quote_status=QuoteStatus.rejected
-        ),
-        _transaction(
-            TransactionType.invoice, '600.00', invoice_status=InvoiceStatus.paid
-        ),
-        _transaction(
-            TransactionType.invoice, '150.00', invoice_status=InvoiceStatus.unpaid
-        ),
-        _transaction(
-            TransactionType.invoice, '50.00', invoice_status=InvoiceStatus.on_hold
-        ),
+def _sum(*groups: FinancialTotals) -> FinancialTotals:
+    totals = FinancialTotals()
+    for group in groups:
+        totals.merge(group)
+    return totals
+
+
+def _sample_group() -> FinancialTotals:
+    return _group(
+        _quote('1000.00'),
+        _quote('400.00', QuoteStatus.to_confirm),
+        _quote('300.00', QuoteStatus.to_negotiate),
+        _quote('900.00', QuoteStatus.rejected),
+        _invoice('600.00', InvoiceStatus.paid),
+        _invoice('150.00', InvoiceStatus.unpaid),
+        _invoice('50.00', InvoiceStatus.on_hold),
     )
+
+
+def test_quotes_only_plan_the_validated_quotes() -> None:
+    totals = _group(_quote('500.00'), _quote('250.00'))
+
+    assert totals.planned_cost_ttc == Decimal('750.00')
+    assert totals.invoiced_amount_ttc == Decimal('0.00')
+
+
+def test_invoices_only_plan_the_invoices() -> None:
+    totals = _group(_invoice('80.00'), _invoice('20.00', InvoiceStatus.paid))
+
+    assert totals.planned_cost_ttc == totals.invoiced_amount_ttc == Decimal('100.00')
+
+
+def test_a_larger_quote_is_the_plan() -> None:
+    totals = _group(_quote('1000.00'), _invoice('300.00'))
+
+    assert totals.planned_cost_ttc == Decimal('1000.00')
+
+
+def test_larger_invoices_are_the_plan() -> None:
+    totals = _group(_quote('200.00'), _invoice('260.00', InvoiceStatus.paid))
+
+    assert totals.planned_cost_ttc == Decimal('260.00')
 
 
 @pytest.mark.parametrize(
-    ('quote_status', 'counts'),
-    [
-        (QuoteStatus.validated, True),
-        (QuoteStatus.to_confirm, False),
-        (QuoteStatus.to_negotiate, False),
-        (QuoteStatus.rejected, False),
-    ],
+    'quote_status',
+    [QuoteStatus.to_confirm, QuoteStatus.to_negotiate, QuoteStatus.rejected],
 )
-def test_only_validated_quotes_are_retained(
-    quote_status: QuoteStatus, counts: bool
-) -> None:
-    totals = _totals(
-        _transaction(TransactionType.quote, '100.00', quote_status=quote_status)
-    )
+def test_only_validated_quotes_plan_anything(quote_status: QuoteStatus) -> None:
+    totals = _group(_quote('100.00', quote_status))
 
-    assert totals.validated_quote_amount_ttc == (
-        Decimal('100.00') if counts else Decimal('0.00')
-    )
-    assert totals.invoiced_amount_ttc == Decimal('0.00')
+    assert totals.planned_cost_ttc == Decimal('0.00')
+    assert totals.validated_quote_amount_ttc == Decimal('0.00')
     assert totals.quote_count == 1
 
 
@@ -106,67 +125,67 @@ def test_only_validated_quotes_are_retained(
 def test_every_invoice_status_counts_as_invoiced(
     invoice_status: InvoiceStatus, bucket: str
 ) -> None:
-    totals = _totals(
-        _transaction(TransactionType.invoice, '80.00', invoice_status=invoice_status)
-    )
+    totals = _group(_invoice('80.00', invoice_status))
 
     assert totals.invoiced_amount_ttc == Decimal('80.00')
     assert getattr(totals, bucket) == Decimal('80.00')
-    assert totals.validated_quote_amount_ttc == Decimal('0.00')
+    assert totals.to_pay_amount_ttc == (
+        Decimal('0.00') if invoice_status == InvoiceStatus.paid else Decimal('80.00')
+    )
+
+
+def test_two_suppliers_each_take_their_own_max() -> None:
+    quoted = _group(_quote('1000.00'), _invoice('650.00'))
+    over_invoiced = _group(_quote('200.00'), _invoice('260.00'))
+
+    lot = _sum(quoted, over_invoiced)
+
+    # Not max(1200, 910): each supplier keeps its own max.
+    assert lot.planned_cost_ttc == Decimal('1260.00')
+    assert lot.validated_quote_amount_ttc == Decimal('1200.00')
+    assert lot.invoiced_amount_ttc == Decimal('910.00')
 
 
 def test_read_model_identities_hold() -> None:
-    read_model = financial_totals_to_read_model(_sample_totals())
+    read_model = financial_totals_to_read_model(_sample_group())
 
+    assert read_model.planned_cost_ttc == Decimal('1000.00')
     assert read_model.validated_quote_amount_ttc == Decimal('1000.00')
     assert read_model.invoiced_amount_ttc == Decimal('800.00')
+    assert read_model.paid_invoice_amount_ttc == Decimal('600.00')
+    assert read_model.to_pay_amount_ttc == Decimal('200.00')
     assert read_model.invoiced_amount_ttc == (
-        read_model.paid_invoice_amount_ttc
-        + read_model.unpaid_invoice_amount_ttc
-        + read_model.on_hold_invoice_amount_ttc
+        read_model.paid_invoice_amount_ttc + read_model.to_pay_amount_ttc
     )
-    assert read_model.remaining_to_invoice_ttc == Decimal('200.00')
-    assert read_model.is_overrun is False
-    assert read_model.completion_percentage == Decimal('80.00')
+    assert read_model.to_pay_amount_ttc == (
+        read_model.unpaid_invoice_amount_ttc + read_model.on_hold_invoice_amount_ttc
+    )
     assert read_model.quote_count == 4
     assert read_model.validated_quote_count == 1
     assert read_model.invoice_count == 3
 
 
-def test_negative_remainder_is_an_overrun() -> None:
-    read_model = financial_totals_to_read_model(
-        _totals(
-            _transaction(
-                TransactionType.quote, '100.00', quote_status=QuoteStatus.validated
-            ),
-            _transaction(
-                TransactionType.invoice, '130.00', invoice_status=InvoiceStatus.unpaid
-            ),
-        )
-    )
+def test_removed_figures_are_gone_from_the_read_model() -> None:
+    fields = set(financial_totals_to_read_model(FinancialTotals()).model_dump())
 
-    assert read_model.remaining_to_invoice_ttc == Decimal('-30.00')
-    assert read_model.is_overrun is True
+    assert fields.isdisjoint(
+        {'remaining_to_invoice_ttc', 'is_overrun', 'completion_percentage'}
+    )
 
 
 def test_empty_lot_is_all_zero() -> None:
     read_model = financial_totals_to_read_model(FinancialTotals())
 
-    assert read_model.validated_quote_amount_ttc == Decimal('0.00')
-    assert read_model.invoiced_amount_ttc == Decimal('0.00')
-    assert read_model.remaining_to_invoice_ttc == Decimal('0.00')
-    assert read_model.is_overrun is False
-    assert read_model.completion_percentage == Decimal('0.00')
+    for value in read_model.model_dump().values():
+        assert value == 0
 
 
 def test_merge_is_additive_over_every_field() -> None:
-    """Project totals are the sum of their lots -- merge() must add every
-    money and count field."""
-    left = _sample_totals()
-    right = _sample_totals()
-    merged = FinancialTotals()
-    merged.merge(left)
-    merged.merge(right)
+    """A lot is the sum of its groups, the project the sum of its lots --
+    merge() must add every money and count field, Coût prévu included."""
+    left = _sample_group()
+    right = _group(_invoice('90.00'))
+    merged = _sum(left, right)
 
     for field in vars(merged):
         assert getattr(merged, field) == getattr(left, field) + getattr(
