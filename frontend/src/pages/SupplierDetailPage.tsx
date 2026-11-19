@@ -117,13 +117,13 @@ function SupplierTransactionsTable({
           {isLoading ? (
             <TableRow>
               <TableCell colSpan={8} className="text-muted-foreground">
-                Chargement des transactions...
+                Chargement des devis et factures...
               </TableCell>
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
               <TableCell colSpan={8} className="text-muted-foreground">
-                Aucune transaction avec ce fournisseur sur ce projet.
+                Aucun devis ni facture avec ce fournisseur sur ce projet.
               </TableCell>
             </TableRow>
           ) : (

@@ -452,7 +452,7 @@ export function TransactionsPage() {
         <TransactionTableMessage
           colSpan={8}
           className="py-8 text-center text-muted-foreground"
-          message="Chargement des transactions..."
+          message="Chargement des devis et factures..."
         />
       )
     }
@@ -462,7 +462,7 @@ export function TransactionsPage() {
         <TransactionTableMessage
           colSpan={8}
           className="py-8 text-center text-destructive"
-          message="Impossible de charger les transactions."
+          message="Impossible de charger les devis et factures."
         />
       )
     }
@@ -474,8 +474,8 @@ export function TransactionsPage() {
           className="py-8 text-center text-muted-foreground"
           message={
             search.trim()
-              ? 'Aucune transaction ne correspond à la recherche.'
-              : 'Aucune transaction enregistrée.'
+              ? 'Aucun devis ni facture ne correspond à la recherche.'
+              : 'Aucun devis ni facture enregistré.'
           }
         />
       )
@@ -737,7 +737,7 @@ export function TransactionsPage() {
         />
         {isRefreshing ? (
           <div className="border-b border-border px-4 py-2 text-xs text-muted-foreground">
-            Actualisation des transactions...
+            Actualisation des devis et factures...
           </div>
         ) : null}
         <Table>

@@ -27,7 +27,7 @@ export const quickViews: Array<{ id: QuickViewId; label: string }> = [
   { id: 'quotes_to_confirm', label: 'Devis en attente' },
   { id: 'quotes_rejected', label: 'Devis rejetés' },
   { id: 'missing_documents', label: 'Documents manquants' },
-  { id: 'recent', label: 'Transactions récentes' },
+  { id: 'recent', label: 'Devis et factures récents' },
 ]
 
 // Quick views that stay in the model but are no longer offered as pills, so

@@ -43,7 +43,7 @@ type PendingHardDelete =
 type TrashCounts = Record<TrashItemRead['type'], number>
 
 const typeLabels: Record<TrashItemRead['type'], string> = {
-  transaction: 'Transaction',
+  transaction: 'Devis / facture',
   document: 'Document',
   supplier: 'Fournisseur',
   supplier_document: 'Document fournisseur',
@@ -51,7 +51,7 @@ const typeLabels: Record<TrashItemRead['type'], string> = {
 
 const filterOptions: Array<{ value: TrashFilter; label: string }> = [
   { value: 'all', label: 'Tout' },
-  { value: 'transaction', label: 'Transactions' },
+  { value: 'transaction', label: 'Devis et factures' },
   { value: 'document', label: 'Documents' },
   { value: 'supplier', label: 'Fournisseurs' },
   { value: 'supplier_document', label: 'Documents fournisseurs' },
@@ -550,8 +550,8 @@ export function TrashPage() {
             <li>
               {formatCount(
                 trashCounts.transaction,
-                'transaction',
-                'transactions',
+                'devis ou facture',
+                'devis et factures',
               )}
             </li>
             <li>
