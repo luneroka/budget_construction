@@ -1,4 +1,6 @@
 import {
+  ArrowUpRight,
+  ChevronDown,
   FileText,
   Files,
   Plus,
@@ -6,12 +8,13 @@ import {
   Trash2,
   Unlink,
 } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { invoiceTypeLabels } from '@/components/budget/transaction-form/transactionForm'
 import { StatusBadge } from '@/components/shared/StatusBadge'
-import { SupplierLink } from '@/components/suppliers/SupplierLink'
 import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button-variants'
 import { Card } from '@/components/ui/card'
 import type { Transaction } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/format'
@@ -293,6 +296,7 @@ export function SupplierLotCard(props: SupplierLotCardProps) {
     quotes.filter((quote) => quote.quote_status === 'validated'),
   )
   const invoicedTtc = sumTtc(invoices)
+  const [isOpen, setIsOpen] = useState(false)
 
   function rows(section: Section, sectionTransactions: Transaction[]) {
     if (sectionTransactions.length === 0) {
@@ -311,32 +315,77 @@ export function SupplierLotCard(props: SupplierLotCardProps) {
 
   return (
     <Card className="overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-        <div className="min-w-0">
-          <h3 className="font-heading text-lg font-semibold text-foreground">
-            {supplierId === null ? (
-              supplierName
-            ) : (
-              <SupplierLink supplierId={supplierId} name={supplierName} />
-            )}
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Devis retenus {formatCurrency(retainedTtc)} · Facturé{' '}
-            {formatCurrency(invoicedTtc)}
-          </p>
-        </div>
-        {onUnassign && !readOnly ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            aria-label={`Retirer ${supplierName} de ce lot`}
-            onClick={onUnassign}
+      <div
+        className="flex cursor-pointer flex-wrap items-center justify-between gap-3 px-5 py-4"
+        // The whole header folds the card; its link and buttons keep their job.
+        onClick={(event) => {
+          if (
+            event.target instanceof Element &&
+            event.target.closest('a, button')
+          )
+            return
+          setIsOpen((open) => !open)
+        }}
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <button
+            type="button"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label={
+              isOpen ? `Replier ${supplierName}` : `Déplier ${supplierName}`
+            }
+            aria-expanded={isOpen}
+            onClick={() => setIsOpen((open) => !open)}
           >
-            <Unlink aria-hidden="true" />
-          </Button>
-        ) : null}
+            <ChevronDown
+              className={cn(
+                'h-4 w-4 transition-transform',
+                !isOpen && '-rotate-90',
+              )}
+              aria-hidden="true"
+            />
+          </button>
+          <div className="min-w-0">
+            <h3 className="font-[family-name:var(--font-body)] text-lg font-semibold text-foreground">
+              {supplierName}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Devis retenus {formatCurrency(retainedTtc)} · Facturé{' '}
+              {formatCurrency(invoicedTtc)}
+              {isOpen
+                ? null
+                : ` · ${quotes.length} devis · ${invoices.length} facture${invoices.length > 1 ? 's' : ''}`}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {isOpen && supplierId !== null ? (
+            <Link
+              to={`/suppliers/${supplierId}`}
+              className={buttonVariants({ size: 'sm', variant: 'outline' })}
+            >
+              <ArrowUpRight aria-hidden="true" />
+              Aller au fournisseur
+            </Link>
+          ) : null}
+          {onUnassign && !readOnly ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-label={`Retirer ${supplierName} de ce lot`}
+              onClick={onUnassign}
+            >
+              <Unlink aria-hidden="true" />
+            </Button>
+          ) : null}
+        </div>
       </div>
-      <div className="@container min-w-0 px-5 pb-5 text-xs">
+      <div
+        className={cn(
+          '@container min-w-0 px-5 pb-5 text-xs',
+          !isOpen && 'hidden',
+        )}
+      >
         <div className="grid @min-[66rem]:grid-cols-2 @min-[66rem]:gap-4">
           <TransactionSection
             section="quotes"

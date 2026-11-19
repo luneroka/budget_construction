@@ -39,6 +39,7 @@ import { lotLabel } from '@/lib/transactionWorkspace'
 import { useSupplierActions } from '@/hooks/useSupplierActions'
 import { useSupplierRibViewer } from '@/hooks/useSupplierRibViewer'
 import { useSelectedProjectId } from '@/state/appState'
+import { normalizeSearchText } from '@/lib/searchHighlight'
 
 export function SuppliersPage() {
   const projectId = useSelectedProjectId()
@@ -74,7 +75,7 @@ export function SuppliersPage() {
     }
     return map
   }, [documentsQuery.data])
-  const normalizedSearch = search.trim().toLowerCase()
+  const normalizedSearch = normalizeSearchText(search)
   const filteredSuppliers = useMemo(() => {
     const inLot =
       lotFilter === 'all'
@@ -92,6 +93,8 @@ export function SuppliersPage() {
         supplier.siret,
         supplier.rne_number,
         supplier.comment,
+        // Its lots in this project, as the « Lots » column shows them.
+        ...(supplierLots.get(supplier.id) ?? []).map(lotLabel),
         ...supplier.contacts.flatMap((contact) => [
           contact.name,
           contact.phone_number,
@@ -100,7 +103,7 @@ export function SuppliersPage() {
       ]
         .filter(Boolean)
         .some((value) =>
-          String(value).toLowerCase().includes(normalizedSearch),
+          normalizeSearchText(String(value)).includes(normalizedSearch),
         ),
     )
   }, [lotFilter, normalizedSearch, supplierLots, suppliers])
@@ -297,23 +300,25 @@ export function SuppliersPage() {
       <div className="mt-6 overflow-hidden rounded-lg border border-border bg-card">
         <TableToolbar
           searchValue={search}
-          searchPlaceholder="Rechercher fournisseur, contact, email..."
+          searchPlaceholder="Rechercher fournisseur, lot, contact, email..."
           onSearchChange={setSearch}
+          leading={
+            <Select
+              className="w-full sm:w-56 sm:shrink-0"
+              aria-label="Filtrer par lot"
+              value={lotFilter}
+              onChange={(event) => setLotFilter(event.target.value)}
+            >
+              <option value="all">Tous les lots</option>
+              {lotOptions.map((lot) => (
+                <option key={lot.id} value={String(lot.id)}>
+                  {lotLabel(lot)}
+                </option>
+              ))}
+            </Select>
+          }
           actions={
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <Select
-                className="w-56"
-                aria-label="Filtrer par lot"
-                value={lotFilter}
-                onChange={(event) => setLotFilter(event.target.value)}
-              >
-                <option value="all">Tous les lots</option>
-                {lotOptions.map((lot) => (
-                  <option key={lot.id} value={String(lot.id)}>
-                    {lotLabel(lot)}
-                  </option>
-                ))}
-              </Select>
               <span className="whitespace-nowrap">{supplierCountLabel}</span>
               <Select
                 className="w-24"

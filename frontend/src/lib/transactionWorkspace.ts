@@ -84,8 +84,10 @@ function buildSearchText({
 }: TransactionWorkspaceRow) {
   return [
     transaction.supplier_name ?? '',
-    transaction.lot_code,
-    transaction.lot_designation,
+    lotLabel({
+      code: transaction.lot_code,
+      designation: transaction.lot_designation,
+    }),
     transaction.title ?? '',
     transaction.reference ?? '',
     transaction.transaction_type,
@@ -96,6 +98,8 @@ function buildSearchText({
     ...documentFilenames,
   ]
     .join(' ')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLocaleLowerCase()
 }
 

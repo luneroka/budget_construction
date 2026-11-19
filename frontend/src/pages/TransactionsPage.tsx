@@ -74,6 +74,7 @@ import { notifyError } from '@/lib/toasts'
 import { useSelectedProjectId } from '@/state/appState'
 import { useTransactionDocumentViewer } from '@/hooks/useTransactionDocumentViewer'
 import type { Transaction } from '@/types'
+import { normalizeSearchText } from '@/lib/searchHighlight'
 
 type TransactionTypeFilter =
   'all' | TransactionWorkspaceRow['transaction']['transaction_type']
@@ -240,7 +241,7 @@ export function TransactionsPage() {
     () => (transactionsQuery.data ?? []).map(buildTransactionRow),
     [transactionsQuery.data],
   )
-  const normalizedSearch = search.trim().toLocaleLowerCase()
+  const normalizedSearch = normalizeSearchText(search)
   const secondaryFilteredRows = useMemo(
     () =>
       transactionRows.filter((row) => {
@@ -701,21 +702,23 @@ export function TransactionsPage() {
           searchValue={search}
           searchPlaceholder="Rechercher libellé, référence, fournisseur, lot, montant..."
           onSearchChange={setSearch}
+          leading={
+            <Select
+              className="w-full sm:w-56 sm:shrink-0"
+              aria-label="Filtrer par lot"
+              value={lotFilter}
+              onChange={(event) => setLotFilter(event.target.value)}
+            >
+              <option value="all">Tous les lots</option>
+              {lotOptions.map((lot) => (
+                <option key={lot.id} value={String(lot.id)}>
+                  {lotLabel(lot)}
+                </option>
+              ))}
+            </Select>
+          }
           actions={
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <Select
-                className="w-56"
-                aria-label="Filtrer par lot"
-                value={lotFilter}
-                onChange={(event) => setLotFilter(event.target.value)}
-              >
-                <option value="all">Tous les lots</option>
-                {lotOptions.map((lot) => (
-                  <option key={lot.id} value={String(lot.id)}>
-                    {lotLabel(lot)}
-                  </option>
-                ))}
-              </Select>
               <span className="whitespace-nowrap">{transactionCountLabel}</span>
               <Select
                 className="w-24"

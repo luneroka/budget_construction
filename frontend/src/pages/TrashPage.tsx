@@ -32,6 +32,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { normalizeSearchText } from '@/lib/searchHighlight'
 import { transactionDisplayTitle } from '@/lib/transactionWorkspace'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import { useSelectedProjectId } from '@/state/appState'
@@ -145,7 +146,7 @@ function itemMatchesSearch(item: TrashItemRead, search: string): boolean {
     itemStatus(item),
   ]
 
-  return values.some((value) => value.toLowerCase().includes(search))
+  return values.some((value) => normalizeSearchText(value).includes(search))
 }
 
 export function TrashPage() {
@@ -168,7 +169,7 @@ export function TrashPage() {
   const hardDeleteSupplierDocumentMutation =
     useHardDeleteTrashSupplierDocumentMutation()
   const emptyTrashMutation = useEmptyProjectTrashMutation()
-  const normalizedSearch = search.trim().toLowerCase()
+  const normalizedSearch = normalizeSearchText(search)
   const filteredItems = useMemo(
     () =>
       (trashQuery.data ?? []).filter(

@@ -1,7 +1,7 @@
 import { type FormEvent, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Eye, EyeOff, FolderPlus, Layers } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 import { invalidateProjectFinancialQueries } from '@/api/budget-workspace-cache'
 import { getApiErrorMessage } from '@/api/client'
@@ -19,18 +19,9 @@ import {
   ModalShell,
 } from '@/components/shared/ModalShell'
 import { PageHeader } from '@/components/shared/PageHeader'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { decimalToNumber } from '@/lib/apiAdapters'
 import { formatCurrency } from '@/lib/format'
 import { hiddenLots } from '@/lib/lots'
@@ -130,17 +121,139 @@ function AddProjectLotModal({
   )
 }
 
-function remainderClass(lot: LotFinancialSummaryRead) {
-  if (lot.is_overrun) return 'text-destructive'
-  return decimalToNumber(lot.remaining_to_invoice_ttc) > 0
-    ? 'text-foreground'
-    : 'text-muted-foreground'
+type CardTotals = {
+  count: number
+  retainedTtc: number
+  invoicedTtc: number
+  remainingTtc: number
+}
+
+function lotTotals(lot: {
+  quote_count: number
+  invoice_count: number
+  validated_quote_amount_ttc: LotFinancialSummaryRead['validated_quote_amount_ttc']
+  invoiced_amount_ttc: LotFinancialSummaryRead['invoiced_amount_ttc']
+  remaining_to_invoice_ttc: LotFinancialSummaryRead['remaining_to_invoice_ttc']
+}): CardTotals {
+  return {
+    count: lot.quote_count + lot.invoice_count,
+    retainedTtc: decimalToNumber(lot.validated_quote_amount_ttc),
+    invoicedTtc: decimalToNumber(lot.invoiced_amount_ttc),
+    remainingTtc: decimalToNumber(lot.remaining_to_invoice_ttc),
+  }
+}
+
+// The 25 default lots grouped by phase of the build; project lots get their
+// own group at the end.
+const lotPhases: { title: string; codes: string[] }[] = [
+  {
+    title: 'Préparation et gros œuvre',
+    codes: ['00', '01', '02', '03', '04', '05'],
+  },
+  { title: 'Clos et couvert', codes: ['06', '07', '08', '09'] },
+  { title: 'Second œuvre', codes: ['10', '11', '12', '13', '14'] },
+  { title: 'Finitions', codes: ['15', '16', '17'] },
+  {
+    title: 'Extérieurs et options',
+    codes: ['18', '19', '20', '21', '22', '23', '24'],
+  },
+]
+
+function phaseRange(codes: string[]) {
+  return `${codes[0]}–${codes[codes.length - 1]}`
+}
+
+// One lot: its number large, its name, how much of the retained quotes is
+// invoiced (a bar, red on an overrun), or « À chiffrer » with no quote yet.
+function LotTile({
+  lot,
+  canHide,
+  isHiding,
+  onHide,
+}: {
+  lot: LotFinancialSummaryRead
+  canHide: boolean
+  isHiding: boolean
+  onHide: () => void
+}) {
+  const totals = lotTotals(lot)
+  const toQuote = totals.count === 0
+  const remainderClass = lot.is_overrun
+    ? 'text-destructive'
+    : totals.remainingTtc > 0
+      ? 'text-foreground'
+      : 'text-muted-foreground'
+
+  return (
+    <div className="group relative">
+      <Link
+        to={`/lots/${lot.lot_id}`}
+        aria-label={lotLabel(lot)}
+        className={cn(
+          'block h-full rounded-lg border bg-card px-2.5 py-2 text-left text-foreground transition-colors hover:border-primary/60 hover:bg-primary/5',
+          // An empty lot is still to quote: a dashed outline.
+          toQuote ? 'border-dashed border-border' : 'border-border',
+        )}
+      >
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="w-9 shrink-0 text-2xl leading-none font-semibold text-primary tabular-nums">
+            {lot.code}
+          </span>
+          {/* Two lines tall on every card, the name centred in it, so a
+              one-line name sits level with the number. */}
+          <span className="flex min-h-10 min-w-0 flex-1 items-center">
+            <span className="line-clamp-2 text-sm leading-5 font-semibold">
+              {lot.designation}
+            </span>
+          </span>
+          <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[0.7rem] font-medium text-muted-foreground group-hover:invisible">
+            {totals.count}
+          </span>
+        </div>
+        <div className="mt-2 grid grid-cols-[1fr_1fr_auto] items-end gap-2 border-t border-border/60 pt-1.5 text-[0.7rem] leading-4">
+          <span className="min-w-0">
+            <span className="block text-muted-foreground">Devis retenus</span>
+            <span className="block truncate font-semibold tabular-nums">
+              {formatCurrency(totals.retainedTtc)}
+            </span>
+          </span>
+          <span className="min-w-0">
+            <span className="block text-muted-foreground">Facturé</span>
+            <span className="block truncate font-semibold tabular-nums">
+              {formatCurrency(totals.invoicedTtc)}
+            </span>
+          </span>
+          <span className="min-w-0 text-right">
+            <span className="block text-muted-foreground">Reste</span>
+            <span
+              className={cn(
+                'block truncate font-semibold tabular-nums',
+                remainderClass,
+              )}
+            >
+              {formatCurrency(totals.remainingTtc)}
+            </span>
+          </span>
+        </div>
+      </Link>
+      {canHide ? (
+        <button
+          type="button"
+          className="absolute top-1.5 right-1.5 inline-flex h-7 w-7 items-center justify-center rounded-md bg-card text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-foreground focus-visible:opacity-100"
+          aria-label={`Masquer le lot ${lot.code} dans ce projet`}
+          disabled={isHiding}
+          onClick={onHide}
+        >
+          <EyeOff className="h-4 w-4" aria-hidden="true" />
+        </button>
+      ) : null}
+    </div>
+  )
 }
 
 // Every visible lot of the project with its totals, empty lots included.
 // A lot opens its page: its suppliers, their quotes and invoices.
 export function LotsPage() {
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const projectId = useSelectedProjectId()
   const summaryQuery = useProjectFinancialSummaryQuery(projectId)
@@ -229,135 +342,101 @@ export function LotsPage() {
         }
       />
 
-      <Card className="overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Lot</TableHead>
-              <TableHead className="text-right">Devis retenus</TableHead>
-              <TableHead className="text-right">Facturé</TableHead>
-              <TableHead className="hidden text-right md:table-cell">
-                Payé
-              </TableHead>
-              <TableHead className="text-right">Reste à facturer</TableHead>
-              <TableHead className="w-12">
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {summary.lots.map((lot) => {
-              const projectLot = projectLots.get(lot.lot_id)
-              const isEmpty = lot.quote_count === 0 && lot.invoice_count === 0
-              const canHide =
-                projectLot !== undefined &&
-                projectLot.active_transaction_count === 0
-
-              return (
-                <TableRow
-                  key={lot.lot_id}
-                  className="cursor-pointer"
-                  onClick={(event) => {
-                    if (
-                      event.target instanceof Element &&
-                      event.target.closest('button, a')
-                    )
-                      return
-                    navigate(`/lots/${lot.lot_id}`)
-                  }}
-                >
-                  <TableCell>
-                    <Link
-                      to={`/lots/${lot.lot_id}`}
-                      className="font-medium text-foreground underline-offset-4 hover:text-gold hover:underline"
-                    >
-                      {lotLabel(lot)}
-                    </Link>
-                    {lot.is_global ? null : (
-                      <Badge variant="muted" tone="soft" className="ml-2">
-                        Projet
-                      </Badge>
-                    )}
-                    {isEmpty ? (
-                      <span className="block text-xs text-muted-foreground">
-                        Aucun devis ni facture
-                      </span>
-                    ) : null}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatCurrency(
-                      decimalToNumber(lot.validated_quote_amount_ttc),
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatCurrency(decimalToNumber(lot.invoiced_amount_ttc))}
-                  </TableCell>
-                  <TableCell className="hidden text-right tabular-nums md:table-cell">
-                    {formatCurrency(
-                      decimalToNumber(lot.paid_invoice_amount_ttc),
-                    )}
-                  </TableCell>
-                  <TableCell
-                    className={cn(
-                      'text-right tabular-nums',
-                      remainderClass(lot),
-                    )}
-                  >
-                    {formatCurrency(
-                      decimalToNumber(lot.remaining_to_invoice_ttc),
-                    )}
-                    {lot.is_overrun ? (
-                      <Badge variant="destructive" tone="soft" className="ml-2">
-                        Dépassement
-                      </Badge>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>
-                    {canHide ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        aria-label={`Masquer le lot ${lot.code} dans ce projet`}
-                        disabled={setHiddenMutation.isPending}
-                        onClick={() => void setHidden(projectLot, true)}
-                      >
-                        <EyeOff aria-hidden="true" />
-                      </Button>
-                    ) : null}
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-            <TableRow className="bg-muted/40 font-semibold hover:bg-muted/40">
-              <TableCell>Total du projet</TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatCurrency(
-                  decimalToNumber(summary.validated_quote_amount_ttc),
-                )}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatCurrency(decimalToNumber(summary.invoiced_amount_ttc))}
-              </TableCell>
-              <TableCell className="hidden text-right tabular-nums md:table-cell">
-                {formatCurrency(
-                  decimalToNumber(summary.paid_invoice_amount_ttc),
-                )}
-              </TableCell>
-              <TableCell
-                className={cn(
-                  'text-right tabular-nums',
-                  summary.is_overrun && 'text-destructive',
-                )}
+      {(() => {
+        const totals = lotTotals(summary)
+        const toQuote = summary.lots.filter(
+          (lot) => lot.quote_count === 0 && lot.invoice_count === 0,
+        ).length
+        const stats = [
+          { label: 'Devis retenus', value: formatCurrency(totals.retainedTtc) },
+          { label: 'Facturé', value: formatCurrency(totals.invoicedTtc) },
+          {
+            label: 'Reste à facturer',
+            value: formatCurrency(totals.remainingTtc),
+            className: summary.is_overrun ? 'text-destructive' : undefined,
+          },
+          {
+            label: 'Lots à chiffrer',
+            value: `${toQuote} / ${summary.lots.length}`,
+          },
+        ]
+        return (
+          <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {stats.map((stat) => (
+              <div
+                key={stat.label}
+                className="rounded-lg border border-border bg-card px-4 py-3"
               >
-                {formatCurrency(
-                  decimalToNumber(summary.remaining_to_invoice_ttc),
-                )}
-              </TableCell>
-              <TableCell />
-            </TableRow>
-          </TableBody>
-        </Table>
-      </Card>
+                <span className="block text-xs text-muted-foreground">
+                  {stat.label}
+                </span>
+                <span
+                  className={cn(
+                    'mt-1 block text-xl font-semibold text-foreground tabular-nums',
+                    stat.className,
+                  )}
+                >
+                  {stat.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
+
+      {(() => {
+        const lotsByCode = new Map(
+          summary.lots
+            .filter((lot) => lot.is_global)
+            .map((lot) => [lot.code, lot]),
+        )
+        const placed = new Set<number>()
+        const groups = lotPhases.map((phase) => {
+          const lots = phase.codes.flatMap((code) => {
+            const lot = lotsByCode.get(code)
+            return lot ? [lot] : []
+          })
+          lots.forEach((lot) => placed.add(lot.lot_id))
+          return { title: `${phase.title} · ${phaseRange(phase.codes)}`, lots }
+        })
+        // Re-coded global lots and the project's own lots.
+        const others = summary.lots.filter((lot) => !placed.has(lot.lot_id))
+        if (others.length > 0)
+          groups.push({ title: 'Autres lots', lots: others })
+
+        return (
+          <div className="space-y-6">
+            {groups
+              .filter((group) => group.lots.length > 0)
+              .map((group) => (
+                <div key={group.title}>
+                  <h2 className="mb-2 font-[family-name:var(--font-body)] text-sm font-semibold text-muted-foreground">
+                    {group.title}
+                  </h2>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                    {group.lots.map((lot) => {
+                      const projectLot = projectLots.get(lot.lot_id)
+                      return (
+                        <LotTile
+                          key={lot.lot_id}
+                          lot={lot}
+                          canHide={
+                            projectLot !== undefined &&
+                            projectLot.active_transaction_count === 0
+                          }
+                          isHiding={setHiddenMutation.isPending}
+                          onHide={() =>
+                            projectLot && void setHidden(projectLot, true)
+                          }
+                        />
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+          </div>
+        )
+      })()}
 
       {hidden.length > 0 ? (
         <Card className="mt-6 p-5">

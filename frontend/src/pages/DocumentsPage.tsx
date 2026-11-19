@@ -48,6 +48,7 @@ import {
 import { formatCurrency, formatDate } from '@/lib/format'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import { useSelectedProjectId } from '@/state/appState'
+import { normalizeSearchText } from '@/lib/searchHighlight'
 
 type DocumentAction = 'view' | 'download'
 
@@ -173,7 +174,7 @@ export function DocumentsPage() {
     )
   }
 
-  const normalizedSearch = search.trim().toLowerCase()
+  const normalizedSearch = normalizeSearchText(search)
   const filteredDocuments = useMemo(() => {
     if (!normalizedSearch) return documents
 
@@ -201,7 +202,9 @@ export function DocumentsPage() {
 
       return searchableValues
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(normalizedSearch))
+        .some((value) =>
+          normalizeSearchText(String(value)).includes(normalizedSearch),
+        )
     })
   }, [documents, normalizedSearch])
   const {
