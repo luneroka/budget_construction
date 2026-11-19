@@ -21,6 +21,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
 import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { SupplierDocumentTypeBadge } from '@/components/suppliers/SupplierDocumentBadges'
 import { SupplierLink } from '@/components/suppliers/SupplierLink'
 import { PaginationFooter } from '@/components/shared/PaginationFooter'
 import { TableToolbar } from '@/components/shared/TableToolbar'
@@ -46,6 +47,7 @@ import {
   formatOriginalFilename,
 } from '@/lib/documents'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { supplierDocumentTypeLabels } from '@/lib/supplierDocuments'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import { useSelectedProjectId } from '@/state/appState'
 import { normalizeSearchText } from '@/lib/searchHighlight'
@@ -73,7 +75,7 @@ function formatTransactionTitle(description: string | null): string | null {
 
 function formatDocumentDisplayName(document: DocumentsListItem): string {
   if (document.type === 'supplier_document') {
-    return `RIB • ${document.supplier_name}`
+    return `${supplierDocumentTypeLabels[document.document_type]} • ${document.supplier_name}`
   }
 
   const typeLabel = documentTransactionTypeLabels[document.transaction_type]
@@ -390,13 +392,11 @@ export function DocumentsPage() {
             ) : null}
           </TableCell>
           <TableCell className="min-w-32 whitespace-nowrap">
-            <StatusBadge
-              status={
-                document.type === 'supplier_document'
-                  ? 'rib'
-                  : document.transaction_type
-              }
-            />
+            {document.type === 'supplier_document' ? (
+              <SupplierDocumentTypeBadge type={document.document_type} />
+            ) : (
+              <StatusBadge status={document.transaction_type} />
+            )}
           </TableCell>
           <TableCell className="font-medium whitespace-nowrap">
             <SupplierLink
