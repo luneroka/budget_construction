@@ -37,7 +37,7 @@ BatiBudget is currently positioned as a construction budgeting and financial-con
 The MVP focuses on:
 
 - project onboarding with a project name and details, every project starting with the global lots;
-- one categorizer, the **lot**: 25 global lots shared by every project, plus lots a project adds for itself;
+- one categorizer, the **lot**: 25 global lots shared by every project, plus, for projects that already have them, legacy project-only lots;
 - each lot organized by supplier: Lot → Fournisseur → devis / factures;
 - quotes and invoices;
 - supplier and contact management;
@@ -518,7 +518,7 @@ Every project-specific query and mutation must verify the authenticated user own
 ### Authorization
 
 - Normal users can manage their own projects and related data.
-- Administrative authorization is required to rename or reorder the global lots.
+- Administrative authorization is required to add, rename, reorder or delete the global lots.
 - Separate admin endpoints support user lifecycle management.
 
 ### Database integrity
