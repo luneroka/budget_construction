@@ -1,24 +1,16 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import {
-  ArrowLeft,
-  Copy,
-  FileText,
-  Files,
-  Mail,
-  MapPin,
-  Pencil,
-  TrendingUp,
-  Zap,
-} from 'lucide-react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, FileText, Files, Pencil } from 'lucide-react'
 
 import { getApiErrorMessage } from '@/api/client'
-import { useDocumentsQuery } from '@/api/documents'
-import { useProjectLotsQuery } from '@/api/lots'
-import { useProjectQuery } from '@/api/projects'
+import { useProjectLotsQuery, useSupplierLotsQuery } from '@/api/lots'
+import {
+  useProjectFinancialSummaryQuery,
+  useProjectQuery,
+} from '@/api/projects'
+import { useSupplierDocumentsQuery } from '@/api/supplier-documents'
 import { useSupplierQuery, useSuppliersQuery } from '@/api/suppliers'
 import { useProjectTransactionsQuery } from '@/api/transactions'
-import type { SupplierDocumentListRead } from '@/api/types'
 import { TransactionReviewModal } from '@/components/budget/transaction-form/TransactionReviewModal'
 import {
   TransactionModal,
@@ -26,14 +18,15 @@ import {
 } from '@/components/budget/TransactionModal'
 import { invoicePrefillFromQuote } from '@/components/budget/transaction-form/transactionForm'
 import type { TransactionAction } from '@/components/budget/types'
-import { SupplierModal } from '@/components/suppliers/SupplierModal'
+import { SupplierDocumentsTab } from '@/components/suppliers/SupplierDocumentsTab'
+import { SupplierSummaryCards } from '@/components/suppliers/SupplierSummaryCards'
+import { WriteEmailButton } from '@/components/suppliers/WriteEmailButton'
 import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
 import { PageHeader } from '@/components/shared/PageHeader'
-import { ProgressBar } from '@/components/shared/ProgressBar'
-import { Select } from '@/components/ui/select'
-import { SectionCard } from '@/components/shared/SectionCard'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button-variants'
 import {
   Table,
   TableBody,
@@ -42,29 +35,23 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useSupplierActions } from '@/hooks/useSupplierActions'
 import { useTransactionDocumentViewer } from '@/hooks/useTransactionDocumentViewer'
-import { useSupplierRibViewer } from '@/hooks/useSupplierRibViewer'
 import {
   projectToDomain,
   supplierToDomain,
   suppliersToDomain,
 } from '@/lib/apiAdapters'
-import { visibleLots } from '@/lib/lots'
+import { SUPPLIER_QUOTES_AND_INVOICES_SEGMENT } from '@/lib/legacyRoutes'
+import { lotsBySupplier, visibleLots } from '@/lib/lots'
 import {
   formatDocumentPositionLabel,
   formatOriginalFilename,
 } from '@/lib/documents'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { formatPhoneNumber } from '@/lib/phone'
-import {
-  copyEmailToClipboard,
-  phoneHref,
-  primaryContact,
-  supplierAddressLines,
-} from '@/lib/supplierContact'
-import { supplierTotals } from '@/lib/supplierStats'
+import { emailRecipients } from '@/lib/supplierEmail'
+import type { SupplierFormReturnState } from '@/lib/supplierFormPage'
+import { supplierFigures } from '@/lib/supplierStats'
 import { notifyError } from '@/lib/toasts'
 import {
   buildTransactionRow,
@@ -73,7 +60,22 @@ import {
   transactionDisplayTitle,
 } from '@/lib/transactionWorkspace'
 import { useSelectedProjectId } from '@/state/appState'
-import type { SupplierContact, Transaction } from '@/types'
+import type { Transaction } from '@/types'
+
+export type SupplierDetailTab = 'summary' | 'transactions' | 'documents'
+
+// Each tab is its own URL, so a direct link, the back button and a reload
+// keep it: /suppliers/:id is the Synthèse.
+const tabSegments: Record<Exclude<SupplierDetailTab, 'summary'>, string> = {
+  transactions: SUPPLIER_QUOTES_AND_INVOICES_SEGMENT,
+  documents: 'documents',
+}
+
+function tabPath(supplierId: number, tab: SupplierDetailTab): string {
+  return tab === 'summary'
+    ? `/suppliers/${supplierId}`
+    : `/suppliers/${supplierId}/${tabSegments[tab]}`
+}
 
 function useSupplierIdParam(): number | null {
   const { supplierId } = useParams<{ supplierId: string }>()
@@ -81,78 +83,212 @@ function useSupplierIdParam(): number | null {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null
 }
 
-function DetailLine({
-  label,
-  action,
-  children,
+type TransactionRow = ReturnType<typeof buildTransactionRow>
+
+// The « Devis et factures » tab: the supplier's transactions in the project, a row
+// opening the review modal, its document buttons.
+function SupplierTransactionsTable({
+  rows,
+  isLoading,
+  onReview,
+  onOpenDocuments,
 }: {
-  label: string
-  /** Sits at the end of the label's line, e.g. « Voir plus ». */
-  action?: React.ReactNode
-  children: React.ReactNode
+  rows: TransactionRow[]
+  isLoading: boolean
+  onReview: (context: ViewedTransactionContext) => void
+  onOpenDocuments: (context: ViewedTransactionContext) => void
 }) {
   return (
-    <div className="min-w-0">
-      <div className="flex items-baseline justify-between gap-2">
-        <dt className="text-xs text-muted-foreground">{label}</dt>
-        {action}
-      </div>
-      <dd className="mt-0.5">{children}</dd>
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-28">Date</TableHead>
+            <TableHead className="w-28">Type</TableHead>
+            <TableHead>Lot</TableHead>
+            <TableHead>Libellé</TableHead>
+            <TableHead>Référence</TableHead>
+            <TableHead className="w-32 text-right">Montant TTC</TableHead>
+            <TableHead className="w-28">Statut</TableHead>
+            <TableHead className="w-16 text-right">Documents</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {isLoading ? (
+            <TableRow>
+              <TableCell colSpan={8} className="text-muted-foreground">
+                Chargement des devis et factures...
+              </TableCell>
+            </TableRow>
+          ) : rows.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={8} className="text-muted-foreground">
+                Aucun devis ni facture avec ce fournisseur sur ce projet.
+              </TableCell>
+            </TableRow>
+          ) : (
+            rows.map(({ transaction }) => {
+              const context = { transaction }
+              const status = getTransactionStatus(transaction)
+
+              return (
+                <TableRow
+                  key={transaction.id}
+                  role="button"
+                  tabIndex={0}
+                  className="cursor-pointer"
+                  onClick={(event) => {
+                    if (
+                      event.target instanceof Element &&
+                      event.target.closest('button')
+                    ) {
+                      return
+                    }
+                    onReview(context)
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return
+                    if (event.target !== event.currentTarget) return
+                    event.preventDefault()
+                    onReview(context)
+                  }}
+                >
+                  <TableCell className="whitespace-nowrap">
+                    {formatDate(transaction.issued_date)}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={transaction.transaction_type} />
+                  </TableCell>
+                  <TableCell>
+                    {lotLabel({
+                      code: transaction.lot_code,
+                      designation: transaction.lot_designation,
+                    })}
+                  </TableCell>
+                  <TableCell>{transaction.title}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {transaction.reference}
+                  </TableCell>
+                  <TableCell className="text-right font-medium whitespace-nowrap">
+                    {formatCurrency(transaction.amount_ttc)}
+                  </TableCell>
+                  <TableCell>
+                    {status ? <StatusBadge status={status} /> : null}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {transaction.document_state === 'attached' ? (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-muted-foreground hover:bg-gold/15 hover:text-gold"
+                        aria-label={
+                          transaction.document_count > 1
+                            ? 'Voir les documents'
+                            : 'Voir le document'
+                        }
+                        onClick={() => onOpenDocuments(context)}
+                      >
+                        {transaction.document_count > 1 ? (
+                          <Files aria-hidden />
+                        ) : (
+                          <FileText aria-hidden />
+                        )}
+                      </Button>
+                    ) : null}
+                  </TableCell>
+                </TableRow>
+              )
+            })
+          )}
+        </TableBody>
+      </Table>
     </div>
   )
 }
 
-// Every contact reads the same: the name, then its number to call.
-function ContactBlock({ contact }: { contact: SupplierContact }) {
+function SupplierTabs({
+  supplierId,
+  activeTab,
+  transactionCount,
+  documentCount,
+}: {
+  supplierId: number
+  activeTab: SupplierDetailTab
+  transactionCount: number
+  documentCount: number
+}) {
+  const tabs: Array<{ tab: SupplierDetailTab; label: string }> = [
+    { tab: 'summary', label: 'Synthèse' },
+    {
+      tab: 'transactions',
+      label: `Devis et factures (${transactionCount})`,
+    },
+    { tab: 'documents', label: `Documents (${documentCount})` },
+  ]
+
   return (
-    <div className="min-w-0 space-y-0.5">
-      <div className="truncate">{contact.name}</div>
-      {contact.phone_number ? (
-        <a
-          className="block truncate text-gold underline underline-offset-4"
-          href={phoneHref(contact.phone_number)}
-        >
-          {formatPhoneNumber(contact.phone_number)}
-        </a>
-      ) : null}
-    </div>
+    <nav
+      aria-label="Sections du fournisseur"
+      className="mb-4 flex gap-1 overflow-x-auto border-b border-border"
+    >
+      {tabs.map(({ tab, label }) => {
+        const isActive = tab === activeTab
+        return (
+          <Link
+            key={tab}
+            to={tabPath(supplierId, tab)}
+            aria-current={isActive ? 'page' : undefined}
+            className={cn(
+              '-mb-px inline-flex h-10 shrink-0 items-center border-b-2 px-3 text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+              isActive
+                ? 'border-gold text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {label}
+          </Link>
+        )
+      })}
+    </nav>
   )
 }
 
-function Figure({ label, amount }: { label: string; amount: number }) {
-  return (
-    <div className="rounded-md bg-muted/40 px-3 py-2">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="font-medium tabular-nums">{formatCurrency(amount)}</p>
-    </div>
-  )
-}
-
-export function SupplierDetailPage() {
+export function SupplierDetailPage({
+  tab = 'summary',
+}: {
+  tab?: SupplierDetailTab
+}) {
   const navigate = useNavigate()
   const supplierId = useSupplierIdParam()
   const projectId = useSelectedProjectId()
   const supplierQuery = useSupplierQuery(supplierId)
   const suppliersQuery = useSuppliersQuery()
   const projectQuery = useProjectQuery(projectId)
+  const summaryQuery = useProjectFinancialSummaryQuery(projectId)
   const transactionsQuery = useProjectTransactionsQuery(projectId)
-  const documentsQuery = useDocumentsQuery()
+  const supplierDocumentsQuery = useSupplierDocumentsQuery(supplierId)
   const documentViewer = useTransactionDocumentViewer()
-  const { saveSupplier, deleteSupplier } = useSupplierActions(projectId)
-  const ribViewer = useSupplierRibViewer()
-  const [isEditing, setIsEditing] = useState(false)
+  const location = useLocation()
   const [transactionReview, setTransactionReview] =
     useState<ViewedTransactionContext | null>(null)
   const [activeAction, setActiveAction] = useState<TransactionAction | null>(
     null,
   )
   const lotsQuery = useProjectLotsQuery(projectId)
+  const supplierLotsQuery = useSupplierLotsQuery(projectId)
   const pickableLots = useMemo(
     () => visibleLots(lotsQuery.data),
     [lotsQuery.data],
   )
-  const [pickedEmail, setPickedEmail] = useState<string | null>(null)
-  const [showEveryContact, setShowEveryContact] = useState(false)
+  // The same source as the Fournisseurs page's « Lots » column: assigned
+  // lots show even before their first transaction.
+  const supplierLots = useMemo(
+    () =>
+      lotsBySupplier(supplierLotsQuery.data, lotsQuery.data).get(
+        String(supplierId),
+      ) ?? [],
+    [lotsQuery.data, supplierId, supplierLotsQuery.data],
+  )
 
   const supplier = supplierQuery.data
     ? supplierToDomain(supplierQuery.data)
@@ -166,7 +302,11 @@ export function SupplierDetailPage() {
     () =>
       (transactionsQuery.data ?? [])
         .map(buildTransactionRow)
-        .filter((row) => row.transaction.supplier_id === String(supplierId))
+        .filter(
+          (row) =>
+            row.transaction.supplier_id === String(supplierId) &&
+            !row.transaction.deleted_at,
+        )
         .sort((left, right) =>
           right.transaction.issued_date.localeCompare(
             left.transaction.issued_date,
@@ -174,19 +314,13 @@ export function SupplierDetailPage() {
         ),
     [supplierId, transactionsQuery.data],
   )
-  const totals = useMemo(
-    () => supplierTotals(rows.map((row) => row.transaction)),
-    [rows],
+  // The Bilan: this supplier's figures in the project, as the API computes
+  // them, so they add up to the Lots page.
+  const figures = useMemo(
+    () => supplierFigures(summaryQuery.data, String(supplierId)),
+    [summaryQuery.data, supplierId],
   )
-  const rib = useMemo(
-    () =>
-      (documentsQuery.data ?? []).find(
-        (document): document is SupplierDocumentListRead =>
-          document.type === 'supplier_document' &&
-          document.supplier_id === supplierId,
-      ) ?? null,
-    [documentsQuery.data, supplierId],
-  )
+  const supplierDocuments = supplierDocumentsQuery.data ?? []
 
   if (supplierQuery.isLoading) {
     return (
@@ -218,53 +352,6 @@ export function SupplierDetailPage() {
     )
   }
 
-  const contact = primaryContact(supplier)
-  const addressLines = supplierAddressLines(supplier)
-  const otherContacts = supplier.contacts.filter(
-    (supplierContact) => supplierContact.id !== contact?.id,
-  )
-  // Who can be written to: a supplier often has several contacts, and only
-  // some of them have an address.
-  const emailContacts = supplier.contacts.filter(
-    (supplierContact) => (supplierContact.email ?? '').trim() !== '',
-  )
-  const email =
-    emailContacts
-      .find((supplierContact) => supplierContact.email?.trim() === pickedEmail)
-      ?.email?.trim() ??
-    contact?.email?.trim() ??
-    emailContacts[0]?.email?.trim() ??
-    ''
-  // Facturation against what was committed; without a retained budget, how
-  // much of what has been invoiced is paid.
-  const progress =
-    totals.retainedTtc > 0
-      ? {
-          value: totals.invoicedTtc,
-          max: totals.retainedTtc,
-          tone:
-            totals.invoicedTtc > totals.retainedTtc
-              ? ('warning' as const)
-              : ('success' as const),
-          label: `${formatCurrency(totals.invoicedTtc)} facturés sur ${formatCurrency(
-            totals.retainedTtc,
-          )} retenus`,
-        }
-      : totals.invoicedTtc > 0
-        ? {
-            value: totals.paidTtc,
-            max: totals.invoicedTtc,
-            tone: 'success' as const,
-            label: `${formatCurrency(totals.paidTtc)} payés sur ${formatCurrency(
-              totals.invoicedTtc,
-            )} facturés`,
-          }
-        : null
-  const transactionCounts = [
-    `${totals.quoteCount} devis`,
-    `${totals.invoiceCount} facture${totals.invoiceCount > 1 ? 's' : ''}`,
-  ].join(' · ')
-
   function addInvoiceForQuote(quote: Transaction) {
     setTransactionReview(null)
     setActiveAction({
@@ -289,327 +376,98 @@ export function SupplierDetailPage() {
 
   return (
     <section>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="mb-4"
-        onClick={() => navigate('/suppliers')}
+      <Link
+        to="/suppliers"
+        className={buttonVariants({
+          variant: 'ghost',
+          size: 'sm',
+          className: 'mb-4',
+        })}
       >
         <ArrowLeft aria-hidden />
         Retour aux fournisseurs
-      </Button>
+      </Link>
 
       <PageHeader
         title={supplier.name}
         description={supplier.comment.trim() || undefined}
+        meta={
+          supplierLots.length > 0 ? (
+            <ul
+              aria-label="Lots du fournisseur"
+              className="flex flex-wrap gap-1"
+            >
+              {supplierLots.map((lot) => (
+                <li key={lot.id}>
+                  <Link
+                    to={`/lots/${lot.id}`}
+                    className="rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  >
+                    <Badge variant="muted" tone="soft">
+                      {lotLabel(lot)}
+                    </Badge>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : undefined
+        }
         actions={
-          <Button variant="outline" onClick={() => setIsEditing(true)}>
-            <Pencil aria-hidden />
-            Modifier
-          </Button>
+          <>
+            <WriteEmailButton recipients={emailRecipients(supplier)} />
+            {/* The supplier form page, which comes back to this tab. */}
+            <Link
+              to={`/suppliers/${supplierId}/edit`}
+              state={
+                {
+                  from: `${location.pathname}${location.search}`,
+                } satisfies SupplierFormReturnState
+              }
+              className={buttonVariants({ variant: 'outline' })}
+            >
+              <Pencil aria-hidden />
+              Modifier
+            </Link>
+          </>
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <SectionCard title="Coordonnées" icon={MapPin}>
-          <dl className="space-y-3 text-sm">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <DetailLine label="SIRET / SIREN">
-                {supplier.siret ?? (
-                  <span className="text-xs text-muted-foreground">
-                    Non renseigné
-                  </span>
-                )}
-              </DetailLine>
-              <DetailLine label="N° RNE">
-                {supplier.rne_number ?? (
-                  <span className="text-xs text-muted-foreground">
-                    Non renseigné
-                  </span>
-                )}
-              </DetailLine>
-            </div>
-            <DetailLine label="Adresse">
-              {addressLines.length > 0 ? (
-                addressLines.map((line) => <div key={line}>{line}</div>)
-              ) : (
-                <span className="text-xs text-muted-foreground">
-                  Aucune adresse enregistrée.
-                </span>
-              )}
-            </DetailLine>
-            {/* Side by side: a second contact is a short line, and the
-                card stays as tall as with one. */}
-            <div
-              className={cn(
-                'grid gap-3',
-                otherContacts.length > 0 && 'sm:grid-cols-2',
-              )}
-            >
-              <DetailLine label="Contact principal">
-                {contact ? (
-                  <ContactBlock contact={contact} />
-                ) : (
-                  <span className="text-xs text-muted-foreground">
-                    Aucun contact enregistré.
-                  </span>
-                )}
-              </DetailLine>
-              {otherContacts.length > 0 ? (
-                <DetailLine
-                  label="Autres contacts"
-                  // From a third contact on, only the first shows: the card
-                  // keeps its height and the rest are one click away.
-                  action={
-                    otherContacts.length > 1 ? (
-                      <button
-                        type="button"
-                        className="shrink-0 rounded-sm text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        onClick={() =>
-                          setShowEveryContact((current) => !current)
-                        }
-                      >
-                        {showEveryContact
-                          ? 'Voir moins'
-                          : `Voir plus (${otherContacts.length - 1})`}
-                      </button>
-                    ) : null
-                  }
-                >
-                  <div className="space-y-2">
-                    {(showEveryContact
-                      ? otherContacts
-                      : otherContacts.slice(0, 1)
-                    ).map((supplierContact) => (
-                      <ContactBlock
-                        key={supplierContact.id}
-                        contact={supplierContact}
-                      />
-                    ))}
-                  </div>
-                </DetailLine>
-              ) : null}
-            </div>
-          </dl>
-        </SectionCard>
+      <SupplierTabs
+        supplierId={supplierId}
+        activeTab={tab}
+        transactionCount={rows.length}
+        documentCount={supplierDocuments.length}
+      />
 
-        <SectionCard
-          title="Bilan"
-          description={`${transactionCounts} sur ce projet`}
-          icon={TrendingUp}
-        >
-          <div className="flex h-full flex-col">
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Figure label="Devis retenus" amount={totals.retainedTtc} />
-              <Figure label="Reste à payer" amount={totals.toPayTtc} />
-            </div>
-            <div className="mt-auto pt-4">
-              {progress ? (
-                <ProgressBar
-                  value={progress.value}
-                  max={progress.max}
-                  tone={progress.tone}
-                  label={progress.label}
-                />
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Aucun montant enregistré pour ce fournisseur.
-                </p>
-              )}
-            </div>
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Accès rapides" icon={Zap}>
-          <div className="space-y-2">
-            {email ? (
-              <>
-                {emailContacts.length > 1 ? (
-                  <Select
-                    aria-label="Contact à qui écrire"
-                    value={email}
-                    onChange={(event) => setPickedEmail(event.target.value)}
-                  >
-                    {emailContacts.map((supplierContact) => (
-                      <option
-                        key={supplierContact.id}
-                        value={supplierContact.email ?? ''}
-                      >
-                        {[supplierContact.name, supplierContact.email]
-                          .filter(Boolean)
-                          .join(' — ')}
-                      </option>
-                    ))}
-                  </Select>
-                ) : (
-                  <p className="truncate text-sm text-muted-foreground">
-                    {email}
-                  </p>
-                )}
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      window.location.href = `mailto:${encodeURIComponent(email)}`
-                    }}
-                  >
-                    <Mail aria-hidden />
-                    Écrire
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => void copyEmailToClipboard(email)}
-                  >
-                    <Copy aria-hidden />
-                    Copier
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Aucun email enregistré pour ce fournisseur.
-              </p>
-            )}
-            {rib ? (
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => void ribViewer.open(rib)}
-              >
-                <FileText aria-hidden />
-                Voir le RIB
-              </Button>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Aucun RIB joint. Ajoutez-le depuis « Modifier ».
-              </p>
-            )}
-          </div>
-        </SectionCard>
-      </div>
-
-      <div className="mt-6 space-y-3">
-        <h2 className="font-heading text-lg font-semibold text-foreground">
-          Transactions
-        </h2>
-        <div className="overflow-hidden rounded-lg border border-border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-28">Date</TableHead>
-                <TableHead className="w-28">Type</TableHead>
-                <TableHead>Lot</TableHead>
-                <TableHead>Libellé</TableHead>
-                <TableHead>Référence</TableHead>
-                <TableHead className="w-32 text-right">Montant TTC</TableHead>
-                <TableHead className="w-28">Statut</TableHead>
-                <TableHead className="w-16 text-right">Documents</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactionsQuery.isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-muted-foreground">
-                    Chargement des transactions...
-                  </TableCell>
-                </TableRow>
-              ) : rows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-muted-foreground">
-                    Aucune transaction avec ce fournisseur sur ce projet.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                rows.map(({ transaction }) => {
-                  const context = { transaction }
-                  const status = getTransactionStatus(transaction)
-
-                  return (
-                    <TableRow
-                      key={transaction.id}
-                      role="button"
-                      tabIndex={0}
-                      className="cursor-pointer"
-                      onClick={(event) => {
-                        if (
-                          event.target instanceof Element &&
-                          event.target.closest('button')
-                        ) {
-                          return
-                        }
-                        setTransactionReview(context)
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key !== 'Enter' && event.key !== ' ') return
-                        if (event.target !== event.currentTarget) return
-                        event.preventDefault()
-                        setTransactionReview(context)
-                      }}
-                    >
-                      <TableCell className="whitespace-nowrap">
-                        {formatDate(transaction.issued_date)}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={transaction.transaction_type} />
-                      </TableCell>
-                      <TableCell>
-                        {lotLabel({
-                          code: transaction.lot_code,
-                          designation: transaction.lot_designation,
-                        })}
-                      </TableCell>
-                      <TableCell>{transaction.title}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {transaction.reference}
-                      </TableCell>
-                      <TableCell className="text-right font-medium whitespace-nowrap">
-                        {formatCurrency(transaction.amount_ttc)}
-                      </TableCell>
-                      <TableCell>
-                        {status ? <StatusBadge status={status} /> : null}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {transaction.document_state === 'attached' ? (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-muted-foreground hover:bg-gold/15 hover:text-gold"
-                            aria-label={
-                              transaction.document_count > 1
-                                ? 'Voir les documents'
-                                : 'Voir le document'
-                            }
-                            onClick={() =>
-                              void openTransactionDocuments(context)
-                            }
-                          >
-                            {transaction.document_count > 1 ? (
-                              <Files aria-hidden />
-                            ) : (
-                              <FileText aria-hidden />
-                            )}
-                          </Button>
-                        ) : null}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-
-      {isEditing ? (
-        <SupplierModal
-          mode="edit"
+      {tab === 'summary' ? (
+        <SupplierSummaryCards
           supplier={supplier}
-          onClose={() => setIsEditing(false)}
-          onSave={(edited) => saveSupplier(edited, supplier.id)}
-          onDelete={async (deleted) => {
-            await deleteSupplier(deleted)
-            navigate('/suppliers')
-          }}
+          figures={figures}
+          documents={supplierDocuments}
+          documentsHref={tabPath(supplierId, 'documents')}
+        />
+      ) : null}
+
+      {tab === 'transactions' ? (
+        <SupplierTransactionsTable
+          rows={rows}
+          isLoading={transactionsQuery.isLoading}
+          onReview={setTransactionReview}
+          onOpenDocuments={(context) => void openTransactionDocuments(context)}
+        />
+      ) : null}
+
+      {tab === 'documents' ? (
+        <SupplierDocumentsTab
+          supplierId={supplierId}
+          supplierName={supplier.name}
+          documents={supplierDocuments}
+          isLoading={supplierDocumentsQuery.isLoading}
+          error={
+            supplierDocumentsQuery.isError
+              ? getApiErrorMessage(supplierDocumentsQuery.error)
+              : null
+          }
         />
       ) : null}
 
@@ -633,17 +491,6 @@ export function SupplierDetailPage() {
           prefill={activeAction.prefill}
           suppliers={suppliers}
           onClose={() => setActiveAction(null)}
-        />
-      ) : null}
-
-      {ribViewer.rib ? (
-        <DocumentViewerDialog
-          title={`RIB • ${ribViewer.rib.document.supplier_name}`}
-          url={ribViewer.rib.url}
-          isPending={ribViewer.isLoading}
-          error={ribViewer.error}
-          onClose={ribViewer.close}
-          onDownload={() => void ribViewer.download()}
         />
       ) : null}
 

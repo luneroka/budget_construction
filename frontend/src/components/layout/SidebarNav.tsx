@@ -20,7 +20,7 @@ type SidebarItem = {
 const primaryItems: SidebarItem[] = [
   { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
   { label: 'Lots', to: '/lots', icon: Layers },
-  { label: 'Transactions', to: '/transactions', icon: ArrowLeftRight },
+  { label: 'Devis et factures', to: '/devis-factures', icon: ArrowLeftRight },
   { label: 'Fournisseurs', to: '/suppliers', icon: Users },
   { label: 'Documents', to: '/documents', icon: FileText },
 ]

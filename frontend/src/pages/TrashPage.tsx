@@ -43,18 +43,18 @@ type PendingHardDelete =
 type TrashCounts = Record<TrashItemRead['type'], number>
 
 const typeLabels: Record<TrashItemRead['type'], string> = {
-  transaction: 'Transaction',
+  transaction: 'Devis / facture',
   document: 'Document',
   supplier: 'Fournisseur',
-  supplier_document: 'RIB',
+  supplier_document: 'Document fournisseur',
 }
 
 const filterOptions: Array<{ value: TrashFilter; label: string }> = [
   { value: 'all', label: 'Tout' },
-  { value: 'transaction', label: 'Transactions' },
+  { value: 'transaction', label: 'Devis et factures' },
   { value: 'document', label: 'Documents' },
   { value: 'supplier', label: 'Fournisseurs' },
-  { value: 'supplier_document', label: 'RIB' },
+  { value: 'supplier_document', label: 'Documents fournisseurs' },
 ]
 const destructiveGhostButtonClass =
   'text-destructive hover:bg-destructive hover:text-destructive-foreground'
@@ -236,7 +236,7 @@ export function TrashPage() {
         })
         invalidateTrashAffectedQueries(queryClient, projectId)
         invalidateSupplierDocumentQueries(queryClient, item.supplier_id)
-        notifySuccess('RIB restauré.')
+        notifySuccess('Document fournisseur restauré.')
       } else {
         await restoreSupplierMutation.mutateAsync({
           projectId,
@@ -285,7 +285,7 @@ export function TrashPage() {
         })
         invalidateTrashAffectedQueries(queryClient, projectId)
         invalidateSupplierDocumentQueries(queryClient, item.supplier_id)
-        notifySuccess('RIB supprimé définitivement.')
+        notifySuccess('Document fournisseur supprimé définitivement.')
       } else {
         await hardDeleteSupplierMutation.mutateAsync({
           projectId,
@@ -550,8 +550,8 @@ export function TrashPage() {
             <li>
               {formatCount(
                 trashCounts.transaction,
-                'transaction',
-                'transactions',
+                'devis ou facture',
+                'devis et factures',
               )}
             </li>
             <li>
@@ -560,7 +560,13 @@ export function TrashPage() {
             <li>
               {formatCount(trashCounts.supplier, 'fournisseur', 'fournisseurs')}
             </li>
-            <li>{formatCount(trashCounts.supplier_document, 'RIB', 'RIB')}</li>
+            <li>
+              {formatCount(
+                trashCounts.supplier_document,
+                'document fournisseur',
+                'documents fournisseurs',
+              )}
+            </li>
           </ul>
           <p className="mt-3 text-destructive">
             Les transactions supprimeront aussi leurs documents associés et les

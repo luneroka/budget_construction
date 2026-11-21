@@ -168,8 +168,24 @@ class SupplierBase(BaseModel):
         return normalize_postal_code(value)
 
 
+class SupplierProjectLots(BaseModel):
+    """The supplier form's « Lots du projet »: the visible lots of one project
+    the supplier is assigned to, saved with the supplier in one transaction.
+    Visible lots left out are unassigned; the project's hidden lots keep
+    their assignments."""
+
+    project_id: int
+    lot_ids: list[int] = Field(default_factory=list)
+
+    @field_validator('lot_ids')
+    @classmethod
+    def deduplicate(cls, value: list[int]) -> list[int]:
+        return list(dict.fromkeys(value))
+
+
 class SupplierCreate(SupplierBase):
     contacts: list[SupplierContactCreate] = Field(min_length=1)
+    project_lots: SupplierProjectLots | None = None
 
     @model_validator(mode='after')
     def validate_contacts(self) -> Self:
@@ -187,6 +203,7 @@ class SupplierUpdate(BaseModel):
     postal_code: str | None = None
     city: str | None = None
     contacts: list[SupplierContactUpdate] | None = Field(default=None, min_length=1)
+    project_lots: SupplierProjectLots | None = None
 
     @field_validator('siret', mode='before')
     @classmethod

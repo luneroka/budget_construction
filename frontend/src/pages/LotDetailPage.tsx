@@ -44,7 +44,6 @@ import { buttonVariants } from '@/components/ui/button-variants'
 import { Card } from '@/components/ui/card'
 import { useTransactionDocumentViewer } from '@/hooks/useTransactionDocumentViewer'
 import {
-  decimalToNumber,
   projectToDomain,
   suppliersToDomain,
   transactionToDomain,
@@ -59,8 +58,10 @@ import {
   groupLotTransactionsBySupplier,
   visibleLots,
 } from '@/lib/lots'
+import { lotSupplierFigures, moneyFigures } from '@/lib/supplierStats'
 import { lotLabel, transactionDisplayTitle } from '@/lib/transactionWorkspace'
 import { notifyError, notifySuccess } from '@/lib/toasts'
+import { cn } from '@/lib/utils'
 import type { Transaction } from '@/types'
 import { useSelectedProjectId } from '@/state/appState'
 
@@ -255,12 +256,20 @@ export function LotDetailPage() {
   const supplierNames = new Map(
     suppliers.map((supplier) => [supplier.id, supplier.name]),
   )
-  const cards = groupLotTransactionsBySupplier({
+  const groupedCards = groupLotTransactionsBySupplier({
     lotId: lot.id,
     transactions,
     assignments: supplierLotsQuery.data ?? [],
     supplierNames,
   })
+  // Biggest planned amount first; ties keep the order of the grouping.
+  const cards = groupedCards
+    .map((card) => ({
+      card,
+      figures: lotSupplierFigures(lotSummary, card.supplierId),
+    }))
+    .sort((left, right) => right.figures.plannedTtc - left.figures.plannedTtc)
+    .map(({ card }) => card)
   const currentLotId = lot.id
 
   function addInvoiceForQuote(quote: Transaction) {
@@ -299,16 +308,26 @@ export function LotDetailPage() {
     )
   }
 
-  const totals = lotSummary
-    ? `Devis retenus ${formatCurrency(decimalToNumber(lotSummary.validated_quote_amount_ttc))} · Facturé ${formatCurrency(decimalToNumber(lotSummary.invoiced_amount_ttc))} · Reste à facturer ${formatCurrency(decimalToNumber(lotSummary.remaining_to_invoice_ttc))}`
-    : undefined
+  const lotFigures = lotSummary ? moneyFigures(lotSummary) : null
+  const stats = lotFigures
+    ? [
+        { label: 'Coût prévu', value: formatCurrency(lotFigures.plannedTtc) },
+        { label: 'Facturé', value: formatCurrency(lotFigures.invoicedTtc) },
+        { label: 'Payé', value: formatCurrency(lotFigures.paidTtc) },
+        {
+          label: 'À payer',
+          value: formatCurrency(lotFigures.toPayTtc),
+          className: lotFigures.toPayTtc !== 0 ? 'text-gold' : undefined,
+        },
+      ]
+    : []
 
   return (
     <section>
       {backLink}
       <PageHeader
         title={lotLabel(lot)}
-        description={totals}
+        titleClassName="font-[family-name:var(--font-body)]"
         actions={
           <>
             <Button
@@ -340,6 +359,29 @@ export function LotDetailPage() {
         }
       />
 
+      {stats.length > 0 ? (
+        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {stats.map((stat) => (
+            <div
+              key={stat.label}
+              className="rounded-lg border border-border bg-card px-4 py-3"
+            >
+              <span className="block text-xs text-muted-foreground">
+                {stat.label}
+              </span>
+              <span
+                className={cn(
+                  'mt-1 block text-xl font-semibold text-foreground tabular-nums',
+                  stat.className,
+                )}
+              >
+                {stat.value}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
       {cards.length === 0 ? (
         <Card className="p-6 text-sm text-muted-foreground">
           Aucun fournisseur ni transaction dans ce lot. Ajoutez un devis, une
@@ -352,6 +394,15 @@ export function LotDetailPage() {
               key={card.supplierId ?? 'none'}
               supplierId={card.supplierId}
               supplierName={card.supplierName}
+              figures={lotSupplierFigures(lotSummary, card.supplierId)}
+              plannedShare={
+                lotFigures && lotFigures.plannedTtc > 0
+                  ? (lotSupplierFigures(lotSummary, card.supplierId)
+                      .plannedTtc /
+                      lotFigures.plannedTtc) *
+                    100
+                  : null
+              }
               transactions={card.transactions}
               onAdd={(transactionType) =>
                 setActiveAction({

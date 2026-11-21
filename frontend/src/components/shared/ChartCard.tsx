@@ -5,7 +5,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from '@/components/ui/card'
 
 type ChartCardProps = {
@@ -25,7 +24,11 @@ export function ChartCard({
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
-          <CardTitle>{title}</CardTitle>
+          {/* A card title in the body font, as on the Lots and supplier
+              pages. */}
+          <h3 className="font-[family-name:var(--font-body)] text-lg leading-none font-semibold text-foreground">
+            {title}
+          </h3>
           {description ? (
             <CardDescription>{description}</CardDescription>
           ) : null}

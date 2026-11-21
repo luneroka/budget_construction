@@ -22,13 +22,6 @@ export function getProjectLots(projectId: number): Promise<ProjectLotRead[]> {
   return apiGet<ProjectLotRead[]>(`/projects/${projectId}/lots/`)
 }
 
-export function createProjectLot(
-  projectId: number,
-  lot: LotCreate,
-): Promise<ProjectLotRead> {
-  return apiPost<ProjectLotRead, LotCreate>(`/projects/${projectId}/lots/`, lot)
-}
-
 export function setLotHidden(
   projectId: number,
   lotId: number,
@@ -67,6 +60,14 @@ export function unassignSupplierLot(
 
 export function getGlobalLots(): Promise<GlobalLotRead[]> {
   return apiGet<GlobalLotRead[]>('/admin/lots/')
+}
+
+export function createGlobalLot(lot: LotCreate): Promise<GlobalLotRead> {
+  return apiPost<GlobalLotRead, LotCreate>('/admin/lots/', lot)
+}
+
+export function deleteGlobalLot(lotId: number): Promise<void> {
+  return apiDelete<void>(`/admin/lots/${lotId}`)
 }
 
 export function updateGlobalLot(
@@ -134,13 +135,6 @@ export function useGlobalLotsQuery(options: { enabled: boolean }) {
   })
 }
 
-export function useCreateProjectLotMutation() {
-  return useMutation({
-    mutationFn: ({ projectId, lot }: { projectId: number; lot: LotCreate }) =>
-      createProjectLot(projectId, lot),
-  })
-}
-
 export function useSetLotHiddenMutation() {
   return useMutation({
     mutationFn: ({
@@ -180,6 +174,18 @@ export function useUnassignSupplierLotMutation() {
       supplierId: number
       lotId: number
     }) => unassignSupplierLot(projectId, supplierId, lotId),
+  })
+}
+
+export function useCreateGlobalLotMutation() {
+  return useMutation({
+    mutationFn: (lot: LotCreate) => createGlobalLot(lot),
+  })
+}
+
+export function useDeleteGlobalLotMutation() {
+  return useMutation({
+    mutationFn: (lotId: number) => deleteGlobalLot(lotId),
   })
 }
 

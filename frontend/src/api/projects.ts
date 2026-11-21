@@ -2,12 +2,11 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { apiDelete, apiGet, apiPatch, apiPost } from './client'
 import type {
-  DashboardBudgetAlertsRead,
   DashboardFinancialOverviewRead,
-  DashboardLotBudgetInvoicedRead,
-  DashboardLotDistributionRead,
+  DashboardLotInvoicedRead,
   DashboardSpendingOverTimePointRead,
   DashboardSupplierDistributionRead,
+  DashboardSupplierDocumentRead,
   DashboardTransactionWidgetRead,
   ProjectCreate,
   ProjectFinancialSummaryRead,
@@ -39,21 +38,13 @@ export const projectQueryKeys = {
       'charts',
       'spending-over-time',
     ] as const,
-  dashboardBudgetVsActual: (projectId: number) =>
+  dashboardInvoicedByLot: (projectId: number) =>
     [
       ...projectQueryKeys.all,
       projectId,
       'dashboard',
       'charts',
-      'budget-vs-actual',
-    ] as const,
-  dashboardLotDistribution: (projectId: number) =>
-    [
-      ...projectQueryKeys.all,
-      projectId,
-      'dashboard',
-      'charts',
-      'lot-distribution',
+      'invoiced-by-lot',
     ] as const,
   dashboardSupplierDistribution: (projectId: number) =>
     [
@@ -128,19 +119,11 @@ export function getProjectDashboardSpendingOverTime(
   )
 }
 
-export function getProjectDashboardBudgetVsActual(
+export function getProjectDashboardInvoicedByLot(
   projectId: number,
-): Promise<DashboardLotBudgetInvoicedRead[]> {
-  return apiGet<DashboardLotBudgetInvoicedRead[]>(
-    `/projects/${projectId}/dashboard/charts/budget-vs-actual`,
-  )
-}
-
-export function getProjectDashboardLotDistribution(
-  projectId: number,
-): Promise<DashboardLotDistributionRead[]> {
-  return apiGet<DashboardLotDistributionRead[]>(
-    `/projects/${projectId}/dashboard/charts/lot-distribution`,
+): Promise<DashboardLotInvoicedRead[]> {
+  return apiGet<DashboardLotInvoicedRead[]>(
+    `/projects/${projectId}/dashboard/charts/invoiced-by-lot`,
   )
 }
 
@@ -160,19 +143,12 @@ export function getProjectDashboardUnpaidInvoices(
   )
 }
 
-export function getProjectDashboardQuotesToConfirm(
+// The quotes still to confirm or to negotiate, in one widget.
+export function getProjectDashboardQuotesToFollowUp(
   projectId: number,
 ): Promise<DashboardTransactionWidgetRead> {
   return apiGet<DashboardTransactionWidgetRead>(
-    `/projects/${projectId}/dashboard/widgets/quotes-to-confirm`,
-  )
-}
-
-export function getProjectDashboardQuotesToNegotiate(
-  projectId: number,
-): Promise<DashboardTransactionWidgetRead> {
-  return apiGet<DashboardTransactionWidgetRead>(
-    `/projects/${projectId}/dashboard/widgets/quotes-to-negotiate`,
+    `/projects/${projectId}/dashboard/widgets/quotes-to-follow-up`,
   )
 }
 
@@ -192,11 +168,11 @@ export function getProjectDashboardRecentTransactions(
   )
 }
 
-export function getProjectDashboardBudgetAlerts(
+export function getProjectDashboardSupplierDocuments(
   projectId: number,
-): Promise<DashboardBudgetAlertsRead> {
-  return apiGet<DashboardBudgetAlertsRead>(
-    `/projects/${projectId}/dashboard/widgets/budget-alerts`,
+): Promise<DashboardSupplierDocumentRead[]> {
+  return apiGet<DashboardSupplierDocumentRead[]>(
+    `/projects/${projectId}/dashboard/widgets/supplier-documents`,
   )
 }
 
@@ -283,26 +259,14 @@ export function useProjectDashboardSpendingOverTimeQuery(
   )
 }
 
-export function useProjectDashboardBudgetVsActualQuery(
+export function useProjectDashboardInvoicedByLotQuery(
   projectId: number | null,
   options?: ProjectQueryOptions,
 ) {
   return useProjectScopedQuery(
     projectId,
-    projectQueryKeys.dashboardBudgetVsActual,
-    getProjectDashboardBudgetVsActual,
-    options,
-  )
-}
-
-export function useProjectDashboardLotDistributionQuery(
-  projectId: number | null,
-  options?: ProjectQueryOptions,
-) {
-  return useProjectScopedQuery(
-    projectId,
-    projectQueryKeys.dashboardLotDistribution,
-    getProjectDashboardLotDistribution,
+    projectQueryKeys.dashboardInvoicedByLot,
+    getProjectDashboardInvoicedByLot,
     options,
   )
 }
@@ -345,26 +309,14 @@ export function useProjectDashboardUnpaidInvoicesQuery(
   )
 }
 
-export function useProjectDashboardQuotesToConfirmQuery(
+export function useProjectDashboardQuotesToFollowUpQuery(
   projectId: number | null,
   options?: ProjectQueryOptions,
 ) {
   return useProjectDashboardWidgetQuery(
     projectId,
-    'quotes-to-confirm',
-    getProjectDashboardQuotesToConfirm,
-    options,
-  )
-}
-
-export function useProjectDashboardQuotesToNegotiateQuery(
-  projectId: number | null,
-  options?: ProjectQueryOptions,
-) {
-  return useProjectDashboardWidgetQuery(
-    projectId,
-    'quotes-to-negotiate',
-    getProjectDashboardQuotesToNegotiate,
+    'quotes-to-follow-up',
+    getProjectDashboardQuotesToFollowUp,
     options,
   )
 }
@@ -393,14 +345,14 @@ export function useProjectDashboardRecentTransactionsQuery(
   )
 }
 
-export function useProjectDashboardBudgetAlertsQuery(
+export function useProjectDashboardSupplierDocumentsQuery(
   projectId: number | null,
   options?: ProjectQueryOptions,
 ) {
   return useProjectDashboardWidgetQuery(
     projectId,
-    'budget-alerts',
-    getProjectDashboardBudgetAlerts,
+    'supplier-documents',
+    getProjectDashboardSupplierDocuments,
     options,
   )
 }

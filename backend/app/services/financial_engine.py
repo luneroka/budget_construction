@@ -20,18 +20,17 @@ from app.models.transaction import (
 from app.repositories.common import get_active_project
 from app.repositories.lot import get_visible_lots
 from app.schemas.financial_engine import (
-    DashboardBudgetAlertRead,
-    DashboardBudgetAlertsRead,
     DashboardFinancialOverviewRead,
-    DashboardLotBudgetInvoicedRead,
-    DashboardLotDistributionRead,
+    DashboardLotInvoicedRead,
     DashboardSpendingOverTimePointRead,
     DashboardSupplierDistributionRead,
     DashboardTransactionWidgetItemRead,
     DashboardTransactionWidgetRead,
     FinancialTotalsRead,
     LotFinancialSummaryRead,
+    LotSupplierFinancialSummaryRead,
     ProjectFinancialSummaryRead,
+    SupplierFinancialSummaryRead,
 )
 from app.core.time import utcnow
 
@@ -42,13 +41,17 @@ NO_SUPPLIER_LABEL = 'Sans fournisseur'
 
 @dataclass
 class FinancialTotals:
-    """The lot figures of spec criterion 17.
+    """The money figures of a supplier group, a lot, a supplier or a project.
 
-    - Devis retenus: TTC of the active ``validated`` quotes.
+    - Coût prévu: per supplier and per lot, the larger of its active
+      ``validated`` quotes and its active invoices (« Sans fournisseur » is
+      one group); a lot, a supplier or the project adds up those maxes.
     - Facturé: TTC of every active invoice, split paid / unpaid / on hold.
-    - Reste à facturer: Devis retenus - Facturé (negative: an overrun).
+    - À payer: the unpaid and on-hold invoices, so Payé + À payer = Facturé.
+    - The validated quotes stay as a reference figure.
     """
 
+    planned_cost_ttc: Decimal = ZERO_MONEY
     validated_quote_amount_ttc: Decimal = ZERO_MONEY
     invoiced_amount_ttc: Decimal = ZERO_MONEY
     paid_invoice_amount_ttc: Decimal = ZERO_MONEY
@@ -59,10 +62,12 @@ class FinancialTotals:
     invoice_count: int = 0
 
     @property
-    def remaining_to_invoice_ttc(self) -> Decimal:
-        return self.validated_quote_amount_ttc - self.invoiced_amount_ttc
+    def to_pay_amount_ttc(self) -> Decimal:
+        return self.unpaid_invoice_amount_ttc + self.on_hold_invoice_amount_ttc
 
     def add_transaction(self, transaction: Transaction) -> None:
+        """Count one transaction of a single supplier group in a single lot,
+        and keep that group's Coût prévu at its max."""
         amount = transaction.amount_ttc
 
         if transaction.transaction_type == TransactionType.quote:
@@ -70,9 +75,7 @@ class FinancialTotals:
             if transaction.quote_status == QuoteStatus.validated:
                 self.validated_quote_amount_ttc += amount
                 self.validated_quote_count += 1
-            return
-
-        if transaction.transaction_type == TransactionType.invoice:
+        elif transaction.transaction_type == TransactionType.invoice:
             self.invoice_count += 1
             self.invoiced_amount_ttc += amount
             if transaction.invoice_status == InvoiceStatus.paid:
@@ -82,7 +85,13 @@ class FinancialTotals:
             elif transaction.invoice_status == InvoiceStatus.on_hold:
                 self.on_hold_invoice_amount_ttc += amount
 
+        self.planned_cost_ttc = max(
+            self.validated_quote_amount_ttc, self.invoiced_amount_ttc
+        )
+
     def merge(self, other: FinancialTotals) -> None:
+        """Add another group's figures: Coût prévu adds the groups' maxes."""
+        self.planned_cost_ttc += other.planned_cost_ttc
         self.validated_quote_amount_ttc += other.validated_quote_amount_ttc
         self.invoiced_amount_ttc += other.invoiced_amount_ttc
         self.paid_invoice_amount_ttc += other.paid_invoice_amount_ttc
@@ -97,11 +106,20 @@ def _new_transactions() -> list[Transaction]:
     return []
 
 
+def _new_supplier_groups() -> dict[int | None, FinancialTotals]:
+    return {}
+
+
 @dataclass
 class LotFinancials:
     lot: Lot
     totals: FinancialTotals = field(default_factory=FinancialTotals)
     transactions: list[Transaction] = field(default_factory=_new_transactions)
+    # One group per supplier with transactions in the lot; None is
+    # « Sans fournisseur ».
+    suppliers: dict[int | None, FinancialTotals] = field(
+        default_factory=_new_supplier_groups
+    )
 
 
 @dataclass(frozen=True)
@@ -112,26 +130,19 @@ class ProjectFinancials:
     totals: FinancialTotals
     # Every visible lot of the project, in display order, empty ones included.
     lots: list[LotFinancials]
+    # Each supplier's figures over the visible lots: the sum of its lot groups.
+    suppliers: dict[int, FinancialTotals]
 
 
 def financial_totals_to_read_model(totals: FinancialTotals) -> FinancialTotalsRead:
-    remaining = totals.remaining_to_invoice_ttc
-    completion_percentage = (
-        (totals.invoiced_amount_ttc / totals.validated_quote_amount_ttc)
-        * Decimal('100')
-        if totals.validated_quote_amount_ttc > ZERO_MONEY
-        else ZERO_MONEY
-    ).quantize(Decimal('0.01'))
-
     return FinancialTotalsRead(
+        planned_cost_ttc=totals.planned_cost_ttc,
         validated_quote_amount_ttc=totals.validated_quote_amount_ttc,
         invoiced_amount_ttc=totals.invoiced_amount_ttc,
         paid_invoice_amount_ttc=totals.paid_invoice_amount_ttc,
         unpaid_invoice_amount_ttc=totals.unpaid_invoice_amount_ttc,
         on_hold_invoice_amount_ttc=totals.on_hold_invoice_amount_ttc,
-        remaining_to_invoice_ttc=remaining,
-        is_overrun=remaining < ZERO_MONEY,
-        completion_percentage=completion_percentage,
+        to_pay_amount_ttc=totals.to_pay_amount_ttc,
         quote_count=totals.quote_count,
         validated_quote_count=totals.validated_quote_count,
         invoice_count=totals.invoice_count,
@@ -174,14 +185,14 @@ class FinancialEngine:
         if project_financials is None:
             return None
 
-        totals = financial_totals_to_read_model(project_financials.totals)
+        totals = project_financials.totals
         return DashboardFinancialOverviewRead(
             project_id=project_financials.project_id,
             generated_at=project_financials.generated_at,
-            validated_quote_amount_ttc=totals.validated_quote_amount_ttc,
+            planned_cost_ttc=totals.planned_cost_ttc,
             invoiced_amount_ttc=totals.invoiced_amount_ttc,
-            remaining_to_invoice_ttc=totals.remaining_to_invoice_ttc,
-            completion_percentage=totals.completion_percentage,
+            paid_invoice_amount_ttc=totals.paid_invoice_amount_ttc,
+            to_pay_amount_ttc=totals.to_pay_amount_ttc,
         )
 
     async def get_dashboard_spending_over_time(
@@ -217,12 +228,14 @@ class FinancialEngine:
             for month, amount in sorted(monthly_totals.items())
         ]
 
-    async def get_dashboard_budget_vs_actual(
+    async def get_dashboard_invoiced_by_lot(
         self,
         db: AsyncSession,
         project_id: int,
         user_id: int,
-    ) -> list[DashboardLotBudgetInvoicedRead] | None:
+    ) -> list[DashboardLotInvoicedRead] | None:
+        """« Facturé par lot »: paid and À payer per lot, lots with a non-zero
+        Facturé only, in the lots' display order."""
         project_financials = await self.calculate_project_financials(
             db,
             project_id,
@@ -232,43 +245,18 @@ class FinancialEngine:
             return None
 
         return [
-            DashboardLotBudgetInvoicedRead(
+            DashboardLotInvoicedRead(
                 lot_id=lot_financials.lot.id,
                 lot_code=lot_financials.lot.code,
                 lot_designation=lot_financials.lot.designation,
-                validated_quote_amount_ttc=(
-                    lot_financials.totals.validated_quote_amount_ttc
+                invoiced_amount_ttc=lot_financials.totals.invoiced_amount_ttc,
+                paid_invoice_amount_ttc=(
+                    lot_financials.totals.paid_invoice_amount_ttc
                 ),
-                invoiced_amount_ttc=lot_financials.totals.invoiced_amount_ttc,
+                to_pay_amount_ttc=lot_financials.totals.to_pay_amount_ttc,
             )
             for lot_financials in project_financials.lots
-            if lot_financials.totals.validated_quote_amount_ttc != ZERO_MONEY
-            or lot_financials.totals.invoiced_amount_ttc != ZERO_MONEY
-        ]
-
-    async def get_dashboard_lot_distribution(
-        self,
-        db: AsyncSession,
-        project_id: int,
-        user_id: int,
-    ) -> list[DashboardLotDistributionRead] | None:
-        project_financials = await self.calculate_project_financials(
-            db,
-            project_id,
-            user_id,
-        )
-        if project_financials is None:
-            return None
-
-        return [
-            DashboardLotDistributionRead(
-                lot_id=lot_financials.lot.id,
-                lot_code=lot_financials.lot.code,
-                lot_designation=lot_financials.lot.designation,
-                invoiced_amount_ttc=lot_financials.totals.invoiced_amount_ttc,
-            )
-            for lot_financials in project_financials.lots
-            if lot_financials.totals.invoiced_amount_ttc > ZERO_MONEY
+            if lot_financials.totals.invoiced_amount_ttc != ZERO_MONEY
         ]
 
     async def get_dashboard_supplier_distribution(
@@ -331,35 +319,21 @@ class FinancialEngine:
             ),
         )
 
-    async def get_dashboard_quotes_to_confirm(
+    async def get_dashboard_quotes_to_follow_up(
         self,
         db: AsyncSession,
         project_id: int,
         user_id: int,
     ) -> DashboardTransactionWidgetRead | None:
+        """The quotes still to confirm or to negotiate, in one widget."""
         return await self._get_dashboard_transaction_widget(
             db,
             project_id,
             user_id,
             predicate=lambda transaction: (
                 transaction.transaction_type == TransactionType.quote
-                and transaction.quote_status == QuoteStatus.to_confirm
-            ),
-        )
-
-    async def get_dashboard_quotes_to_negotiate(
-        self,
-        db: AsyncSession,
-        project_id: int,
-        user_id: int,
-    ) -> DashboardTransactionWidgetRead | None:
-        return await self._get_dashboard_transaction_widget(
-            db,
-            project_id,
-            user_id,
-            predicate=lambda transaction: (
-                transaction.transaction_type == TransactionType.quote
-                and transaction.quote_status == QuoteStatus.to_negotiate
+                and transaction.quote_status
+                in (QuoteStatus.to_confirm, QuoteStatus.to_negotiate)
             ),
         )
 
@@ -387,42 +361,6 @@ class FinancialEngine:
             project_id,
             user_id,
             predicate=lambda _transaction: True,
-        )
-
-    async def get_dashboard_budget_alerts(
-        self,
-        db: AsyncSession,
-        project_id: int,
-        user_id: int,
-    ) -> DashboardBudgetAlertsRead | None:
-        """« Top 5 Écarts budgétaires »: the lots in overrun, worst first."""
-        project_financials = await self.calculate_project_financials(
-            db,
-            project_id,
-            user_id,
-        )
-        if project_financials is None:
-            return None
-
-        alerts = [
-            DashboardBudgetAlertRead(
-                lot_id=lot_financials.lot.id,
-                lot_code=lot_financials.lot.code,
-                lot_designation=lot_financials.lot.designation,
-                validated_quote_amount_ttc=(
-                    lot_financials.totals.validated_quote_amount_ttc
-                ),
-                invoiced_amount_ttc=lot_financials.totals.invoiced_amount_ttc,
-                variance_ttc=lot_financials.totals.remaining_to_invoice_ttc,
-            )
-            for lot_financials in project_financials.lots
-            if lot_financials.totals.remaining_to_invoice_ttc < ZERO_MONEY
-        ]
-        alerts.sort(key=lambda alert: alert.variance_ttc)
-
-        return DashboardBudgetAlertsRead(
-            count=len(alerts),
-            items=alerts[:DASHBOARD_WIDGET_LIMIT],
         )
 
     async def _get_dashboard_transaction_widget(
@@ -484,10 +422,21 @@ class FinancialEngine:
                 # Hidden lots count nowhere (a lot with active transactions
                 # cannot be hidden, so this is a safety net).
                 continue
-            lot_financials.totals.add_transaction(transaction)
+            group = lot_financials.suppliers.setdefault(
+                transaction.supplier_id, FinancialTotals()
+            )
+            group.add_transaction(transaction)
             lot_financials.transactions.append(transaction)
 
+        supplier_totals: dict[int, FinancialTotals] = {}
         for lot_financials in lots.values():
+            # A lot is the sum of its supplier groups, each at its own max.
+            for supplier_id, group in lot_financials.suppliers.items():
+                lot_financials.totals.merge(group)
+                if supplier_id is not None:
+                    supplier_totals.setdefault(supplier_id, FinancialTotals()).merge(
+                        group
+                    )
             project_totals.merge(lot_financials.totals)
 
         return ProjectFinancials(
@@ -496,6 +445,7 @@ class FinancialEngine:
             generated_at=utcnow(),
             totals=project_totals,
             lots=list(lots.values()),
+            suppliers=supplier_totals,
         )
 
     async def _get_active_transactions(
@@ -561,6 +511,11 @@ def dashboard_transaction_item_to_read_model(
     )
 
 
+def _supplier_order(supplier_id: int | None) -> tuple[bool, int]:
+    # Suppliers by id, « Sans fournisseur » last.
+    return (supplier_id is None, supplier_id or 0)
+
+
 def lot_financials_to_read_model(
     lot_financials: LotFinancials,
 ) -> LotFinancialSummaryRead:
@@ -571,6 +526,16 @@ def lot_financials_to_read_model(
         code=lot.code,
         designation=lot.designation,
         is_global=lot.is_global,
+        suppliers=[
+            LotSupplierFinancialSummaryRead(
+                supplier_id=supplier_id,
+                **financial_totals_to_read_model(group).model_dump(),
+            )
+            for supplier_id, group in sorted(
+                lot_financials.suppliers.items(),
+                key=lambda item: _supplier_order(item[0]),
+            )
+        ],
         **financial_totals_to_read_model(lot_financials.totals).model_dump(),
     )
 
@@ -584,6 +549,13 @@ def project_financials_to_read_model(
         lots=[
             lot_financials_to_read_model(lot_financials)
             for lot_financials in project_financials.lots
+        ],
+        suppliers=[
+            SupplierFinancialSummaryRead(
+                supplier_id=supplier_id,
+                **financial_totals_to_read_model(totals).model_dump(),
+            )
+            for supplier_id, totals in sorted(project_financials.suppliers.items())
         ],
         **financial_totals_to_read_model(project_financials.totals).model_dump(),
     )

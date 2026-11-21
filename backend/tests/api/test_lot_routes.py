@@ -1,5 +1,7 @@
 """Global lots, project lots, visibility and supplier assignments (spec
-criteria 1-6, 15 and 22)."""
+criteria 1-6, 15 and 22). No endpoint creates project lots any more
+(`docs/specs/2026-11-19-remove-project-lot-creation.md`): the tests write
+them straight to the database."""
 
 from httpx import AsyncClient
 from sqlalchemy import func, select
@@ -9,6 +11,7 @@ from app.models.lot import Lot
 from tests.helpers import (
     ProjectContext,
     create_project_context,
+    create_project_lot,
     create_supplier,
     create_transaction,
     global_lot_id,
@@ -159,12 +162,6 @@ async def test_lot_code_and_designation_have_length_limits(
             f'/admin/lots/{lot_id}', headers=admin.headers, json=body
         )
         assert response.status_code == 422, body
-    for body in (
-        {'code': 'x' * 11, 'designation': 'Garage'},
-        {'code': '91', 'designation': 'x' * 121},
-    ):
-        response = await client.post(_lots_url(admin), headers=admin.headers, json=body)
-        assert response.status_code == 422, body
 
     ok = await client.patch(
         f'/admin/lots/{lot_id}',
@@ -197,19 +194,7 @@ async def test_admin_reorders_global_lots(client: AsyncClient) -> None:
     assert project_order[:3] == ['01', '00', '02']
 
 
-async def test_global_lots_cannot_be_added_or_deleted(client: AsyncClient) -> None:
-    admin = await create_project_context(
-        client, email='admin-no-add@example.com', is_admin=True
-    )
-    lot_id = await global_lot_id('05')
-
-    added = await client.post(
-        '/admin/lots/', headers=admin.headers, json={'code': '25', 'designation': 'X'}
-    )
-    deleted = await client.delete(f'/admin/lots/{lot_id}', headers=admin.headers)
-
-    assert added.status_code == 405
-    assert deleted.status_code == 405
+# Adding and deleting global lots: tests/api/test_global_lot_crud.py.
 
 
 async def test_admin_recode_to_a_project_lot_code_keeps_both_lots(
@@ -219,10 +204,7 @@ async def test_admin_recode_to_a_project_lot_code_keeps_both_lots(
         client, email='admin-recode@example.com', is_admin=True
     )
     user = await create_project_context(client, email='user-recode@example.com')
-    created = await client.post(
-        _lots_url(user), headers=user.headers, json={'code': '90', 'designation': 'Abri'}
-    )
-    assert created.status_code == 201
+    await create_project_lot(user.project_id, '90', 'Abri')
 
     response = await client.patch(
         f'/admin/lots/{await global_lot_id("05")}',
@@ -238,52 +220,88 @@ async def test_admin_recode_to_a_project_lot_code_keeps_both_lots(
 # --- Project lots and visibility ---------------------------------------------
 
 
+async def test_a_project_can_no_longer_create_its_own_lot(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    context = await create_project_context(client, email='no-create@example.com')
+
+    response = await client.post(
+        _lots_url(context),
+        headers=context.headers,
+        json={'code': '90', 'designation': 'Abri'},
+    )
+
+    # The path stays for the list, so the router answers 405.
+    assert response.status_code == 405
+    count = (await db_session.execute(select(func.count(Lot.id)))).scalar_one()
+    assert count == 25
+
+
 async def test_project_lot_is_listed_after_global_lots_by_code(
     client: AsyncClient,
 ) -> None:
     context = await create_project_context(client, email='project-lot@example.com')
-
-    for code, designation in (('92', 'Clôture'), ('91', '  Abri de jardin  ')):
-        response = await client.post(
-            _lots_url(context),
-            headers=context.headers,
-            json={'code': code, 'designation': designation},
-        )
-        assert response.status_code == 201
-        assert response.json()['is_global'] is False
-        assert response.json()['project_id'] == context.project_id
+    for code, designation in (('92', 'Clôture'), ('91', 'Abri de jardin')):
+        await create_project_lot(context.project_id, code, designation)
 
     lots = await _project_lots(client, context)
+
     assert [(lot['code'], lot['designation']) for lot in lots[-2:]] == [
         ('91', 'Abri de jardin'),
         ('92', 'Clôture'),
     ]
-
-
-async def test_project_lot_code_must_be_new_in_the_project(
-    client: AsyncClient,
-) -> None:
-    context = await create_project_context(client, email='project-code@example.com')
-    other = await create_project_context(client, email='project-code-2@example.com')
-    first = await client.post(
-        _lots_url(context), headers=context.headers, json={'code': '90', 'designation': 'A'}
+    assert all(
+        lot['is_global'] is False and lot['project_id'] == context.project_id
+        for lot in lots[-2:]
     )
-    assert first.status_code == 201
 
-    for code in ('02', '90'):
-        response = await client.post(
-            _lots_url(context),
-            headers=context.headers,
-            json={'code': code, 'designation': 'B'},
+
+async def test_an_existing_project_lot_keeps_working(client: AsyncClient) -> None:
+    context = await create_project_context(client, email='legacy-lot@example.com')
+    attacker = await create_project_context(client, email='legacy-other@example.com')
+    lot_id = await create_project_lot(context.project_id, '90', 'Abri de jardin')
+
+    listed = next(
+        lot for lot in await _project_lots(client, context) if lot['id'] == lot_id
+    )
+    assert (listed['is_global'], listed['is_hidden']) == (False, False)
+
+    # It can be hidden and shown again.
+    hidden = await _set_hidden(client, context, lot_id, True)
+    assert hidden.status_code == 200
+    assert hidden.json()['is_hidden'] is True
+    shown = await _set_hidden(client, context, lot_id, False)
+    assert shown.status_code == 200
+    assert shown.json()['is_hidden'] is False
+
+    # It takes a transaction and counts in the project's figures.
+    await create_transaction(
+        client, context, quote_payload(lot_id, quote_status='validated')
+    )
+    summary = await client.get(
+        f'/projects/{context.project_id}/financial-summary', headers=context.headers
+    )
+    assert summary.status_code == 200
+    summary_lot = next(
+        lot for lot in summary.json()['lots'] if lot['lot_id'] == lot_id
+    )
+    assert summary_lot['planned_cost_ttc'] == '120.00'
+
+    # Another user reaches it neither through the owner's project nor their own.
+    for method, url, body in (
+        ('GET', _lots_url(context), None),
+        ('PATCH', f'{_lots_url(context)}{lot_id}', {'is_hidden': True}),
+        ('PATCH', f'{_lots_url(attacker)}{lot_id}', {'is_hidden': True}),
+    ):
+        refused = await client.request(
+            method, url, headers=attacker.headers, json=body
         )
-        assert response.status_code == 409, code
-        assert response.json()['detail']['code'] == 'lot_code_conflict'
-
-    # Another project may reuse it.
-    reused = await client.post(
-        _lots_url(other), headers=other.headers, json={'code': '90', 'designation': 'A'}
+        assert refused.status_code == 404, url
+    in_their_lot = await client.post(
+        attacker.transactions_url, headers=attacker.headers, json=quote_payload(lot_id)
     )
-    assert reused.status_code == 201
+    assert in_their_lot.status_code == 400
+    assert in_their_lot.json()['detail']['code'] == 'lot_not_available'
 
 
 async def test_lots_cannot_be_renamed_in_a_project(client: AsyncClient) -> None:

@@ -145,7 +145,10 @@ async def get_documents(
     ]
     items.extend(
         SupplierDocumentListRead(
-            **SupplierDocumentRead.model_validate(document).model_dump(),
+            **SupplierDocumentRead.model_validate(document).model_dump(
+                exclude={'type'}
+            ),
+            document_type=document.type,
             supplier_name=supplier_name,
         )
         for document, supplier_name in supplier_document_rows

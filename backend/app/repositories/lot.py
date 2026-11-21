@@ -11,6 +11,7 @@ from __future__ import annotations
 from fastapi import status
 from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -20,8 +21,8 @@ from app.models.supplier import Supplier
 from app.models.transaction import Transaction
 from app.repositories.common import get_active_project
 from app.schemas.lot import (
+    GlobalLotCreate,
     GlobalLotUpdate,
-    LotCreate,
     LotMoveDirection,
     ProjectLotRead,
 )
@@ -158,32 +159,6 @@ async def _project_lot_read(
     return next(lot for lot in lots if lot.id == lot_id)
 
 
-async def create_project_lot(
-    db: AsyncSession, project_id: int, user_id: int, lot_data: LotCreate
-) -> ProjectLotRead | None:
-    if await get_active_project(db, project_id, user_id) is None:
-        return None
-
-    # At creation, a project lot's code differs from every global code and
-    # from the project's other lots. A later admin re-code of a global lot
-    # is not checked against project lots (spec criterion 2).
-    conflict = await db.execute(
-        select(Lot.id).where(lot_in_project(project_id), Lot.code == lot_data.code)
-    )
-    if conflict.first() is not None:
-        raise DomainError(status.HTTP_409_CONFLICT, 'lot_code_conflict')
-
-    lot = Lot(
-        project_id=project_id,
-        code=lot_data.code,
-        designation=lot_data.designation,
-    )
-    db.add(lot)
-    await db.commit()
-
-    return await _project_lot_read(db, project_id, user_id, lot.id)
-
-
 async def set_lot_visibility(
     db: AsyncSession,
     project_id: int,
@@ -243,15 +218,16 @@ async def _get_global_lot(db: AsyncSession, lot_id: int) -> Lot | None:
     return result.scalar_one_or_none()
 
 
-async def update_global_lot(
-    db: AsyncSession, lot_id: int, lot_data: GlobalLotUpdate
-) -> Lot | None:
-    lot = await _get_global_lot(db, lot_id)
-    if lot is None:
-        return None
-
-    values = lot_data.model_dump(exclude_unset=True, exclude_none=True)
-    others = and_(Lot.project_id.is_(None), Lot.id != lot_id)
+async def _require_unique_global_lot(
+    db: AsyncSession,
+    values: dict[str, str],
+    *,
+    lot_id: int | None = None,
+) -> None:
+    """Refuse a code or designation another global lot already has."""
+    others: ColumnElement[bool] = Lot.project_id.is_(None)
+    if lot_id is not None:
+        others = and_(others, Lot.id != lot_id)
     if 'code' in values:
         conflict = await db.execute(
             select(Lot.id).where(others, Lot.code == values['code'])
@@ -265,11 +241,82 @@ async def update_global_lot(
         if conflict.first() is not None:
             raise DomainError(status.HTTP_409_CONFLICT, 'lot_designation_conflict')
 
+
+async def create_global_lot(db: AsyncSession, lot_data: GlobalLotCreate) -> Lot:
+    """Add a global lot after every other one. Every project sees it at once:
+    no ``project_hidden_lots`` row is written."""
+    values = lot_data.model_dump()
+    await _require_unique_global_lot(db, values)
+
+    last_position = await db.execute(
+        select(func.max(Lot.sort_order)).where(Lot.project_id.is_(None))
+    )
+    position = last_position.scalar_one()
+    lot = Lot(
+        code=values['code'],
+        designation=values['designation'],
+        sort_order=0 if position is None else position + 1,
+    )
+    db.add(lot)
+    await db.commit()
+    await db.refresh(lot)
+    return lot
+
+
+async def update_global_lot(
+    db: AsyncSession, lot_id: int, lot_data: GlobalLotUpdate
+) -> Lot | None:
+    lot = await _get_global_lot(db, lot_id)
+    if lot is None:
+        return None
+
+    values = lot_data.model_dump(exclude_unset=True, exclude_none=True)
+    await _require_unique_global_lot(db, values, lot_id=lot_id)
+
     for field, value in values.items():
         setattr(lot, field, value)
     await db.commit()
     await db.refresh(lot)
     return lot
+
+
+async def _lot_has_transactions(db: AsyncSession, lot_id: int) -> bool:
+    """Any transaction of any project, active or soft-deleted: a trashed one
+    must stay restorable into its lot. Only a yes or no leaves here."""
+    result = await db.execute(
+        select(Transaction.id).where(Transaction.lot_id == lot_id).limit(1)
+    )
+    return result.first() is not None
+
+
+async def delete_global_lot(db: AsyncSession, lot_id: int) -> bool | None:
+    """Hard-delete a global lot no transaction uses, with its visibility and
+    supplier rows in every project. None when there is no such global lot.
+
+    ``transactions.lot_id`` has a restrictive foreign key: a transaction
+    created in the lot after the check makes the delete fail, and that
+    failure is the same refusal. The remaining lots keep their positions;
+    the gap is harmless, since the order only compares positions and a move
+    renumbers every global lot.
+    """
+    if await _get_global_lot(db, lot_id) is None:
+        return None
+    if await _lot_has_transactions(db, lot_id):
+        raise DomainError(status.HTTP_409_CONFLICT, 'lot_in_use')
+
+    try:
+        await db.execute(
+            delete(ProjectHiddenLot).where(ProjectHiddenLot.lot_id == lot_id)
+        )
+        await db.execute(delete(SupplierLot).where(SupplierLot.lot_id == lot_id))
+        await db.execute(delete(Lot).where(Lot.id == lot_id))
+        await db.commit()
+    except IntegrityError as error:
+        # Only transactions_lot_id_fkey can fail here: both link tables are
+        # emptied above.
+        await db.rollback()
+        raise DomainError(status.HTTP_409_CONFLICT, 'lot_in_use') from error
+    return True
 
 
 async def move_global_lot(
@@ -411,3 +458,71 @@ async def unassign_supplier_lot(
     await db.delete(assignment)
     await db.commit()
     return True
+
+
+async def plan_supplier_project_lots(
+    db: AsyncSession,
+    project_id: int,
+    user_id: int,
+    supplier_id: int | None,
+    lot_ids: list[int],
+) -> tuple[set[int], set[int]]:
+    """Check the supplier form's « Lots du projet » before anything is written,
+    and return the lots to assign and to unassign.
+
+    ``supplier_id`` is None for a supplier being created. Only the project's
+    visible lots can be ticked, and only they are unassigned when left out:
+    an assignment in a hidden lot is never removed here. A lot where the
+    supplier still has active transactions cannot be unticked.
+    """
+    if await get_active_project(db, project_id, user_id) is None:
+        raise DomainError(status.HTTP_404_NOT_FOUND, 'project_not_found')
+
+    visible = {lot.id for lot in await get_visible_lots(db, project_id)}
+    wanted = set(lot_ids)
+    if not wanted <= visible:
+        raise DomainError(status.HTTP_400_BAD_REQUEST, 'lot_not_available')
+
+    current: set[int] = set()
+    if supplier_id is not None:
+        result = await db.execute(
+            select(SupplierLot.lot_id).where(
+                SupplierLot.project_id == project_id,
+                SupplierLot.supplier_id == supplier_id,
+            )
+        )
+        current = set(result.scalars().all())
+
+    to_remove = (current & visible) - wanted
+    for lot_id in sorted(to_remove):
+        if (
+            await _active_transaction_count(
+                db, project_id, lot_id, supplier_id=supplier_id
+            )
+            > 0
+        ):
+            raise DomainError(
+                status.HTTP_409_CONFLICT, 'supplier_lot_has_active_transactions'
+            )
+
+    return wanted - current, to_remove
+
+
+async def apply_supplier_project_lots(
+    db: AsyncSession,
+    project_id: int,
+    supplier_id: int,
+    to_add: set[int],
+    to_remove: set[int],
+) -> None:
+    """Write what ``plan_supplier_project_lots`` returned. The caller commits."""
+    for lot_id in sorted(to_add):
+        await ensure_supplier_lot(db, project_id, supplier_id, lot_id)
+    if to_remove:
+        await db.execute(
+            delete(SupplierLot).where(
+                SupplierLot.project_id == project_id,
+                SupplierLot.supplier_id == supplier_id,
+                SupplierLot.lot_id.in_(to_remove),
+            )
+        )

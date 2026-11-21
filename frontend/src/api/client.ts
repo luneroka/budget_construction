@@ -80,6 +80,7 @@ const ERROR_MESSAGES_FR: Record<string, string> = {
   lot_designation_conflict: 'Un lot porte déjà cette désignation.',
   lot_has_active_transactions:
     'Ce lot contient des devis ou des factures : il ne peut pas être masqué.',
+  lot_in_use: 'Ce lot est utilisé et ne peut pas être supprimé.',
   lot_not_available: 'Ce lot est introuvable ou masqué dans ce projet.',
   lot_not_found: 'Ce lot est introuvable.',
   not_authenticated: 'Connectez-vous pour continuer.',

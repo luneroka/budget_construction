@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Copy, FileText, Mail, Plus } from 'lucide-react'
 
 import { useDocumentsQuery } from '@/api/documents'
@@ -15,9 +15,9 @@ import {
   paginationPageSizeOptions,
   usePagination,
 } from '@/components/shared/usePagination'
-import { SupplierModal } from '@/components/suppliers/SupplierModal'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button-variants'
 import { Select } from '@/components/ui/select'
 import {
   Table,
@@ -35,9 +35,9 @@ import {
 } from '@/lib/supplierContact'
 import { supplierToDomain } from '@/lib/apiAdapters'
 import { lotsBySupplier, visibleLots } from '@/lib/lots'
+import type { SupplierFormReturnState } from '@/lib/supplierFormPage'
 import { lotLabel } from '@/lib/transactionWorkspace'
-import { useSupplierActions } from '@/hooks/useSupplierActions'
-import { useSupplierRibViewer } from '@/hooks/useSupplierRibViewer'
+import { useSupplierDocumentViewer } from '@/hooks/useSupplierDocumentViewer'
 import { useSelectedProjectId } from '@/state/appState'
 import { normalizeSearchText } from '@/lib/searchHighlight'
 
@@ -45,8 +45,11 @@ export function SuppliersPage() {
   const projectId = useSelectedProjectId()
   const [search, setSearch] = useState('')
   const [lotFilter, setLotFilter] = useState('all')
-  // The list creates; a supplier's own page is where one is read and edited.
-  const [isCreating, setIsCreating] = useState(false)
+  // The list creates, on the supplier form page, which comes back here.
+  const location = useLocation()
+  const newSupplierState: SupplierFormReturnState = {
+    from: `${location.pathname}${location.search}`,
+  }
   const suppliersQuery = useSuppliersQuery()
   const lotsQuery = useProjectLotsQuery(projectId)
   const supplierLotsQuery = useSupplierLotsQuery(projectId)
@@ -60,16 +63,20 @@ export function SuppliersPage() {
     [lotsQuery.data],
   )
   const documentsQuery = useDocumentsQuery()
-  const { saveSupplier } = useSupplierActions(projectId)
-  const ribViewer = useSupplierRibViewer()
+  const ribViewer = useSupplierDocumentViewer()
   const suppliers = useMemo(
     () => (suppliersQuery.data ?? []).map(supplierToDomain),
     [suppliersQuery.data],
   )
+  // The « RIB » column: each supplier's newest document of type RIB.
   const ribBySupplierId = useMemo(() => {
     const map = new Map<number, SupplierDocumentListRead>()
     for (const document of documentsQuery.data ?? []) {
-      if (document.type === 'supplier_document') {
+      if (
+        document.type === 'supplier_document' &&
+        document.document_type === 'rib' &&
+        !map.has(document.supplier_id)
+      ) {
         map.set(document.supplier_id, document)
       }
     }
@@ -259,7 +266,12 @@ export function SuppliersPage() {
                 variant="ghost"
                 className="text-muted-foreground hover:bg-gold/15 hover:text-gold"
                 aria-label={`Voir le RIB de ${supplier.name}`}
-                onClick={() => void ribViewer.open(rib)}
+                onClick={() =>
+                  void ribViewer.open(
+                    { ...rib, type: rib.document_type },
+                    rib.supplier_name,
+                  )
+                }
               >
                 <FileText aria-hidden />
               </Button>
@@ -276,10 +288,14 @@ export function SuppliersPage() {
         title="Fournisseurs"
         description="Répertoire des artisans et fournisseurs."
         actions={
-          <Button variant="gold" onClick={() => setIsCreating(true)}>
+          <Link
+            to="/suppliers/new"
+            state={newSupplierState}
+            className={buttonVariants({ variant: 'gold' })}
+          >
             <Plus aria-hidden />
             Nouveau fournisseur
-          </Button>
+          </Link>
         }
       />
 
@@ -370,19 +386,10 @@ export function SuppliersPage() {
         ) : null}
       </div>
 
-      {isCreating ? (
-        <SupplierModal
-          mode="create"
-          supplier={null}
-          onClose={() => setIsCreating(false)}
-          onSave={(supplier) => saveSupplier(supplier, null)}
-        />
-      ) : null}
-
-      {ribViewer.rib ? (
+      {ribViewer.viewed ? (
         <DocumentViewerDialog
-          title={`RIB • ${ribViewer.rib.document.supplier_name}`}
-          url={ribViewer.rib.url}
+          title={ribViewer.viewed.title}
+          url={ribViewer.viewed.url}
           isPending={ribViewer.isLoading}
           error={ribViewer.error}
           onClose={ribViewer.close}

@@ -1,147 +1,22 @@
-import { type FormEvent, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Eye, EyeOff, FolderPlus, Layers } from 'lucide-react'
+import { Eye, EyeOff, Layers } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { invalidateProjectFinancialQueries } from '@/api/budget-workspace-cache'
 import { getApiErrorMessage } from '@/api/client'
-import {
-  useCreateProjectLotMutation,
-  useProjectLotsQuery,
-  useSetLotHiddenMutation,
-} from '@/api/lots'
+import { useProjectLotsQuery, useSetLotHiddenMutation } from '@/api/lots'
 import { useProjectFinancialSummaryQuery } from '@/api/projects'
 import type { LotFinancialSummaryRead, ProjectLotRead } from '@/api/types'
-import { Field } from '@/components/budget/transaction-form/TransactionFormFields'
-import {
-  ModalCancelButton,
-  ModalSaveButton,
-  ModalShell,
-} from '@/components/shared/ModalShell'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { decimalToNumber } from '@/lib/apiAdapters'
 import { formatCurrency } from '@/lib/format'
 import { hiddenLots } from '@/lib/lots'
+import { moneyFigures } from '@/lib/supplierStats'
 import { lotLabel } from '@/lib/transactionWorkspace'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
 import { useSelectedProjectId } from '@/state/appState'
-
-// The limits the API enforces on a lot.
-const LOT_CODE_MAX_LENGTH = 10
-const LOT_DESIGNATION_MAX_LENGTH = 120
-
-function AddProjectLotModal({
-  projectId,
-  onClose,
-}: {
-  projectId: number
-  onClose: () => void
-}) {
-  const queryClient = useQueryClient()
-  const createMutation = useCreateProjectLotMutation()
-  const [code, setCode] = useState('')
-  const [designation, setDesignation] = useState('')
-  const [error, setError] = useState<string | null>(null)
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setError(null)
-    try {
-      await createMutation.mutateAsync({
-        projectId,
-        lot: { code: code.trim(), designation: designation.trim() },
-      })
-      invalidateProjectFinancialQueries(queryClient, projectId)
-      notifySuccess('Lot ajouté au projet.')
-      onClose()
-    } catch (createError) {
-      const message = getApiErrorMessage(createError)
-      setError(message)
-      notifyError(`Impossible d’ajouter le lot. ${message}`)
-    }
-  }
-
-  return (
-    <ModalShell
-      size="narrow"
-      title="Nouveau lot"
-      subtitle="Propre à ce projet. Son code et sa désignation ne pourront plus être modifiés : un lot mal saisi se masque et se recrée."
-      icon={<FolderPlus className="h-5 w-5" aria-hidden="true" />}
-      closeDisabled={createMutation.isPending}
-      hasUnsavedChanges={code !== '' || designation !== ''}
-      onClose={onClose}
-      footer={
-        <>
-          <ModalCancelButton
-            onClick={onClose}
-            disabled={createMutation.isPending}
-          />
-          <ModalSaveButton
-            form="project-lot-form"
-            disabled={createMutation.isPending}
-            isSaving={createMutation.isPending}
-          >
-            Ajouter le lot
-          </ModalSaveButton>
-        </>
-      }
-    >
-      <form id="project-lot-form" className="space-y-4" onSubmit={submit}>
-        <div className="grid gap-4 sm:grid-cols-[8rem_minmax(0,1fr)]">
-          <Field label="Code" htmlFor="project-lot-code">
-            <Input
-              id="project-lot-code"
-              required
-              maxLength={LOT_CODE_MAX_LENGTH}
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-            />
-          </Field>
-          <Field label="Désignation" htmlFor="project-lot-designation">
-            <Input
-              id="project-lot-designation"
-              required
-              maxLength={LOT_DESIGNATION_MAX_LENGTH}
-              value={designation}
-              onChange={(event) => setDesignation(event.target.value)}
-            />
-          </Field>
-        </div>
-        {error ? (
-          <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-            {error}
-          </div>
-        ) : null}
-      </form>
-    </ModalShell>
-  )
-}
-
-type CardTotals = {
-  count: number
-  retainedTtc: number
-  invoicedTtc: number
-  remainingTtc: number
-}
-
-function lotTotals(lot: {
-  quote_count: number
-  invoice_count: number
-  validated_quote_amount_ttc: LotFinancialSummaryRead['validated_quote_amount_ttc']
-  invoiced_amount_ttc: LotFinancialSummaryRead['invoiced_amount_ttc']
-  remaining_to_invoice_ttc: LotFinancialSummaryRead['remaining_to_invoice_ttc']
-}): CardTotals {
-  return {
-    count: lot.quote_count + lot.invoice_count,
-    retainedTtc: decimalToNumber(lot.validated_quote_amount_ttc),
-    invoicedTtc: decimalToNumber(lot.invoiced_amount_ttc),
-    remainingTtc: decimalToNumber(lot.remaining_to_invoice_ttc),
-  }
-}
 
 // The 25 default lots grouped by phase of the build; project lots get their
 // own group at the end.
@@ -163,8 +38,9 @@ function phaseRange(codes: string[]) {
   return `${codes[0]}–${codes[codes.length - 1]}`
 }
 
-// One lot: its number large, its name, how much of the retained quotes is
-// invoiced (a bar, red on an overrun), or « À chiffrer » with no quote yet.
+// One lot: its number large, its name, then its Prévu, Facturé and À payer,
+// À payer stressed while something is left to pay. A lot with nothing in it
+// yet has a dashed outline.
 function LotTile({
   lot,
   canHide,
@@ -176,13 +52,10 @@ function LotTile({
   isHiding: boolean
   onHide: () => void
 }) {
-  const totals = lotTotals(lot)
-  const toQuote = totals.count === 0
-  const remainderClass = lot.is_overrun
-    ? 'text-destructive'
-    : totals.remainingTtc > 0
-      ? 'text-foreground'
-      : 'text-muted-foreground'
+  const figures = moneyFigures(lot)
+  const count = figures.quoteCount + figures.invoiceCount
+  const isEmpty = count === 0
+  const hasToPay = figures.toPayTtc !== 0
 
   return (
     <div className="group relative">
@@ -192,7 +65,7 @@ function LotTile({
         className={cn(
           'block h-full rounded-lg border bg-card px-2.5 py-2 text-left text-foreground transition-colors hover:border-primary/60 hover:bg-primary/5',
           // An empty lot is still to quote: a dashed outline.
-          toQuote ? 'border-dashed border-border' : 'border-border',
+          isEmpty ? 'border-dashed border-border' : 'border-border',
         )}
       >
         <div className="flex min-w-0 items-center gap-2">
@@ -207,31 +80,33 @@ function LotTile({
             </span>
           </span>
           <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[0.7rem] font-medium text-muted-foreground group-hover:invisible">
-            {totals.count}
+            {count}
           </span>
         </div>
         <div className="mt-2 grid grid-cols-[1fr_1fr_auto] items-end gap-2 border-t border-border/60 pt-1.5 text-[0.7rem] leading-4">
           <span className="min-w-0">
-            <span className="block text-muted-foreground">Devis retenus</span>
+            <span className="block text-muted-foreground">Prévu</span>
             <span className="block truncate font-semibold tabular-nums">
-              {formatCurrency(totals.retainedTtc)}
+              {formatCurrency(figures.plannedTtc)}
             </span>
           </span>
           <span className="min-w-0">
             <span className="block text-muted-foreground">Facturé</span>
             <span className="block truncate font-semibold tabular-nums">
-              {formatCurrency(totals.invoicedTtc)}
+              {formatCurrency(figures.invoicedTtc)}
             </span>
           </span>
           <span className="min-w-0 text-right">
-            <span className="block text-muted-foreground">Reste</span>
+            <span className="block text-muted-foreground">À payer</span>
             <span
               className={cn(
-                'block truncate font-semibold tabular-nums',
-                remainderClass,
+                'block truncate tabular-nums',
+                hasToPay
+                  ? 'font-bold text-gold'
+                  : 'font-semibold text-muted-foreground',
               )}
             >
-              {formatCurrency(totals.remainingTtc)}
+              {formatCurrency(figures.toPayTtc)}
             </span>
           </span>
         </div>
@@ -259,7 +134,6 @@ export function LotsPage() {
   const summaryQuery = useProjectFinancialSummaryQuery(projectId)
   const lotsQuery = useProjectLotsQuery(projectId)
   const setHiddenMutation = useSetLotHiddenMutation()
-  const [isAddingLot, setIsAddingLot] = useState(false)
 
   async function setHidden(lot: ProjectLotRead, isHidden: boolean) {
     if (projectId === null) return
@@ -333,31 +207,19 @@ export function LotsPage() {
     <section>
       <PageHeader
         title="Lots"
-        description="Les lots du projet : devis retenus, facturé et reste à facturer. Un lot s'ouvre sur ses fournisseurs, leurs devis et leurs factures."
-        actions={
-          <Button variant="gold" onClick={() => setIsAddingLot(true)}>
-            <FolderPlus aria-hidden="true" />
-            Ajouter un lot
-          </Button>
-        }
+        description="Les lots du projet : coût prévu, facturé et à payer. Un lot s'ouvre sur ses fournisseurs, leurs devis et leurs factures."
       />
 
       {(() => {
-        const totals = lotTotals(summary)
-        const toQuote = summary.lots.filter(
-          (lot) => lot.quote_count === 0 && lot.invoice_count === 0,
-        ).length
+        const figures = moneyFigures(summary)
         const stats = [
-          { label: 'Devis retenus', value: formatCurrency(totals.retainedTtc) },
-          { label: 'Facturé', value: formatCurrency(totals.invoicedTtc) },
+          { label: 'Coût prévu', value: formatCurrency(figures.plannedTtc) },
+          { label: 'Facturé', value: formatCurrency(figures.invoicedTtc) },
+          { label: 'Payé', value: formatCurrency(figures.paidTtc) },
           {
-            label: 'Reste à facturer',
-            value: formatCurrency(totals.remainingTtc),
-            className: summary.is_overrun ? 'text-destructive' : undefined,
-          },
-          {
-            label: 'Lots à chiffrer',
-            value: `${toQuote} / ${summary.lots.length}`,
+            label: 'À payer',
+            value: formatCurrency(figures.toPayTtc),
+            className: figures.toPayTtc !== 0 ? 'text-gold' : undefined,
           },
         ]
         return (
@@ -466,13 +328,6 @@ export function LotsPage() {
             ))}
           </ul>
         </Card>
-      ) : null}
-
-      {isAddingLot ? (
-        <AddProjectLotModal
-          projectId={projectId}
-          onClose={() => setIsAddingLot(false)}
-        />
       ) : null}
     </section>
   )

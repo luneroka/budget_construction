@@ -87,12 +87,12 @@ L'application est en production et contient des données financières personnell
 ## Fournisseurs et contacts
 
 - fiche fournisseur avec SIRET, adresse normalisée et **plusieurs contacts** (un contact principal)
-- RIB et documents fournisseur stockés et consultables
+- documents fournisseur (RIB, Kbis, attestations décennale et URSSAF) avec leur date d'expiration, signalés quand ils expirent
 - historique des transactions et performance par fournisseur
 
 ## Documents
 
-- pièces jointes aux transactions (devis, factures) et aux fournisseurs (RIB) : PDF, JPEG, PNG, HEIC
+- pièces jointes aux transactions (devis, factures) et aux fournisseurs : PDF, JPEG, PNG, HEIC
 - validation du **contenu réel** des fichiers (signature binaire), pas seulement de l'extension
 - stockage privé sur Cloudflare R2, jamais exposé publiquement : téléchargement et prévisualisation via des liens signés à durée limitée
 - visionneuse intégrée avec navigation entre les documents d'une même transaction

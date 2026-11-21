@@ -18,6 +18,7 @@ import { buttonVariants } from '@/components/ui/button-variants'
 import { Card } from '@/components/ui/card'
 import type { Transaction } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/format'
+import type { MoneyFigures } from '@/lib/supplierStats'
 import { transactionTypeLabels } from '@/lib/transactionWorkspace'
 import { cn } from '@/lib/utils'
 
@@ -40,10 +41,24 @@ const sectionTexts: Record<Section, { title: string; empty: string }> = {
   invoices: { title: 'Factures', empty: 'Aucune facture' },
 }
 
+// Whole percent, but one decimal below 1 % so a small supplier doesn't read 0.
+function formatShare(share: number) {
+  if (share > 0 && share < 1) {
+    return share < 0.05
+      ? '< 0,1 %'
+      : `${share.toLocaleString('fr-FR', { maximumFractionDigits: 1, minimumFractionDigits: 1 })} %`
+  }
+  return `${Math.round(share)} %`
+}
+
 export type SupplierLotCardProps = {
   /** null: the « Sans fournisseur » card. */
   supplierId: string | null
   supplierName: string
+  /** The API's figures for this supplier in this lot. */
+  figures: MoneyFigures
+  /** This supplier's Prévu as a share of the lot's, 0–100; null when the lot plans nothing. */
+  plannedShare: number | null
   transactions: Transaction[]
   readOnly?: boolean
   onAdd: (transactionType: 'quote' | 'invoice') => void
@@ -157,7 +172,12 @@ function TransactionRow({
   onAddInvoiceForQuote,
 }: Omit<
   SupplierLotCardProps,
-  'supplierId' | 'supplierName' | 'transactions' | 'onAdd'
+  | 'supplierId'
+  | 'supplierName'
+  | 'figures'
+  | 'plannedShare'
+  | 'transactions'
+  | 'onAdd'
 > & {
   section: Section
   transaction: Transaction
@@ -281,6 +301,8 @@ export function SupplierLotCard(props: SupplierLotCardProps) {
   const {
     supplierId,
     supplierName,
+    figures,
+    plannedShare,
     transactions,
     readOnly,
     onAdd,
@@ -292,10 +314,6 @@ export function SupplierLotCard(props: SupplierLotCardProps) {
   const invoices = transactions.filter(
     (transaction) => transaction.transaction_type === 'invoice',
   )
-  const retainedTtc = sumTtc(
-    quotes.filter((quote) => quote.quote_status === 'validated'),
-  )
-  const invoicedTtc = sumTtc(invoices)
   const [isOpen, setIsOpen] = useState(false)
 
   function rows(section: Section, sectionTransactions: Transaction[]) {
@@ -349,12 +367,41 @@ export function SupplierLotCard(props: SupplierLotCardProps) {
             <h3 className="font-[family-name:var(--font-body)] text-lg font-semibold text-foreground">
               {supplierName}
             </h3>
-            <p className="text-sm text-muted-foreground">
-              Devis retenus {formatCurrency(retainedTtc)} · Facturé{' '}
-              {formatCurrency(invoicedTtc)}
-              {isOpen
-                ? null
-                : ` · ${quotes.length} devis · ${invoices.length} facture${invoices.length > 1 ? 's' : ''}`}
+            <p className="mt-0.5 flex flex-wrap items-baseline gap-x-5 gap-y-0.5 text-sm text-muted-foreground">
+              <span>
+                Prévu{' '}
+                <span className="font-semibold text-foreground tabular-nums">
+                  {formatCurrency(figures.plannedTtc)}
+                </span>
+                {plannedShare !== null ? (
+                  <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[0.7rem] font-medium tabular-nums">
+                    {formatShare(plannedShare)} du lot
+                  </span>
+                ) : null}
+              </span>
+              <span>
+                Facturé{' '}
+                <span className="font-semibold text-foreground tabular-nums">
+                  {formatCurrency(figures.invoicedTtc)}
+                </span>
+              </span>
+              <span>
+                À payer{' '}
+                <span
+                  className={cn(
+                    'font-semibold tabular-nums',
+                    figures.toPayTtc !== 0 ? 'text-gold' : 'text-foreground',
+                  )}
+                >
+                  {formatCurrency(figures.toPayTtc)}
+                </span>
+              </span>
+              {isOpen ? null : (
+                <span className="text-xs">
+                  {quotes.length} devis · {invoices.length} facture
+                  {invoices.length > 1 ? 's' : ''}
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -403,7 +450,7 @@ export function SupplierLotCard(props: SupplierLotCardProps) {
           </TransactionSection>
           <TransactionSection
             section="invoices"
-            totalTtc={invoicedTtc}
+            totalTtc={sumTtc(invoices)}
             action={
               readOnly ? null : (
                 <AddTransactionButton

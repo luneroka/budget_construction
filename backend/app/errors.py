@@ -151,6 +151,10 @@ ERROR_DEFINITIONS: dict[str, ErrorDefinition] = {
         'message': 'A lot with active transactions in this project cannot be hidden',
         'field': 'is_hidden',
     },
+    'lot_in_use': {
+        'message': 'A lot used by a transaction cannot be deleted',
+        'field': 'lot_id',
+    },
     'lot_not_available': {
         'message': 'Lot not found or hidden in this project',
         'field': 'lot_id',

@@ -18,8 +18,12 @@ LotDesignation = Annotated[
 ]
 
 
-class LotCreate(BaseModel):
-    """A project-only lot. Its code and designation are fixed at creation."""
+class LotVisibilityUpdate(BaseModel):
+    is_hidden: bool
+
+
+class GlobalLotCreate(BaseModel):
+    """A global lot added by an admin, listed after every other global lot."""
 
     code: LotCode
     designation: LotDesignation
@@ -28,10 +32,6 @@ class LotCreate(BaseModel):
     @classmethod
     def strip_text(cls, value: Any) -> Any:
         return _strip(value)
-
-
-class LotVisibilityUpdate(BaseModel):
-    is_hidden: bool
 
 
 class GlobalLotUpdate(BaseModel):

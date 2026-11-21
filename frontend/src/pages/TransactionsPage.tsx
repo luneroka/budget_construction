@@ -452,7 +452,7 @@ export function TransactionsPage() {
         <TransactionTableMessage
           colSpan={8}
           className="py-8 text-center text-muted-foreground"
-          message="Chargement des transactions..."
+          message="Chargement des devis et factures..."
         />
       )
     }
@@ -462,7 +462,7 @@ export function TransactionsPage() {
         <TransactionTableMessage
           colSpan={8}
           className="py-8 text-center text-destructive"
-          message="Impossible de charger les transactions."
+          message="Impossible de charger les devis et factures."
         />
       )
     }
@@ -474,8 +474,8 @@ export function TransactionsPage() {
           className="py-8 text-center text-muted-foreground"
           message={
             search.trim()
-              ? 'Aucune transaction ne correspond à la recherche.'
-              : 'Aucune transaction enregistrée.'
+              ? 'Aucun devis ni facture ne correspond à la recherche.'
+              : 'Aucun devis ni facture enregistré.'
           }
         />
       )
@@ -577,8 +577,8 @@ export function TransactionsPage() {
     return (
       <section>
         <PageHeader
-          title="Transactions"
-          description="Sélectionnez un projet pour consulter ses transactions."
+          title="Devis et factures"
+          description="Sélectionnez un projet pour consulter ses devis et ses factures."
         />
         <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
           Aucun projet actif.
@@ -590,8 +590,8 @@ export function TransactionsPage() {
   return (
     <section>
       <PageHeader
-        title="Transactions"
-        description="Vue chronologique de toutes les transactions du projet."
+        title="Devis et factures"
+        description="Vue chronologique de tous les devis et factures du projet."
       />
 
       <div className="mt-4 flex flex-wrap gap-1.5">
@@ -722,7 +722,7 @@ export function TransactionsPage() {
               <span className="whitespace-nowrap">{transactionCountLabel}</span>
               <Select
                 className="w-24"
-                aria-label="Transactions par page"
+                aria-label="Devis et factures par page"
                 value={String(pageSize)}
                 onChange={(event) => setPageSize(Number(event.target.value))}
               >
@@ -737,7 +737,7 @@ export function TransactionsPage() {
         />
         {isRefreshing ? (
           <div className="border-b border-border px-4 py-2 text-xs text-muted-foreground">
-            Actualisation des transactions...
+            Actualisation des devis et factures...
           </div>
         ) : null}
         <Table>

@@ -93,6 +93,13 @@ export type SupplierContactUpdate = SupplierContactCreate & {
   id?: number | null
 }
 
+// The supplier form's « Lots du projet »: the visible lots of the project
+// the supplier is assigned to, saved with the supplier in one request.
+export type SupplierProjectLots = {
+  project_id: number
+  lot_ids: number[]
+}
+
 export type SupplierCreate = {
   name: string
   siret?: string | null
@@ -103,6 +110,7 @@ export type SupplierCreate = {
   postal_code?: string | null
   city?: string | null
   contacts: SupplierContactCreate[]
+  project_lots?: SupplierProjectLots | null
 }
 
 export type SupplierUpdate = {
@@ -115,6 +123,7 @@ export type SupplierUpdate = {
   postal_code?: string | null
   city?: string | null
   contacts?: SupplierContactUpdate[] | null
+  project_lots?: SupplierProjectLots | null
 }
 
 export type SupplierRead = {
@@ -167,20 +176,26 @@ export type SupplierLotRead = {
   lot_id: number
 }
 
-// « Devis retenus » = validated quotes; « Facturé » = every active invoice;
-// « Reste à facturer » = the difference, negative in overrun.
+// The money model: « Coût prévu » is, per supplier and per lot, the larger of
+// its validated quotes and its invoices, added up over the groups; « Facturé »
+// is every active invoice, split « Payé » and « À payer » (unpaid + on hold).
+// The validated quotes stay as a reference figure. All computed by the API.
 export type FinancialTotalsRead = {
+  planned_cost_ttc: ApiDecimal
   validated_quote_amount_ttc: ApiDecimal
   invoiced_amount_ttc: ApiDecimal
   paid_invoice_amount_ttc: ApiDecimal
   unpaid_invoice_amount_ttc: ApiDecimal
   on_hold_invoice_amount_ttc: ApiDecimal
-  remaining_to_invoice_ttc: ApiDecimal
-  is_overrun: boolean
-  completion_percentage: ApiDecimal
+  to_pay_amount_ttc: ApiDecimal
   quote_count: number
   validated_quote_count: number
   invoice_count: number
+}
+
+/** One supplier's group in one lot; `supplier_id` null is « Sans fournisseur ». */
+export type LotSupplierFinancialSummaryRead = FinancialTotalsRead & {
+  supplier_id: number | null
 }
 
 export type LotFinancialSummaryRead = FinancialTotalsRead & {
@@ -189,21 +204,29 @@ export type LotFinancialSummaryRead = FinancialTotalsRead & {
   code: string
   designation: string
   is_global: boolean
+  suppliers: LotSupplierFinancialSummaryRead[]
+}
+
+/** A supplier over the project's visible lots. */
+export type SupplierFinancialSummaryRead = FinancialTotalsRead & {
+  supplier_id: number
 }
 
 export type ProjectFinancialSummaryRead = FinancialTotalsRead & {
   project_id: number
   generated_at: ApiDateTime
   lots: LotFinancialSummaryRead[]
+  suppliers: SupplierFinancialSummaryRead[]
 }
 
+// The dashboard's four figures, as the financial summary computes them.
 export type DashboardFinancialOverviewRead = {
   project_id: number
   generated_at: ApiDateTime
-  validated_quote_amount_ttc: ApiDecimal
+  planned_cost_ttc: ApiDecimal
   invoiced_amount_ttc: ApiDecimal
-  remaining_to_invoice_ttc: ApiDecimal
-  completion_percentage: ApiDecimal
+  paid_invoice_amount_ttc: ApiDecimal
+  to_pay_amount_ttc: ApiDecimal
 }
 
 export type DashboardSpendingOverTimePointRead = {
@@ -211,19 +234,14 @@ export type DashboardSpendingOverTimePointRead = {
   invoiced_amount_ttc: ApiDecimal
 }
 
-export type DashboardLotBudgetInvoicedRead = {
-  lot_id: number
-  lot_code: string
-  lot_designation: string
-  validated_quote_amount_ttc: ApiDecimal
-  invoiced_amount_ttc: ApiDecimal
-}
-
-export type DashboardLotDistributionRead = {
+/** « Facturé par lot »: the visible lots with something invoiced. */
+export type DashboardLotInvoicedRead = {
   lot_id: number
   lot_code: string
   lot_designation: string
   invoiced_amount_ttc: ApiDecimal
+  paid_invoice_amount_ttc: ApiDecimal
+  to_pay_amount_ttc: ApiDecimal
 }
 
 export type DashboardSupplierDistributionRead = {
@@ -255,18 +273,18 @@ export type DashboardTransactionWidgetRead = {
   items: DashboardTransactionWidgetItemRead[]
 }
 
-export type DashboardBudgetAlertRead = {
-  lot_id: number
-  lot_code: string
-  lot_designation: string
-  validated_quote_amount_ttc: ApiDecimal
-  invoiced_amount_ttc: ApiDecimal
-  variance_ttc: ApiDecimal
-}
-
-export type DashboardBudgetAlertsRead = {
-  count: number
-  items: DashboardBudgetAlertRead[]
+/**
+ * A dated document of a supplier assigned to one of the project's visible
+ * lots, soonest expiry first. Expired or expiring soon is decided here, on
+ * the user's own date (`expirySignal`).
+ */
+export type DashboardSupplierDocumentRead = {
+  id: number
+  supplier_id: number
+  supplier_name: string
+  type: SupplierDocumentType
+  expiry_date: ApiDate
+  original_filename: string
 }
 
 export type TransactionBaseWrite = {
@@ -372,10 +390,15 @@ export type DocumentListRead = DocumentRead & {
   amount_ttc: ApiDecimal | null
 }
 
-export type SupplierDocumentRead = {
+export type SupplierDocumentType =
+  'rib' | 'kbis' | 'decennial_insurance' | 'urssaf_certificate' | 'other'
+
+type SupplierDocumentFields = {
   id: number
   supplier_id: number
   user_id: number
+  /** Valid through that day; null: « Sans date ». */
+  expiry_date: ApiDate | null
   original_filename: string
   stored_filename: string
   file_path: string
@@ -386,9 +409,21 @@ export type SupplierDocumentRead = {
   deleted_at: ApiDateTime | null
 }
 
-export type SupplierDocumentListRead = SupplierDocumentRead & {
+export type SupplierDocumentRead = SupplierDocumentFields & {
+  type: SupplierDocumentType
+}
+
+// On the Documents page `type` tells transaction documents from supplier
+// documents, so the supplier document's own type is `document_type`.
+export type SupplierDocumentListRead = SupplierDocumentFields & {
   type: 'supplier_document'
+  document_type: SupplierDocumentType
   supplier_name: string
+}
+
+export type SupplierDocumentUpdate = {
+  type?: SupplierDocumentType
+  expiry_date?: ApiDate | null
 }
 
 export type DocumentsListItem = DocumentListRead | SupplierDocumentListRead
