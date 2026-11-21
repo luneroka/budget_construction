@@ -108,6 +108,12 @@ async def run_async_migrations() -> None:
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
+        # refuse_empty_database() inspects the connection, which starts a
+        # transaction; Alembic's begin_transaction() then leaves committing to
+        # its caller. Without this commit the migrations log success and are
+        # rolled back when the connection closes (it happened on the v1.11.0
+        # deploy, 2026-11-21). A no-op when Alembic already committed.
+        await connection.commit()
 
     await connectable.dispose()
 
