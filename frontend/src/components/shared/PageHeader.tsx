@@ -1,11 +1,15 @@
 import type { ReactNode } from 'react'
 
+import { cn } from '@/lib/utils'
+
 type PageHeaderProps = {
   title: string
   description?: string
   /** Under the description: a supplier's lot badges, say. */
   meta?: ReactNode
   actions?: ReactNode
+  /** Merged into the title's classes, e.g. to use the body font. */
+  titleClassName?: string
 }
 
 export function PageHeader({
@@ -13,11 +17,17 @@ export function PageHeader({
   description,
   meta,
   actions,
+  titleClassName,
 }: PageHeaderProps) {
   return (
     <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h1 className="font-heading text-3xl font-bold text-foreground">
+        <h1
+          className={cn(
+            'font-heading text-3xl font-bold text-foreground',
+            titleClassName,
+          )}
+        >
           {title}
         </h1>
         {description ? (

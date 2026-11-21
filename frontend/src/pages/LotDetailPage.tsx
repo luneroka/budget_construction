@@ -327,6 +327,7 @@ export function LotDetailPage() {
       {backLink}
       <PageHeader
         title={lotLabel(lot)}
+        titleClassName="font-[family-name:var(--font-body)]"
         actions={
           <>
             <Button
