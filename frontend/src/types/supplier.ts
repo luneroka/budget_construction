@@ -14,6 +14,7 @@ export type Supplier = {
   user_id: string
   name: string
   siret: string | null
+  rne_number: string | null
   comment: string
   street: string | null
   complement: string | null

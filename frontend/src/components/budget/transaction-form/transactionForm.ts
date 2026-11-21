@@ -1,21 +1,16 @@
 // Pure form state, labels and payload builders for the transaction modals.
 // No React in here so the money maths can be unit-tested directly.
 
+import type { TransactionCreate, TransactionUpdate } from '@/api/types'
 import type {
-  TransactionCreate,
-  TransactionCreateForProduct,
-  TransactionUpdate,
-} from '@/api/types'
-import type {
-  BudgetLine,
   InvoiceStatus,
   InvoiceType,
   PaymentMethod,
-  Product,
   QuoteStatus,
   Transaction,
   TransactionType,
 } from '@/types'
+import { lotLabel } from '@/lib/transactionWorkspace'
 
 export type AmountSource = 'ht' | 'ttc'
 
@@ -28,7 +23,10 @@ export type AmountFields = {
 
 export type TransactionFormState = {
   transaction_type: TransactionType
+  lot_id: string
   supplier_id: string
+  title: string
+  reference: string
   amount_ht: string
   vat_rate: string
   amount_vat: string
@@ -41,19 +39,21 @@ export type TransactionFormState = {
   invoice_status: InvoiceStatus
   invoice_type: InvoiceType
   payment_method: PaymentMethod
-  select_as_budget: boolean
 }
 
 // What a new transaction can start from, e.g. an invoice for a quote.
 export type TransactionPrefill = Partial<
   Pick<
     TransactionFormState,
-    'supplier_id' | 'amount_ttc' | 'vat_rate' | 'description' | 'invoice_type'
+    'lot_id' | 'supplier_id' | 'title' | 'amount_ht' | 'vat_rate'
   >
 >
 
 export type TransactionUpdateFormState = {
+  lot_id: string
   supplier_id: string
+  title: string
+  reference: string
   amount_ht: string
   vat_rate: string
   amount_vat: string
@@ -70,34 +70,32 @@ export type TransactionUpdateFormState = {
 
 export type ViewedTransactionContext = {
   transaction: Transaction
-  product: Product
-  budgetLine: BudgetLine
 }
 
 export const transactionTypeLabels: Record<TransactionType, string> = {
   quote: 'Devis',
-  diy_estimate: 'Estimation DIY',
   invoice: 'Facture',
 }
 
 export const newTransactionTitles: Record<TransactionType, string> = {
   quote: 'Nouveau devis',
-  diy_estimate: 'Nouvelle estimation DIY',
   invoice: 'Nouvelle facture',
 }
 
 export const createTransactionLabels: Record<TransactionType, string> = {
   quote: 'Créer le devis',
-  diy_estimate: 'Créer l’estimation',
   invoice: 'Créer la facture',
 }
+
+// The limits the API enforces on the libellé and the référence.
+export const TITLE_MAX_LENGTH = 255
+export const REFERENCE_MAX_LENGTH = 100
 
 // The French rates a construction budget meets; any other can be typed.
 export const vatRatePresets = ['20', '10', '5.5', '0'] as const
 
 export const issuedDateLabels: Record<TransactionType, string> = {
   quote: 'Date du devis',
-  diy_estimate: 'Date de l’estimation',
   invoice: 'Date de facture',
 }
 
@@ -127,19 +125,11 @@ export const paymentMethodLabels: Record<PaymentMethod, string> = {
   wire: 'Virement',
 }
 
-// Where a transaction sits, for a modal's subtitle.
+// Where a transaction sits, for a modal's subtitle: its lot.
 export function transactionBreadcrumb(
-  product: Product,
-  budgetLine?: BudgetLine,
+  lot: { code: string; designation: string } | null | undefined,
 ) {
-  return [
-    product.category_name,
-    product.subcategory_name,
-    product.product_name,
-    budgetLine?.item_type === 'breakdown' ? budgetLine.name : null,
-  ]
-    .filter(Boolean)
-    .join(' › ')
+  return lot ? lotLabel(lot) : ''
 }
 
 export function todayAsInputValue() {
@@ -162,7 +152,7 @@ export function optionalId(value: string) {
 
 export function requiredId(value: string, label: string) {
   const parsed = Number(value)
-  if (!Number.isInteger(parsed)) {
+  if (value.trim() === '' || !Number.isInteger(parsed)) {
     throw new Error(`${label} invalide`)
   }
 
@@ -240,16 +230,19 @@ export function defaultPaymentDate(issuedDate: string) {
 
 export function createInitialFormState({
   transactionType = 'quote',
-  selectAsBudget = false,
+  lotId = '',
   prefill,
 }: {
   transactionType?: TransactionType
-  selectAsBudget?: boolean
+  lotId?: string
   prefill?: TransactionPrefill
 } = {}): TransactionFormState {
   const state: TransactionFormState = {
     transaction_type: transactionType,
+    lot_id: lotId,
     supplier_id: '',
+    title: '',
+    reference: '',
     amount_ht: '',
     vat_rate: '20',
     amount_vat: '',
@@ -262,36 +255,24 @@ export function createInitialFormState({
     invoice_status: 'unpaid',
     invoice_type: 'full',
     payment_method: 'wire',
-    select_as_budget: transactionType !== 'invoice' && selectAsBudget,
     ...prefill,
   }
 
-  return prefill?.amount_ttc ? recalculateAmounts(state, 'ttc') : state
+  return prefill?.amount_ht ? recalculateAmounts(state, 'ht') : state
 }
 
-// An invoice for a quote: same supplier, rate and description, and what is
-// left to invoice on that quote (its amount minus the supplier's invoices
-// already on the line). A later invoice for the same quote is most likely
-// the balance.
+// « Ajouter une facture pour ce devis »: the invoice form starts from the
+// quote's lot, supplier, libellé, VAT rate and amount HT, all editable. The
+// invoice saved is an ordinary one, with no link to the quote.
 export function invoicePrefillFromQuote(
   quote: Transaction,
-  lineTransactions: Transaction[],
 ): TransactionPrefill {
-  const invoicedTtc = lineTransactions
-    .filter(
-      (transaction) =>
-        transaction.transaction_type === 'invoice' &&
-        transaction.supplier_id === quote.supplier_id,
-    )
-    .reduce((total, transaction) => total + transaction.amount_ttc, 0)
-  const remainingTtc = Math.round((quote.amount_ttc - invoicedTtc) * 100) / 100
-
   return {
+    lot_id: String(quote.lot_id),
     supplier_id: quote.supplier_id ?? '',
+    title: quote.title ?? '',
     vat_rate: formatNumberInput(quote.vat_rate),
-    description: quote.description,
-    amount_ttc: remainingTtc > 0 ? formatCalculatedAmount(remainingTtc) : '',
-    invoice_type: invoicedTtc > 0 ? 'balance' : 'full',
+    amount_ht: formatCalculatedAmount(quote.amount_ht),
   }
 }
 
@@ -299,7 +280,10 @@ export function createInitialUpdateFormState(
   transaction: Transaction,
 ): TransactionUpdateFormState {
   return {
+    lot_id: String(transaction.lot_id),
     supplier_id: transaction.supplier_id ?? '',
+    title: transaction.title ?? '',
+    reference: transaction.reference ?? '',
     amount_ht: formatNumberInput(transaction.amount_ht),
     vat_rate: formatNumberInput(transaction.vat_rate),
     amount_vat: formatNumberInput(transaction.amount_vat),
@@ -324,21 +308,6 @@ export function normalizeForType(
       ...state,
       transaction_type: transactionType,
       quote_status: 'to_confirm',
-      select_as_budget: false,
-    }
-  }
-
-  if (transactionType === 'diy_estimate') {
-    return {
-      ...state,
-      transaction_type: transactionType,
-      due_date: '',
-      payment_date: '',
-      quote_status: 'to_confirm',
-      invoice_status: 'unpaid',
-      invoice_type: 'full',
-      payment_method: 'wire',
-      select_as_budget: false,
     }
   }
 
@@ -349,15 +318,7 @@ export function normalizeForType(
     invoice_status: 'unpaid',
     invoice_type: 'full',
     payment_method: 'wire',
-    select_as_budget: false,
   }
-}
-
-export function canSelectCreatedTransactionAsBudget(
-  form: TransactionFormState,
-) {
-  if (form.transaction_type === 'diy_estimate') return true
-  return form.transaction_type === 'quote' && form.quote_status !== 'rejected'
 }
 
 export function buildTransactionUpdate(
@@ -365,7 +326,10 @@ export function buildTransactionUpdate(
   form: TransactionUpdateFormState,
 ): TransactionUpdate {
   const payload: TransactionUpdate = {
+    lot_id: requiredId(form.lot_id, 'Lot'),
     supplier_id: optionalId(form.supplier_id),
+    title: emptyToNull(form.title),
+    reference: emptyToNull(form.reference),
     amount_ht: form.amount_ht,
     vat_rate: optionalDecimal(form.vat_rate),
     amount_ttc: optionalDecimal(form.amount_ttc),
@@ -396,22 +360,17 @@ export function buildTransactionCreate({
   form: TransactionFormState
 }): TransactionCreate {
   const payload: TransactionCreate = {
-    // A self-built estimate has no supplier, whatever the field held before
-    // switching type.
-    supplier_id:
-      form.transaction_type === 'diy_estimate'
-        ? null
-        : optionalId(form.supplier_id),
+    lot_id: requiredId(form.lot_id, 'Lot'),
+    supplier_id: optionalId(form.supplier_id),
     transaction_type: form.transaction_type,
+    title: emptyToNull(form.title),
+    reference: emptyToNull(form.reference),
     amount_ht: form.amount_ht,
     vat_rate: optionalDecimal(form.vat_rate),
     amount_vat: optionalDecimal(form.amount_vat),
     amount_ttc: optionalDecimal(form.amount_ttc),
     issued_date: form.issued_date,
     description: emptyToNull(form.description),
-    select_as_budget: canSelectCreatedTransactionAsBudget(form)
-      ? form.select_as_budget
-      : false,
   }
 
   if (form.transaction_type === 'quote') {
@@ -426,20 +385,6 @@ export function buildTransactionCreate({
     payload.due_date = emptyToNull(form.due_date)
     payload.payment_date =
       form.invoice_status === 'paid' ? emptyToNull(form.payment_date) : null
-  }
-
-  return payload
-}
-
-export function buildProductTransactionCreate(
-  form: TransactionFormState,
-): TransactionCreateForProduct {
-  const payload: TransactionCreateForProduct = buildTransactionCreate({ form })
-
-  // A product's first quote or estimate opens its single budget line;
-  // splitting it into sub-products is an explicit action of its own.
-  if (form.transaction_type !== 'invoice') {
-    payload.budget_concern = 'entire_product'
   }
 
   return payload

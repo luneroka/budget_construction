@@ -6,15 +6,26 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.engine import Row
 
 from app.models.document import Document
+from app.models.lot import Lot
 from app.models.project import Project
-from app.models.budget_line import BudgetLine
-from app.models.product import Product
 from app.models.supplier import Supplier
 from app.models.transaction import Transaction, TransactionType
 from app.core.time import utcnow
 
 DocumentListRow = Row[
-    tuple[Document, int, TransactionType, str | None, int | None, str, str, Decimal]
+    tuple[
+        Document,
+        int,
+        TransactionType,
+        str | None,
+        str | None,
+        str | None,
+        int | None,
+        str | None,
+        str,
+        str,
+        Decimal,
+    ]
 ]
 
 
@@ -51,8 +62,7 @@ async def get_documents(
     query = (
         select(Document)
         .join(Transaction, Document.transaction_id == Transaction.id)
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
+        .join(Project, Transaction.project_id == Project.id)
         .where(Document.user_id == user_id)
         .order_by(Document.stored_filename)
     )
@@ -61,7 +71,6 @@ async def get_documents(
         query = query.where(
             Document.deleted_at.is_(None),
             Transaction.deleted_at.is_(None),
-            BudgetLine.deleted_at.is_(None),
             Project.deleted_at.is_(None),
         )
 
@@ -75,18 +84,20 @@ async def get_document_list(
     query = (
         select(
             Document,
-            BudgetLine.project_id,
+            Transaction.project_id,
             Transaction.transaction_type,
+            Transaction.title,
+            Transaction.reference,
             Transaction.description,
             Transaction.supplier_id,
             Supplier.name,
-            Product.name,
+            Lot.code,
+            Lot.designation,
             Transaction.amount_ttc,
         )
         .join(Transaction, Document.transaction_id == Transaction.id)
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
-        .join(Product, BudgetLine.product_id == Product.id)
+        .join(Project, Transaction.project_id == Project.id)
+        .join(Lot, Transaction.lot_id == Lot.id)
         .outerjoin(Supplier, Transaction.supplier_id == Supplier.id)
         .where(Document.user_id == user_id)
         .order_by(Document.created_at.desc())
@@ -96,7 +107,6 @@ async def get_document_list(
         query = query.where(
             Document.deleted_at.is_(None),
             Transaction.deleted_at.is_(None),
-            BudgetLine.deleted_at.is_(None),
             Project.deleted_at.is_(None),
         )
 
@@ -110,14 +120,12 @@ async def get_document_by_id(
     result = await db.execute(
         select(Document)
         .join(Transaction, Document.transaction_id == Transaction.id)
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
+        .join(Project, Transaction.project_id == Project.id)
         .where(
             Document.id == document_id,
             Document.user_id == user_id,
             Document.deleted_at.is_(None),
             Transaction.deleted_at.is_(None),
-            BudgetLine.deleted_at.is_(None),
             Project.deleted_at.is_(None),
         )
     )
@@ -142,8 +150,7 @@ async def get_documents_by_transaction_id(
     query = (
         select(Document)
         .join(Transaction, Document.transaction_id == Transaction.id)
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
+        .join(Project, Transaction.project_id == Project.id)
         .where(
             Document.transaction_id == transaction_id,
             Document.user_id == user_id,
@@ -155,7 +162,6 @@ async def get_documents_by_transaction_id(
         query = query.where(
             Document.deleted_at.is_(None),
             Transaction.deleted_at.is_(None),
-            BudgetLine.deleted_at.is_(None),
             Project.deleted_at.is_(None),
         )
 

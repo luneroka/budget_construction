@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Self
+from typing import Annotated, Any, Self
 
 from pydantic import (
     BaseModel,
@@ -9,6 +9,11 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+
+from app.models.supplier import SUPPLIER_RNE_NUMBER_MAX_LENGTH
+
+# « N° RNE »: free text, independent of the SIRET (no derivation, no check).
+RneNumber = Annotated[str | None, Field(max_length=SUPPLIER_RNE_NUMBER_MAX_LENGTH)]
 
 
 def normalize_siret(value: Any) -> str | None:
@@ -140,6 +145,7 @@ def normalize_primary_contact(
 class SupplierBase(BaseModel):
     name: str
     siret: str | None = None
+    rne_number: RneNumber = None
     comment: str | None = None
     street: str | None = None
     complement: str | None = None
@@ -151,7 +157,7 @@ class SupplierBase(BaseModel):
     def validate_siret(cls, value: Any) -> str | None:
         return normalize_siret(value)
 
-    @field_validator('street', 'complement', 'city', mode='before')
+    @field_validator('street', 'complement', 'city', 'rne_number', mode='before')
     @classmethod
     def validate_address_text(cls, value: Any) -> str | None:
         return normalize_optional_string(value)
@@ -174,6 +180,7 @@ class SupplierCreate(SupplierBase):
 class SupplierUpdate(BaseModel):
     name: str | None = None
     siret: str | None = None
+    rne_number: RneNumber = None
     comment: str | None = None
     street: str | None = None
     complement: str | None = None
@@ -186,7 +193,7 @@ class SupplierUpdate(BaseModel):
     def validate_siret(cls, value: Any) -> str | None:
         return normalize_siret(value)
 
-    @field_validator('street', 'complement', 'city', mode='before')
+    @field_validator('street', 'complement', 'city', 'rne_number', mode='before')
     @classmethod
     def validate_address_text(cls, value: Any) -> str | None:
         return normalize_optional_string(value)

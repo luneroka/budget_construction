@@ -3,7 +3,7 @@ import {
   ArrowLeftRight,
   FileText,
   LayoutDashboard,
-  CircleDollarSign,
+  Layers,
   Settings,
   Trash2,
   Users,
@@ -19,7 +19,7 @@ type SidebarItem = {
 
 const primaryItems: SidebarItem[] = [
   { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
-  { label: 'Budget', to: '/budget', icon: CircleDollarSign },
+  { label: 'Lots', to: '/lots', icon: Layers },
   { label: 'Transactions', to: '/transactions', icon: ArrowLeftRight },
   { label: 'Fournisseurs', to: '/suppliers', icon: Users },
   { label: 'Documents', to: '/documents', icon: FileText },

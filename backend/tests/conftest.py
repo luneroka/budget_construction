@@ -34,11 +34,22 @@ TestSessionLocal = async_sessionmaker(bind=test_engine, expire_on_commit=False)
 async def reset_test_database() -> None:
     import_module('app.models')
     from app.db.base import Base
+    from app.models.lot import Lot
+    from app.seed.default_lots import DEFAULT_LOTS
 
     async with test_engine.begin() as connection:
         await connection.execute(text('DROP SCHEMA IF EXISTS public CASCADE'))
         await connection.execute(text('CREATE SCHEMA public'))
         await connection.run_sync(Base.metadata.create_all)
+        # Production gets the global lots from the lots migration; the test
+        # schema comes from the models, so seed the same 25 here.
+        await connection.execute(
+            Lot.__table__.insert(),
+            [
+                {'code': code, 'designation': designation, 'sort_order': index}
+                for index, (code, designation) in enumerate(DEFAULT_LOTS)
+            ],
+        )
 
 
 @pytest_asyncio.fixture

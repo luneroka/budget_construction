@@ -8,17 +8,17 @@ from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.budget_line import BudgetLine
 from app.models.document import Document
-from app.models.product import Product
+from app.models.lot import Lot
 from app.models.project import Project
 from app.models.supplier import Supplier
 from app.models.supplier_document import SupplierDocument
 from app.models.transaction import Transaction
+from app.repositories import lot as lot_repository
 from app.repositories.common import get_active_project
 from app.core.time import utcnow
 
-DeletedTransactionRow = Row[tuple[Transaction, str | None, str]]
+DeletedTransactionRow = Row[tuple[Transaction, str | None, str, str]]
 DeletedDocumentRow = Row[tuple[Document, Transaction, str | None]]
 DeletedSupplierRow = Row[tuple[Supplier, int]]
 DeletedSupplierDocumentRow = Row[tuple[SupplierDocument, Supplier]]
@@ -57,16 +57,14 @@ async def get_deleted_transactions(
     user_id: int,
 ) -> Sequence[DeletedTransactionRow]:
     result = await db.execute(
-        select(Transaction, Supplier.name, Product.name)
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
-        .join(Product, BudgetLine.product_id == Product.id)
+        select(Transaction, Supplier.name, Lot.code, Lot.designation)
+        .join(Project, Transaction.project_id == Project.id)
+        .join(Lot, Transaction.lot_id == Lot.id)
         .outerjoin(Supplier, Transaction.supplier_id == Supplier.id)
         .where(
             Project.id == project_id,
             Project.user_id == user_id,
             Project.deleted_at.is_(None),
-            BudgetLine.deleted_at.is_(None),
             Transaction.deleted_at.is_not(None),
         )
         .order_by(Transaction.deleted_at.desc(), Transaction.id.desc())
@@ -82,14 +80,12 @@ async def get_deleted_documents(
     result = await db.execute(
         select(Document, Transaction, Supplier.name)
         .join(Transaction, Document.transaction_id == Transaction.id)
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
+        .join(Project, Transaction.project_id == Project.id)
         .outerjoin(Supplier, Transaction.supplier_id == Supplier.id)
         .where(
             Project.id == project_id,
             Project.user_id == user_id,
             Project.deleted_at.is_(None),
-            BudgetLine.deleted_at.is_(None),
             Document.user_id == user_id,
             Document.deleted_at.is_not(None),
         )
@@ -111,13 +107,11 @@ async def get_deleted_suppliers(
                 Project.id == project_id,
                 Project.user_id == user_id,
                 Project.deleted_at.is_(None),
-                BudgetLine.deleted_at.is_(None),
             )
             .label('linked_transaction_count'),
         )
         .outerjoin(Transaction, Transaction.supplier_id == Supplier.id)
-        .outerjoin(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .outerjoin(Project, BudgetLine.project_id == Project.id)
+        .outerjoin(Project, Transaction.project_id == Project.id)
         .where(
             Supplier.user_id == user_id,
             Supplier.deleted_at.is_not(None),
@@ -152,13 +146,11 @@ async def restore_transaction(
 ) -> Transaction | None:
     result = await db.execute(
         select(Transaction)
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
+        .join(Project, Transaction.project_id == Project.id)
         .where(
             Transaction.id == transaction_id,
             Transaction.deleted_at.is_not(None),
-            BudgetLine.project_id == project_id,
-            BudgetLine.deleted_at.is_(None),
+            Transaction.project_id == project_id,
             Project.user_id == user_id,
             Project.deleted_at.is_(None),
         )
@@ -179,6 +171,12 @@ async def restore_transaction(
         )
         transaction.deleted_at = None
         transaction.updated_at = restored_at
+        # A restored transaction is active again: its lot must be visible
+        # and its supplier assigned to it (spec criteria 6, 15 and 22).
+        await lot_repository.unhide_lot(db, project_id, transaction.lot_id)
+        await lot_repository.ensure_supplier_lot(
+            db, project_id, transaction.supplier_id, transaction.lot_id
+        )
         await db.commit()
     except Exception:
         await db.rollback()
@@ -201,14 +199,12 @@ async def restore_document(
     result = await db.execute(
         select(Document, Transaction)
         .join(Transaction, Document.transaction_id == Transaction.id)
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
+        .join(Project, Transaction.project_id == Project.id)
         .where(
             Document.id == document_id,
             Document.user_id == user_id,
             Document.deleted_at.is_not(None),
-            BudgetLine.project_id == project_id,
-            BudgetLine.deleted_at.is_(None),
+            Transaction.project_id == project_id,
             Project.user_id == user_id,
             Project.deleted_at.is_(None),
         )
@@ -314,13 +310,11 @@ async def get_deleted_transaction_for_permanent_delete(
     result = await db.execute(
         select(Transaction)
         .options(selectinload(Transaction.documents))
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
+        .join(Project, Transaction.project_id == Project.id)
         .where(
             Transaction.id == transaction_id,
             Transaction.deleted_at.is_not(None),
-            BudgetLine.project_id == project_id,
-            BudgetLine.deleted_at.is_(None),
+            Transaction.project_id == project_id,
             Project.user_id == user_id,
             Project.deleted_at.is_(None),
         )
@@ -337,14 +331,12 @@ async def get_deleted_document_for_permanent_delete(
     result = await db.execute(
         select(Document)
         .join(Transaction, Document.transaction_id == Transaction.id)
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
+        .join(Project, Transaction.project_id == Project.id)
         .where(
             Document.id == document_id,
             Document.user_id == user_id,
             Document.deleted_at.is_not(None),
-            BudgetLine.project_id == project_id,
-            BudgetLine.deleted_at.is_(None),
+            Transaction.project_id == project_id,
             Project.user_id == user_id,
             Project.deleted_at.is_(None),
         )
@@ -393,11 +385,9 @@ async def get_project_permanent_delete_targets(
     transaction_result = await db.execute(
         select(Transaction)
         .options(selectinload(Transaction.documents))
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
+        .join(Project, Transaction.project_id == Project.id)
         .where(
-            BudgetLine.project_id == project_id,
-            BudgetLine.deleted_at.is_(None),
+            Transaction.project_id == project_id,
             Project.user_id == user_id,
             Project.deleted_at.is_(None),
             Transaction.deleted_at.is_not(None),
@@ -409,13 +399,11 @@ async def get_project_permanent_delete_targets(
     document_result = await db.execute(
         select(Document)
         .join(Transaction, Document.transaction_id == Transaction.id)
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
+        .join(Project, Transaction.project_id == Project.id)
         .where(
             Document.user_id == user_id,
             Document.deleted_at.is_not(None),
-            BudgetLine.project_id == project_id,
-            BudgetLine.deleted_at.is_(None),
+            Transaction.project_id == project_id,
             Project.user_id == user_id,
             Project.deleted_at.is_(None),
         )

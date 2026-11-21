@@ -3,16 +3,12 @@ export type ApiDateTime = string
 export type ApiDecimal = string
 
 export type ProjectStatus = 'draft' | 'active' | 'completed' | 'archived'
-export type BudgetLineType = 'product' | 'breakdown'
-export type ProductLineConversionStrategy =
-  'archive_existing' | 'reuse_existing_as_breakdown'
-export type TransactionType = 'quote' | 'diy_estimate' | 'invoice'
+export type TransactionType = 'quote' | 'invoice'
 export type QuoteStatus =
   'to_confirm' | 'to_negotiate' | 'validated' | 'rejected'
 export type InvoiceStatus = 'unpaid' | 'on_hold' | 'paid'
 export type InvoiceType = 'full' | 'deposit' | 'interim' | 'balance'
 export type PaymentMethod = 'cash' | 'card' | 'wire'
-export type BudgetConcern = 'entire_product' | 'specific_element'
 
 export type TokenRead = {
   access_token: string
@@ -46,7 +42,6 @@ export type AdminUserUpdate = {
 export type ProjectRead = {
   id: number
   user_id: number
-  template_id: number | null
   name: string
   description: string | null
   location: string | null
@@ -58,9 +53,8 @@ export type ProjectRead = {
   deleted_at: ApiDateTime | null
 }
 
-export type ProjectFromTemplateCreate = {
+export type ProjectCreate = {
   name: string
-  template_id: number
   description?: string | null
   location?: string | null
   start_date?: ApiDate | null
@@ -75,69 +69,6 @@ export type ProjectUpdate = {
   start_date?: ApiDate | null
   end_date?: ApiDate | null
   project_status?: ProjectStatus
-}
-
-export type ProductRead = {
-  id: number
-  subcategory_id: number
-  name: string
-  sort_order: number
-  is_active: boolean
-  created_at: ApiDateTime
-  updated_at: ApiDateTime
-}
-
-export type ProductWithHierarchy = ProductRead & {
-  subcategory_name: string
-  category_id: number
-  category_name: string
-}
-
-export type BudgetLineCreate = {
-  product_id: number
-  name: string
-  item_type: BudgetLineType
-  sort_order?: number
-}
-
-export type BudgetLineUpdate = {
-  name?: string | null
-  item_type?: BudgetLineType | null
-  sort_order?: number | null
-}
-
-export type ProductLineConvertToBreakdown = {
-  strategy?: ProductLineConversionStrategy | null
-  existing_line_new_name?: string | null
-  new_breakdown_names?: string[]
-}
-
-export type BudgetLineRead = {
-  id: number
-  project_id: number
-  template_item_id: number | null
-  product_id: number
-  name: string
-  item_type: BudgetLineType
-  sort_order: number
-  product: ProductWithHierarchy
-  created_at: ApiDateTime
-  updated_at: ApiDateTime
-  deleted_at: ApiDateTime | null
-}
-
-export type GeneratedProjectRead = {
-  project: ProjectRead
-  budget_lines: BudgetLineRead[]
-}
-
-export type TemplateRead = {
-  id: number
-  name: string
-  description: string | null
-  is_active: boolean
-  created_at: ApiDateTime
-  updated_at: ApiDateTime
 }
 
 export type SupplierContactRead = {
@@ -165,6 +96,7 @@ export type SupplierContactUpdate = SupplierContactCreate & {
 export type SupplierCreate = {
   name: string
   siret?: string | null
+  rne_number?: string | null
   comment?: string | null
   street?: string | null
   complement?: string | null
@@ -176,6 +108,7 @@ export type SupplierCreate = {
 export type SupplierUpdate = {
   name?: string | null
   siret?: string | null
+  rne_number?: string | null
   comment?: string | null
   street?: string | null
   complement?: string | null
@@ -189,6 +122,7 @@ export type SupplierRead = {
   user_id: number
   name: string
   siret: string | null
+  rne_number: string | null
   comment: string | null
   street: string | null
   complement: string | null
@@ -200,85 +134,112 @@ export type SupplierRead = {
   deleted_at: ApiDateTime | null
 }
 
+export type GlobalLotRead = {
+  id: number
+  code: string
+  designation: string
+  sort_order: number
+}
+
+export type GlobalLotUpdate = {
+  code?: string
+  designation?: string
+}
+
+export type ProjectLotRead = {
+  id: number
+  project_id: number | null
+  code: string
+  designation: string
+  is_global: boolean
+  is_hidden: boolean
+  active_transaction_count: number
+}
+
+export type LotCreate = {
+  code: string
+  designation: string
+}
+
+export type SupplierLotRead = {
+  project_id: number
+  supplier_id: number
+  lot_id: number
+}
+
+// « Devis retenus » = validated quotes; « Facturé » = every active invoice;
+// « Reste à facturer » = the difference, negative in overrun.
 export type FinancialTotalsRead = {
-  selected_budget_amount_ttc: ApiDecimal
-  selected_quote_budget_amount_ttc: ApiDecimal
-  selected_diy_budget_amount_ttc: ApiDecimal
-  quote_amount_ttc: ApiDecimal
   validated_quote_amount_ttc: ApiDecimal
-  diy_estimate_amount_ttc: ApiDecimal
-  actual_cost_amount_ttc: ApiDecimal
+  invoiced_amount_ttc: ApiDecimal
   paid_invoice_amount_ttc: ApiDecimal
   unpaid_invoice_amount_ttc: ApiDecimal
   on_hold_invoice_amount_ttc: ApiDecimal
-  remaining_budget_amount_ttc: ApiDecimal
-  selected_budget_variance_ttc: ApiDecimal
-  selected_quote_budget_variance_ttc: ApiDecimal
-  budget_completion_percentage: ApiDecimal
+  remaining_to_invoice_ttc: ApiDecimal
+  is_overrun: boolean
+  completion_percentage: ApiDecimal
   quote_count: number
   validated_quote_count: number
-  diy_estimate_count: number
   invoice_count: number
 }
 
-export type BudgetLineFinancialSummaryRead = FinancialTotalsRead & {
-  budget_line_id: number
-  name: string
-  item_type: BudgetLineType
-}
-
-export type ProductFinancialSummaryRead = FinancialTotalsRead & {
-  product_id: number
-  product_name: string
-  subcategory_name: string
-  category_name: string
-  budget_lines: BudgetLineFinancialSummaryRead[]
+export type LotFinancialSummaryRead = FinancialTotalsRead & {
+  lot_id: number
+  project_id: number | null
+  code: string
+  designation: string
+  is_global: boolean
 }
 
 export type ProjectFinancialSummaryRead = FinancialTotalsRead & {
   project_id: number
   generated_at: ApiDateTime
-  products: ProductFinancialSummaryRead[]
+  lots: LotFinancialSummaryRead[]
 }
 
 export type DashboardFinancialOverviewRead = {
   project_id: number
   generated_at: ApiDateTime
-  selected_budget_amount_ttc: ApiDecimal
-  actual_cost_amount_ttc: ApiDecimal
-  remaining_budget_amount_ttc: ApiDecimal
-  selected_budget_variance_ttc: ApiDecimal
-  budget_completion_percentage: ApiDecimal
+  validated_quote_amount_ttc: ApiDecimal
+  invoiced_amount_ttc: ApiDecimal
+  remaining_to_invoice_ttc: ApiDecimal
+  completion_percentage: ApiDecimal
 }
 
 export type DashboardSpendingOverTimePointRead = {
   month: string
-  actual_cost_amount_ttc: ApiDecimal
+  invoiced_amount_ttc: ApiDecimal
 }
 
-export type DashboardCategoryBudgetActualRead = {
-  category_id: number
-  category_name: string
-  selected_budget_amount_ttc: ApiDecimal
-  actual_cost_amount_ttc: ApiDecimal
+export type DashboardLotBudgetInvoicedRead = {
+  lot_id: number
+  lot_code: string
+  lot_designation: string
+  validated_quote_amount_ttc: ApiDecimal
+  invoiced_amount_ttc: ApiDecimal
 }
 
-export type DashboardCategoryDistributionRead = {
-  category_id: number
-  category_name: string
-  actual_cost_amount_ttc: ApiDecimal
+export type DashboardLotDistributionRead = {
+  lot_id: number
+  lot_code: string
+  lot_designation: string
+  invoiced_amount_ttc: ApiDecimal
 }
 
 export type DashboardSupplierDistributionRead = {
   supplier_id: number | null
   supplier_name: string
-  actual_cost_amount_ttc: ApiDecimal
+  invoiced_amount_ttc: ApiDecimal
 }
 
 export type DashboardTransactionWidgetItemRead = {
   transaction_id: number
-  budget_line_id: number
+  lot_id: number
+  lot_code: string
+  lot_designation: string
   transaction_type: TransactionType
+  title: string | null
+  reference: string | null
   amount_ttc: ApiDecimal
   issued_date: ApiDate
   due_date: ApiDate | null
@@ -286,9 +247,6 @@ export type DashboardTransactionWidgetItemRead = {
   quote_status: QuoteStatus | null
   invoice_status: InvoiceStatus | null
   supplier_name: string | null
-  category_name: string
-  product_name: string
-  budget_line_name: string
   has_documents: boolean
 }
 
@@ -298,11 +256,11 @@ export type DashboardTransactionWidgetRead = {
 }
 
 export type DashboardBudgetAlertRead = {
-  product_id: number
-  product_name: string
-  category_name: string
-  selected_budget_amount_ttc: ApiDecimal
-  actual_cost_amount_ttc: ApiDecimal
+  lot_id: number
+  lot_code: string
+  lot_designation: string
+  validated_quote_amount_ttc: ApiDecimal
+  invoiced_amount_ttc: ApiDecimal
   variance_ttc: ApiDecimal
 }
 
@@ -312,8 +270,11 @@ export type DashboardBudgetAlertsRead = {
 }
 
 export type TransactionBaseWrite = {
+  lot_id: number
   supplier_id?: number | null
   transaction_type: TransactionType
+  title?: string | null
+  reference?: string | null
   amount_ht: ApiDecimal
   vat_rate?: ApiDecimal | null
   amount_vat?: ApiDecimal | null
@@ -328,17 +289,13 @@ export type TransactionBaseWrite = {
   payment_method?: PaymentMethod | null
 }
 
-export type TransactionCreate = TransactionBaseWrite & {
-  select_as_budget?: boolean
-}
-
-export type TransactionCreateForProduct = TransactionCreate & {
-  budget_line_name?: string | null
-  budget_concern?: BudgetConcern | null
-}
+export type TransactionCreate = TransactionBaseWrite
 
 export type TransactionUpdate = {
+  lot_id?: number
   supplier_id?: number | null
+  title?: string | null
+  reference?: string | null
   amount_ht?: ApiDecimal | null
   vat_rate?: ApiDecimal | null
   amount_vat?: ApiDecimal | null
@@ -355,12 +312,14 @@ export type TransactionUpdate = {
 
 export type TransactionRead = {
   id: number
-  budget_line_id: number
-  is_selected_budget: boolean
+  project_id: number
+  lot_id: number
   has_documents: boolean
   document_count: number
   supplier_id: number | null
   transaction_type: TransactionType
+  title: string | null
+  reference: string | null
   amount_ht: ApiDecimal
   vat_rate: ApiDecimal | null
   amount_vat: ApiDecimal | null
@@ -379,40 +338,10 @@ export type TransactionRead = {
 }
 
 export type ProjectTransactionRead = TransactionRead & {
-  budget_line_name: string
-  budget_line_item_type: BudgetLineType
-  product_id: number
-  product_name: string
-  subcategory_name: string
-  category_id: number
-  category_name: string
+  lot_code: string
+  lot_designation: string
   supplier_name: string | null
   document_original_filenames: string[]
-}
-
-export type CatalogProductRead = {
-  id: number
-  name: string
-  sort_order: number
-  is_active: boolean
-  created_at: ApiDateTime
-  updated_at: ApiDateTime
-}
-
-export type CatalogSubcategoryRead = {
-  id: number
-  name: string
-  sort_order: number
-  is_active: boolean
-  products: CatalogProductRead[]
-}
-
-export type CatalogCategoryRead = {
-  id: number
-  name: string
-  sort_order: number
-  is_active: boolean
-  subcategories: CatalogSubcategoryRead[]
 }
 
 export type DocumentRead = {
@@ -433,10 +362,13 @@ export type DocumentListRead = DocumentRead & {
   type: 'document'
   project_id: number
   transaction_type: TransactionType
+  transaction_title: string | null
+  transaction_reference: string | null
   transaction_description: string | null
   supplier_id: number | null
   supplier_name: string | null
-  product_name: string | null
+  lot_code: string
+  lot_designation: string
   amount_ttc: ApiDecimal | null
 }
 
@@ -469,10 +401,14 @@ export type TrashTransactionRead = {
   type: 'transaction'
   id: number
   project_id: number
-  budget_line_id: number
+  lot_id: number
+  lot_code: string
+  lot_designation: string
+  transaction_type: TransactionType
   name: string
+  title: string | null
+  reference: string | null
   supplier_name: string | null
-  product_name: string
   amount_ttc: ApiDecimal
   deleted_at: ApiDateTime
 }

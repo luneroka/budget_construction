@@ -3,15 +3,14 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { apiDelete, apiGet, apiPatch, apiPost } from './client'
 import type {
   DashboardBudgetAlertsRead,
-  DashboardCategoryBudgetActualRead,
-  DashboardCategoryDistributionRead,
   DashboardFinancialOverviewRead,
+  DashboardLotBudgetInvoicedRead,
+  DashboardLotDistributionRead,
   DashboardSpendingOverTimePointRead,
   DashboardSupplierDistributionRead,
   DashboardTransactionWidgetRead,
-  GeneratedProjectRead,
+  ProjectCreate,
   ProjectFinancialSummaryRead,
-  ProjectFromTemplateCreate,
   ProjectRead,
   ProjectUpdate,
 } from './types'
@@ -48,13 +47,13 @@ export const projectQueryKeys = {
       'charts',
       'budget-vs-actual',
     ] as const,
-  dashboardCategoryDistribution: (projectId: number) =>
+  dashboardLotDistribution: (projectId: number) =>
     [
       ...projectQueryKeys.all,
       projectId,
       'dashboard',
       'charts',
-      'category-distribution',
+      'lot-distribution',
     ] as const,
   dashboardSupplierDistribution: (projectId: number) =>
     [
@@ -89,13 +88,9 @@ export function getProject(
   })
 }
 
-export function createProjectFromTemplate(
-  project: ProjectFromTemplateCreate,
-): Promise<GeneratedProjectRead> {
-  return apiPost<GeneratedProjectRead, ProjectFromTemplateCreate>(
-    '/projects/from-template',
-    project,
-  )
+// A new project sees every global lot; nothing else is created with it.
+export function createProject(project: ProjectCreate): Promise<ProjectRead> {
+  return apiPost<ProjectRead, ProjectCreate>('/projects/', project)
 }
 
 export function updateProject(
@@ -135,17 +130,17 @@ export function getProjectDashboardSpendingOverTime(
 
 export function getProjectDashboardBudgetVsActual(
   projectId: number,
-): Promise<DashboardCategoryBudgetActualRead[]> {
-  return apiGet<DashboardCategoryBudgetActualRead[]>(
+): Promise<DashboardLotBudgetInvoicedRead[]> {
+  return apiGet<DashboardLotBudgetInvoicedRead[]>(
     `/projects/${projectId}/dashboard/charts/budget-vs-actual`,
   )
 }
 
-export function getProjectDashboardCategoryDistribution(
+export function getProjectDashboardLotDistribution(
   projectId: number,
-): Promise<DashboardCategoryDistributionRead[]> {
-  return apiGet<DashboardCategoryDistributionRead[]>(
-    `/projects/${projectId}/dashboard/charts/category-distribution`,
+): Promise<DashboardLotDistributionRead[]> {
+  return apiGet<DashboardLotDistributionRead[]>(
+    `/projects/${projectId}/dashboard/charts/lot-distribution`,
   )
 }
 
@@ -178,14 +173,6 @@ export function getProjectDashboardQuotesToNegotiate(
 ): Promise<DashboardTransactionWidgetRead> {
   return apiGet<DashboardTransactionWidgetRead>(
     `/projects/${projectId}/dashboard/widgets/quotes-to-negotiate`,
-  )
-}
-
-export function getProjectDashboardBudgetToValidate(
-  projectId: number,
-): Promise<DashboardTransactionWidgetRead> {
-  return apiGet<DashboardTransactionWidgetRead>(
-    `/projects/${projectId}/dashboard/widgets/budget-to-validate`,
   )
 }
 
@@ -308,14 +295,14 @@ export function useProjectDashboardBudgetVsActualQuery(
   )
 }
 
-export function useProjectDashboardCategoryDistributionQuery(
+export function useProjectDashboardLotDistributionQuery(
   projectId: number | null,
   options?: ProjectQueryOptions,
 ) {
   return useProjectScopedQuery(
     projectId,
-    projectQueryKeys.dashboardCategoryDistribution,
-    getProjectDashboardCategoryDistribution,
+    projectQueryKeys.dashboardLotDistribution,
+    getProjectDashboardLotDistribution,
     options,
   )
 }
@@ -382,18 +369,6 @@ export function useProjectDashboardQuotesToNegotiateQuery(
   )
 }
 
-export function useProjectDashboardBudgetToValidateQuery(
-  projectId: number | null,
-  options?: ProjectQueryOptions,
-) {
-  return useProjectDashboardWidgetQuery(
-    projectId,
-    'budget-to-validate',
-    getProjectDashboardBudgetToValidate,
-    options,
-  )
-}
-
 export function useProjectDashboardMissingDocumentsQuery(
   projectId: number | null,
   options?: ProjectQueryOptions,
@@ -430,9 +405,9 @@ export function useProjectDashboardBudgetAlertsQuery(
   )
 }
 
-export function useCreateProjectFromTemplateMutation() {
+export function useCreateProjectMutation() {
   return useMutation({
-    mutationFn: createProjectFromTemplate,
+    mutationFn: createProject,
   })
 }
 

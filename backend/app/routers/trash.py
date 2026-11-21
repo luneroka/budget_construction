@@ -33,6 +33,8 @@ logger = logging.getLogger(__name__)
 
 
 def _transaction_name(transaction: Transaction) -> str:
+    if transaction.title:
+        return transaction.title
     if transaction.description:
         return transaction.description
     return f'Transaction #{transaction.id}'
@@ -131,17 +133,21 @@ async def get_project_trash(
     )
 
     items: list[TrashItemRead] = []
-    for transaction, supplier_name, product_name in transaction_rows:
+    for transaction, supplier_name, lot_code, lot_designation in transaction_rows:
         assert transaction.deleted_at is not None
         items.append(
             TrashTransactionRead(
                 type='transaction',
                 id=transaction.id,
                 project_id=project_id,
-                budget_line_id=transaction.budget_line_id,
+                lot_id=transaction.lot_id,
+                lot_code=lot_code,
+                lot_designation=lot_designation,
+                transaction_type=transaction.transaction_type,
                 name=_transaction_name(transaction),
+                title=transaction.title,
+                reference=transaction.reference,
                 supplier_name=supplier_name,
-                product_name=product_name,
                 amount_ttc=transaction.amount_ttc,
                 deleted_at=transaction.deleted_at,
             )

@@ -27,10 +27,22 @@ async def test_out_of_range_body_id_is_a_422(client: AsyncClient) -> None:
         client, email='out-of-range-body@example.com'
     )
 
-    response = await client.post(
-        '/projects/from-template',
+    project = await client.post(
+        '/projects/',
         headers={'Authorization': f'Bearer {access_token}'},
-        json={'template_id': OUT_OF_RANGE_ID, 'name': 'Overflow'},
+        json={'name': 'Overflow'},
+    )
+
+    response = await client.post(
+        f'/projects/{project.json()["id"]}/transactions/',
+        headers={'Authorization': f'Bearer {access_token}'},
+        json={
+            'lot_id': OUT_OF_RANGE_ID,
+            'transaction_type': 'quote',
+            'amount_ht': '10.00',
+            'vat_rate': '20.00',
+            'issued_date': '2026-01-01',
+        },
     )
 
     assert response.status_code == 422

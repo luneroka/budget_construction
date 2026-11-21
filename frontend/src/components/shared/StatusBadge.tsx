@@ -5,7 +5,7 @@ type StatusBadgeProps = {
   disabled?: boolean
   /**
    * Drop the status colour and render grey, for rows that are present but not
-   * carrying weight — a budget candidate that was not retained, say. Unlike
+   * carrying weight — a rejected quote, say. Unlike
    * `disabled` this is purely visual: the badge still states a real status, so
    * it must not be announced as disabled.
    */
@@ -18,7 +18,6 @@ const statusVariants: Record<string, BadgeVariant> = {
   completed: 'success',
   archived: 'muted',
   quote: 'accent',
-  diy_estimate: 'accent',
   invoice: 'default',
   rib: 'gold',
   to_confirm: 'warning',
@@ -32,8 +31,6 @@ const statusVariants: Record<string, BadgeVariant> = {
   deposit: 'accent',
   interim: 'accent',
   balance: 'gold',
-  product: 'default',
-  breakdown: 'muted',
   attached: 'success',
   missing: 'warning',
   deleted: 'muted',
@@ -46,7 +43,6 @@ const statusLabels: Record<string, string> = {
   completed: 'Terminé',
   archived: 'Archivé',
   quote: 'Devis',
-  diy_estimate: 'Estimation DIY',
   invoice: 'Facture',
   rib: 'RIB',
   to_confirm: 'En attente',
@@ -60,8 +56,6 @@ const statusLabels: Record<string, string> = {
   deposit: 'Acompte',
   interim: 'Intermédiaire',
   balance: 'Solde',
-  product: 'Produit',
-  breakdown: 'Détail',
   attached: 'Joint',
   missing: 'Manquant',
   deleted: 'Supprimé',

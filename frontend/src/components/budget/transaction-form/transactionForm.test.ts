@@ -4,7 +4,6 @@ import type { Transaction } from '@/types'
 
 import {
   type TransactionFormState,
-  buildProductTransactionCreate,
   buildTransactionCreate,
   buildTransactionUpdate,
   createInitialFormState,
@@ -27,15 +26,20 @@ const amounts = {
 function quoteForm(
   overrides: Partial<TransactionFormState> = {},
 ): TransactionFormState {
-  return { ...createInitialFormState(), ...overrides }
+  return { ...createInitialFormState({ lotId: '3' }), ...overrides }
 }
 
 const transaction: Transaction = {
   id: '7',
-  budget_line_id: '3',
+  project_id: '1',
+  lot_id: 3,
+  lot_code: '02',
+  lot_designation: 'Gros œuvre / Maçonnerie',
   supplier_id: '12',
   supplier_name: 'Maçonnerie Dupont',
   transaction_type: 'invoice',
+  title: 'Dalle garage',
+  reference: 'FA-12',
   amount_ht: 100,
   vat_rate: 20,
   amount_vat: 20,
@@ -51,7 +55,6 @@ const transaction: Transaction = {
   invoice_status: 'unpaid',
   invoice_type: 'deposit',
   payment_method: 'wire',
-  select_as_budget: false,
   document_state: 'missing',
   document_count: 0,
 }
@@ -123,98 +126,90 @@ describe('createInitialFormState', () => {
     ).toMatchObject({ transaction_type: 'invoice', invoice_status: 'unpaid' })
   })
 
-  it('retains a quote as budget when asked, never an invoice', () => {
-    expect(
-      createInitialFormState({ transactionType: 'quote', selectAsBudget: true })
-        .select_as_budget,
-    ).toBe(true)
-    expect(
-      createInitialFormState({
-        transactionType: 'invoice',
-        selectAsBudget: true,
-      }).select_as_budget,
-    ).toBe(false)
+  it('starts in the lot it was opened from', () => {
+    expect(createInitialFormState({ lotId: '7' })).toMatchObject({
+      lot_id: '7',
+      title: '',
+      reference: '',
+    })
   })
 
-  it('derives HT and VAT from a prefilled TTC', () => {
+  it('derives VAT and TTC from a prefilled HT', () => {
     expect(
       createInitialFormState({
         transactionType: 'invoice',
-        prefill: { amount_ttc: '120.00', vat_rate: '20' },
+        prefill: { amount_ht: '100.00', vat_rate: '20' },
       }),
-    ).toMatchObject({ amount_ht: '100.00', amount_vat: '20.00' })
+    ).toMatchObject({ amount_vat: '20.00', amount_ttc: '120.00' })
   })
 })
 
 describe('normalizeForType', () => {
-  it('drops budget selection when switching to an invoice', () => {
+  it('clears the quote status when switching to an invoice', () => {
     const invoice = normalizeForType(
-      quoteForm({ select_as_budget: true }),
+      quoteForm({ quote_status: 'validated' }),
       'invoice',
     )
 
     expect(invoice.transaction_type).toBe('invoice')
-    expect(invoice.select_as_budget).toBe(false)
+    expect(invoice.quote_status).toBe('to_confirm')
   })
 
-  it('clears the dates an estimate cannot carry', () => {
-    const form = quoteForm({
-      due_date: '2026-04-01',
-      payment_date: '2026-04-02',
-    })
+  it('clears the payment date when switching to a quote', () => {
+    const quote = normalizeForType(
+      {
+        ...quoteForm(),
+        transaction_type: 'invoice',
+        payment_date: '2026-04-02',
+      },
+      'quote',
+    )
 
-    const estimate = normalizeForType(form, 'diy_estimate')
-
-    expect(estimate.due_date).toBe('')
-    expect(estimate.payment_date).toBe('')
+    expect(quote.payment_date).toBe('')
   })
 })
 
 describe('buildTransactionCreate', () => {
-  it('never selects a rejected quote as budget', () => {
+  it('sends the lot, the libellé and the référence', () => {
     const payload = buildTransactionCreate({
       form: quoteForm({
         amount_ht: '100',
         quote_status: 'rejected',
-        select_as_budget: true,
+        title: 'Dalle garage',
+        reference: 'DEV-14',
       }),
     })
 
-    expect(payload.select_as_budget).toBe(false)
+    expect(payload.lot_id).toBe(3)
+    expect(payload.title).toBe('Dalle garage')
+    expect(payload.reference).toBe('DEV-14')
     expect(payload.quote_status).toBe('rejected')
     expect(payload).not.toHaveProperty('invoice_status')
+    expect(payload).not.toHaveProperty('select_as_budget')
   })
 
   it('sends empty strings as null', () => {
     const payload = buildTransactionCreate({
-      form: quoteForm({ amount_ht: '100', supplier_id: '', description: '  ' }),
+      form: quoteForm({
+        amount_ht: '100',
+        supplier_id: '',
+        description: '  ',
+        title: ' ',
+        reference: '',
+      }),
     })
 
     expect(payload.supplier_id).toBeNull()
+    expect(payload.title).toBeNull()
+    expect(payload.reference).toBeNull()
     expect(payload.description).toBeNull()
     expect(payload.due_date).toBeNull()
   })
 
-  it('opens the whole product for a first quote, nothing for an invoice', () => {
-    const quote = buildProductTransactionCreate(quoteForm({ amount_ht: '100' }))
-    const invoice = buildProductTransactionCreate(
-      normalizeForType(quoteForm({ amount_ht: '100' }), 'invoice'),
-    )
-
-    expect(quote.budget_concern).toBe('entire_product')
-    expect(quote).not.toHaveProperty('budget_line_name')
-    expect(invoice).not.toHaveProperty('budget_concern')
-  })
-
-  it('never sends a supplier for a self-built estimate', () => {
-    const payload = buildTransactionCreate({
-      form: normalizeForType(
-        quoteForm({ amount_ht: '100', supplier_id: '12' }),
-        'diy_estimate',
-      ),
-    })
-
-    expect(payload.supplier_id).toBeNull()
+  it('refuses a form without a lot', () => {
+    expect(() =>
+      buildTransactionCreate({ form: quoteForm({ lot_id: '' }) }),
+    ).toThrow('Lot invalide')
   })
 
   it('only sends the payment date for a paid invoice', () => {
@@ -248,29 +243,40 @@ describe('invoicePrefillFromQuote', () => {
     description: 'Menuiseries',
   }
 
-  it('starts a first invoice from the whole quote', () => {
-    expect(invoicePrefillFromQuote(quote, [quote])).toEqual({
+  it('copies the lot, supplier, libellé, VAT rate and amount HT', () => {
+    expect(invoicePrefillFromQuote(quote)).toEqual({
+      lot_id: '3',
       supplier_id: '12',
+      title: 'Dalle garage',
       vat_rate: '10',
-      description: 'Menuiseries',
-      amount_ttc: '1100.00',
-      invoice_type: 'full',
+      amount_ht: '1000.00',
     })
   })
 
-  it('suggests the balance left after the supplier’s invoices', () => {
-    const deposit = { ...transaction, amount_ttc: 330 }
-    const otherSupplier = { ...transaction, supplier_id: '99', amount_ttc: 500 }
+  it('opens an ordinary invoice form, every field editable', () => {
+    const form = createInitialFormState({
+      transactionType: 'invoice',
+      lotId: '3',
+      prefill: invoicePrefillFromQuote({
+        ...quote,
+        supplier_id: null,
+        title: null,
+      }),
+    })
 
-    expect(
-      invoicePrefillFromQuote(quote, [quote, deposit, otherSupplier]),
-    ).toMatchObject({ amount_ttc: '770.00', invoice_type: 'balance' })
-  })
-
-  it('leaves the amount empty once the quote is fully invoiced', () => {
-    const full = { ...transaction, amount_ttc: 1100 }
-
-    expect(invoicePrefillFromQuote(quote, [quote, full]).amount_ttc).toBe('')
+    expect(form).toMatchObject({
+      transaction_type: 'invoice',
+      lot_id: '3',
+      supplier_id: '',
+      title: '',
+      amount_ht: '1000.00',
+      amount_ttc: '1100.00',
+    })
+    const payload = buildTransactionCreate({ form })
+    expect(payload.transaction_type).toBe('invoice')
+    expect(Object.keys(payload).some((key) => key.includes('quote_id'))).toBe(
+      false,
+    )
   })
 })
 
@@ -298,6 +304,9 @@ describe('buildTransactionUpdate', () => {
     expect(unpaid.payment_date).toBeNull()
     expect(paid.payment_date).toBe('2026-04-10')
     expect(paid.invoice_type).toBe('deposit')
+    expect(paid.lot_id).toBe(3)
+    expect(paid.title).toBe('Dalle garage')
+    expect(paid.reference).toBe('FA-12')
     expect(paid).not.toHaveProperty('quote_status')
   })
 

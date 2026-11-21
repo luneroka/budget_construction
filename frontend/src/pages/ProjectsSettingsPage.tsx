@@ -30,9 +30,8 @@ import {
   useUpdateProjectMutation,
 } from '@/api/projects'
 import { supplierQueryKeys } from '@/api/suppliers'
-import { useTemplatesQuery } from '@/api/templates'
 import type { ProjectRead, ProjectStatus, ProjectUpdate } from '@/api/types'
-import { budgetLineQueryKeys } from '@/api/budget-lines'
+import { lotQueryKeys } from '@/api/lots'
 import {
   transactionQueryKeys,
   useProjectTransactionsQuery,
@@ -134,7 +133,6 @@ export function ProjectsSettingsPage() {
   )
   const transactionsQuery = useProjectTransactionsQuery(activeProjectId)
   const documentsQuery = useDocumentsQuery()
-  const templatesQuery = useTemplatesQuery()
   const updateProjectMutation = useUpdateProjectMutation()
   const deleteProjectMutation = useDeleteProjectMutation()
   const [form, setForm] = useState<ProjectFormState | null>(null)
@@ -168,13 +166,6 @@ export function ProjectsSettingsPage() {
   })
 
   const currentProject = projectQuery.data ?? null
-  const currentTemplate = useMemo(
-    () =>
-      templatesQuery.data?.find(
-        (template) => template.id === currentProject?.template_id,
-      ) ?? null,
-    [currentProject?.template_id, templatesQuery.data],
-  )
 
   const projectUpdate = form ? toProjectUpdate(form) : null
   const hasChanges =
@@ -184,18 +175,11 @@ export function ProjectsSettingsPage() {
       projectUpdate as ProjectUpdate,
     )
   const financialSummary = financialSummaryQuery.data
-  const categoriesCount = useMemo(() => {
-    const categoryNames = new Set(
-      financialSummary?.products.map((product) => product.category_name) ?? [],
-    )
-    return categoryNames.size
-  }, [financialSummary])
-  const productsCount = financialSummary?.products.length ?? 0
-  const budgetLinesCount =
-    financialSummary?.products.reduce(
-      (count, product) => count + product.budget_lines.length,
-      0,
-    ) ?? 0
+  const lotsCount = financialSummary?.lots.length ?? 0
+  const usedLotsCount =
+    financialSummary?.lots.filter(
+      (lot) => lot.quote_count > 0 || lot.invoice_count > 0,
+    ).length ?? 0
   const transactionsCount = transactionsQuery.data?.length ?? 0
   const suppliersCount = useMemo(() => {
     const supplierIds = new Set(
@@ -293,7 +277,7 @@ export function ProjectsSettingsPage() {
       setSelectedSettingsProjectId(null)
       setShowDeleteDialog(false)
       void queryClient.invalidateQueries({ queryKey: projectQueryKeys.all })
-      void queryClient.invalidateQueries({ queryKey: budgetLineQueryKeys.all })
+      void queryClient.invalidateQueries({ queryKey: lotQueryKeys.all })
       void queryClient.invalidateQueries({ queryKey: transactionQueryKeys.all })
       void queryClient.invalidateQueries({ queryKey: documentQueryKeys.all })
       void queryClient.invalidateQueries({ queryKey: supplierQueryKeys.all })
@@ -624,30 +608,6 @@ export function ProjectsSettingsPage() {
           </SectionCard>
 
           <SectionCard
-            title="Modèle de budget"
-            description="Modèle utilisé pour générer la structure initiale."
-          >
-            <div className="grid gap-3 sm:grid-cols-2">
-              <InfoItem
-                label="Modèle actuel"
-                value={
-                  templatesQuery.isLoading
-                    ? 'Chargement'
-                    : (currentTemplate?.name ?? 'Aucun modèle')
-                }
-              />
-              <InfoItem
-                label="Produits générés"
-                value={String(productsCount)}
-              />
-            </div>
-            <p className="mt-4 text-sm text-muted-foreground">
-              Le changement de modèle après la création du projet n'est pas pris
-              en charge dans la v1.
-            </p>
-          </SectionCard>
-
-          <SectionCard
             title="Statistiques du projet"
             description="Vue compacte des données existantes du projet."
             icon={BarChart3}
@@ -659,9 +619,8 @@ export function ProjectsSettingsPage() {
               </div>
             ) : (
               <div className="project-settings-grid-three grid gap-3">
-                <StatItem label="Catégories" value={categoriesCount} />
-                <StatItem label="Produits" value={productsCount} />
-                <StatItem label="Lignes de budget" value={budgetLinesCount} />
+                <StatItem label="Lots" value={lotsCount} />
+                <StatItem label="Lots utilisés" value={usedLotsCount} />
                 <StatItem label="Transactions" value={transactionsCount} />
                 <StatItem label="Fournisseurs" value={suppliersCount} />
                 <StatItem label="Documents" value={documentsCount} />
@@ -689,7 +648,7 @@ export function ProjectsSettingsPage() {
                 />
                 <DangerAction
                   title="Dupliquer le projet"
-                  description="Créer une copie complète du budget."
+                  description="Créer une copie complète du projet."
                   disabled
                   icon={<Copy aria-hidden />}
                 />
@@ -721,9 +680,6 @@ export function ProjectsSettingsPage() {
       <ProjectOnboardingDialog
         open={projectOnboarding.isOpen}
         canClose={projectOnboarding.canClose}
-        templates={projectOnboarding.templates}
-        isLoadingTemplates={projectOnboarding.isLoadingTemplates}
-        templatesError={projectOnboarding.templatesError}
         isCreating={projectOnboarding.isCreating}
         createError={projectOnboarding.createError}
         onClose={projectOnboarding.close}
@@ -750,24 +706,13 @@ export function ProjectsSettingsPage() {
               {currentProject?.name ?? ''}
             </p>
             <p className="mt-1 text-muted-foreground">
-              {pluralize(productsCount, 'produit')} ·{' '}
+              {pluralize(usedLotsCount, 'lot utilisé', 'lots utilisés')} ·{' '}
               {pluralize(transactionsCount, 'transaction')}
             </p>
           </ConfirmationDialog>
         ) : null
       ) : null}
     </section>
-  )
-}
-
-function InfoItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md border border-border bg-background px-3 py-3">
-      <p className="text-xs font-medium uppercase text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-1 font-medium">{value}</p>
-    </div>
   )
 }
 

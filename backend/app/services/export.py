@@ -33,7 +33,6 @@ class ExportTransactionType(str, Enum):
     all = 'all'
     invoices = 'invoices'
     quotes = 'quotes'
-    diy_estimates = 'diy_estimates'
 
 
 CSV_COLUMNS = [
@@ -41,10 +40,10 @@ CSV_COLUMNS = [
     'Transaction type',
     'Supplier',
     'Project',
-    'Category',
-    'Subcategory',
-    'Product',
-    'Budget line',
+    'Lot code',
+    'Lot',
+    'Title',
+    'Reference',
     'Amount HT',
     'VAT rate (%)',
     'VAT amount',
@@ -57,7 +56,7 @@ CSV_COLUMNS = [
     'Invoice type',
     'Payment method',
     'Description',
-    'Supplier reference',
+    'Supplier SIRET',
     'Document present',
     'Document filename(s)',
     'Original document filename(s)',
@@ -68,7 +67,6 @@ CSV_COLUMNS = [
 TRANSACTION_TYPE_LABELS = {
     TransactionType.invoice: 'Invoice',
     TransactionType.quote: 'Quote',
-    TransactionType.diy_estimate: 'DIY Estimate',
 }
 
 QUOTE_STATUS_LABELS = {
@@ -143,7 +141,7 @@ def _supplier_name(supplier: Supplier | None) -> str:
     return supplier.name
 
 
-def _supplier_reference(supplier: Supplier | None) -> str:
+def _supplier_siret(supplier: Supplier | None) -> str:
     if supplier is None or supplier.deleted_at is not None:
         return ''
 
@@ -166,7 +164,6 @@ def _matches_filters(
     return {
         ExportTransactionType.invoices: TransactionType.invoice,
         ExportTransactionType.quotes: TransactionType.quote,
-        ExportTransactionType.diy_estimates: TransactionType.diy_estimate,
     }[filters.transaction_type] == transaction.transaction_type
 
 
@@ -183,10 +180,7 @@ def build_accounting_export_rows(
 
     rows: list[dict[str, str]] = []
     for transaction in transactions:
-        budget_line = transaction.budget_line
-        product = budget_line.product
-        subcategory = product.subcategory
-        category = subcategory.category
+        lot = transaction.lot
         active_documents = [
             document
             for document in transaction.documents
@@ -201,10 +195,10 @@ def build_accounting_export_rows(
                 ],
                 'Supplier': _supplier_name(transaction.supplier),
                 'Project': project_financials.project_name,
-                'Category': category.name,
-                'Subcategory': subcategory.name,
-                'Product': product.name,
-                'Budget line': budget_line.name,
+                'Lot code': lot.code,
+                'Lot': lot.designation,
+                'Title': transaction.title or '',
+                'Reference': transaction.reference or '',
                 'Amount HT': _format_decimal(transaction.amount_ht),
                 'VAT rate (%)': _format_decimal(transaction.vat_rate),
                 'VAT amount': _format_decimal(transaction.amount_vat),
@@ -229,7 +223,7 @@ def build_accounting_export_rows(
                     PAYMENT_METHOD_LABELS,
                 ),
                 'Description': transaction.description or '',
-                'Supplier reference': _supplier_reference(transaction.supplier),
+                'Supplier SIRET': _supplier_siret(transaction.supplier),
                 'Document present': 'Yes' if active_documents else 'No',
                 'Document filename(s)': '; '.join(
                     document.stored_filename for document in active_documents

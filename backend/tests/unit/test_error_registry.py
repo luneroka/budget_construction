@@ -24,17 +24,15 @@ APP_DIR = Path(__file__).resolve().parents[2] / 'app'
 # Exceptions whose first positional argument becomes a client-visible message.
 MESSAGE_CARRYING_ERRORS = frozenset(
     {
-        'BudgetLineValidationError',
         'DocumentUploadValidationError',
         'ProjectValidationError',
-        'TemplateItemValidationError',
         'TransactionValidationError',
         'TrashRestoreError',
         'UserLifecycleError',
     }
 )
 # Functions whose named positional argument is an error *code*.
-CODE_CARRYING_CALLS = {'raise_api_error': 1, 'error_detail': 0}
+CODE_CARRYING_CALLS = {'raise_api_error': 1, 'error_detail': 0, 'DomainError': 1}
 
 
 def _callee_name(node: ast.Call) -> str | None:

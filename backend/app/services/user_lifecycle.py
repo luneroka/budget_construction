@@ -4,7 +4,6 @@ from starlette.concurrency import run_in_threadpool
 
 from app.models.document import Document
 from app.models.project import Project
-from app.models.budget_line import BudgetLine
 from app.models.supplier import Supplier
 from app.models.supplier_document import SupplierDocument
 from app.models.transaction import Transaction
@@ -100,18 +99,9 @@ async def soft_delete_user(db: AsyncSession, user_id: int) -> User | None:
         Project.user_id == user_id,
         Project.deleted_at.is_(None),
     )
-    budget_line_ids = (
-        select(BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
-        .where(
-            Project.user_id == user_id,
-            BudgetLine.deleted_at.is_(None),
-        )
-    )
     transaction_ids = (
         select(Transaction.id)
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
+        .join(Project, Transaction.project_id == Project.id)
         .where(
             Project.user_id == user_id,
             Transaction.deleted_at.is_(None),
@@ -138,11 +128,6 @@ async def soft_delete_user(db: AsyncSession, user_id: int) -> User | None:
         await db.execute(
             update(Transaction)
             .where(Transaction.id.in_(transaction_ids))
-            .values(deleted_at=deleted_at, updated_at=deleted_at)
-        )
-        await db.execute(
-            update(BudgetLine)
-            .where(BudgetLine.id.in_(budget_line_ids))
             .values(deleted_at=deleted_at, updated_at=deleted_at)
         )
         await db.execute(
@@ -185,18 +170,9 @@ async def restore_user(db: AsyncSession, user_id: int) -> User | None:
     deleted_at = user.deleted_at
     restored_at = utcnow()
 
-    budget_line_ids = (
-        select(BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
-        .where(
-            Project.user_id == user_id,
-            BudgetLine.deleted_at == deleted_at,
-        )
-    )
     transaction_ids = (
         select(Transaction.id)
-        .join(BudgetLine, Transaction.budget_line_id == BudgetLine.id)
-        .join(Project, BudgetLine.project_id == Project.id)
+        .join(Project, Transaction.project_id == Project.id)
         .where(
             Project.user_id == user_id,
             Transaction.deleted_at == deleted_at,
@@ -223,11 +199,6 @@ async def restore_user(db: AsyncSession, user_id: int) -> User | None:
         await db.execute(
             update(Transaction)
             .where(Transaction.id.in_(transaction_ids))
-            .values(deleted_at=None, updated_at=restored_at)
-        )
-        await db.execute(
-            update(BudgetLine)
-            .where(BudgetLine.id.in_(budget_line_ids))
             .values(deleted_at=None, updated_at=restored_at)
         )
         await db.execute(

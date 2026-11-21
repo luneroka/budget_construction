@@ -17,12 +17,12 @@ import {
 } from 'recharts'
 
 import { getApiErrorMessage } from '@/api/client'
+import { useProjectLotsQuery } from '@/api/lots'
 import {
   useProjectDashboardBudgetAlertsQuery,
-  useProjectDashboardBudgetToValidateQuery,
   useProjectDashboardBudgetVsActualQuery,
-  useProjectDashboardCategoryDistributionQuery,
   useProjectDashboardFinancialOverviewQuery,
+  useProjectDashboardLotDistributionQuery,
   useProjectDashboardMissingDocumentsQuery,
   useProjectDashboardQuotesToConfirmQuery,
   useProjectDashboardQuotesToNegotiateQuery,
@@ -33,8 +33,15 @@ import {
 } from '@/api/projects'
 import { useSuppliersQuery } from '@/api/suppliers'
 import { useProjectTransactionsQuery } from '@/api/transactions'
-import type { TransactionReviewState } from '@/components/budget/types'
-import { TransactionReviewModal } from '@/components/budget/TransactionModal'
+import type {
+  TransactionAction,
+  TransactionReviewState,
+} from '@/components/budget/types'
+import {
+  TransactionModal,
+  TransactionReviewModal,
+} from '@/components/budget/TransactionModal'
+import { invoicePrefillFromQuote } from '@/components/budget/transaction-form/transactionForm'
 import { ChartCard } from '@/components/shared/ChartCard'
 import { KpiCard } from '@/components/shared/KpiCard'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -51,7 +58,7 @@ import {
   DashboardChartMessage,
   DashboardMessage,
 } from '@/components/dashboard/Messages'
-import { CategoryTreemapNode } from '@/components/dashboard/TreemapNode'
+import { LotTreemapNode } from '@/components/dashboard/TreemapNode'
 import {
   chartColors,
   currencyTooltip,
@@ -65,11 +72,13 @@ import {
   projectToDomain,
   suppliersToDomain,
 } from '@/lib/apiAdapters'
-import { canToggleBudgetSelection } from '@/lib/budgetDomain'
+import { visibleLots } from '@/lib/lots'
 import {
   buildTransactionRow,
+  lotLabel,
   type QuickViewId,
 } from '@/lib/transactionWorkspace'
+import type { Transaction } from '@/types'
 import { notifyError } from '@/lib/toasts'
 import { cn } from '@/lib/utils'
 import { useSelectedProjectId } from '@/state/appState'
@@ -102,8 +111,8 @@ export function DashboardPage({
       enabled: true,
     },
   )
-  const categoryDistributionQuery =
-    useProjectDashboardCategoryDistributionQuery(projectId)
+  const lotDistributionQuery =
+    useProjectDashboardLotDistributionQuery(projectId)
   const supplierDistributionQuery =
     useProjectDashboardSupplierDistributionQuery(projectId)
   const unpaidInvoicesQuery = useProjectDashboardUnpaidInvoicesQuery(
@@ -124,10 +133,6 @@ export function DashboardPage({
     projectId,
     { enabled: includeActionCenter },
   )
-  const budgetToValidateQuery = useProjectDashboardBudgetToValidateQuery(
-    projectId,
-    { enabled: includeActionCenter },
-  )
   const budgetAlertsQuery = useProjectDashboardBudgetAlertsQuery(projectId, {
     enabled: includeActionCenter,
   })
@@ -136,9 +141,21 @@ export function DashboardPage({
   })
   const [transactionReview, setTransactionReview] =
     useState<TransactionReviewState | null>(null)
+  const [activeAction, setActiveAction] = useState<TransactionAction | null>(
+    null,
+  )
+  const isEditingTransaction =
+    transactionReview !== null || activeAction !== null
   const suppliersQuery = useSuppliersQuery({
-    enabled: projectId !== null && transactionReview !== null,
+    enabled: projectId !== null && isEditingTransaction,
   })
+  const lotsQuery = useProjectLotsQuery(projectId, {
+    enabled: isEditingTransaction,
+  })
+  const pickableLots = useMemo(
+    () => visibleLots(lotsQuery.data),
+    [lotsQuery.data],
+  )
   const project = useMemo(() => {
     const selectedProject = projectsQuery.data?.find(
       (candidate) => candidate.id === projectId,
@@ -155,15 +172,13 @@ export function DashboardPage({
     [suppliersQuery.data],
   )
   const financialOverview = financialOverviewQuery.data
-  const variance = decimalToNumber(
-    financialOverview?.selected_budget_variance_ttc,
-  )
+  const remainder = decimalToNumber(financialOverview?.remaining_to_invoice_ttc)
   const spendingOverTimeData = useMemo(
     () =>
       (spendingOverTimeQuery.data ?? []).map((item) => ({
         ...item,
         label: formatMonth(item.month),
-        actual_cost_amount_ttc: decimalToNumber(item.actual_cost_amount_ttc),
+        invoiced_amount_ttc: decimalToNumber(item.invoiced_amount_ttc),
       })),
     [spendingOverTimeQuery.data],
   )
@@ -171,30 +186,38 @@ export function DashboardPage({
     () =>
       (budgetVsActualQuery.data ?? []).map((item) => ({
         ...item,
-        selected_budget_amount_ttc: decimalToNumber(
-          item.selected_budget_amount_ttc,
+        lot_label: lotLabel({
+          code: item.lot_code,
+          designation: item.lot_designation,
+        }),
+        validated_quote_amount_ttc: decimalToNumber(
+          item.validated_quote_amount_ttc,
         ),
-        actual_cost_amount_ttc: decimalToNumber(item.actual_cost_amount_ttc),
+        invoiced_amount_ttc: decimalToNumber(item.invoiced_amount_ttc),
       })),
     [budgetVsActualQuery.data],
   )
-  const categoryDistributionData = useMemo(
+  const lotDistributionData = useMemo(
     () =>
-      (categoryDistributionQuery.data ?? []).map((item, index) => ({
+      (lotDistributionQuery.data ?? []).map((item, index) => ({
         ...item,
-        actual_cost_amount_ttc: decimalToNumber(item.actual_cost_amount_ttc),
+        lot_label: lotLabel({
+          code: item.lot_code,
+          designation: item.lot_designation,
+        }),
+        invoiced_amount_ttc: decimalToNumber(item.invoiced_amount_ttc),
         fill: distributionColors[index % distributionColors.length],
       })),
-    [categoryDistributionQuery.data],
+    [lotDistributionQuery.data],
   )
   const topSupplierDistributionData = useMemo(
     () =>
       (supplierDistributionQuery.data ?? [])
         .map((item) => ({
           ...item,
-          actual_cost_amount_ttc: decimalToNumber(item.actual_cost_amount_ttc),
+          invoiced_amount_ttc: decimalToNumber(item.invoiced_amount_ttc),
         }))
-        .sort((a, b) => b.actual_cost_amount_ttc - a.actual_cost_amount_ttc)
+        .sort((a, b) => b.invoiced_amount_ttc - a.invoiced_amount_ttc)
         .slice(0, 10),
     [supplierDistributionQuery.data],
   )
@@ -208,8 +231,8 @@ export function DashboardPage({
         !spendingOverTimeQuery.isFetching &&
         !budgetVsActualQuery.isLoading &&
         !budgetVsActualQuery.isFetching &&
-        !categoryDistributionQuery.isLoading &&
-        !categoryDistributionQuery.isFetching &&
+        !lotDistributionQuery.isLoading &&
+        !lotDistributionQuery.isFetching &&
         !supplierDistributionQuery.isLoading &&
         !supplierDistributionQuery.isFetching))
 
@@ -243,8 +266,17 @@ export function DashboardPage({
     void navigate(`/transactions?quick_view=${quickView}`)
   }
 
-  function openBudgetAlert(productId: number) {
-    void navigate(`/budget?product_id=${productId}`)
+  function openBudgetAlert(lotId: number) {
+    void navigate(`/lots/${lotId}`)
+  }
+
+  function addInvoiceForQuote(quote: Transaction) {
+    setTransactionReview(null)
+    setActiveAction({
+      lotId: quote.lot_id,
+      transactionType: 'invoice',
+      prefill: invoicePrefillFromQuote(quote),
+    })
   }
 
   return (
@@ -273,36 +305,34 @@ export function DashboardPage({
           )}
         >
           <KpiCard
-            label="Budget"
+            label="Devis retenus"
             value={formatCurrency(
-              decimalToNumber(financialOverview.selected_budget_amount_ttc),
+              decimalToNumber(financialOverview.validated_quote_amount_ttc),
             )}
             icon={CircleDollarSign}
             tone="gold"
           />
           <KpiCard
-            label="Dépenses réelles"
+            label="Facturé"
             value={formatCurrency(
-              decimalToNumber(financialOverview.actual_cost_amount_ttc),
+              decimalToNumber(financialOverview.invoiced_amount_ttc),
             )}
             icon={ReceiptText}
             tone="primary"
           />
           <KpiCard
-            label="Budget restant"
-            value={formatCurrency(
-              decimalToNumber(financialOverview.remaining_budget_amount_ttc),
-            )}
+            label="Reste à facturer"
+            value={formatCurrency(remainder)}
             icon={WalletCards}
-            tone={variance >= 0 ? 'success' : 'destructive'}
+            tone={remainder >= 0 ? 'success' : 'destructive'}
           />
           <KpiCard
-            label="Progression du budget"
+            label="Avancement de la facturation"
             value={formatDashboardPercentage(
-              financialOverview.budget_completion_percentage,
+              financialOverview.completion_percentage,
             )}
             icon={Gauge}
-            tone={variance >= 0 ? 'accent' : 'warning'}
+            tone={remainder >= 0 ? 'accent' : 'warning'}
           />
         </div>
       ) : (
@@ -321,7 +351,7 @@ export function DashboardPage({
           >
             <ChartCard
               title="Dépenses dans le temps"
-              description="Montants facturés par mois."
+              description="Montants facturés par mois, payés ou non."
             >
               {spendingOverTimeQuery.isLoading ? (
                 <DashboardChartSkeleton />
@@ -360,8 +390,8 @@ export function DashboardPage({
                       <Tooltip formatter={currencyTooltip} />
                       <Line
                         type="monotone"
-                        dataKey="actual_cost_amount_ttc"
-                        name="Dépenses réelles"
+                        dataKey="invoiced_amount_ttc"
+                        name="Facturé"
                         stroke={chartColors.accent}
                         strokeWidth={2}
                         dot={{ r: 2, fill: chartColors.accent }}
@@ -374,7 +404,7 @@ export function DashboardPage({
 
             <ChartCard
               title="Budget vs dépenses réelles"
-              description="Montants agrégés par catégorie."
+              description="Devis retenus et facturé par lot."
             >
               {budgetVsActualQuery.isLoading ? (
                 <DashboardChartSkeleton />
@@ -384,7 +414,7 @@ export function DashboardPage({
                 </DashboardChartMessage>
               ) : budgetVsActualData.length === 0 ? (
                 <DashboardChartMessage>
-                  Aucun budget par catégorie pour ce projet.
+                  Aucun montant par lot pour ce projet.
                 </DashboardChartMessage>
               ) : (
                 <div className="h-80">
@@ -395,7 +425,7 @@ export function DashboardPage({
                         stroke={chartColors.border}
                       />
                       <XAxis
-                        dataKey="category_name"
+                        dataKey="lot_code"
                         tick={{
                           fontSize: 11,
                           fill: chartColors.mutedForeground,
@@ -414,17 +444,25 @@ export function DashboardPage({
                           `${Math.round(Number(value) / 1000)} k€`
                         }
                       />
-                      <Tooltip formatter={currencyTooltip} />
+                      <Tooltip
+                        formatter={currencyTooltip}
+                        labelFormatter={(_label, payload) =>
+                          (
+                            payload?.[0]?.payload as
+                              { lot_label?: string } | undefined
+                          )?.lot_label ?? ''
+                        }
+                      />
                       <Legend />
                       <Bar
-                        dataKey="selected_budget_amount_ttc"
-                        name="Budget"
+                        dataKey="validated_quote_amount_ttc"
+                        name="Devis retenus"
                         fill={chartColors.gold}
                         radius={[3, 3, 0, 0]}
                       />
                       <Bar
-                        dataKey="actual_cost_amount_ttc"
-                        name="Dépenses réelles"
+                        dataKey="invoiced_amount_ttc"
+                        name="Facturé"
                         fill={chartColors.primary}
                         radius={[3, 3, 0, 0]}
                       />
@@ -435,27 +473,27 @@ export function DashboardPage({
             </ChartCard>
 
             <ChartCard
-              title="Répartition par catégorie"
-              description="Dépenses réelles par catégorie."
+              title="Répartition par lot"
+              description="Facturé par lot."
             >
-              {categoryDistributionQuery.isLoading ? (
+              {lotDistributionQuery.isLoading ? (
                 <DashboardChartSkeleton />
-              ) : categoryDistributionQuery.isError ? (
+              ) : lotDistributionQuery.isError ? (
                 <DashboardChartMessage>
-                  {getApiErrorMessage(categoryDistributionQuery.error)}
+                  {getApiErrorMessage(lotDistributionQuery.error)}
                 </DashboardChartMessage>
-              ) : categoryDistributionData.length === 0 ? (
+              ) : lotDistributionData.length === 0 ? (
                 <DashboardChartMessage>
-                  Aucune dépense à répartir par catégorie.
+                  Aucune dépense à répartir par lot.
                 </DashboardChartMessage>
               ) : (
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <Treemap
-                      data={categoryDistributionData}
-                      dataKey="actual_cost_amount_ttc"
-                      nameKey="category_name"
-                      content={CategoryTreemapNode}
+                      data={lotDistributionData}
+                      dataKey="invoiced_amount_ttc"
+                      nameKey="lot_label"
+                      content={LotTreemapNode}
                       isAnimationActive={false}
                     >
                       <Tooltip formatter={currencyTooltip} />
@@ -467,7 +505,7 @@ export function DashboardPage({
 
             <ChartCard
               title="Répartition par fournisseur"
-              description="Top 10 fournisseurs par dépenses réelles."
+              description="Top 10 fournisseurs par montant facturé."
             >
               {supplierDistributionQuery.isLoading ? (
                 <DashboardChartSkeleton />
@@ -512,8 +550,8 @@ export function DashboardPage({
                       />
                       <Tooltip formatter={currencyTooltip} />
                       <Bar
-                        dataKey="actual_cost_amount_ttc"
-                        name="Dépenses réelles"
+                        dataKey="invoiced_amount_ttc"
+                        name="Facturé"
                         radius={[0, 3, 3, 0]}
                         onClick={(data) => {
                           const supplierId = (
@@ -624,23 +662,6 @@ export function DashboardPage({
                 </ActionCenterWidget>
 
                 <ActionCenterWidget
-                  title="Budget à valider"
-                  count={budgetToValidateQuery.data?.count ?? 0}
-                  onViewAll={() => viewAllTransactions('budget_to_validate')}
-                >
-                  <TransactionWidgetContent
-                    emptyMessage="Aucun budget à valider."
-                    error={budgetToValidateQuery.error}
-                    isError={budgetToValidateQuery.isError}
-                    isLoading={budgetToValidateQuery.isLoading}
-                    widget={budgetToValidateQuery.data}
-                    onItemClick={(item) =>
-                      void openTransaction(item.transaction_id)
-                    }
-                  />
-                </ActionCenterWidget>
-
-                <ActionCenterWidget
                   title="Top 5 Écarts budgétaires"
                   count={budgetAlertsQuery.data?.count ?? 0}
                   showCountBadge={false}
@@ -653,7 +674,7 @@ export function DashboardPage({
                     isLoading={budgetAlertsQuery.isLoading}
                     items={budgetAlertsQuery.data?.items}
                     maxItems={5}
-                    onItemClick={(item) => openBudgetAlert(item.product_id)}
+                    onItemClick={(item) => openBudgetAlert(item.lot_id)}
                   />
                 </ActionCenterWidget>
               </div>
@@ -664,15 +685,22 @@ export function DashboardPage({
             <TransactionReviewModal
               project={project}
               context={transactionReview.context}
+              lots={pickableLots}
               suppliers={suppliers}
-              isBudgetSelected={
-                transactionReview.context.transaction.select_as_budget
-              }
-              canToggleBudgetSelection={canToggleBudgetSelection(
-                transactionReview.context.transaction,
-              )}
-              onToggleBudgetSelection={() => undefined}
+              onAddInvoiceForQuote={addInvoiceForQuote}
               onClose={() => setTransactionReview(null)}
+            />
+          ) : null}
+
+          {includeActionCenter && activeAction && project ? (
+            <TransactionModal
+              project={project}
+              lots={pickableLots}
+              initialLotId={activeAction.lotId}
+              initialType={activeAction.transactionType}
+              prefill={activeAction.prefill}
+              suppliers={suppliers}
+              onClose={() => setActiveAction(null)}
             />
           ) : null}
         </>

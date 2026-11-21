@@ -4,6 +4,7 @@ import { Copy, FileText, Mail, Plus } from 'lucide-react'
 
 import { useDocumentsQuery } from '@/api/documents'
 import { getApiErrorMessage } from '@/api/client'
+import { useProjectLotsQuery, useSupplierLotsQuery } from '@/api/lots'
 import { useSuppliersQuery } from '@/api/suppliers'
 import type { SupplierDocumentListRead } from '@/api/types'
 import { DocumentViewerDialog } from '@/components/shared/DocumentViewerDialog'
@@ -15,6 +16,7 @@ import {
   usePagination,
 } from '@/components/shared/usePagination'
 import { SupplierModal } from '@/components/suppliers/SupplierModal'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import {
@@ -32,16 +34,31 @@ import {
   primaryContact,
 } from '@/lib/supplierContact'
 import { supplierToDomain } from '@/lib/apiAdapters'
+import { lotsBySupplier, visibleLots } from '@/lib/lots'
+import { lotLabel } from '@/lib/transactionWorkspace'
 import { useSupplierActions } from '@/hooks/useSupplierActions'
 import { useSupplierRibViewer } from '@/hooks/useSupplierRibViewer'
 import { useSelectedProjectId } from '@/state/appState'
+import { normalizeSearchText } from '@/lib/searchHighlight'
 
 export function SuppliersPage() {
   const projectId = useSelectedProjectId()
   const [search, setSearch] = useState('')
+  const [lotFilter, setLotFilter] = useState('all')
   // The list creates; a supplier's own page is where one is read and edited.
   const [isCreating, setIsCreating] = useState(false)
   const suppliersQuery = useSuppliersQuery()
+  const lotsQuery = useProjectLotsQuery(projectId)
+  const supplierLotsQuery = useSupplierLotsQuery(projectId)
+  // Suppliers are shared across projects; their lots are this project's.
+  const supplierLots = useMemo(
+    () => lotsBySupplier(supplierLotsQuery.data, lotsQuery.data),
+    [lotsQuery.data, supplierLotsQuery.data],
+  )
+  const lotOptions = useMemo(
+    () => visibleLots(lotsQuery.data),
+    [lotsQuery.data],
+  )
   const documentsQuery = useDocumentsQuery()
   const { saveSupplier } = useSupplierActions(projectId)
   const ribViewer = useSupplierRibViewer()
@@ -58,15 +75,26 @@ export function SuppliersPage() {
     }
     return map
   }, [documentsQuery.data])
-  const normalizedSearch = search.trim().toLowerCase()
+  const normalizedSearch = normalizeSearchText(search)
   const filteredSuppliers = useMemo(() => {
-    if (!normalizedSearch) return suppliers
+    const inLot =
+      lotFilter === 'all'
+        ? suppliers
+        : suppliers.filter((supplier) =>
+            (supplierLots.get(supplier.id) ?? []).some(
+              (lot) => String(lot.id) === lotFilter,
+            ),
+          )
+    if (!normalizedSearch) return inLot
 
-    return suppliers.filter((supplier) =>
+    return inLot.filter((supplier) =>
       [
         supplier.name,
         supplier.siret,
+        supplier.rne_number,
         supplier.comment,
+        // Its lots in this project, as the « Lots » column shows them.
+        ...(supplierLots.get(supplier.id) ?? []).map(lotLabel),
         ...supplier.contacts.flatMap((contact) => [
           contact.name,
           contact.phone_number,
@@ -75,10 +103,10 @@ export function SuppliersPage() {
       ]
         .filter(Boolean)
         .some((value) =>
-          String(value).toLowerCase().includes(normalizedSearch),
+          normalizeSearchText(String(value)).includes(normalizedSearch),
         ),
     )
-  }, [normalizedSearch, suppliers])
+  }, [lotFilter, normalizedSearch, supplierLots, suppliers])
   const {
     pageItems: paginatedSuppliers,
     pageSize,
@@ -88,7 +116,10 @@ export function SuppliersPage() {
     totalPages,
     pageStart,
     totalCount,
-  } = usePagination(filteredSuppliers, `${normalizedSearch}|${projectId}`)
+  } = usePagination(
+    filteredSuppliers,
+    `${normalizedSearch}|${lotFilter}|${projectId}`,
+  )
   const supplierCountLabel = `${filteredSuppliers.length} fournisseur${
     filteredSuppliers.length > 1 ? 's' : ''
   }`
@@ -102,7 +133,7 @@ export function SuppliersPage() {
     suppliersQuery.isFetching && !isLoadingSuppliers && !suppliersError
 
   function emptyStateMessage() {
-    if (search.trim() !== '') {
+    if (search.trim() !== '' || lotFilter !== 'all') {
       return 'Aucun fournisseur ne correspond à la recherche.'
     }
 
@@ -114,7 +145,7 @@ export function SuppliersPage() {
       return (
         <TableRow>
           <TableCell
-            colSpan={5}
+            colSpan={6}
             className="py-8 text-center text-muted-foreground"
           >
             Chargement des fournisseurs...
@@ -126,7 +157,7 @@ export function SuppliersPage() {
     if (suppliersError) {
       return (
         <TableRow>
-          <TableCell colSpan={5} className="py-8 text-center text-destructive">
+          <TableCell colSpan={6} className="py-8 text-center text-destructive">
             Impossible de charger les fournisseurs.
           </TableCell>
         </TableRow>
@@ -138,6 +169,7 @@ export function SuppliersPage() {
       const contactEmail = contact?.email?.trim() ?? ''
       const hasEmail = contactEmail !== ''
       const rib = ribBySupplierId.get(Number(supplier.id))
+      const lots = supplierLots.get(supplier.id) ?? []
 
       return (
         <TableRow key={supplier.id}>
@@ -155,6 +187,22 @@ export function SuppliersPage() {
                 </span>
               ) : null}
             </Link>
+          </TableCell>
+          <TableCell>
+            <div className="flex flex-wrap gap-1">
+              {lots.map((lot) => (
+                <Link
+                  key={lot.id}
+                  to={`/lots/${lot.id}`}
+                  className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Badge variant="muted" tone="soft">
+                    {lot.code}
+                    <span className="sr-only"> · {lot.designation}</span>
+                  </Badge>
+                </Link>
+              ))}
+            </div>
           </TableCell>
           <TableCell>{contact?.name}</TableCell>
           <TableCell className="whitespace-nowrap">
@@ -252,10 +300,25 @@ export function SuppliersPage() {
       <div className="mt-6 overflow-hidden rounded-lg border border-border bg-card">
         <TableToolbar
           searchValue={search}
-          searchPlaceholder="Rechercher fournisseur, contact, email..."
+          searchPlaceholder="Rechercher fournisseur, lot, contact, email..."
           onSearchChange={setSearch}
+          leading={
+            <Select
+              className="w-full sm:w-56 sm:shrink-0"
+              aria-label="Filtrer par lot"
+              value={lotFilter}
+              onChange={(event) => setLotFilter(event.target.value)}
+            >
+              <option value="all">Tous les lots</option>
+              {lotOptions.map((lot) => (
+                <option key={lot.id} value={String(lot.id)}>
+                  {lotLabel(lot)}
+                </option>
+              ))}
+            </Select>
+          }
           actions={
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <span className="whitespace-nowrap">{supplierCountLabel}</span>
               <Select
                 className="w-24"
@@ -281,6 +344,7 @@ export function SuppliersPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Fournisseur</TableHead>
+              <TableHead>Lots</TableHead>
               <TableHead>Contact principal</TableHead>
               <TableHead>Téléphone</TableHead>
               <TableHead>Email</TableHead>

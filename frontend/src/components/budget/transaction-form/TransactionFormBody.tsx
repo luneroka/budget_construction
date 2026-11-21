@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 
+import type { ProjectLotRead } from '@/api/types'
 import { Input } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Select } from '@/components/ui/select'
@@ -19,8 +20,12 @@ import {
   FieldGroup,
   TtcAmountField,
 } from './TransactionFormFields'
+import { lotLabel } from '@/lib/transactionWorkspace'
+
 import {
   type AmountFields,
+  REFERENCE_MAX_LENGTH,
+  TITLE_MAX_LENGTH,
   invoiceStatusLabels,
   invoiceTypeLabels,
   issuedDateLabels,
@@ -29,7 +34,10 @@ import {
 } from './transactionForm'
 
 export type TransactionBodyForm = AmountFields & {
+  lot_id: string
   supplier_id: string
+  title: string
+  reference: string
   issued_date: string
   due_date: string
   payment_date: string
@@ -41,7 +49,10 @@ export type TransactionBodyForm = AmountFields & {
 }
 
 export type TransactionTextField =
+  | 'lot_id'
   | 'supplier_id'
+  | 'title'
+  | 'reference'
   | 'amount_ht'
   | 'vat_rate'
   | 'amount_ttc'
@@ -57,17 +68,18 @@ function optionsOf<T extends string>(labels: Record<T, string>) {
   }))
 }
 
-// The fields of a quote, estimate or invoice, in the order they matter: the
-// amount, who and when, the status, then everything else behind "Plus de
-// détails". Shared by the create and edit modals so both read the same.
+// The fields of a quote or an invoice, in the order they matter: its lot and
+// libellé, the amount, who and when, the status, then everything else behind
+// "Plus de détails". Shared by the create and edit modals so both read the
+// same.
 export function TransactionFormBody({
   idPrefix,
   transactionType,
   form,
+  lots,
   suppliers,
   disabled,
   detailsOpenByDefault,
-  budgetSelection,
   documents,
   documentsFirst,
   footnote,
@@ -80,11 +92,11 @@ export function TransactionFormBody({
   idPrefix: string
   transactionType: TransactionType
   form: TransactionBodyForm
+  /** The lots the transaction can sit in: the project's visible lots. */
+  lots: ProjectLotRead[]
   suppliers: Supplier[]
   disabled?: boolean
   detailsOpenByDefault?: boolean
-  /** The "sélectionner pour le calcul du budget" row, for quotes and estimates. */
-  budgetSelection?: ReactNode
   documents: ReactNode
   /** Puts the document first instead of under "Plus de détails". */
   documentsFirst?: boolean
@@ -97,12 +109,42 @@ export function TransactionFormBody({
 }) {
   const isQuote = transactionType === 'quote'
   const isInvoice = transactionType === 'invoice'
-  // A self-built estimate has no supplier to name.
-  const hasSupplier = transactionType !== 'diy_estimate'
 
   return (
     <div className="space-y-5">
       {documentsFirst ? documents : null}
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Lot" htmlFor={`${idPrefix}-lot`}>
+          <Select
+            id={`${idPrefix}-lot`}
+            required
+            disabled={disabled}
+            value={form.lot_id}
+            onChange={(event) => onFieldChange('lot_id', event.target.value)}
+          >
+            {form.lot_id === '' ? (
+              <option value="" disabled>
+                Choisir un lot
+              </option>
+            ) : null}
+            {lots.map((lot) => (
+              <option key={lot.id} value={String(lot.id)}>
+                {lotLabel(lot)}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Libellé" htmlFor={`${idPrefix}-title`}>
+          <Input
+            id={`${idPrefix}-title`}
+            maxLength={TITLE_MAX_LENGTH}
+            disabled={disabled}
+            value={form.title}
+            onChange={(event) => onFieldChange('title', event.target.value)}
+          />
+        </Field>
+      </div>
 
       <TtcAmountField
         idPrefix={idPrefix}
@@ -112,19 +154,15 @@ export function TransactionFormBody({
       />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {hasSupplier ? (
-          <Field label="Fournisseur" htmlFor={`${idPrefix}-supplier`}>
-            <SupplierSelectField
-              id={`${idPrefix}-supplier`}
-              value={form.supplier_id}
-              suppliers={suppliers}
-              disabled={disabled}
-              onChange={(supplierId) =>
-                onFieldChange('supplier_id', supplierId)
-              }
-            />
-          </Field>
-        ) : null}
+        <Field label="Fournisseur" htmlFor={`${idPrefix}-supplier`}>
+          <SupplierSelectField
+            id={`${idPrefix}-supplier`}
+            value={form.supplier_id}
+            suppliers={suppliers}
+            disabled={disabled}
+            onChange={(supplierId) => onFieldChange('supplier_id', supplierId)}
+          />
+        </Field>
         <Field
           label={issuedDateLabels[transactionType]}
           htmlFor={`${idPrefix}-issued-date`}
@@ -206,49 +244,53 @@ export function TransactionFormBody({
         </div>
       ) : null}
 
-      {isInvoice ? null : budgetSelection}
-
       <DetailsDisclosure
         label="Plus de détails"
         defaultOpen={detailsOpenByDefault}
       >
-        {isQuote || isInvoice ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Échéance" htmlFor={`${idPrefix}-due-date`}>
-              <Input
-                id={`${idPrefix}-due-date`}
-                type="date"
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Référence" htmlFor={`${idPrefix}-reference`}>
+            <Input
+              id={`${idPrefix}-reference`}
+              maxLength={REFERENCE_MAX_LENGTH}
+              disabled={disabled}
+              value={form.reference}
+              onChange={(event) =>
+                onFieldChange('reference', event.target.value)
+              }
+            />
+          </Field>
+          <Field label="Échéance" htmlFor={`${idPrefix}-due-date`}>
+            <Input
+              id={`${idPrefix}-due-date`}
+              type="date"
+              disabled={disabled}
+              value={form.due_date}
+              onChange={(event) =>
+                onFieldChange('due_date', event.target.value)
+              }
+            />
+          </Field>
+          {isInvoice ? (
+            <Field label="Type de facture" htmlFor={`${idPrefix}-invoice-type`}>
+              <Select
+                id={`${idPrefix}-invoice-type`}
                 disabled={disabled}
-                value={form.due_date}
+                value={form.invoice_type}
                 onChange={(event) =>
-                  onFieldChange('due_date', event.target.value)
+                  onInvoiceTypeChange(event.target.value as InvoiceType)
                 }
-              />
-            </Field>
-            {isInvoice ? (
-              <Field
-                label="Type de facture"
-                htmlFor={`${idPrefix}-invoice-type`}
               >
-                <Select
-                  id={`${idPrefix}-invoice-type`}
-                  disabled={disabled}
-                  value={form.invoice_type}
-                  onChange={(event) =>
-                    onInvoiceTypeChange(event.target.value as InvoiceType)
-                  }
-                >
-                  {optionsOf(invoiceTypeLabels).map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            ) : null}
-          </div>
-        ) : null}
-        <Field label="Description" htmlFor={`${idPrefix}-description`}>
+                {optionsOf(invoiceTypeLabels).map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          ) : null}
+        </div>
+        <Field label="Notes" htmlFor={`${idPrefix}-description`}>
           <Input
             id={`${idPrefix}-description`}
             disabled={disabled}

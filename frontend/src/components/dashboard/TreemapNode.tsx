@@ -5,17 +5,17 @@ type TreemapNodeProps = {
   y?: number
   width?: number
   height?: number
-  category_name?: string
+  lot_label?: string
   fill?: string
 }
 
-export function CategoryTreemapNode(props: unknown) {
+export function LotTreemapNode(props: unknown) {
   const {
     x = 0,
     y = 0,
     width = 0,
     height = 0,
-    category_name: categoryName = '',
+    lot_label: lotLabel = '',
     fill = chartColors.primary,
   } = props as TreemapNodeProps
   const canShowLabel = width >= 90 && height >= 36
@@ -39,7 +39,7 @@ export function CategoryTreemapNode(props: unknown) {
           fontSize={12}
           fontWeight={600}
         >
-          {categoryName}
+          {lotLabel}
         </text>
       ) : null}
     </g>

@@ -1,7 +1,7 @@
 import type { Transaction } from '@/types'
 
 export type SupplierTotals = {
-  /** Quotes and estimates kept as this product's budget. */
+  /** « Devis retenus »: the validated quotes. */
   retainedTtc: number
   invoicedTtc: number
   paidTtc: number
@@ -21,7 +21,7 @@ const EMPTY: SupplierTotals = {
 }
 
 // What a supplier costs in the project: what was committed to them (the
-// quotes kept as budget), what they have invoiced, and what is paid of it.
+// validated quotes), what they have invoiced, and what is paid of it.
 export function supplierTotals(transactions: Transaction[]): SupplierTotals {
   const totals = transactions.reduce<SupplierTotals>((current, transaction) => {
     if (transaction.transaction_type === 'invoice') {
@@ -38,7 +38,7 @@ export function supplierTotals(transactions: Transaction[]): SupplierTotals {
       ...current,
       retainedTtc:
         current.retainedTtc +
-        (transaction.select_as_budget ? transaction.amount_ttc : 0),
+        (transaction.quote_status === 'validated' ? transaction.amount_ttc : 0),
       quoteCount: current.quoteCount + 1,
     }
   }, EMPTY)

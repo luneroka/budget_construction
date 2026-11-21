@@ -2,16 +2,16 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import {
-  invalidateBudgetWorkspaceQueries,
   invalidateDocumentQueries,
+  invalidateProjectFinancialQueries,
 } from '@/api/budget-workspace-cache'
 import { getApiErrorMessage } from '@/api/client'
 import { trashQueryKeys } from '@/api/trash'
-import { useDeleteBudgetLineTransactionMutation } from '@/api/transactions'
-import { transactionTypeLabels } from '@/components/budget/transaction-form/transactionForm'
+import { useDeleteTransactionMutation } from '@/api/transactions'
 import type { TransactionDeleteState } from '@/components/budget/types'
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { lotLabel, transactionDisplayTitle } from '@/lib/transactionWorkspace'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 
 export function DeleteTransactionDialog({
@@ -26,25 +26,16 @@ export function DeleteTransactionDialog({
   onConfirm: () => void
 }) {
   const queryClient = useQueryClient()
-  const deleteTransactionMutation = useDeleteBudgetLineTransactionMutation()
+  const deleteTransactionMutation = useDeleteTransactionMutation()
   const [error, setError] = useState<string | null>(null)
-  const { budgetLine, product, transaction } = context
-  const budgetLineId = Number(budgetLine.budget_line_id)
+  const { transaction } = context
   const transactionId = Number(transaction.id)
-  const productName = product.product_name.trim()
-  const budgetLineName = budgetLine.name.trim()
-  const budgetContextLabel =
-    productName.toLocaleLowerCase() === budgetLineName.toLocaleLowerCase()
-      ? product.product_name
-      : `${product.product_name} · ${budgetLine.name}`
   const hasAttachedDocument = transaction.document_state === 'attached'
   const deleteDescription = hasAttachedDocument
     ? 'Cette transaction sera placée dans la corbeille. Les documents joints y seront aussi déplacés.'
     : 'Cette transaction sera placée dans la corbeille.'
   const canDelete =
-    Number.isInteger(projectId) &&
-    Number.isInteger(budgetLineId) &&
-    Number.isInteger(transactionId)
+    Number.isInteger(projectId) && Number.isInteger(transactionId)
 
   async function handleConfirm() {
     if (!canDelete) {
@@ -56,10 +47,9 @@ export function DeleteTransactionDialog({
       setError(null)
       await deleteTransactionMutation.mutateAsync({
         projectId,
-        budgetLineId,
         transactionId,
       })
-      invalidateBudgetWorkspaceQueries(queryClient, projectId, budgetLineId)
+      invalidateProjectFinancialQueries(queryClient, projectId)
       invalidateDocumentQueries(queryClient, transactionId)
       void queryClient.invalidateQueries({
         queryKey: trashQueryKeys.projectList(projectId),
@@ -83,10 +73,14 @@ export function DeleteTransactionDialog({
       onConfirm={handleConfirm}
     >
       <p className="font-medium text-foreground">
-        {transaction.supplier_name ??
-          transactionTypeLabels[transaction.transaction_type]}
+        {transactionDisplayTitle(transaction)}
       </p>
-      <p className="mt-1 text-muted-foreground">{budgetContextLabel}</p>
+      <p className="mt-1 text-muted-foreground">
+        {lotLabel({
+          code: transaction.lot_code,
+          designation: transaction.lot_designation,
+        })}
+      </p>
       <p className="mt-1 text-muted-foreground">
         {formatDate(transaction.issued_date)} ·{' '}
         {formatCurrency(transaction.amount_ttc)}

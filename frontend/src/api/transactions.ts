@@ -4,7 +4,6 @@ import { apiDelete, apiGet, apiPatch, apiPost } from './client'
 import type {
   ProjectTransactionRead,
   TransactionCreate,
-  TransactionCreateForProduct,
   TransactionRead,
   TransactionUpdate,
 } from './types'
@@ -15,116 +14,45 @@ export const transactionQueryKeys = {
     [...transactionQueryKeys.all, 'project', projectId] as const,
   projectList: (projectId: number) =>
     [...transactionQueryKeys.project(projectId), 'list'] as const,
-  budgetLine: (projectId: number, budgetLineId: number) =>
-    [
-      ...transactionQueryKeys.all,
-      'project',
-      projectId,
-      'budget-line',
-      budgetLineId,
-    ] as const,
-  budgetLineList: (projectId: number, budgetLineId: number) =>
-    [
-      ...transactionQueryKeys.budgetLine(projectId, budgetLineId),
-      'list',
-    ] as const,
-  detail: (projectId: number, budgetLineId: number, transactionId: number) =>
-    [
-      ...transactionQueryKeys.budgetLine(projectId, budgetLineId),
-      transactionId,
-      'detail',
-    ] as const,
+}
+
+function transactionsUrl(projectId: number) {
+  return `/projects/${projectId}/transactions/`
 }
 
 export function getProjectTransactions(
   projectId: number,
 ): Promise<ProjectTransactionRead[]> {
-  return apiGet<ProjectTransactionRead[]>(
-    `/projects/${projectId}/transactions/`,
-  )
+  return apiGet<ProjectTransactionRead[]>(transactionsUrl(projectId))
 }
 
-export function getBudgetLineTransactions(
+export function createTransaction(
   projectId: number,
-  budgetLineId: number,
-): Promise<TransactionRead[]> {
-  return apiGet<TransactionRead[]>(
-    `/projects/${projectId}/budget-lines/${budgetLineId}/transactions/`,
-  )
-}
-
-export function getBudgetLineTransaction(
-  projectId: number,
-  budgetLineId: number,
-  transactionId: number,
-): Promise<TransactionRead> {
-  return apiGet<TransactionRead>(
-    `/projects/${projectId}/budget-lines/${budgetLineId}/transactions/${transactionId}`,
-  )
-}
-
-export function createBudgetLineTransaction(
-  projectId: number,
-  budgetLineId: number,
   transaction: TransactionCreate,
-): Promise<TransactionRead> {
-  return apiPost<TransactionRead, TransactionCreate>(
-    `/projects/${projectId}/budget-lines/${budgetLineId}/transactions/`,
+): Promise<ProjectTransactionRead> {
+  return apiPost<ProjectTransactionRead, TransactionCreate>(
+    transactionsUrl(projectId),
     transaction,
   )
 }
 
-export function createProductTransaction(
+export function updateTransaction(
   projectId: number,
-  productId: number,
-  transaction: TransactionCreateForProduct,
-): Promise<TransactionRead> {
-  return apiPost<TransactionRead, TransactionCreateForProduct>(
-    `/projects/${projectId}/products/${productId}/transactions/`,
-    transaction,
-  )
-}
-
-export function updateBudgetLineTransaction(
-  projectId: number,
-  budgetLineId: number,
   transactionId: number,
   transaction: TransactionUpdate,
-): Promise<TransactionRead> {
-  return apiPatch<TransactionRead, TransactionUpdate>(
-    `/projects/${projectId}/budget-lines/${budgetLineId}/transactions/${transactionId}`,
+): Promise<ProjectTransactionRead> {
+  return apiPatch<ProjectTransactionRead, TransactionUpdate>(
+    `${transactionsUrl(projectId)}${transactionId}`,
     transaction,
   )
 }
 
-export function deleteBudgetLineTransaction(
+export function deleteTransaction(
   projectId: number,
-  budgetLineId: number,
   transactionId: number,
 ): Promise<TransactionRead> {
   return apiDelete<TransactionRead>(
-    `/projects/${projectId}/budget-lines/${budgetLineId}/transactions/${transactionId}`,
-  )
-}
-
-export function selectBudgetCandidate(
-  projectId: number,
-  budgetLineId: number,
-  transactionId: number,
-): Promise<TransactionRead> {
-  return apiPost<TransactionRead, undefined>(
-    `/projects/${projectId}/budget-lines/${budgetLineId}/transactions/${transactionId}/select-budget`,
-    undefined,
-  )
-}
-
-export function unselectBudgetCandidate(
-  projectId: number,
-  budgetLineId: number,
-  transactionId: number,
-): Promise<TransactionRead> {
-  return apiDelete<TransactionRead>(
-    `/projects/${projectId}/budget-lines/${budgetLineId}/transactions/${transactionId}/select-budget`,
+    `${transactionsUrl(projectId)}${transactionId}`,
   )
 }
 
@@ -148,148 +76,40 @@ export function useProjectTransactionsQuery(
   })
 }
 
-export function useBudgetLineTransactionsQuery(
-  projectId: number | null,
-  budgetLineId: number | null,
-  options?: { enabled?: boolean },
-) {
-  return useQuery({
-    queryKey:
-      projectId === null || budgetLineId === null
-        ? [...transactionQueryKeys.all, 'missing-budget-line', 'list']
-        : transactionQueryKeys.budgetLineList(projectId, budgetLineId),
-    queryFn: () => {
-      if (projectId === null || budgetLineId === null) {
-        throw new Error('Identifiant projet ou poste de budget manquant.')
-      }
-
-      return getBudgetLineTransactions(projectId, budgetLineId)
-    },
-    enabled:
-      projectId !== null && budgetLineId !== null && (options?.enabled ?? true),
-  })
-}
-
-export function useBudgetLineTransactionQuery(
-  projectId: number | null,
-  budgetLineId: number | null,
-  transactionId: number | null,
-  options?: { enabled?: boolean },
-) {
-  return useQuery({
-    queryKey:
-      projectId === null || budgetLineId === null || transactionId === null
-        ? [...transactionQueryKeys.all, 'missing-transaction', 'detail']
-        : transactionQueryKeys.detail(projectId, budgetLineId, transactionId),
-    queryFn: () => {
-      if (
-        projectId === null ||
-        budgetLineId === null ||
-        transactionId === null
-      ) {
-        throw new Error(
-          'Identifiant projet, poste de budget ou transaction manquant.',
-        )
-      }
-
-      return getBudgetLineTransaction(projectId, budgetLineId, transactionId)
-    },
-    enabled:
-      projectId !== null &&
-      budgetLineId !== null &&
-      transactionId !== null &&
-      (options?.enabled ?? true),
-  })
-}
-
-export function useCreateBudgetLineTransactionMutation() {
+export function useCreateTransactionMutation() {
   return useMutation({
     mutationFn: ({
       projectId,
-      budgetLineId,
       transaction,
     }: {
       projectId: number
-      budgetLineId: number
       transaction: TransactionCreate
-    }) => createBudgetLineTransaction(projectId, budgetLineId, transaction),
+    }) => createTransaction(projectId, transaction),
   })
 }
 
-export function useCreateProductTransactionMutation() {
+export function useUpdateTransactionMutation() {
   return useMutation({
     mutationFn: ({
       projectId,
-      productId,
-      transaction,
-    }: {
-      projectId: number
-      productId: number
-      transaction: TransactionCreateForProduct
-    }) => createProductTransaction(projectId, productId, transaction),
-  })
-}
-
-export function useUpdateBudgetLineTransactionMutation() {
-  return useMutation({
-    mutationFn: ({
-      projectId,
-      budgetLineId,
       transactionId,
       transaction,
     }: {
       projectId: number
-      budgetLineId: number
       transactionId: number
       transaction: TransactionUpdate
-    }) =>
-      updateBudgetLineTransaction(
-        projectId,
-        budgetLineId,
-        transactionId,
-        transaction,
-      ),
+    }) => updateTransaction(projectId, transactionId, transaction),
   })
 }
 
-export function useDeleteBudgetLineTransactionMutation() {
+export function useDeleteTransactionMutation() {
   return useMutation({
     mutationFn: ({
       projectId,
-      budgetLineId,
       transactionId,
     }: {
       projectId: number
-      budgetLineId: number
       transactionId: number
-    }) => deleteBudgetLineTransaction(projectId, budgetLineId, transactionId),
-  })
-}
-
-export function useSelectBudgetCandidateMutation() {
-  return useMutation({
-    mutationFn: ({
-      projectId,
-      budgetLineId,
-      transactionId,
-    }: {
-      projectId: number
-      budgetLineId: number
-      transactionId: number
-    }) => selectBudgetCandidate(projectId, budgetLineId, transactionId),
-  })
-}
-
-export function useUnselectBudgetCandidateMutation() {
-  return useMutation({
-    mutationFn: ({
-      projectId,
-      budgetLineId,
-      transactionId,
-    }: {
-      projectId: number
-      budgetLineId: number
-      transactionId: number
-    }) => unselectBudgetCandidate(projectId, budgetLineId, transactionId),
+    }) => deleteTransaction(projectId, transactionId),
   })
 }

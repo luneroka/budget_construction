@@ -1,14 +1,11 @@
 import { type SyntheticEvent, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Edit3 } from 'lucide-react'
+import { Edit3, ReceiptText } from 'lucide-react'
 
-import { invalidateBudgetWorkspaceQueries } from '@/api/budget-workspace-cache'
+import { invalidateProjectFinancialQueries } from '@/api/budget-workspace-cache'
 import { getApiErrorMessage } from '@/api/client'
-import {
-  useSelectBudgetCandidateMutation,
-  useUnselectBudgetCandidateMutation,
-  useUpdateBudgetLineTransactionMutation,
-} from '@/api/transactions'
+import { useUpdateTransactionMutation } from '@/api/transactions'
+import type { ProjectLotRead } from '@/api/types'
 import { DeleteTransactionDialog } from '@/components/budget/DeleteTransactionDialog'
 import {
   ModalCancelButton,
@@ -17,13 +14,19 @@ import {
   ModalSaveButton,
   ModalShell,
 } from '@/components/shared/ModalShell'
+import { Button } from '@/components/ui/button'
 import { formatDate } from '@/lib/format'
 import { notifyError, notifySuccess } from '@/lib/toasts'
-import type { InvoiceStatus, Project, QuoteStatus, Supplier } from '@/types'
+import type {
+  InvoiceStatus,
+  Project,
+  QuoteStatus,
+  Supplier,
+  Transaction,
+} from '@/types'
 
 import { TransactionDocumentsPanel } from './TransactionDocumentsPanel'
 import { TransactionFormBody } from './TransactionFormBody'
-import { BudgetSelectionRow } from './TransactionFormFields'
 import {
   type ViewedTransactionContext,
   buildTransactionUpdate,
@@ -39,11 +42,12 @@ import { useTransactionAmountForm } from './useTransactionAmountForm'
 type TransactionReviewModalProps = {
   project: Project
   context: ViewedTransactionContext
+  /** The project's visible lots, for the lot picker. */
+  lots: ProjectLotRead[]
   readOnly?: boolean
   suppliers: Supplier[]
-  isBudgetSelected: boolean
-  canToggleBudgetSelection: boolean
-  onToggleBudgetSelection: () => void
+  /** « Ajouter une facture pour ce devis », offered on a quote when set. */
+  onAddInvoiceForQuote?: (quote: Transaction) => void
   onClose: () => void
 }
 
@@ -53,40 +57,44 @@ type TransactionReviewModalProps = {
 export function TransactionReviewModal({
   project,
   context,
+  lots,
   readOnly,
   suppliers,
-  isBudgetSelected,
-  canToggleBudgetSelection,
-  onToggleBudgetSelection,
+  onAddInvoiceForQuote,
   onClose,
 }: TransactionReviewModalProps) {
   const queryClient = useQueryClient()
-  const updateTransactionMutation = useUpdateBudgetLineTransactionMutation()
-  const selectBudgetCandidateMutation = useSelectBudgetCandidateMutation()
-  const unselectBudgetCandidateMutation = useUnselectBudgetCandidateMutation()
-  const { budgetLine, product, transaction } = context
+  const updateTransactionMutation = useUpdateTransactionMutation()
+  const { transaction } = context
   const [savedForm] = useState(() => createInitialUpdateFormState(transaction))
   const [mutationError, setMutationError] = useState<string | null>(null)
   const { form, setForm, updateField } = useTransactionAmountForm(
     () => savedForm,
     { onChange: () => setMutationError(null) },
   )
-  const [localIsBudgetSelected, setLocalIsBudgetSelected] =
-    useState(isBudgetSelected)
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] =
     useState(false)
-  const isMutating =
-    updateTransactionMutation.isPending ||
-    selectBudgetCandidateMutation.isPending ||
-    unselectBudgetCandidateMutation.isPending
+  const isMutating = updateTransactionMutation.isPending
   const isQuote = transaction.transaction_type === 'quote'
   const isDirty = !isSameFormState(form, savedForm)
-  const canToggleBudgetSelectionFromForm =
-    localIsBudgetSelected ||
-    canToggleBudgetSelection ||
-    (isQuote && form.quote_status !== 'rejected')
-  const isBudgetSelectionDisabled =
-    readOnly || !canToggleBudgetSelectionFromForm || isMutating
+  // The lot the transaction sits in, even when it is no longer offered in
+  // the picker.
+  const lotOptions = lots.some((lot) => lot.id === transaction.lot_id)
+    ? lots
+    : [
+        {
+          id: transaction.lot_id,
+          project_id: null,
+          code: transaction.lot_code,
+          designation: transaction.lot_designation,
+          is_global: true,
+          is_hidden: false,
+          active_transaction_count: 0,
+        },
+        ...lots,
+      ]
+  const selectedLot =
+    lotOptions.find((lot) => String(lot.id) === form.lot_id) ?? null
 
   function changeQuoteStatus(quoteStatus: QuoteStatus) {
     updateField('quote_status', quoteStatus)
@@ -115,65 +123,20 @@ export function TransactionReviewModal({
 
     try {
       const projectId = requiredId(project.id, 'Projet')
-      const budgetLineId = requiredId(
-        budgetLine.budget_line_id,
-        'Ligne de budget',
-      )
       const transactionId = requiredId(transaction.id, 'Transaction')
 
       await updateTransactionMutation.mutateAsync({
         projectId,
-        budgetLineId,
         transactionId,
         transaction: buildTransactionUpdate(transaction, form),
       })
-      invalidateBudgetWorkspaceQueries(queryClient, projectId, budgetLineId)
+      invalidateProjectFinancialQueries(queryClient, projectId)
       notifySuccess('Transaction modifiée.')
       onClose()
     } catch (error) {
       const message = getApiErrorMessage(error)
       setMutationError(message)
       notifyError(`Impossible de modifier la transaction. ${message}`)
-    }
-  }
-
-  async function handleBudgetSelectionToggle() {
-    if (readOnly || !canToggleBudgetSelectionFromForm) return
-    setMutationError(null)
-
-    try {
-      const projectId = requiredId(project.id, 'Projet')
-      const budgetLineId = requiredId(
-        budgetLine.budget_line_id,
-        'Ligne de budget',
-      )
-      const transactionId = requiredId(transaction.id, 'Transaction')
-
-      if (localIsBudgetSelected) {
-        await unselectBudgetCandidateMutation.mutateAsync({
-          projectId,
-          budgetLineId,
-          transactionId,
-        })
-      } else {
-        await selectBudgetCandidateMutation.mutateAsync({
-          projectId,
-          budgetLineId,
-          transactionId,
-        })
-      }
-      invalidateBudgetWorkspaceQueries(queryClient, projectId, budgetLineId)
-      setLocalIsBudgetSelected((current) => !current)
-      onToggleBudgetSelection()
-      notifySuccess(
-        localIsBudgetSelected
-          ? 'Transaction retirée du budget sélectionné.'
-          : 'Transaction sélectionnée pour le budget.',
-      )
-    } catch (error) {
-      const message = getApiErrorMessage(error)
-      setMutationError(message)
-      notifyError(`Impossible de modifier la sélection budget. ${message}`)
     }
   }
 
@@ -193,7 +156,7 @@ export function TransactionReviewModal({
       <ModalShell
         size="narrow"
         title={transactionTypeLabels[transaction.transaction_type]}
-        subtitle={transactionBreadcrumb(product, budgetLine)}
+        subtitle={transactionBreadcrumb(selectedLot)}
         icon={<Edit3 className="h-5 w-5" aria-hidden="true" />}
         closeDisabled={isMutating}
         hasUnsavedChanges={isDirty}
@@ -236,16 +199,10 @@ export function TransactionReviewModal({
             idPrefix="transaction-review"
             transactionType={transaction.transaction_type}
             form={form}
+            lots={lotOptions}
             suppliers={suppliers}
             disabled={readOnly}
             detailsOpenByDefault
-            budgetSelection={
-              <BudgetSelectionRow
-                checked={localIsBudgetSelected}
-                disabled={isBudgetSelectionDisabled}
-                onChange={() => void handleBudgetSelectionToggle()}
-              />
-            }
             documents={
               Number.isInteger(Number(transaction.id)) ? (
                 <TransactionDocumentsPanel
@@ -272,6 +229,20 @@ export function TransactionReviewModal({
               updateField('payment_method', method)
             }
           />
+
+          {isQuote && onAddInvoiceForQuote && !readOnly ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              // From the saved quote: save or drop the edits first.
+              disabled={isMutating || isDirty}
+              onClick={() => onAddInvoiceForQuote(transaction)}
+            >
+              <ReceiptText aria-hidden="true" />
+              Ajouter une facture pour ce devis
+            </Button>
+          ) : null}
 
           {mutationError ? (
             <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">

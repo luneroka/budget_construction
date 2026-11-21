@@ -9,10 +9,14 @@ Three angles, because an ownership filter can be missing in three places:
 * ``_routes``: the victim's ids everywhere they can appear in a URL,
   including creates and uploads under the victim's parents;
 * ``_mixed_routes``: the victim's child ids under the attacker's own parents
-  (my project + your budget line), which only a filter on the parent chain
-  catches;
-* ``test_body_references_to_other_users_resources_are_rejected``: the one
-  user-owned id a client can put in a request body, the supplier.
+  (my project + your transaction or project lot), which only a filter on the
+  parent chain catches;
+* ``test_body_references_to_other_users_resources_are_rejected``: the
+  user-owned ids a client can put in a request body, the supplier and the
+  lot.
+
+Lots are global, so a lot proves no ownership: every check goes
+transaction -> project (spec criterion 8).
 """
 
 from dataclasses import dataclass
@@ -23,16 +27,20 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.routing import Match
 
+from sqlalchemy import select
+
 from app.main import app as fastapi_app
-from app.models.budget_line import BudgetLine, BudgetLineType
-from app.models.category import Category
 from app.models.document import Document
-from app.models.product import Product
+from app.models.lot import Lot, SupplierLot
 from app.models.project import Project
-from app.models.subcategory import Subcategory
 from app.models.supplier import Supplier
 from app.models.supplier_document import SupplierDocument
-from app.models.transaction import Transaction, TransactionType
+from app.models.transaction import (
+    InvoiceStatus,
+    InvoiceType,
+    Transaction,
+    TransactionType,
+)
 from app.models.user import User
 from tests.helpers import create_authenticated_user, create_user, login_user
 
@@ -40,12 +48,12 @@ from tests.helpers import create_authenticated_user, create_user, login_user
 @dataclass
 class OwnedResources:
     project_id: int
-    budget_line_id: int
+    project_lot_id: int
     transaction_id: int
     document_id: int
     supplier_id: int
     supplier_document_id: int
-    product_id: int
+    global_lot_id: int
 
 
 @dataclass
@@ -68,8 +76,9 @@ PDF_UPLOAD = {
 }
 
 
-def _quote_body(**overrides: object) -> dict[str, object]:
+def _quote_body(lot_id: int, **overrides: object) -> dict[str, object]:
     body: dict[str, object] = {
+        'lot_id': lot_id,
         'transaction_type': 'quote',
         'quote_status': 'to_confirm',
         'amount_ht': '100.00',
@@ -86,19 +95,19 @@ def _quote_body(**overrides: object) -> dict[str, object]:
 async def _build_owned_resources(
     db_session: AsyncSession, owner: User, *, label: str
 ) -> OwnedResources:
-    category = Category(name=f'{label} category', sort_order=1)
-    subcategory = Subcategory(category=category, name=f'{label} sub', sort_order=1)
-    product = Product(subcategory=subcategory, name=f'{label} product', sort_order=1)
+    global_lot = (
+        await db_session.execute(select(Lot).where(Lot.code == '00'))
+    ).scalar_one()
     project = Project(user=owner, name=f'{label} project')
-    budget_line = BudgetLine(
-        project=project,
-        product=product,
-        name=f'{label} budget line',
-        item_type=BudgetLineType.product,
-    )
+    project_lot = Lot(project=project, code=f'P{label[:8]}', designation=label)
+    supplier = Supplier(user=owner, name=f'{label} supplier')
     transaction = Transaction(
-        budget_line=budget_line,
+        project=project,
+        lot=global_lot,
+        supplier=supplier,
         transaction_type=TransactionType.invoice,
+        invoice_status=InvoiceStatus.unpaid,
+        invoice_type=InvoiceType.full,
         amount_ht=Decimal('100.00'),
         vat_rate=Decimal('20.00'),
         amount_vat=Decimal('20.00'),
@@ -115,7 +124,6 @@ async def _build_owned_resources(
         mime_type='application/pdf',
         file_size=1234,
     )
-    supplier = Supplier(user=owner, name=f'{label} supplier')
     supplier_document = SupplierDocument(
         supplier=supplier,
         user=owner,
@@ -126,38 +134,42 @@ async def _build_owned_resources(
         file_size=1234,
     )
 
-    db_session.add_all([document, supplier_document])
+    db_session.add_all([project_lot, document, supplier_document])
     await db_session.commit()
     for instance in (
         project,
-        budget_line,
+        project_lot,
         transaction,
         document,
         supplier,
         supplier_document,
-        product,
     ):
         await db_session.refresh(instance)
+    db_session.add(
+        SupplierLot(
+            project_id=project.id, supplier_id=supplier.id, lot_id=global_lot.id
+        )
+    )
+    await db_session.commit()
 
     return OwnedResources(
         project_id=project.id,
-        budget_line_id=budget_line.id,
+        project_lot_id=project_lot.id,
         transaction_id=transaction.id,
         document_id=document.id,
         supplier_id=supplier.id,
         supplier_document_id=supplier_document.id,
-        product_id=product.id,
+        global_lot_id=global_lot.id,
     )
 
 
 DASHBOARD_PATHS = (
     'financial-overview',
     'charts/budget-vs-actual',
-    'charts/category-distribution',
+    'charts/lot-distribution',
     'charts/spending-over-time',
     'charts/supplier-distribution',
     'widgets/budget-alerts',
-    'widgets/budget-to-validate',
     'widgets/missing-documents',
     'widgets/quotes-to-confirm',
     'widgets/quotes-to-negotiate',
@@ -168,16 +180,16 @@ DASHBOARD_PATHS = (
 
 def _routes(r: OwnedResources) -> list[Call]:
     """The victim's ids everywhere they can appear in a URL."""
-    p, b, t, d, s, sd, prod = (
+    p, lot, t, d, s, sd, g = (
         r.project_id,
-        r.budget_line_id,
+        r.project_lot_id,
         r.transaction_id,
         r.document_id,
         r.supplier_id,
         r.supplier_document_id,
-        r.product_id,
+        r.global_lot_id,
     )
-    tx = f'/projects/{p}/budget-lines/{b}/transactions'
+    tx = f'/projects/{p}/transactions'
     return [
         Call('GET', f'/projects/{p}'),
         Call('PATCH', f'/projects/{p}', {'name': 'Hijacked'}),
@@ -185,33 +197,18 @@ def _routes(r: OwnedResources) -> list[Call]:
         Call('GET', f'/projects/{p}/financial-summary'),
         *(Call('GET', f'/projects/{p}/dashboard/{path}') for path in DASHBOARD_PATHS),
         Call('GET', f'/projects/{p}/exports/accounting.csv'),
-        Call('GET', f'/projects/{p}/budget-lines/'),
-        Call(
-            'POST',
-            f'/projects/{p}/budget-lines/',
-            {'product_id': prod, 'name': 'Hijacked', 'item_type': 'product'},
-        ),
-        Call('GET', f'/projects/{p}/budget-lines/{b}'),
-        Call('PATCH', f'/projects/{p}/budget-lines/{b}', {'name': 'Hijacked'}),
-        Call('DELETE', f'/projects/{p}/budget-lines/{b}'),
-        Call(
-            'POST',
-            f'/projects/{p}/products/{prod}/budget-lines/convert-to-breakdown',
-            {'new_breakdown_names': ['Hijacked']},
-        ),
-        Call('GET', f'/projects/{p}/transactions/'),
-        Call(
-            'POST',
-            f'/projects/{p}/products/{prod}/transactions/',
-            _quote_body(budget_concern='entire_product'),
-        ),
+        Call('GET', f'/projects/{p}/lots/'),
+        Call('POST', f'/projects/{p}/lots/', {'code': 'X1', 'designation': 'X'}),
+        Call('PATCH', f'/projects/{p}/lots/{lot}', {'is_hidden': True}),
+        Call('PATCH', f'/projects/{p}/lots/{g}', {'is_hidden': True}),
+        Call('GET', f'/projects/{p}/supplier-lots/'),
+        Call('POST', f'/projects/{p}/supplier-lots/', {'supplier_id': s, 'lot_id': g}),
+        Call('DELETE', f'/projects/{p}/supplier-lots/{s}/{g}'),
         Call('GET', f'{tx}/'),
-        Call('POST', f'{tx}/', _quote_body()),
+        Call('POST', f'{tx}/', _quote_body(g)),
         Call('GET', f'{tx}/{t}'),
         Call('PATCH', f'{tx}/{t}', {'description': 'Hijacked'}),
         Call('DELETE', f'{tx}/{t}'),
-        Call('POST', f'{tx}/{t}/select-budget'),
-        Call('DELETE', f'{tx}/{t}/select-budget'),
         Call('GET', f'/transactions/{t}/documents'),
         Call('POST', f'/transactions/{t}/documents', files=PDF_UPLOAD),
         Call('GET', f'/documents/{d}'),
@@ -242,34 +239,24 @@ def _mixed_routes(mine: OwnedResources, theirs: OwnedResources) -> list[Call]:
     """The victim's child ids under the attacker's OWN parents. Every route
     here is one the attacker may legitimately call with their own ids, so
     only a filter on the whole parent chain turns it into a 404."""
-    my_p, my_b = mine.project_id, mine.budget_line_id
-    their_b, their_t, their_d = (
-        theirs.budget_line_id,
+    my_p = mine.project_id
+    their_t, their_d, their_lot, their_s, g = (
         theirs.transaction_id,
         theirs.document_id,
+        theirs.project_lot_id,
+        theirs.supplier_id,
+        theirs.global_lot_id,
     )
     return [
-        Call('GET', f'/projects/{my_p}/budget-lines/{their_b}'),
-        Call('PATCH', f'/projects/{my_p}/budget-lines/{their_b}', {'name': 'Hijacked'}),
-        Call('DELETE', f'/projects/{my_p}/budget-lines/{their_b}'),
-        Call('GET', f'/projects/{my_p}/budget-lines/{their_b}/transactions/'),
-        Call(
-            'POST',
-            f'/projects/{my_p}/budget-lines/{their_b}/transactions/',
-            _quote_body(),
-        ),
-        Call('GET', f'/projects/{my_p}/budget-lines/{their_b}/transactions/{their_t}'),
-        Call('GET', f'/projects/{my_p}/budget-lines/{my_b}/transactions/{their_t}'),
+        Call('GET', f'/projects/{my_p}/transactions/{their_t}'),
         Call(
             'PATCH',
-            f'/projects/{my_p}/budget-lines/{my_b}/transactions/{their_t}',
+            f'/projects/{my_p}/transactions/{their_t}',
             {'description': 'Hijacked'},
         ),
-        Call('DELETE', f'/projects/{my_p}/budget-lines/{my_b}/transactions/{their_t}'),
-        Call(
-            'POST',
-            f'/projects/{my_p}/budget-lines/{my_b}/transactions/{their_t}/select-budget',
-        ),
+        Call('DELETE', f'/projects/{my_p}/transactions/{their_t}'),
+        Call('PATCH', f'/projects/{my_p}/lots/{their_lot}', {'is_hidden': True}),
+        Call('DELETE', f'/projects/{my_p}/supplier-lots/{their_s}/{g}'),
         Call('POST', f'/projects/{my_p}/trash/transactions/{their_t}/restore'),
         Call('DELETE', f'/projects/{my_p}/trash/transactions/{their_t}'),
         Call('POST', f'/projects/{my_p}/trash/documents/{their_d}/restore'),
@@ -291,7 +278,7 @@ def _route_exists(method: str, path: str) -> bool:
 def test_every_matrix_entry_is_a_real_route() -> None:
     """A typo in the matrix would otherwise pass as a 404 'success'."""
     a = OwnedResources(1, 1, 1, 1, 1, 1, 1)
-    b = OwnedResources(2, 2, 2, 2, 2, 2, 2)
+    b = OwnedResources(2, 2, 2, 2, 2, 2, 1)
     missing = [
         str(call)
         for call in [*_routes(a), *_mixed_routes(a, b)]
@@ -344,7 +331,8 @@ async def test_other_users_children_are_invisible_under_my_own_parents(
 async def test_body_references_to_other_users_resources_are_rejected(
     client: AsyncClient, db_session: AsyncSession
 ) -> None:
-    """The supplier is the only user-owned id a client can submit in a body."""
+    """The supplier and the lot are the user-owned ids a client can submit in
+    a body: another user's supplier, or another project's lot, is refused."""
     owner = await db_session.merge(await create_user(email='owner-body@example.com'))
     theirs = await _build_owned_resources(db_session, owner, label='VictimBody')
     attacker = await db_session.merge(
@@ -353,24 +341,42 @@ async def test_body_references_to_other_users_resources_are_rejected(
     mine = await _build_owned_resources(db_session, attacker, label='AttackerBody')
     attacker_token = await login_user(client, email='attacker-body@example.com')
     headers = {'Authorization': f'Bearer {attacker_token}'}
-    tx = f'/projects/{mine.project_id}/budget-lines/{mine.budget_line_id}/transactions'
+    tx = f'/projects/{mine.project_id}/transactions'
 
     created = await client.post(
-        f'{tx}/', headers=headers, json=_quote_body(supplier_id=theirs.supplier_id)
+        f'{tx}/',
+        headers=headers,
+        json=_quote_body(mine.global_lot_id, supplier_id=theirs.supplier_id),
     )
     assert created.status_code == 400
     assert created.json()['detail']['code'] == 'supplier_not_found_or_inactive'
 
+    in_their_lot = await client.post(
+        f'{tx}/', headers=headers, json=_quote_body(theirs.project_lot_id)
+    )
+    assert in_their_lot.status_code == 400
+    assert in_their_lot.json()['detail']['code'] == 'lot_not_available'
+
+    moved = await client.patch(
+        f'{tx}/{mine.transaction_id}',
+        headers=headers,
+        json={'lot_id': theirs.project_lot_id},
+    )
+    assert moved.status_code == 400
+    assert moved.json()['detail']['code'] == 'lot_not_available'
+
+    assigned = await client.post(
+        f'/projects/{mine.project_id}/supplier-lots/',
+        headers=headers,
+        json={'supplier_id': theirs.supplier_id, 'lot_id': mine.global_lot_id},
+    )
+    assert assigned.status_code == 400
+    assert assigned.json()['detail']['code'] == 'supplier_not_found_or_inactive'
+
     updated = await client.patch(
         f'{tx}/{mine.transaction_id}',
         headers=headers,
-        # The fixture transaction is an invoice; its status fields must be
-        # valid so that the supplier check is what rejects the request.
-        json={
-            'supplier_id': theirs.supplier_id,
-            'invoice_status': 'unpaid',
-            'invoice_type': 'full',
-        },
+        json={'supplier_id': theirs.supplier_id},
     )
     assert updated.status_code == 400
     assert updated.json()['detail']['code'] == 'supplier_not_found_or_inactive'
@@ -387,8 +393,9 @@ async def test_owner_can_still_read_their_own_resources(
 
     for url in (
         f'/projects/{resources.project_id}',
-        f'/projects/{resources.project_id}/budget-lines/{resources.budget_line_id}'
-        f'/transactions/{resources.transaction_id}',
+        f'/projects/{resources.project_id}/transactions/{resources.transaction_id}',
+        f'/projects/{resources.project_id}/lots/',
+        f'/projects/{resources.project_id}/supplier-lots/',
         f'/documents/{resources.document_id}',
         f'/suppliers/{resources.supplier_id}',
         f'/projects/{resources.project_id}/dashboard/widgets/unpaid-invoices',

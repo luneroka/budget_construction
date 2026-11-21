@@ -42,8 +42,8 @@ export function ProjectSwitcher() {
     { enabled: true },
   )
   const selectedBudgetAmount = selectedProjectSummaryQuery.data
-    ? Number(selectedProjectSummaryQuery.data.selected_budget_amount_ttc)
-    : (selectedProject?.selected_budget_amount_ttc ?? 0)
+    ? Number(selectedProjectSummaryQuery.data.validated_quote_amount_ttc)
+    : (selectedProject?.validated_quote_amount_ttc ?? 0)
 
   useEffect(() => {
     if (selectedProject && selectedProject.id !== selectedProjectId) {
@@ -62,9 +62,6 @@ export function ProjectSwitcher() {
     <ProjectOnboardingDialog
       open={projectOnboarding.isOpen}
       canClose={projectOnboarding.canClose}
-      templates={projectOnboarding.templates}
-      isLoadingTemplates={projectOnboarding.isLoadingTemplates}
-      templatesError={projectOnboarding.templatesError}
       isCreating={projectOnboarding.isCreating}
       createError={projectOnboarding.createError}
       onClose={projectOnboarding.close}
@@ -109,7 +106,7 @@ export function ProjectSwitcher() {
             Aucun projet
           </p>
           <p className="mt-1 text-xs text-sidebar-foreground/60">
-            Créez un premier projet pour initialiser le budget.
+            Créez un premier projet pour commencer.
           </p>
           <Button
             type="button"
@@ -146,7 +143,9 @@ export function ProjectSwitcher() {
               {selectedProject.location}
             </span>
             <span className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-sidebar-foreground/70">
-              <span>Budget : {formatCurrency(selectedBudgetAmount)}</span>
+              <span>
+                Devis retenus : {formatCurrency(selectedBudgetAmount)}
+              </span>
             </span>
           </span>
           <ChevronDown

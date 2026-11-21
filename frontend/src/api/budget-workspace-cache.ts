@@ -1,16 +1,18 @@
 import type { QueryClient } from '@tanstack/react-query'
 
-import { budgetLineQueryKeys } from '@/api/budget-lines'
 import { documentQueryKeys } from '@/api/documents'
+import { lotQueryKeys } from '@/api/lots'
 import { projectQueryKeys } from '@/api/projects'
 import { supplierQueryKeys } from '@/api/suppliers'
 import { trashQueryKeys } from '@/api/trash'
 import { transactionQueryKeys } from '@/api/transactions'
 
-export function invalidateBudgetWorkspaceQueries(
+// Everything a change to a project's transactions or lots can move: its
+// totals, its dashboard, its lots (counts, visibility), its supplier <-> lot
+// assignments and its transaction list.
+export function invalidateProjectFinancialQueries(
   queryClient: QueryClient,
   projectId: number,
-  budgetLineId?: number,
 ) {
   void queryClient.invalidateQueries({
     queryKey: projectQueryKeys.detail(projectId),
@@ -19,24 +21,14 @@ export function invalidateBudgetWorkspaceQueries(
     queryKey: projectQueryKeys.financialSummary(projectId),
   })
   void queryClient.invalidateQueries({
-    queryKey: budgetLineQueryKeys.projectList(projectId),
-  })
-  void queryClient.invalidateQueries({
     queryKey: [...projectQueryKeys.all, projectId, 'dashboard'],
   })
-
-  if (budgetLineId) {
-    void queryClient.invalidateQueries({
-      queryKey: transactionQueryKeys.projectList(projectId),
-    })
-    void queryClient.invalidateQueries({
-      queryKey: transactionQueryKeys.budgetLineList(projectId, budgetLineId),
-    })
-  } else {
-    void queryClient.invalidateQueries({
-      queryKey: transactionQueryKeys.all,
-    })
-  }
+  void queryClient.invalidateQueries({
+    queryKey: lotQueryKeys.project(projectId),
+  })
+  void queryClient.invalidateQueries({
+    queryKey: transactionQueryKeys.projectList(projectId),
+  })
 }
 
 export function invalidateTrashAffectedQueries(
@@ -47,24 +39,12 @@ export function invalidateTrashAffectedQueries(
   void queryClient.invalidateQueries({
     queryKey: trashQueryKeys.projectList(projectId),
   })
-  invalidateBudgetWorkspaceQueries(queryClient, projectId)
-  void queryClient.invalidateQueries({
-    queryKey: transactionQueryKeys.projectList(projectId),
-  })
+  invalidateProjectFinancialQueries(queryClient, projectId)
   void queryClient.invalidateQueries({
     queryKey: documentQueryKeys.lists(),
   })
   void queryClient.invalidateQueries({
     queryKey: supplierQueryKeys.lists(),
-  })
-  void queryClient.invalidateQueries({
-    queryKey: projectQueryKeys.financialSummary(projectId),
-  })
-  void queryClient.invalidateQueries({
-    queryKey: projectQueryKeys.all,
-    predicate: (query) =>
-      query.queryKey.includes(projectId) &&
-      query.queryKey.some((part) => part === 'dashboard'),
   })
 
   if (transactionId) {

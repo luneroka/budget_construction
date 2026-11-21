@@ -16,6 +16,8 @@ from app.core.settings import settings
 from app.core.sentry import init_sentry
 from app.db.session import engine, init_db
 from app.errors import (
+    DomainError,
+    domain_error_handler,
     error_detail,
     database_data_error_detail,
     http_exception_handler,
@@ -26,10 +28,7 @@ from app.routers import (
     users,
     suppliers,
     projects,
-    catalog,
-    templates,
-    template_items,
-    budget_lines,
+    lots,
     transactions,
     documents,
     supplier_documents,
@@ -98,6 +97,7 @@ app.add_middleware(
 )
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 app.add_exception_handler(RequestValidationError, request_validation_exception_handler)
+app.add_exception_handler(DomainError, domain_error_handler)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
@@ -167,17 +167,13 @@ async def readiness_check() -> dict[str, str]:
 app.include_router(auth.router)
 app.include_router(contact_requests.router)
 app.include_router(users.router)
-app.include_router(catalog.router)
-app.include_router(templates.router)
-app.include_router(template_items.router)
 app.include_router(projects.router)
-app.include_router(budget_lines.router)
-app.include_router(budget_lines.product_router)
+app.include_router(lots.project_lot_router)
+app.include_router(lots.supplier_lot_router)
+app.include_router(lots.admin_lot_router)
 app.include_router(exports.router)
 app.include_router(issue_reports.router)
-app.include_router(transactions.project_router)
 app.include_router(transactions.router)
-app.include_router(transactions.product_router)
 app.include_router(suppliers.router)
 app.include_router(documents.router)
 app.include_router(documents.document_router)

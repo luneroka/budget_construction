@@ -1,4 +1,4 @@
-export type TransactionType = 'quote' | 'diy_estimate' | 'invoice'
+export type TransactionType = 'quote' | 'invoice'
 export type QuoteStatus =
   'to_confirm' | 'to_negotiate' | 'validated' | 'rejected'
 export type InvoiceStatus = 'unpaid' | 'on_hold' | 'paid'
@@ -9,10 +9,16 @@ export type DocumentDisplayState =
 
 export type Transaction = {
   id: string
-  budget_line_id: string
+  project_id: string
+  lot_id: number
+  lot_code: string
+  lot_designation: string
   supplier_id: string | null
   supplier_name: string | null
   transaction_type: TransactionType
+  // « Libellé » and « Référence »: optional free text.
+  title: string | null
+  reference: string | null
   amount_ht: number
   vat_rate: number
   amount_vat: number
@@ -28,7 +34,6 @@ export type Transaction = {
   invoice_status: InvoiceStatus | null
   invoice_type: InvoiceType | null
   payment_method: PaymentMethod | null
-  select_as_budget: boolean
   document_state: DocumentDisplayState
   document_count: number
 }

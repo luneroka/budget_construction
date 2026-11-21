@@ -12,10 +12,12 @@ import {
 // forms lead with, so it is the starting point. Shared by both modals.
 export function useTransactionAmountForm<T extends AmountFields>(
   createInitial: () => T,
-  options?: { onChange?: () => void },
+  options?: { onChange?: () => void; initialSource?: AmountSource },
 ) {
   const [form, setForm] = useState<T>(createInitial)
-  const [amountSource, setAmountSource] = useState<AmountSource>('ttc')
+  const [amountSource, setAmountSource] = useState<AmountSource>(
+    options?.initialSource ?? 'ttc',
+  )
 
   function updateField<K extends keyof T>(key: K, value: T[K]) {
     const nextAmountSource =

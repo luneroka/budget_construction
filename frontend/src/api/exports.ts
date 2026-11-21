@@ -2,8 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 
 import { apiClient } from './client'
 
-export type AccountingExportTransactionType =
-  'all' | 'invoices' | 'quotes' | 'diy_estimates'
+export type AccountingExportTransactionType = 'all' | 'invoices' | 'quotes'
 
 export type AccountingCsvExportParams = {
   startDate?: string

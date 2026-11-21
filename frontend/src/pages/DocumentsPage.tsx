@@ -48,6 +48,7 @@ import {
 import { formatCurrency, formatDate } from '@/lib/format'
 import { notifyError, notifySuccess } from '@/lib/toasts'
 import { useSelectedProjectId } from '@/state/appState'
+import { normalizeSearchText } from '@/lib/searchHighlight'
 
 type DocumentAction = 'view' | 'download'
 
@@ -56,7 +57,6 @@ const documentTransactionTypeLabels: Record<
   string
 > = {
   quote: 'Devis',
-  diy_estimate: 'Estimation DIY',
   invoice: 'Facture',
 }
 
@@ -81,10 +81,13 @@ function formatDocumentDisplayName(document: DocumentsListItem): string {
   const amount = document.amount_ttc
     ? formatCurrency(Number(document.amount_ttc))
     : null
-  const productLabel = document.product_name?.trim()
-  const primaryLabel = productLabel ? `${typeLabel} ${productLabel}` : typeLabel
+  const title = document.transaction_title?.trim()
+  const primaryLabel = title ? `${typeLabel} ${title}` : typeLabel
+  const lot = `${document.lot_code} · ${document.lot_designation}`
 
-  return [primaryLabel, supplier, amount].filter(Boolean).join(' • ')
+  return [primaryLabel, lot, document.transaction_reference, supplier, amount]
+    .filter(Boolean)
+    .join(' • ')
 }
 
 function sortDocuments(documents: DocumentsListItem[]): DocumentsListItem[] {
@@ -171,7 +174,7 @@ export function DocumentsPage() {
     )
   }
 
-  const normalizedSearch = search.trim().toLowerCase()
+  const normalizedSearch = normalizeSearchText(search)
   const filteredDocuments = useMemo(() => {
     if (!normalizedSearch) return documents
 
@@ -187,16 +190,21 @@ export function DocumentsPage() {
               document.original_filename,
               formatDocumentDisplayName(document),
               document.transaction_type,
+              document.transaction_title,
+              document.transaction_reference,
               document.transaction_description,
               document.supplier_name,
-              document.product_name,
+              document.lot_code,
+              document.lot_designation,
               document.amount_ttc,
               String(document.transaction_id),
             ]
 
       return searchableValues
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(normalizedSearch))
+        .some((value) =>
+          normalizeSearchText(String(value)).includes(normalizedSearch),
+        )
     })
   }, [documents, normalizedSearch])
   const {
@@ -222,7 +230,8 @@ export function DocumentsPage() {
     !isLoadingDocuments && !documentsError && filteredDocuments.length === 0
   const pendingDeletionTransactionTitle =
     documentPendingDeletion && documentPendingDeletion.type === 'document'
-      ? formatTransactionTitle(documentPendingDeletion.transaction_description)
+      ? (documentPendingDeletion.transaction_title ??
+        formatTransactionTitle(documentPendingDeletion.transaction_description))
       : null
 
   async function openDocumentAction(
